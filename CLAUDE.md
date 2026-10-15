@@ -1,0 +1,54 @@
+# SplitHouse
+
+Personal Android app, single user (Francis), to split monthly rent and utilities with housemates and send each person their breakdown on WhatsApp. v1 goes live for the November 2026 cycle.
+
+## Read first (docs/)
+- SplitHouse — Design Brief.md: rules, screens, decisions. Its "Decisions made in design" section overrides earlier text in it.
+- SplitHouse — Tech Stack.md and Data Model.md (Oct 15, 2026): these win over older text elsewhere.
+- SplitHouse — gluestack v5 theme and screen mapping.md, plus config.ts and global.css (theme tokens).
+- SplitHouse — Account Setup Guide.md: accounts, env vars, names.
+If two docs disagree, stop and ask instead of choosing.
+
+## Layout
+- backend/  Next.js route handlers on Vercel, Prisma, Better Auth. Neon Postgres.
+- app/      Expo (React Native) Android app, NativeWind, gluestack-ui v5.
+- docs/     Design and decision docs.
+- assets-old/  Local only, gitignored, never commit. Old spreadsheet, a real utilities bill PDF (sample for testing the bill parser) and the app icon pack. The bill holds personal data: never print its contents into logs, docs or commits, and never copy these files into tracked folders. Copy only the icon pack images you need into app/assets.
+
+## Names
+App SplitHouse, repo split-house-app, Android package com.splithouse.app, scheme splithouse, Expo slug split-house-app, Vercel project split-house-api.
+
+## Rules that must hold
+- Money is integer cents, SGD, shown with 2 decimals. Every person except Francis is rounded to the nearest cent; Francis gets the remainder.
+- One split engine: a pure function in backend/ only. The app never calculates splits; Add charge and Household previews call preview endpoints. Unit tests use the Nov 2026 fixtures in the Data Model doc.
+- Household settings are immutable versions with a starts-from month, and an edit must start after the current month (the first setup version is the exception). Charges are created with their amounts stored and are never recalculated. Fix history with correction charges.
+- Payments are paid fields on the Charge. No carry-over of short payments.
+- WhatsApp: text-only wa.me chats, opened by Francis one at a time. Never send anything automatically. Record when a chat was opened or nudged.
+- Online only. When the backend can't be reached, show the blocking "Can't reach the server" prompt with Retry. The free database sleeps after 5 minutes idle, so cold starts are normal.
+- Auth: Better Auth, Google sign-in with a native ID token, sessions in Postgres, only ALLOWED_EMAIL may sign in. Keep cookie caching off so revoking a session is immediate.
+- UI: token classes only, never hex values. Labels sit above fields (FormControl). Lucide icons, Manrope, light and dark themes, 44px minimum touch targets. gluestack components are copied into the repo. Custom pieces: bottom navigation bar, segmented control, single-select chips.
+- Never use Expo Go. Use a development build.
+- Secrets: never commit .env files, keystores or credentials.json. Keep a .env.example with names only.
+
+## Public-repo hygiene
+This repo may become public as a portfolio piece.
+- In code, tests, seed data, comments, commit messages and README, use fictional placeholder names and sample amounts that keep the same roles and rules as the Data Model fixtures. Never real names, phone numbers, addresses, account numbers or real rent figures. The real household lives only in the database.
+- The docs in docs/ use role names (Primary tenant, Tenant 1, Tenant 2) and sample amounts; keep real names and figures out of code and other tracked files.
+- Never commit anything from assets-old/, .env files, keystores, credentials.json or connection strings.
+
+## Versions
+Check current docs before using Expo SDK, gluestack v5, NativeWind, Prisma, Better Auth and Next.js. Don't rely on memory for setup steps or APIs.
+
+## Windows notes
+Developer is on Windows (Command Prompt or PowerShell). NODE_USE_SYSTEM_CA=1 is set because the network inspects HTTPS. Never disable TLS verification.
+
+## First tasks, in order
+1. Scaffold backend/: Next.js, Prisma against the Neon dev branch (pooled URL at runtime, direct URL for migrations), Better Auth with the Google provider.
+2. Scaffold app/: Expo with the slug and package name above, NativeWind, gluestack v5, and the theme from docs/config.ts and docs/global.css. Link it with eas init.
+3. Spike: build Home and the Add charge sheet from the mapping doc. Verify Manrope (5 weights), Lucide, the bottom sheet, the month Select, the DateTimePicker (alpha), and Better Auth in Expo with secure storage and the email restriction. Report what worked and what didn't before building more.
+
+## Build order (confirm with Francis)
+Data model and split engine against the fixtures; Home and bill upload; Recipient and messages; collecting payments and corrections; Household and Settings; notifications; History and first-run setup.
+
+## Working agreements
+Don't commit or push unless asked. Flag any conflict between docs or any decision you want to change before acting on it.
