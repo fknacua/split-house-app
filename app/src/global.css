@@ -1,0 +1,308 @@
+@import "tailwindcss/theme.css" layer(theme);
+@import "tailwindcss/preflight.css" layer(base);
+@import "tailwindcss/utilities.css";
+@import "nativewind/theme";
+
+/* ─── SplitHouse theme: design tokens (light / dark) ──────────────
+   Source of truth: docs/config.ts and docs/global.css (design handover).
+   1. :root              — light defaults (all platforms)
+   2. @media dark :root  — dark defaults; nativewind maps this to
+                           Appearance.getColorScheme() on native.
+   3. :root.dark / :root.light — higher specificity for web class toggle
+                                  (GluestackUIProvider mode="light"|"dark"). */
+@layer theme {
+  :root {
+    --background: 245 245 247;
+    --foreground: 26 28 30;
+    --card: 255 255 255;
+    --card-foreground: 26 28 30;
+    --popover: 255 255 255;
+    --popover-foreground: 26 28 30;
+    --primary: 43 47 51;
+    --primary-foreground: 255 255 255;
+    --secondary: 233 234 237;
+    --secondary-foreground: 26 28 30;
+    --muted: 233 234 237;
+    --muted-foreground: 69 72 76;
+    --accent: 230 231 234;
+    --accent-foreground: 26 28 30;
+    --destructive: 211 47 47;
+    --border: 230 231 234;
+    --input: 116 119 124;
+    --ring: 43 47 51;
+    /* app tokens (design handover names) */
+    --surface: 255 255 255;
+    --container: 233 234 237;
+    --sheet: 255 255 255;
+    --on-surface: 26 28 30;
+    --on-surface-variant: 69 72 76;
+    --outline: 116 119 124;
+    --outline-variant: 230 231 234;
+    --on-primary: 255 255 255;
+    --selected: 230 231 234;
+    --on-selected: 26 28 30;
+    --disabled: 233 234 237;
+    --on-disabled: 154 157 162;
+    --track: 211 213 217;
+    --scrim: 0 0 0;
+    --success: 46 125 50;
+    --success-container: 200 230 201;
+    --on-success-container: 30 70 32;
+    --warning: 230 81 0;
+    --warning-container: 251 226 204;
+    --on-warning-container: 102 60 0;
+    --warning-tint: 255 244 229;
+    --warning-line: 251 226 204;
+    --danger: 211 47 47;
+    --danger-tint: 253 237 237;
+    --danger-line: 246 213 213;
+    --on-danger-tint: 95 33 32;
+    --info: 2 136 209;
+    --info-tint: 229 246 253;
+    --info-line: 204 231 246;
+    --info-container: 204 231 246;
+    --on-info-container: 1 67 97;
+  }
+
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --background: 17 18 20;
+      --foreground: 227 227 230;
+      --card: 26 28 30;
+      --card-foreground: 227 227 230;
+      --popover: 34 36 39;
+      --popover-foreground: 227 227 230;
+      --primary: 226 226 230;
+      --primary-foreground: 26 28 30;
+      --secondary: 34 36 39;
+      --secondary-foreground: 227 227 230;
+      --muted: 34 36 39;
+      --muted-foreground: 196 198 203;
+      --accent: 44 47 51;
+      --accent-foreground: 227 227 230;
+      --destructive: 244 67 54;
+      --border: 46 49 52;
+      --input: 142 145 150;
+      --ring: 226 226 230;
+      --surface: 26 28 30;
+      --container: 34 36 39;
+      --sheet: 34 36 39;
+      --on-surface: 227 227 230;
+      --on-surface-variant: 196 198 203;
+      --outline: 142 145 150;
+      --outline-variant: 46 49 52;
+      --on-primary: 26 28 30;
+      --selected: 44 47 51;
+      --on-selected: 227 227 230;
+      --disabled: 34 36 39;
+      --on-disabled: 92 95 100;
+      --track: 58 62 67;
+      --scrim: 0 0 0;
+      --success: 102 187 106;
+      --success-container: 27 94 32;
+      --on-success-container: 203 228 203;
+      --warning: 255 167 38;
+      --warning-container: 102 67 15;
+      --on-warning-container: 255 226 183;
+      --warning-tint: 51 33 8;
+      --warning-line: 245 124 0;
+      --danger: 244 67 54;
+      --danger-tint: 59 21 17;
+      --danger-line: 211 47 47;
+      --on-danger-tint: 255 217 214;
+      --info: 41 182 246;
+      --info-tint: 8 36 49;
+      --info-line: 27 118 160;
+      --info-container: 16 73 98;
+      --on-info-container: 184 231 251;
+    }
+  }
+
+  :root.dark {
+    --background: 17 18 20;
+    --foreground: 227 227 230;
+    --card: 26 28 30;
+    --card-foreground: 227 227 230;
+    --popover: 34 36 39;
+    --popover-foreground: 227 227 230;
+    --primary: 226 226 230;
+    --primary-foreground: 26 28 30;
+    --secondary: 34 36 39;
+    --secondary-foreground: 227 227 230;
+    --muted: 34 36 39;
+    --muted-foreground: 196 198 203;
+    --accent: 44 47 51;
+    --accent-foreground: 227 227 230;
+    --destructive: 244 67 54;
+    --border: 46 49 52;
+    --input: 142 145 150;
+    --ring: 226 226 230;
+    --surface: 26 28 30;
+    --container: 34 36 39;
+    --sheet: 34 36 39;
+    --on-surface: 227 227 230;
+    --on-surface-variant: 196 198 203;
+    --outline: 142 145 150;
+    --outline-variant: 46 49 52;
+    --on-primary: 26 28 30;
+    --selected: 44 47 51;
+    --on-selected: 227 227 230;
+    --disabled: 34 36 39;
+    --on-disabled: 92 95 100;
+    --track: 58 62 67;
+    --scrim: 0 0 0;
+    --success: 102 187 106;
+    --success-container: 27 94 32;
+    --on-success-container: 203 228 203;
+    --warning: 255 167 38;
+    --warning-container: 102 67 15;
+    --on-warning-container: 255 226 183;
+    --warning-tint: 51 33 8;
+    --warning-line: 245 124 0;
+    --danger: 244 67 54;
+    --danger-tint: 59 21 17;
+    --danger-line: 211 47 47;
+    --on-danger-tint: 255 217 214;
+    --info: 41 182 246;
+    --info-tint: 8 36 49;
+    --info-line: 27 118 160;
+    --info-container: 16 73 98;
+    --on-info-container: 184 231 251;
+  }
+
+  :root.light {
+    --background: 245 245 247;
+    --foreground: 26 28 30;
+    --card: 255 255 255;
+    --card-foreground: 26 28 30;
+    --popover: 255 255 255;
+    --popover-foreground: 26 28 30;
+    --primary: 43 47 51;
+    --primary-foreground: 255 255 255;
+    --secondary: 233 234 237;
+    --secondary-foreground: 26 28 30;
+    --muted: 233 234 237;
+    --muted-foreground: 69 72 76;
+    --accent: 230 231 234;
+    --accent-foreground: 26 28 30;
+    --destructive: 211 47 47;
+    --border: 230 231 234;
+    --input: 116 119 124;
+    --ring: 43 47 51;
+    --surface: 255 255 255;
+    --container: 233 234 237;
+    --sheet: 255 255 255;
+    --on-surface: 26 28 30;
+    --on-surface-variant: 69 72 76;
+    --outline: 116 119 124;
+    --outline-variant: 230 231 234;
+    --on-primary: 255 255 255;
+    --selected: 230 231 234;
+    --on-selected: 26 28 30;
+    --disabled: 233 234 237;
+    --on-disabled: 154 157 162;
+    --track: 211 213 217;
+    --scrim: 0 0 0;
+    --success: 46 125 50;
+    --success-container: 200 230 201;
+    --on-success-container: 30 70 32;
+    --warning: 230 81 0;
+    --warning-container: 251 226 204;
+    --on-warning-container: 102 60 0;
+    --warning-tint: 255 244 229;
+    --warning-line: 251 226 204;
+    --danger: 211 47 47;
+    --danger-tint: 253 237 237;
+    --danger-line: 246 213 213;
+    --on-danger-tint: 95 33 32;
+    --info: 2 136 209;
+    --info-tint: 229 246 253;
+    --info-line: 204 231 246;
+    --info-container: 204 231 246;
+    --on-info-container: 1 67 97;
+  }
+}
+
+@theme inline {
+  /* gluestack v5 variables */
+  --color-background: rgb(var(--background));
+  --color-foreground: rgb(var(--foreground));
+  --color-card: rgb(var(--card));
+  --color-card-foreground: rgb(var(--card-foreground));
+  --color-popover: rgb(var(--popover));
+  --color-popover-foreground: rgb(var(--popover-foreground));
+  --color-primary: rgb(var(--primary));
+  --color-primary-foreground: rgb(var(--primary-foreground));
+  --color-secondary: rgb(var(--secondary));
+  --color-secondary-foreground: rgb(var(--secondary-foreground));
+  --color-muted: rgb(var(--muted));
+  --color-muted-foreground: rgb(var(--muted-foreground));
+  --color-accent: rgb(var(--accent));
+  --color-accent-foreground: rgb(var(--accent-foreground));
+  --color-destructive: rgb(var(--destructive));
+  --color-border: rgb(var(--border));
+  --color-input: rgb(var(--input));
+  --color-ring: rgb(var(--ring));
+  /* app tokens from the design handover */
+  --color-surface: rgb(var(--surface));
+  --color-container: rgb(var(--container));
+  --color-sheet: rgb(var(--sheet));
+  --color-on-surface: rgb(var(--on-surface));
+  --color-on-surface-variant: rgb(var(--on-surface-variant));
+  --color-outline: rgb(var(--outline));
+  --color-outline-variant: rgb(var(--outline-variant));
+  --color-on-primary: rgb(var(--on-primary));
+  --color-selected: rgb(var(--selected));
+  --color-on-selected: rgb(var(--on-selected));
+  --color-disabled: rgb(var(--disabled));
+  --color-on-disabled: rgb(var(--on-disabled));
+  --color-track: rgb(var(--track));
+  --color-scrim: rgb(var(--scrim));
+  --color-success: rgb(var(--success));
+  --color-success-container: rgb(var(--success-container));
+  --color-on-success-container: rgb(var(--on-success-container));
+  --color-warning: rgb(var(--warning));
+  --color-warning-container: rgb(var(--warning-container));
+  --color-on-warning-container: rgb(var(--on-warning-container));
+  --color-warning-tint: rgb(var(--warning-tint));
+  --color-warning-line: rgb(var(--warning-line));
+  --color-danger: rgb(var(--danger));
+  --color-danger-tint: rgb(var(--danger-tint));
+  --color-danger-line: rgb(var(--danger-line));
+  --color-on-danger-tint: rgb(var(--on-danger-tint));
+  --color-info: rgb(var(--info));
+  --color-info-tint: rgb(var(--info-tint));
+  --color-info-line: rgb(var(--info-line));
+  --color-info-container: rgb(var(--info-container));
+  --color-on-info-container: rgb(var(--on-info-container));
+
+  /* Type: Manrope, weights 400 to 800. React Native can't select a weight out of a
+     single font family (no variable fonts), so each weight is its own family,
+     registered in src/hooks/use-app-fonts.ts and named to match these tokens. */
+  --font-manrope: "Manrope-Regular";
+  --font-manrope-medium: "Manrope-Medium";
+  --font-manrope-semibold: "Manrope-SemiBold";
+  --font-manrope-bold: "Manrope-Bold";
+  --font-manrope-extrabold: "Manrope-ExtraBold";
+  --text-hero: 34px;
+  --text-hero--line-height: 40px;
+  --text-title: 24px;
+  --text-title--line-height: 32px;
+  --text-sheet: 20px;
+  --text-sheet--line-height: 28px;
+  --text-field: 16px;
+  --text-field--line-height: 24px;
+  --text-body: 15px;
+  --text-body--line-height: 22px;
+  --text-label: 14px;
+  --text-label--line-height: 20px;
+  --text-caption: 12px;
+  --text-caption--line-height: 16px;
+
+  /* Shape */
+  --radius-field: 12px;
+  --radius-alert: 16px;
+  --radius-card: 20px;
+  --radius-dialog: 24px;
+  --radius-sheet: 28px;
+}

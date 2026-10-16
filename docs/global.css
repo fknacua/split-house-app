@@ -56,14 +56,31 @@
   --color-on-info-container: rgb(var(--on-info-container));
 
   /* Type: Manrope, weights 400 to 800 (load all five weights in the Expo font setup) */
-  --font-family-manrope: 'Manrope';
-  --font-size-hero: 34px;
-  --font-size-title: 24px;
-  --font-size-sheet: 20px;
-  --font-size-field: 16px;
-  --font-size-body: 15px;
-  --font-size-label: 14px;
-  --font-size-caption: 12px;
+  /* Fixed Oct 15 build (Claude Code): Tailwind v4 needs --font-* for family and
+     --text-* for size with a --text-*--line-height companion; --font-family-*
+     and --font-size-* don't generate utilities and were silently dropped. */
+  /* React Native has no variable fonts, so font-weight can't pick a weight out of
+     one family — each weight needs its own family name (verified in the Oct 2026
+     build spike). Register these names in the Expo font loader. */
+  --font-manrope: 'Manrope-Regular';
+  --font-manrope-medium: 'Manrope-Medium';
+  --font-manrope-semibold: 'Manrope-SemiBold';
+  --font-manrope-bold: 'Manrope-Bold';
+  --font-manrope-extrabold: 'Manrope-ExtraBold';
+  --text-hero: 34px;
+  --text-hero--line-height: 40px;
+  --text-title: 24px;
+  --text-title--line-height: 32px;
+  --text-sheet: 20px;
+  --text-sheet--line-height: 28px;
+  --text-field: 16px;
+  --text-field--line-height: 24px;
+  --text-body: 15px;
+  --text-body--line-height: 22px;
+  --text-label: 14px;
+  --text-label--line-height: 20px;
+  --text-caption: 12px;
+  --text-caption--line-height: 16px;
 
   /* Shape */
   --radius-field: 12px;
