@@ -12,6 +12,7 @@ import {
   withStyleContext,
 } from '@gluestack-ui/utils/nativewind-utils';
 import DateTimePickerNative from '@react-native-community/datetimepicker';
+import { format as formatDate } from 'date-fns';
 import { styled } from 'nativewind';
 import React, { useCallback, useMemo } from 'react';
 import {
@@ -57,7 +58,7 @@ const DateTimePickerTriggerWrapper = React.forwardRef<
 });
 
 const StyledTextInput = styled(TextInput, {
-  className: { target: 'style', nativeStyleToProp: { textAlign: true } },
+  className: { target: 'style', nativeStyleMapping: { textAlign: 'textAlign' } },
 });
 
 const StyledUIIcon = styled(UIIcon, {
@@ -497,7 +498,7 @@ const DateTimePickerInput = React.forwardRef<
   const displayValue = useMemo(() => {
     if (!value) return '';
     if (format) {
-      return formatDate(value, format);
+      return formatDate(value, format); // date-fns tokens, e.g. 'dd MMM yyyy'
     }
     return value.toLocaleString();
   }, [value, format]);
@@ -533,7 +534,7 @@ const DateTimePickerIcon = React.forwardRef<
   if (typeof size === 'number') {
     return (
       <UIDateTimePicker.Icon
-        ref={ref}
+        ref={ref as any} // gluestack's icon ref types don't line up
         {...props}
         className={dateTimePickerIconStyle({ class: className })}
         size={size}
@@ -550,22 +551,11 @@ const DateTimePickerIcon = React.forwardRef<
           size: parentSize,
         },
       })}
-      ref={ref}
+      ref={ref as any}
       {...props}
     />
   );
 });
-
-function formatDate(date: Date, format: string): string {
-  const pad = (n: number) => n.toString().padStart(2, '0');
-  return format
-    .replace('YYYY', date.getFullYear().toString())
-    .replace('MM', pad(date.getMonth() + 1))
-    .replace('DD', pad(date.getDate()))
-    .replace('HH', pad(date.getHours()))
-    .replace('mm', pad(date.getMinutes()))
-    .replace('ss', pad(date.getSeconds()));
-}
 
 export {
   DateTimePicker, DateTimePickerIcon, DateTimePickerInput, DateTimePickerTrigger

@@ -43,13 +43,11 @@ const DateTimePicker = React.forwardRef<
   );
 
   const handleDateSelect = useCallback(
-    (date: Date | Date[] | { from: Date; to: Date }) => {
-      if (date instanceof Date) {
-        setTempDate(date);
-        if (mode === 'date') {
-          onChange?.(date);
-          setIsOpen(false);
-        }
+    (date: Date) => {
+      setTempDate(date);
+      if (mode === 'date') {
+        onChange?.(date);
+        setIsOpen(false);
       }
     },
     [mode, onChange]
@@ -119,9 +117,9 @@ const DateTimePicker = React.forwardRef<
             <View className="mb-4">
               <Calendar
                 mode="single"
-                selected={tempDate}
-                onSelect={handleDateSelect}
-                initialDate={tempDate}
+                value={tempDate}
+                onValueChange={handleDateSelect}
+                initialMonth={tempDate}
                 minDate={minimumDate}
                 maxDate={maximumDate}
               />

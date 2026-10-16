@@ -11,9 +11,13 @@ const items = [
   { key: 'settings', label: 'Settings', icon: Settings },
 ] as const;
 
+export interface BottomNavProps {
+  active?: (typeof items)[number]['key'];
+  onItemPress?: (key: (typeof items)[number]['key']) => void;
+}
 // gluestack v5 has no bottom nav bar — custom, per the screen mapping doc.
 // Static/presentational for the spike: only Home exists as a real route so far.
-export function BottomNav({ active = 'home' }: { active?: (typeof items)[number]['key'] }) {
+export function BottomNav({ active = 'home', onItemPress }: BottomNavProps) {
   return (
     <View className="flex-row border-t border-outline-variant bg-container px-2 pb-6 pt-2">
       {items.map((item) => {
@@ -22,6 +26,7 @@ export function BottomNav({ active = 'home' }: { active?: (typeof items)[number]
           <Pressable
             key={item.key}
             className="min-h-11 flex-1 items-center justify-center gap-1 py-1"
+            onPress={() => onItemPress?.(item.key)}
           >
             <Icon
               as={item.icon}

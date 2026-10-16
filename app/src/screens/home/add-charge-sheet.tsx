@@ -1,6 +1,6 @@
 import { useRef, useState } from 'react';
 import { ScrollView, Text, View } from 'react-native';
-import { TriangleAlert } from 'lucide-react-native';
+import { CalendarDays, TriangleAlert } from 'lucide-react-native';
 
 import { Alert, AlertIcon, AlertText } from '@/components/ui/alert';
 import {
@@ -9,12 +9,16 @@ import {
   BottomSheetContent,
   BottomSheetDragIndicator,
   BottomSheetPortal,
-  BottomSheetTrigger,
   type BottomSheetRef,
 } from '@/components/ui/bottomsheet';
 import { Button, ButtonSpinner, ButtonText } from '@/components/ui/button';
 import { ChipGroup } from '@/components/chip';
-import { DateTimePicker } from '@/components/ui/date-time-picker';
+import {
+  DateTimePicker,
+  DateTimePickerIcon,
+  DateTimePickerInput,
+  DateTimePickerTrigger,
+} from '@/components/ui/date-time-picker';
 import {
   FormControl,
   FormControlHelper,
@@ -67,13 +71,14 @@ export function AddChargeSheet() {
 
   return (
     <BottomSheet ref={sheetRef}>
-      <BottomSheetTrigger>
-        <Button className="h-12 rounded-full bg-primary">
-          <ButtonText className="font-manrope-bold text-label text-on-primary">
-            Add charge
-          </ButtonText>
-        </Button>
-      </BottomSheetTrigger>
+      <Button
+        className="h-12 rounded-full bg-primary"
+        onPress={() => sheetRef.current?.open()}
+      >
+        <ButtonText className="font-manrope-bold text-label text-on-primary">
+          Add charge
+        </ButtonText>
+      </Button>
 
       <BottomSheetPortal
         snapPoints={['85%']}
@@ -162,8 +167,13 @@ export function AddChargeSheet() {
                 mode="date"
                 value={dueDate}
                 onChange={setDueDate}
-                className="h-12 rounded-field border border-outline bg-surface"
-              />
+                format="dd MMM yyyy"
+              >
+                <DateTimePickerTrigger className="h-12 rounded-field border border-outline bg-surface px-3">
+                  <DateTimePickerIcon as={CalendarDays} className="text-on-surface-variant mr-2" />
+                  <DateTimePickerInput className="font-manrope-medium text-field text-foreground" />
+                </DateTimePickerTrigger>
+              </DateTimePicker>
             </FormControl>
 
             <FormControl>

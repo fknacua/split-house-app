@@ -103,7 +103,8 @@ const Separator = React.forwardRef<
   );
 });
 
-const StyledAnimatedView = styled(AnimatedView, {
+// Cast: TS can't infer the animated view's props through styled() (too deep)
+const StyledAnimatedView = styled(AnimatedView as React.ComponentType<any>, {
   className: 'style',
 });
 export const UIMenu = createMenu({
@@ -126,14 +127,15 @@ const Menu = React.forwardRef<React.ComponentRef<typeof UIMenu>, IMenuProps>(
       <UIMenu
         entering={ZoomIn.duration(150).withInitialValues({
           transform: [{ scale: 0.9 }],
+          // reanimated's types only list the zoom's own transform here
           opacity: 0,
-        })}
+        } as any)}
         exiting={FadeOut.duration(150)}
         ref={ref}
         className={menuStyle({
           class: className,
         })}
-        {...props}
+        {...(props as any)}
       />
     );
   }

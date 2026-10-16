@@ -53,7 +53,7 @@ const Header = (
 ) as React.ComponentType<TextProps>;
 
 const StyledUIIcon = styled(UIIcon, {
-  className: "style",
+  className: 'style',
 });
 /** Creator */
 const UIAccordion = createAccordion({

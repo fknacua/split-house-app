@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { ScrollView, Text, View } from 'react-native';
-import { AlertTriangle } from 'lucide-react-native';
+import { AlertTriangle, ChevronDown } from 'lucide-react-native';
 
 import {
   Accordion,
@@ -68,8 +68,9 @@ function money(cents: number) {
 export function Home() {
   // Not real loading state — just enough to exercise Skeleton for the spike.
   const [loading, setLoading] = useState(true);
+  const [active, setActive] = useState<'home' | 'history' | 'household' | 'settings'>('home');
   useEffect(() => {
-    const t = setTimeout(() => setLoading(false), 600);
+    const t = setTimeout(() => setLoading(false), 3000);
     return () => clearTimeout(t);
   }, []);
 
@@ -145,6 +146,7 @@ export function Home() {
                         </BadgeText>
                       </Badge>
                       <AccordionIcon
+                        as={ChevronDown}
                         className={'ml-2 text-on-surface-variant ' + (isExpanded ? 'rotate-180' : '')}
                       />
                     </>
@@ -169,7 +171,7 @@ export function Home() {
 
         <AddChargeSheet />
       </ScrollView>
-      <BottomNav active="home" />
+      <BottomNav active={active} onItemPress={setActive} />
     </View>
   );
 }

@@ -6,6 +6,7 @@ import { useColorScheme } from 'react-native';
 import { GluestackUIProvider } from '@/components/ui/gluestack-ui-provider';
 import { useAppFonts } from '@/hooks/use-app-fonts';
 import '@/global.css';
+import { GestureHandlerRootView } from 'react-native-gesture-handler';
 
 SplashScreen.preventAutoHideAsync();
 
@@ -24,8 +25,10 @@ export default function RootLayout() {
   }
 
   return (
-    <GluestackUIProvider mode={colorScheme === 'dark' ? 'dark' : 'light'}>
-      <Stack screenOptions={{ headerShown: false }} />
-    </GluestackUIProvider>
+    <GestureHandlerRootView style={{ flex: 1 }}>
+      <GluestackUIProvider mode={colorScheme === 'dark' ? 'dark' : 'light'}>
+        <Stack screenOptions={{ headerShown: false }} />
+      </GluestackUIProvider>
+    </GestureHandlerRootView>
   );
 }

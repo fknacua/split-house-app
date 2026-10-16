@@ -285,19 +285,19 @@
   --font-manrope-bold: "Manrope-Bold";
   --font-manrope-extrabold: "Manrope-ExtraBold";
   --text-hero: 34px;
-  --text-hero--line-height: 40px;
+  --text-hero--line-height: 1.1765;
   --text-title: 24px;
-  --text-title--line-height: 32px;
+  --text-title--line-height: 1.3333;
   --text-sheet: 20px;
-  --text-sheet--line-height: 28px;
+  --text-sheet--line-height: 1.4;
   --text-field: 16px;
-  --text-field--line-height: 24px;
+  --text-field--line-height: 1.5;
   --text-body: 15px;
-  --text-body--line-height: 22px;
+  --text-body--line-height: 1.4667;
   --text-label: 14px;
-  --text-label--line-height: 20px;
+  --text-label--line-height: 1.4286;
   --text-caption: 12px;
-  --text-caption--line-height: 16px;
+  --text-caption--line-height: 1.3333;
 
   /* Shape */
   --radius-field: 12px;

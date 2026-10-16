@@ -61,7 +61,7 @@ const bottomSheetTextInputStyle = tva({
 });
 
 type BottomSheetContextValue = {
-  bottomSheetRef: React.RefObject<GorhomBottomSheet>;
+  bottomSheetRef: React.RefObject<GorhomBottomSheet | null>;
   handleClose: () => void;
   handleOpen: (index?: number) => void;
   isVisible: boolean;
@@ -217,8 +217,9 @@ export const BottomSheetPortal = ({
   if (!isVisible) return null;
 
   // Defensive index check to prevent Invariant Violation
+  // snapPoints may also be a reanimated SharedValue; only arrays have a length
   const validIndex =
-    memoizedSnapPoints && memoizedSnapPoints.length > 0
+    Array.isArray(memoizedSnapPoints) && memoizedSnapPoints.length > 0
       ? Math.min(currentIndex, memoizedSnapPoints.length - 1)
       : currentIndex;
 
@@ -229,9 +230,9 @@ export const BottomSheetPortal = ({
         snapPoints={memoizedSnapPoints}
         index={validIndex}
         enableDynamicSizing={enableDynamicSizing}
-        onChange={(idx) => {
+        onChange={(idx, position, type) => {
           handleSheetChanges(idx);
-          onChange?.(idx);
+          onChange?.(idx, position, type);
         }}
         enablePanDownToClose={enablePanDownToClose}
         // @ts-ignore
@@ -269,7 +270,11 @@ export const BottomSheetTrigger = ({
   );
 };
 
-type IBottomSheetBackdropProps = BottomSheetBackdropProps & {
+// BottomSheetBackdropProps (exported) lacks the fade/press props the default
+// backdrop accepts, so take the prop type from the component itself.
+type IBottomSheetBackdropProps = React.ComponentProps<
+  typeof GorhomBottomSheetBackdrop
+> & {
   className?: string;
 };
 
@@ -313,7 +318,7 @@ export const BottomSheetDragIndicator = ({
 }: Partial<IBottomSheetHandleProps>) => {
   return (
     <StyledGorhomBottomSheetHandle
-      {...props}
+      {...(props as IBottomSheetHandleProps)}
       // @ts-ignore
       className={bottomSheetHandleStyle({ className })}
     >
@@ -404,7 +409,8 @@ type IBottomSheetItemProps = PressableProps & {
   closeOnSelect?: boolean;
 };
 
-const StyledGGHPressable = styled(GGHPressable, {
+// Cast: the full GGHPressable prop type is too complex for TS to infer through styled()
+const StyledGGHPressable = styled(GGHPressable as React.ComponentType<any>, {
   className: 'style',
 });
 
@@ -416,14 +422,16 @@ export const BottomSheetItem = ({
 }: IBottomSheetItemProps) => {
   const { handleClose } = useContext(BottomSheetContext);
 
-  const Pressable = Platform.OS === 'web' ? RNPressable : StyledGGHPressable;
+  // The two Pressables have different event types, so type the choice loosely
+  const Pressable: React.ElementType =
+    Platform.OS === 'web' ? RNPressable : StyledGGHPressable;
 
   return (
     <Pressable
       {...props}
       // @ts-ignore
       className={bottomSheetItemStyle({ className })}
-      onPress={(e) => {
+      onPress={(e: any) => {
         props.onPress?.(e);
         if (closeOnSelect) {
           handleClose();
