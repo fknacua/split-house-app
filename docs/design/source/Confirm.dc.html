@@ -1,0 +1,111 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Confirm destructive action</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&display=swap">
+<style>
+body{margin:0}
+</style>
+</helmet>
+<div style="width: 400px; height: 848px; box-sizing: border-box; padding: 8px; background: #0B0C0C; border-radius: 26px; font-family: Manrope, 'Segoe UI', system-ui, sans-serif; color: {{c.onSurface}}">
+<div style="position: relative; width: 384px; height: 832px; border-radius: 18px; overflow: hidden; background: {{c.background}}">
+
+<div aria-hidden="true" style="padding: 48px 16px 0; display: flex; flex-direction: column; gap: 16px">
+<span style="font-size: 20px; line-height: 28px; font-weight: 800">{{bgTitle}}</span>
+<div style="height: 56px; border-radius: 12px; border: 1px solid {{c.outline}}"></div>
+<div style="height: 180px; border-radius: 20px; background: {{c.surface}}"></div>
+<div style="height: 220px; border-radius: 20px; background: {{c.surface}}"></div>
+</div>
+<div style="position: absolute; inset: 0; background: {{c.scrim}}"></div>
+<div style="position: absolute; top: 12px; left: 186px; width: 12px; height: 12px; border-radius: 6px; background: #050505; box-shadow: 0 0 0 2px #1C1D1E"></div>
+
+<!-- AlertDialog: sheet bg, radius 24, no shadow (scrim shows depth) -->
+<section role="alertdialog" aria-labelledby="dlgTitle" aria-describedby="dlgBody" style="position: absolute; left: 24px; right: 24px; top: 50%; transform: translateY(-50%); background: {{c.sheet}}; border-radius: 24px; padding: 24px; display: flex; flex-direction: column; gap: 16px">
+<span style="align-self: center; width: 48px; height: 48px; border-radius: 24px; background: {{c.dangerLine}}; color: {{c.onDangerTint}}; display: flex; align-items: center; justify-content: center">
+<sc-if value="{{iconTrash}}" hint-placeholder-val="{{true}}"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 6h18"></path><path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"></path><path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"></path></svg></sc-if>
+<sc-if value="{{iconUser}}" hint-placeholder-val="{{false}}"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"></path><circle cx="9" cy="7" r="4"></circle><path d="M22 11h-6"></path></svg></sc-if>
+<sc-if value="{{iconUndo}}" hint-placeholder-val="{{false}}"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 7v6h6"></path><path d="M21 17a9 9 0 0 0-9-9 9 9 0 0 0-6 2.3L3 13"></path></svg></sc-if>
+</span>
+<h1 id="dlgTitle" style="margin: 0; text-align: center; font-size: 20px; line-height: 28px; font-weight: 800; letter-spacing: -0.3px">{{title}}</h1>
+<p id="dlgBody" style="margin: 0; font-size: 14px; line-height: 20px; color: {{c.onSurfaceVariant}}">{{body}}</p>
+<sc-if value="{{hasKeeps}}" hint-placeholder-val="{{false}}">
+<ul style="margin: 0; padding: 0; list-style: none; display: flex; flex-direction: column; gap: 6px">
+<sc-for list="{{keeps}}" as="k" hint-placeholder-count="3">
+<li style="display: flex; gap: 8px; align-items: flex-start; font-size: 14px; line-height: 20px; font-weight: 500; color: {{c.onSurfaceVariant}}">
+<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="flex-shrink: 0; margin-top: 2px; color: {{c.onSurfaceVariant}}"><path d="M20 6 9 17l-5-5"></path></svg>
+{{k}}
+</li>
+</sc-for>
+</ul>
+</sc-if>
+<div style="display: flex; flex-direction: column; gap: 8px; padding-top: 4px">
+<!-- Button (solid): filled primary Cancel -->
+<a href="{{cancelHref}}" style="height: 48px; border-radius: 24px; background: {{c.primary}}; color: {{c.onPrimary}}; font-size: 15px; line-height: 20px; font-weight: 700; display: flex; align-items: center; justify-content: center; text-decoration: none">{{cancelLabel}}</a>
+<!-- Button (destructive outline): red outline action -->
+<a href="{{confirmHref}}" style="display: flex; align-items: center; justify-content: center; text-decoration: none; height: 48px; box-sizing: border-box; border-radius: 24px; border: 1px solid {{c.danger}}; background: none; color: {{c.danger}}; font-family: inherit; font-size: 15px; line-height: 20px; font-weight: 700">{{confirmLabel}}</a>
+</div>
+</section>
+</div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"kind":{"editor":"enum","options":["removePerson","removeVersion","discard"],"default":"removePerson"},"theme":{"editor":"enum","options":["light","dark"],"default":"light"},"$preview":{"width":400,"height":848}}'>
+class Component extends DCLogic {
+  renderVals() {
+    var dark = this.props.theme === 'dark';
+    var k = this.props.kind || 'removePerson';
+    var c = dark ? {
+      background: '#111214', surface: '#1A1C1E', container: '#222427', sheet: '#222427',
+      onSurface: '#E3E3E6', onSurfaceVariant: '#C4C6CB', outline: '#8E9196', outlineVariant: '#2E3134',
+      primary: '#E2E2E6', onPrimary: '#1A1C1E', selected: '#2C2F33', onSelected: '#E3E3E6',
+      disabledBg: '#222427', disabledFg: '#5C5F64', track: '#3A3E43', scrim: 'rgba(0,0,0,0.6)',
+      success: '#66BB6A', successContainer: '#1B5E20', onSuccessContainer: '#CBE4CB',
+      warning: '#FFA726', warningContainer: '#66430F', onWarningContainer: '#FFE2B7', warningTint: '#332108', warningLine: '#F57C00',
+      danger: '#F44336', dangerTint: '#3B1511', dangerLine: '#D32F2F', onDangerTint: '#FFD9D6',
+      info: '#29B6F6', infoTint: '#082431', infoLine: '#1B76A0', infoContainer: '#104962', onInfoContainer: '#B8E7FB',
+      footShadow: '0 -8px 16px rgba(0,0,0,0.45)'
+    } : {
+      background: '#F5F5F7', surface: '#FFFFFF', container: '#E9EAED', sheet: '#FFFFFF',
+      onSurface: '#1A1C1E', onSurfaceVariant: '#45484C', outline: '#74777C', outlineVariant: '#E6E7EA',
+      primary: '#2B2F33', onPrimary: '#FFFFFF', selected: '#E6E7EA', onSelected: '#1A1C1E',
+      disabledBg: '#E9EAED', disabledFg: '#9A9DA2', track: '#D3D5D9', scrim: 'rgba(0,0,0,0.5)',
+      success: '#2E7D32', successContainer: '#C8E6C9', onSuccessContainer: '#1E4620',
+      warning: '#E65100', warningContainer: '#FBE2CC', onWarningContainer: '#663C00', warningTint: '#FFF4E5', warningLine: '#FBE2CC',
+      danger: '#D32F2F', dangerTint: '#FDEDED', dangerLine: '#F6D5D5', onDangerTint: '#5F2120',
+      info: '#0288D1', infoTint: '#E5F6FD', infoLine: '#CCE7F6', infoContainer: '#CCE7F6', onInfoContainer: '#014361',
+      footShadow: '0 -6px 14px rgba(0,0,0,0.14)'
+    };
+    var v = { c: c, iconTrash: false, iconUser: false, iconUndo: false, hasKeeps: false, keeps: [] };
+    if (k === 'removePerson') {
+      v.bgTitle = 'Edit Tenant 2'; v.iconUser = true;
+      v.title = 'Remove Tenant 2 from household?';
+      v.body = 'From January 2027 they won’t get any charges or messages, and the utility shares will be split between everyone else.';
+      v.hasKeeps = true;
+      v.keeps = ['Past months and History stay as they are', 'Their $950.00 deposit stays recorded until you return it'];
+      v.confirmLabel = 'Remove from household'; v.cancelLabel = 'Cancel';
+    } else if (k === 'removeVersion') {
+      v.bgTitle = 'Monthly breakdown'; v.iconTrash = true;
+      v.title = 'Remove this version?';
+      v.body = 'Tenant 2 will get the Everyone template from January 2027. Messages already sent won’t change.';
+      v.confirmLabel = 'Remove version'; v.cancelLabel = 'Cancel';
+    } else {
+      v.bgTitle = 'Edit Tenant 2'; v.iconUndo = true;
+      v.title = 'Discard changes?';
+      v.body = 'Your edits to Tenant 2 haven’t been saved. If you leave now, they’ll be lost.';
+      v.confirmLabel = 'Discard'; v.cancelLabel = 'Keep editing';
+    }
+    var T = dark ? 'Dark' : 'Light';
+    var viewH = dark ? 'Household-View-Dark.dc.html' : 'Household.dc.html';
+    if (k === 'removeVersion') { v.cancelHref = 'Settings-Override-' + T + '.dc.html'; v.confirmHref = dark ? 'Settings-View-Dark.dc.html' : 'Settings.dc.html'; }
+    else { v.cancelHref = 'Household-EditPerson-' + T + '.dc.html'; v.confirmHref = viewH; }
+    return v;
+  }
+}
+</script>
+</body>
+</html>

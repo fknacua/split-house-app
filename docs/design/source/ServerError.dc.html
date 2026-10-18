@@ -1,0 +1,63 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Can’t reach the server</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&display=swap">
+<style>
+body{margin:0}
+</style>
+</helmet>
+<div style="position: relative; width: 400px; height: 848px; font-family: Manrope, 'Segoe UI', system-ui, sans-serif; color: {{c.onSurface}}">
+<!-- The screen behind: Home, collecting -->
+<dc-import name="Main" state="collecting" theme="{{theme}}" hint-size="400px,848px"></dc-import>
+<div style="position: absolute; top: 8px; left: 8px; width: 384px; height: 832px; border-radius: 18px; background: {{c.scrim}}"></div>
+<div style="position: absolute; top: 8px; left: 8px; width: 384px; height: 832px; border-radius: 18px; display: flex; align-items: center; justify-content: center; padding: 0 24px; box-sizing: border-box">
+<!-- gluestack AlertDialog (blocking, single action) -->
+<div role="alertdialog" aria-labelledby="se-title" style="width: 100%; box-sizing: border-box; background: {{c.sheet}}; border-radius: 24px; padding: 24px; display: flex; flex-direction: column; gap: 16px">
+<span style="width: 48px; height: 48px; border-radius: 24px; background: {{c.container}}; color: {{c.onSurface}}; display: flex; align-items: center; justify-content: center">
+<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m2 2 20 20"></path><path d="M5.782 5.782A7 7 0 0 0 9 19h8.5a4.5 4.5 0 0 0 1.307-.193"></path><path d="M21.532 16.5A4.5 4.5 0 0 0 17.5 10h-1.79A7.008 7.008 0 0 0 10 5.07"></path></svg>
+</span>
+<div style="display: flex; flex-direction: column; gap: 8px">
+<h2 id="se-title" style="margin: 0; font-size: 20px; line-height: 28px; font-weight: 800">Can’t reach the server</h2>
+<p style="margin: 0; font-size: 14px; line-height: 20px; font-weight: 500; color: {{c.onSurfaceVariant}}">The app couldn’t get a response from the server. It may be starting up, so give it a moment and try again.</p>
+</div>
+<!-- gluestack Button (solid), the only action -->
+<button type="button" disabled="{{retrying}}" style="height: 48px; width: 100%; border: 0; border-radius: 24px; background: {{btnBg}}; color: {{btnFg}}; display: flex; align-items: center; justify-content: center; gap: 8px; font-family: Manrope, sans-serif; font-size: 15px; line-height: 20px; font-weight: 700">
+<sc-if value="{{retrying}}" hint-placeholder-val="{{false}}">
+<!-- gluestack Spinner -->
+<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" aria-hidden="true"><circle cx="12" cy="12" r="9" opacity="0.25"></circle><path d="M21 12a9 9 0 0 0-9-9"></path></svg>
+</sc-if>
+Retry
+</button>
+</div>
+</div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"state":{"editor":"enum","options":["idle","retrying"],"default":"idle"},"theme":{"editor":"enum","options":["light","dark"],"default":"light"},"$preview":{"width":400,"height":848}}'>
+class Component extends DCLogic {
+  renderVals() {
+    var theme = this.props.theme === 'dark' ? 'dark' : 'light';
+    var dark = theme === 'dark';
+    var retrying = this.props.state === 'retrying';
+    var c = dark ? {
+      sheet: '#222427', container: '#2C2F33', onSurface: '#E3E3E6', onSurfaceVariant: '#C4C6CB', primary: '#E2E2E6', onPrimary: '#1A1C1E',
+      disabledBg: '#222427', disabledFg: '#5C5F64', scrim: 'rgba(0,0,0,0.6)'
+    } : {
+      sheet: '#FFFFFF', container: '#E9EAED', onSurface: '#1A1C1E', onSurfaceVariant: '#45484C', primary: '#2B2F33', onPrimary: '#FFFFFF',
+      disabledBg: '#E9EAED', disabledFg: '#9A9DA2', scrim: 'rgba(0,0,0,0.5)'
+    };
+    return {
+      c: c, theme: theme, retrying: retrying,
+      btnBg: retrying ? c.disabledBg : c.primary, btnFg: retrying ? c.disabledFg : c.onPrimary
+    };
+  }
+}
+</script>
+</body>
+</html>

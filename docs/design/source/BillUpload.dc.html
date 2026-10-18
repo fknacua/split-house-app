@@ -1,0 +1,376 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Bill upload</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&display=swap">
+<style>
+body{margin:0}
+input{outline:0}
+</style>
+</helmet>
+<div style="width: 400px; height: 848px; box-sizing: border-box; padding: 8px; background: #0B0C0C; border-radius: 26px; font-family: Manrope, 'Segoe UI', system-ui, sans-serif; color: {{c.onSurface}}">
+<div style="position: relative; width: 384px; height: 832px; border-radius: 18px; overflow: hidden; background: {{c.background}}; display: flex; flex-direction: column">
+<div style="position: absolute; top: 12px; left: 186px; width: 12px; height: 12px; border-radius: 6px; background: #050505; box-shadow: 0 0 0 2px #1C1D1E; z-index: 6"></div>
+
+<div style="height: 36px; flex-shrink: 0"></div>
+
+<header style="display: flex; align-items: center; gap: 4px; padding: 4px 8px; height: 56px; flex-shrink: 0">
+<a href="{{backHref}}" aria-label="Back" style="width: 48px; height: 48px; border-radius: 24px; color: {{c.onSurface}}; display: flex; align-items: center; justify-content: center">
+<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m12 19-7-7 7-7"></path><path d="M19 12H5"></path></svg>
+</a>
+<div style="display: flex; flex-direction: column">
+<span style="font-size: 20px; line-height: 28px; font-weight: 800">{{headTitle}}</span>
+<span style="font-size: 12px; line-height: 16px; font-weight: 600; color: {{c.onSurfaceVariant}}">November 2026</span>
+</div>
+</header>
+
+<main style="flex-grow: 1; min-height: 0; overflow-y: auto; overscroll-behavior: contain; scrollbar-width: none; padding: 8px 16px 20px; display: flex; flex-direction: column; gap: 16px">
+
+<sc-if value="{{isPick}}" hint-placeholder-val="{{true}}">
+<div style="display: flex; flex-direction: column; gap: 8px; padding: 0 4px">
+<h1 style="margin: 0; font-size: 24px; line-height: 32px; font-weight: 800">Add November’s utilities bill</h1>
+<p style="margin: 0; font-size: 15px; line-height: 22px; color: {{c.onSurfaceVariant}}">Choose the PDF from your files. Current Charges are read from it, then you check everything before anything is saved.</p>
+</div>
+<section style="background: {{c.surface}}; border-radius: 20px; padding: 16px; display: flex; flex-direction: column; gap: 14px">
+<h2 style="margin: 0; font-size: 14px; line-height: 20px; font-weight: 700">What happens next</h2>
+<div style="display: flex; flex-direction: column; gap: 12px">
+<sc-for list="{{nextSteps}}" as="s" hint-placeholder-count="3">
+<div style="display: flex; align-items: center; gap: 12px">
+<span style="width: 28px; height: 28px; border-radius: 14px; background: {{c.selected}}; color: {{c.onSelected}}; display: flex; align-items: center; justify-content: center; font-size: 13px; font-weight: 800; flex-shrink: 0">{{s.n}}</span>
+<span style="font-size: 15px; line-height: 22px; font-weight: 500">{{s.text}}</span>
+</div>
+</sc-for>
+</div>
+</section>
+<p style="margin: 0; padding: 0 4px; font-size: 12px; line-height: 16px; color: {{c.onSurfaceVariant}}">Shares use <strong style="color: {{c.onSurface}}">Current Charges</strong>, not Total Amount Payable, which can include old balances.</p>
+</sc-if>
+
+<sc-if value="{{isFailed}}" hint-placeholder-val="{{false}}">
+<section role="alert" style="display: flex; gap: 12px; padding: 14px; border-radius: 16px; background: {{c.dangerTint}}; border: 1px solid {{c.dangerLine}}">
+<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="flex-shrink: 0; margin-top: 1px; color: {{c.danger}}"><circle cx="12" cy="12" r="10"></circle><path d="M12 8v4"></path><path d="M12 16h.01"></path></svg>
+<div style="display: flex; flex-direction: column; gap: 3px">
+<span style="font-size: 15px; line-height: 20px; font-weight: 700">Couldn’t read this bill</span>
+<span style="font-size: 12px; line-height: 16px; color: {{c.onSurfaceVariant}}">It may be a different document, or the bill may have a new layout.</span>
+</div>
+</section>
+<section style="background: {{c.surface}}; border-radius: 20px; padding: 12px 16px; display: flex; align-items: center; gap: 12px">
+<span style="width: 44px; height: 52px; border-radius: 8px; background: {{c.selected}}; color: {{c.onSelected}}; display: flex; align-items: center; justify-content: center; flex-shrink: 0"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M15 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7Z"></path><path d="M14 2v4a2 2 0 0 0 2 2h4"></path><path d="M10 9H8"></path><path d="M16 13H8"></path><path d="M16 17H8"></path></svg></span>
+<div style="display: flex; flex-direction: column; gap: 2px; min-width: 0">
+<span style="font-size: 14px; line-height: 20px; font-weight: 700; white-space: nowrap; overflow: hidden; text-overflow: ellipsis">Utilities_Bill_Nov2026.pdf</span>
+<span style="font-size: 12px; line-height: 16px; font-weight: 600; color: {{c.onSurfaceVariant}}">2 pages · 214 KB</span>
+</div>
+</section>
+<div style="display: flex; flex-direction: column; gap: 6px; padding: 8px 4px 0">
+<h1 style="margin: 0; font-size: 24px; line-height: 32px; font-weight: 800">Is this the right bill?</h1>
+<p style="margin: 0; font-size: 15px; line-height: 22px; color: {{c.onSurfaceVariant}}">If it is, you can type the amounts yourself. The file is kept with the bill.</p>
+</div>
+</sc-if>
+
+<sc-if value="{{isReading}}" hint-placeholder-val="{{false}}">
+<div style="display: flex; flex-direction: column; gap: 8px; padding: 0 4px">
+<h1 style="margin: 0; font-size: 24px; line-height: 32px; font-weight: 800">Reading the bill…</h1>
+<p style="margin: 0; font-size: 15px; line-height: 22px; color: {{c.onSurfaceVariant}}">Takes a few seconds.</p>
+</div>
+<a href="{{readNextHref}}" aria-label="Reading Utilities_Bill_Nov2026.pdf" style="background: {{c.surface}}; border-radius: 20px; padding: 16px; display: flex; flex-direction: column; gap: 16px; color: inherit; text-decoration: none">
+<div style="display: flex; align-items: center; gap: 12px">
+<span style="width: 44px; height: 52px; border-radius: 8px; background: {{c.selected}}; color: {{c.onSelected}}; display: flex; align-items: center; justify-content: center; flex-shrink: 0"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M15 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7Z"></path><path d="M14 2v4a2 2 0 0 0 2 2h4"></path><path d="M10 9H8"></path><path d="M16 13H8"></path><path d="M16 17H8"></path></svg></span>
+<div style="display: flex; flex-direction: column; gap: 2px; min-width: 0">
+<span style="font-size: 14px; line-height: 20px; font-weight: 700; white-space: nowrap; overflow: hidden; text-overflow: ellipsis">Utilities_Bill_Nov2026.pdf</span>
+<span style="font-size: 12px; line-height: 16px; font-weight: 600; color: {{c.onSurfaceVariant}}">2 pages · 214 KB</span>
+</div>
+</div>
+<div style="height: 6px; border-radius: 3px; background: {{c.track}}; overflow: hidden"><div style="width: 62%; height: 6px; border-radius: 3px; background: {{c.primary}}"></div></div>
+</a>
+</sc-if>
+
+<sc-if value="{{isReview}}" hint-placeholder-val="{{false}}">
+
+<section style="background: {{c.surface}}; border-radius: 20px; padding: 12px 8px 0 16px; display: flex; flex-direction: column; gap: 0">
+<div style="display: flex; align-items: center; gap: 12px">
+<span style="width: 40px; height: 48px; border-radius: 8px; background: {{c.selected}}; color: {{c.onSelected}}; display: flex; align-items: center; justify-content: center; flex-shrink: 0"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M15 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7Z"></path><path d="M14 2v4a2 2 0 0 0 2 2h4"></path><path d="M10 9H8"></path><path d="M16 13H8"></path><path d="M16 17H8"></path></svg></span>
+<div style="display: flex; flex-direction: column; gap: 2px; min-width: 0; padding-right: 8px">
+<span style="font-size: 14px; line-height: 20px; font-weight: 700; white-space: nowrap; overflow: hidden; text-overflow: ellipsis">Utilities_Bill_Nov2026.pdf</span>
+<span style="font-size: 12px; line-height: 16px; font-weight: 600; color: {{c.onSurfaceVariant}}">{{fileMeta}}</span>
+</div>
+</div>
+<a href="{{pickHref}}" style="margin: 12px 8px 12px 0; height: 44px; box-sizing: border-box; border-radius: 22px; border: 1px solid {{c.outline}}; color: {{c.onSurface}}; display: flex; align-items: center; justify-content: center; gap: 8px; font-size: 14px; line-height: 20px; font-weight: 700; text-decoration: none"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 12a9 9 0 0 1 9-9 9.75 9.75 0 0 1 6.74 2.74L21 8"></path><path d="M21 3v5h-5"></path><path d="M21 12a9 9 0 0 1-9 9 9.75 9.75 0 0 1-6.74-2.74L3 16"></path><path d="M8 16H3v5"></path></svg>Choose another file</a>
+</section>
+
+<sc-if value="{{isUnread}}" hint-placeholder-val="{{false}}">
+<div role="status" style="display: flex; align-items: flex-start; gap: 10px; padding: 12px; border-radius: 12px; background: {{c.infoTint}}; border: 1px solid {{c.infoLine}}">
+<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="flex-shrink: 0; margin-top: 1px; color: {{c.info}}"><circle cx="12" cy="12" r="10"></circle><path d="M12 16v-4"></path><path d="M12 8h.01"></path></svg>
+<span style="font-size: 12px; line-height: 16px; color: {{c.onSurfaceVariant}}"><strong style="color: {{c.onSurface}}">Typed, not read.</strong> These values come from you, not the bill. The PDF is kept with it.</span>
+</div>
+</sc-if>
+
+<section style="background: {{c.surface}}; border-radius: 20px; padding: 16px; display: flex; flex-direction: column; gap: 16px">
+<div style="display: flex; flex-direction: column; gap: 6px">
+<label for="cc" style="font-size: 14px; line-height: 20px; font-weight: 700; color: {{c.onSurface}}">Current Charges (SGD)<span aria-hidden="true" style="color: {{c.danger}}"> *</span></label>
+<div data-field="" style="height: 48px; box-sizing: border-box; border: 1px solid {{c.primary}}; border-radius: 12px; background: {{c.surface}}; display: flex; align-items: center; gap: 8px; padding: 0 14px; box-shadow: 0 0 0 1px {{c.primary}}">
+<span style="font-size: 16px; line-height: 24px; font-weight: 500; color: {{c.onSurfaceVariant}}">$</span>
+<input id="cc" inputmode="decimal" value="{{ccValue}}" placeholder="0.00" aria-required="true" style="flex-grow: 1; min-width: 0; border: 0; outline: 0; background: transparent; font-family: Manrope, sans-serif; font-size: 16px; line-height: 24px; font-weight: 500; color: {{c.onSurface}}; font-variant-numeric: tabular-nums">
+</div>
+<span style="font-size: 12px; line-height: 16px; font-weight: 500; color: {{c.onSurfaceVariant}}">{{ccHelp}}</span>
+</div>
+</section>
+
+<section style="background: {{c.surface}}; border-radius: 20px; padding: 16px; display: flex; flex-direction: column; gap: 16px">
+<div style="display: flex; gap: 12px">
+<div style="display: flex; flex-direction: column; gap: 6px; flex: 1 1 0; min-width: 0">
+<label for="month" style="font-size: 14px; line-height: 20px; font-weight: 700; color: {{c.onSurface}}">Bill month</label>
+<div style="height: 48px; box-sizing: border-box; border: 1px solid {{monthBorderColor}}; border-radius: 12px; background: {{c.surface}}; display: flex; align-items: center; gap: 8px; padding: 0 14px; box-shadow: {{monthShadow}}">
+<input id="month" readonly value="{{monthValue}}" placeholder="Nov 2026" style="flex-grow: 1; min-width: 0; border: 0; outline: 0; background: transparent; font-family: Manrope, sans-serif; font-size: 16px; line-height: 24px; font-weight: 500; color: {{c.onSurface}}">
+<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="flex-shrink: 0; color: {{c.onSurfaceVariant}}"><path d="m6 9 6 6 6-6"></path></svg>
+</div>
+</div>
+<div style="display: flex; flex-direction: column; gap: 6px; flex: 1 1 0; min-width: 0">
+<label for="due" style="font-size: 14px; line-height: 20px; font-weight: 700; color: {{c.onSurface}}">Due date</label>
+<div style="height: 48px; box-sizing: border-box; border: 1px solid {{c.outline}}; border-radius: 12px; background: {{c.surface}}; display: flex; align-items: center; gap: 8px; padding: 0 14px">
+<input id="due" readonly value="{{dueValue}}" placeholder="16 Nov 2026" style="flex-grow: 1; min-width: 0; border: 0; outline: 0; background: transparent; font-family: Manrope, sans-serif; font-size: 16px; line-height: 24px; font-weight: 500; color: {{c.onSurface}}">
+<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="flex-shrink: 0; color: {{c.onSurfaceVariant}}"><path d="M8 2v4"></path><path d="M16 2v4"></path><rect width="18" height="18" x="3" y="4" rx="2"></rect><path d="M3 10h18"></path></svg>
+</div>
+</div>
+</div>
+<div style="display: flex; flex-direction: column; gap: 6px">
+<label for="period" style="font-size: 14px; line-height: 20px; font-weight: 700; color: {{c.onSurface}}">Billing period</label>
+<div style="height: 48px; box-sizing: border-box; border: 1px solid {{periodBorderColor}}; border-radius: 12px; background: {{c.surface}}; display: flex; align-items: center; gap: 8px; padding: 0 14px; box-shadow: {{periodShadow}}">
+<input id="period" readonly value="{{periodValue}}" placeholder="1–31 Oct 2026" style="flex-grow: 1; min-width: 0; border: 0; outline: 0; background: transparent; font-family: Manrope, sans-serif; font-size: 16px; line-height: 24px; font-weight: 500; color: {{c.onSurface}}">
+<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="flex-shrink: 0; color: {{c.onSurfaceVariant}}"><path d="M8 2v4"></path><path d="M16 2v4"></path><rect width="18" height="18" x="3" y="4" rx="2"></rect><path d="M3 10h18"></path></svg>
+</div>
+</div>
+<sc-if value="{{isPeriod}}" hint-placeholder-val="{{false}}">
+<div role="alert" style="display: flex; align-items: flex-start; gap: 10px; padding: 12px; border-radius: 12px; background: {{c.dangerTint}}; border: 1px solid {{c.dangerLine}}">
+<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="flex-shrink: 0; margin-top: 1px; color: {{c.danger}}"><circle cx="12" cy="12" r="10"></circle><path d="M12 8v4"></path><path d="M12 16h.01"></path></svg>
+<div style="display: flex; flex-direction: column; gap: 2px"><span style="font-size: 14px; line-height: 20px; font-weight: 700; color: {{c.onDangerTint}}">{{warnTitle}}</span><span style="font-size: 12px; line-height: 16px; font-weight: 500; color: {{c.onDangerTint}}">{{warnBody}}</span></div>
+</div>
+</sc-if>
+</section>
+
+<section style="background: {{c.surface}}; border-radius: 20px; padding: 16px 16px 6px; display: flex; flex-direction: column; gap: 12px">
+<div style="display: flex; flex-direction: column; gap: 2px">
+<h2 style="margin: 0; font-size: 14px; line-height: 20px; font-weight: 700">Utility lines</h2>
+<span style="font-size: 12px; line-height: 16px; color: {{c.onSurfaceVariant}}">{{linesHelp}}</span>
+</div>
+
+<sc-if value="{{hasLines}}" hint-placeholder-val="{{true}}">
+<div style="display: flex; flex-direction: column; gap: 16px; padding-top: 6px">
+<sc-for list="{{lines}}" as="l" hint-placeholder-count="3">
+<div style="display: flex; flex-direction: column; gap: 4px">
+<div style="display: flex; align-items: flex-start; gap: 12px">
+<div style="display: flex; flex-direction: column; gap: 6px; flex-grow: 1; min-width: 0">
+<label for="{{l.nameId}}" style="font-size: 14px; line-height: 20px; font-weight: 700; color: {{c.onSurface}}">Field</label>
+<div style="height: 48px; box-sizing: border-box; border: 1px solid {{l.nameBorderColor}}; border-radius: 12px; background: {{c.surface}}; display: flex; align-items: center; gap: 8px; padding: 0 14px; box-shadow: {{l.nameShadow}}">
+<input id="{{l.nameId}}" aria-label="Line name" placeholder="Field" value="{{l.label}}" style="flex-grow: 1; min-width: 0; border: 0; outline: 0; background: transparent; font-family: Manrope, sans-serif; font-size: 16px; line-height: 24px; font-weight: 500; color: {{c.onSurface}}">
+</div>
+</div>
+<sc-if value="{{l.found}}" hint-placeholder-val="{{true}}"><div style="display: flex; flex-direction: column; gap: 6px; width: 112px; flex-shrink: 0">
+<label for="{{l.amtId}}" style="font-size: 14px; line-height: 20px; font-weight: 700; color: {{c.onSurface}}">Amount</label>
+<div data-field="" style="height: 48px; box-sizing: border-box; border: 1px solid {{l.amtBorderColor}}; border-radius: 12px; background: {{c.surface}}; display: flex; align-items: center; gap: 8px; padding: 0 14px; gap: 4px; padding: 0 12px; box-shadow: {{l.amtShadow}}">
+<span style="font-size: 16px; line-height: 24px; font-weight: 500; color: {{c.onSurfaceVariant}}">$</span>
+<input id="{{l.amtId}}" aria-label="{{l.amountLabel}}" inputmode="decimal" value="{{l.amount}}" placeholder="0.00" style="flex-grow: 1; min-width: 0; border: 0; outline: 0; background: transparent; font-family: Manrope, sans-serif; font-size: 16px; line-height: 24px; font-weight: 500; color: {{c.onSurface}}; width: 100%; font-variant-numeric: tabular-nums">
+</div></div></sc-if>
+<sc-if value="{{l.missing}}" hint-placeholder-val="{{false}}"><div style="display: flex; flex-direction: column; gap: 6px; width: 112px; flex-shrink: 0">
+<label style="font-size: 14px; line-height: 20px; font-weight: 700; color: {{c.onSurface}}">Amount</label>
+<button aria-label="{{l.addLabel}}" style="width: 100%; height: 48px; box-sizing: border-box; border-radius: 12px; border: 1.5px dashed {{c.warning}}; background: none; color: {{c.warning}}; display: flex; align-items: center; justify-content: flex-start; padding: 0 12px; gap: 8px; font-family: inherit; font-size: 15px; line-height: 20px; font-weight: 700"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12h14"></path><path d="M12 5v14"></path></svg>Add</button>
+</div></sc-if>
+<button aria-label="{{l.removeLabel}}" style="margin-top: 26px; width: 44px; height: 44px; flex-shrink: 0; border-radius: 22px; border: 0; background: none; color: {{c.onSurfaceVariant}}; display: flex; align-items: center; justify-content: center"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M18 6 6 18"></path><path d="m6 6 12 12"></path></svg></button>
+</div>
+<sc-if value="{{l.notFound}}" hint-placeholder-val="{{false}}"><span style="padding: 0 4px; display: flex; align-items: center; gap: 4px; font-size: 12px; line-height: 16px; font-weight: 600; color: {{c.warning}}"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3"></path><path d="M12 9v4"></path><path d="M12 17h.01"></path></svg>Not found on the bill</span></sc-if>
+</div>
+</sc-for>
+</div>
+<sc-if value="{{hasTotal}}" hint-placeholder-val="{{true}}">
+<div role="status" style="display: flex; align-items: flex-start; gap: 10px; padding: 12px; border-radius: 12px; background: {{totalBg}}; border: 1px solid {{totalLine}}">
+<sc-if value="{{isSum}}" hint-placeholder-val="{{false}}"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="flex-shrink: 0; margin-top: 1px; color: {{c.warning}}"><path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3"></path><path d="M12 9v4"></path><path d="M12 17h.01"></path></svg></sc-if>
+<sc-if value="{{isOk}}" hint-placeholder-val="{{true}}"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="flex-shrink: 0; margin-top: 1px; color: {{c.success}}"><circle cx="12" cy="12" r="10"></circle><path d="m9 12 2 2 4-4"></path></svg></sc-if>
+<div style="display: flex; flex-direction: column; gap: 2px"><span style="font-size: 14px; line-height: 20px; font-weight: 700">{{totalLead}}</span><span style="font-size: 12px; line-height: 16px; color: {{c.onSurfaceVariant}}">{{totalNote}}</span></div>
+</div>
+</sc-if>
+<sc-if value="{{hasPartialNote}}" hint-placeholder-val="{{false}}">
+<div role="status" style="display: flex; align-items: flex-start; gap: 10px; padding: 12px; border-radius: 12px; background: {{c.warningTint}}; border: 1px solid {{c.warningLine}}">
+<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="flex-shrink: 0; margin-top: 1px; color: {{c.warning}}"><path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3"></path><path d="M12 9v4"></path><path d="M12 17h.01"></path></svg>
+<div style="display: flex; flex-direction: column; gap: 2px"><span style="font-size: 14px; line-height: 20px; font-weight: 700">{{partialTitle}}</span><span style="font-size: 12px; line-height: 16px; color: {{c.onSurfaceVariant}}">Fill them in or leave them empty. You can still save; the split uses Current Charges.</span></div>
+</div>
+</sc-if>
+</sc-if>
+
+<sc-if value="{{noLines}}" hint-placeholder-val="{{false}}">
+<div style="display: flex; flex-direction: column; align-items: center; gap: 4px; padding: 14px 8px; border-radius: 14px; background: {{c.container}}; text-align: center">
+<span style="font-size: 14px; line-height: 20px; font-weight: 700">No lines found</span>
+<span style="font-size: 12px; line-height: 16px; color: {{c.onSurfaceVariant}}">{{noLinesNote}}</span>
+</div>
+</sc-if>
+
+<a href="{{addLineHref}}" style="text-decoration: none; align-self: flex-start; min-height: 44px; padding: 0 8px 0 4px; border: 0; background: none; color: {{c.primary}}; display: flex; align-items: center; gap: 6px; font-family: inherit; font-size: 14px; line-height: 20px; font-weight: 700"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12h14"></path><path d="M12 5v14"></path></svg>Add line</a>
+</section>
+</sc-if>
+</main>
+
+<footer style="position: relative; z-index: 3; flex-shrink: 0; padding: 12px 16px {{footPad}}; display: flex; flex-direction: column; gap: 4px; background: {{c.background}}; box-shadow: {{c.footShadow}}">
+<sc-if value="{{isPick}}" hint-placeholder-val="{{true}}">
+<a href="{{readingHref}}" style="height: 48px; border-radius: 24px; background: {{c.primary}}; color: {{c.onPrimary}}; font-size: 15px; line-height: 20px; font-weight: 700; display: flex; align-items: center; justify-content: center; gap: 10px; text-decoration: none"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M15 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7Z"></path><path d="M14 2v4a2 2 0 0 0 2 2h4"></path><path d="M10 9H8"></path><path d="M16 13H8"></path><path d="M16 17H8"></path></svg>Choose PDF</a>
+</sc-if>
+<sc-if value="{{isFailed}}" hint-placeholder-val="{{false}}">
+<a href="{{unreadHref}}" style="height: 48px; border-radius: 24px; background: {{c.primary}}; color: {{c.onPrimary}}; font-size: 15px; line-height: 20px; font-weight: 700; display: flex; align-items: center; justify-content: center; text-decoration: none">Yes, it’s the right bill</a>
+<a href="{{pickHref}}" style="height: 48px; border-radius: 24px; border: 1px solid {{c.outline}}; color: {{c.onSurface}}; font-size: 15px; font-weight: 700; display: flex; align-items: center; justify-content: center; text-decoration: none">No, choose another file</a>
+</sc-if>
+<sc-if value="{{isReading}}" hint-placeholder-val="{{false}}">
+<a href="{{pickHref}}" style="height: 48px; border-radius: 24px; border: 1px solid {{c.outline}}; color: {{c.onSurface}}; font-size: 15px; line-height: 20px; font-weight: 700; display: flex; align-items: center; justify-content: center; text-decoration: none">Cancel</a>
+</sc-if>
+<sc-if value="{{isReview}}" hint-placeholder-val="{{false}}">
+<sc-if value="{{canSave}}" hint-placeholder-val="{{true}}">
+<a href="{{saveHref}}" style="height: 48px; border-radius: 24px; background: {{c.primary}}; color: {{c.onPrimary}}; font-size: 15px; line-height: 20px; font-weight: 700; display: flex; align-items: center; justify-content: center; text-decoration: none">Save bill</a>
+</sc-if>
+<sc-if value="{{cannotSave}}" hint-placeholder-val="{{false}}">
+<span style="padding: 0 4px 4px; font-size: 12px; line-height: 16px; font-weight: 600; text-align: center; color: {{c.onSurfaceVariant}}">{{cannotMsg}}</span>
+<span aria-disabled="true" style="height: 48px; border-radius: 24px; background: {{c.disabledBg}}; color: {{c.disabledFg}}; font-size: 15px; line-height: 20px; font-weight: 700; display: flex; align-items: center; justify-content: center">Save bill</span>
+</sc-if>
+<a href="{{discardHref}}" style="height: 44px; border-radius: 22px; color: {{c.primary}}; font-size: 15px; line-height: 20px; font-weight: 700; display: flex; align-items: center; justify-content: center; text-decoration: none">Cancel</a>
+</sc-if>
+</footer>
+<sc-if value="{{isUnread}}" hint-placeholder-val="{{false}}">
+<div aria-label="Number pad" style="flex-shrink: 0; background: {{c.container}}; box-sizing: border-box; padding: 8px 8px 22px; display: flex; flex-wrap: wrap; gap: 6px">
+<sc-for list="{{keys}}" as="k" hint-placeholder-count="12">
+<span style="flex: 0 0 calc((100% - 12px) / 3); height: 46px; border-radius: 23px; background: {{c.surface}}; display: flex; align-items: center; justify-content: center; font-size: 20px; font-weight: 600">{{k}}</span>
+</sc-for>
+</div>
+</sc-if>
+
+<sc-if value="{{isConfirm}}" hint-placeholder-val="{{false}}">
+<div style="position: absolute; inset: 0; background: {{c.scrim}}; z-index: 4"></div>
+<section role="alertdialog" aria-labelledby="cfTitle" style="position: absolute; z-index: 5; left: 24px; right: 24px; top: 50%; transform: translateY(-50%); background: {{c.sheet}}; border-radius: 24px; padding: 24px; display: flex; flex-direction: column; gap: 16px">
+<span style="align-self: center; width: 48px; height: 48px; border-radius: 24px; background: {{c.warningTint}}; border: 1px solid {{c.warningLine}}; color: {{c.warning}}; display: flex; align-items: center; justify-content: center"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3"></path><path d="M12 9v4"></path><path d="M12 17h.01"></path></svg></span>
+<h1 id="cfTitle" style="margin: 0; text-align: center; font-size: 20px; line-height: 28px; font-weight: 800">Save with warnings?</h1>
+<div style="display: flex; flex-direction: column; gap: 8px">
+<p style="margin: 0; font-size: 14px; line-height: 20px; color: {{c.onSurfaceVariant}}">Check these before you continue:</p>
+<sc-for list="{{warnItems}}" as="w" hint-placeholder-count="2">
+<div style="display: flex; align-items: flex-start; gap: 10px; font-size: 14px; line-height: 20px"><span style="width: 6px; height: 6px; border-radius: 3px; margin-top: 7px; flex-shrink: 0; background: {{c.warning}}"></span><span>{{w.text}}</span></div>
+</sc-for>
+</div>
+<div style="display: flex; flex-direction: column; gap: 8px; padding-top: 4px">
+<a href="{{reviewHref}}" style="height: 48px; border-radius: 24px; background: {{c.primary}}; color: {{c.onPrimary}}; font-size: 15px; line-height: 20px; font-weight: 700; display: flex; align-items: center; justify-content: center; text-decoration: none">Go back and fix</a>
+<a href="{{homeSaveHref}}" style="height: 48px; border-radius: 24px; border: 1px solid {{c.outline}}; color: {{c.onSurface}}; font-size: 15px; font-weight: 700; display: flex; align-items: center; justify-content: center; text-decoration: none">Save anyway</a>
+</div>
+</section>
+</sc-if>
+
+<sc-if value="{{isDiscard}}" hint-placeholder-val="{{false}}">
+<div style="position: absolute; inset: 0; background: {{c.scrim}}; z-index: 4"></div>
+<section role="alertdialog" aria-labelledby="dlgTitle" aria-describedby="dlgBody" style="position: absolute; z-index: 5; left: 24px; right: 24px; top: 50%; transform: translateY(-50%); background: {{c.sheet}}; border-radius: 24px; padding: 24px; display: flex; flex-direction: column; gap: 16px">
+<span style="align-self: center; width: 48px; height: 48px; border-radius: 24px; background: {{c.dangerTint}}; color: {{c.onDangerTint}}; display: flex; align-items: center; justify-content: center"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 6h18"></path><path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"></path><path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"></path><path d="M10 11v6"></path><path d="M14 11v6"></path></svg></span>
+<h1 id="dlgTitle" style="margin: 0; text-align: center; font-size: 20px; line-height: 28px; font-weight: 800">Discard this bill?</h1>
+<p id="dlgBody" style="margin: 0; font-size: 14px; line-height: 20px; color: {{c.onSurfaceVariant}}">Nothing has been saved yet. If you leave now, the file and the values you reviewed will be lost.</p>
+<div style="display: flex; flex-direction: column; gap: 8px; padding-top: 4px">
+<a href="{{reviewHref}}" style="height: 48px; border-radius: 24px; background: {{c.primary}}; color: {{c.onPrimary}}; font-size: 15px; line-height: 20px; font-weight: 700; display: flex; align-items: center; justify-content: center; text-decoration: none">Keep editing</a>
+<a href="{{homeHref}}" style="height: 48px; border-radius: 24px; border: 1px solid {{c.danger}}; color: {{c.danger}}; font-size: 15px; font-weight: 700; display: flex; align-items: center; justify-content: center; text-decoration: none">Discard</a>
+</div>
+</section>
+</sc-if>
+</div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"step":{"editor":"enum","options":["pick","reading","review","period","sum","partial","noLines","unread","discard","confirm","addLine","failed","readingFail"],"default":"pick"},"theme":{"editor":"enum","options":["light","dark"],"default":"light"},"$preview":{"width":400,"height":848}}'>
+class Component extends DCLogic {
+  renderVals() {
+    var dark = this.props.theme === 'dark';
+    var step = this.props.step || 'pick';
+    var T = dark ? 'Dark' : 'Light';
+    var c = dark ? {
+      background: '#111214', surface: '#1A1C1E', container: '#222427', sheet: '#222427',
+      onSurface: '#E3E3E6', onSurfaceVariant: '#C4C6CB', outline: '#8E9196', outlineVariant: '#2E3134',
+      primary: '#E2E2E6', onPrimary: '#1A1C1E', selected: '#2C2F33', onSelected: '#E3E3E6',
+      disabledBg: '#222427', disabledFg: '#5C5F64', track: '#3A3E43', scrim: 'rgba(0,0,0,0.6)',
+      success: '#66BB6A', successContainer: '#1B5E20', onSuccessContainer: '#CBE4CB',
+      warning: '#FFA726', warningContainer: '#66430F', onWarningContainer: '#FFE2B7', warningTint: '#332108', warningLine: '#F57C00',
+      danger: '#F44336', dangerTint: '#3B1511', dangerLine: '#D32F2F', onDangerTint: '#FFD9D6',
+      info: '#29B6F6', infoTint: '#082431', infoLine: '#1B76A0', infoContainer: '#104962', onInfoContainer: '#B8E7FB',
+      footShadow: '0 -8px 16px rgba(0,0,0,0.45)'
+    } : {
+      background: '#F5F5F7', surface: '#FFFFFF', container: '#E9EAED', sheet: '#FFFFFF',
+      onSurface: '#1A1C1E', onSurfaceVariant: '#45484C', outline: '#74777C', outlineVariant: '#E6E7EA',
+      primary: '#2B2F33', onPrimary: '#FFFFFF', selected: '#E6E7EA', onSelected: '#1A1C1E',
+      disabledBg: '#E9EAED', disabledFg: '#9A9DA2', track: '#D3D5D9', scrim: 'rgba(0,0,0,0.5)',
+      success: '#2E7D32', successContainer: '#C8E6C9', onSuccessContainer: '#1E4620',
+      warning: '#E65100', warningContainer: '#FBE2CC', onWarningContainer: '#663C00', warningTint: '#FFF4E5', warningLine: '#FBE2CC',
+      danger: '#D32F2F', dangerTint: '#FDEDED', dangerLine: '#F6D5D5', onDangerTint: '#5F2120',
+      info: '#0288D1', infoTint: '#E5F6FD', infoLine: '#CCE7F6', infoContainer: '#CCE7F6', onInfoContainer: '#014361',
+      footShadow: '0 -6px 14px rgba(0,0,0,0.14)'
+    };
+    var reviewish = step !== 'pick' && step !== 'reading' && step !== 'failed' && step !== 'readingFail';
+    var isPeriod = step === 'period', isSum = step === 'sum', isUnread = step === 'unread';
+    var L = function (label, amount, missing, editing, focusName) {
+      return { nameBorderColor: focusName ? c.primary : c.outline, nameShadow: focusName ? '0 0 0 1px ' + c.primary : 'none', label: label, amount: amount, missing: !!missing, found: !missing, notFound: !!(missing || editing), addLabel: 'Add ' + label + ' amount', amtBorderColor: editing ? c.primary : c.outline, amtShadow: editing ? '0 0 0 1px ' + c.primary : 'none', amountLabel: label + ' amount', removeLabel: 'Remove ' + label };
+    };
+    var lines = [];
+    if (step === 'sum') lines = [L('Electricity', '268.45'), L('Gas', '41.20'), L('Water', '88.45')];
+    else if (step === 'partial') lines = [L('Electricity', '268.45'), L('Gas', '41.2', false, true), L('Water', '', true)];
+    else if (step === 'confirm') lines = [L('Electricity', '268.45'), L('Gas', '', true), L('Water', '', true)];
+    else if (step === 'addLine') lines = [L('Electricity', '268.45'), L('Gas', '41.20'), L('Water', '102.65'), L('', '', false, false, true)];
+    else if (step === 'noLines' || step === 'unread') lines = [];
+    else lines = [L('Electricity', '268.45'), L('Gas', '41.20'), L('Water', '102.65')];
+    for (var i = 0; i < lines.length; i++) { lines[i].nameId = 'ln' + i; lines[i].amtId = 'la' + i; }
+    var hasLines = lines.length > 0;
+    var hasTotal = step === 'sum' || (hasLines && step !== 'partial' && step !== 'confirm');
+    var warnTitle = '', warnBody = '';
+    if (isPeriod) {
+      warnTitle = 'Did you attach the wrong bill?';
+      warnBody = 'Billing period does not match expected period for the month of November.';
+    }
+    var totalOk = hasTotal && !isSum;
+    var okSvg = '';
+    return {
+      c: c,
+      isPick: step === 'pick', isReading: step === 'reading' || step === 'readingFail', isFailed: step === 'failed', footPad: step === 'unread' ? '10px' : '28px', keys: ['1','2','3','4','5','6','7','8','9','.','0','⌫'],
+      readNextHref: step === 'readingFail' ? 'Upload-Failed-' + T + '.dc.html' : 'Upload-Review-' + T + '.dc.html', unreadHref: 'Upload-Unread-' + T + '.dc.html', isReview: reviewish, isDiscard: step === 'discard', isConfirm: step === 'confirm',
+      isPeriod: isPeriod, isSum: isSum, isOk: !isSum, isUnread: isUnread,
+      warnTitle: warnTitle, warnBody: warnBody,
+      headTitle: reviewish ? 'Review bill' : 'Utilities bill',
+      fileMeta: '2 pages · 214 KB',
+      nextSteps: [
+        { n: '1', text: 'Choose the PDF' },
+        { n: '2', text: 'Check what was read' },
+        { n: '3', text: 'Save the bill' }
+      ],
+      ccValue: isUnread ? '' : '412.30',
+      ccHelp: isUnread ? 'Required. The split uses this number.' : 'Split into 5 shares of $82.46. Not Total Amount Payable, which can include old balances.',
+      monthValue: isUnread ? '' : (isPeriod ? 'Oct 2026' : 'Nov 2026'),
+      dueValue: isUnread ? '' : (isPeriod ? '16 Oct 2026' : '16 Nov 2026'),
+      periodValue: isUnread ? '' : (isPeriod ? '1–30 Sep 2026' : '1–31 Oct 2026'),
+      monthBorderColor: isPeriod ? c.danger : c.outline, monthShadow: isPeriod ? '0 0 0 1px ' + c.danger : 'none',
+      periodBorderColor: isPeriod ? c.danger : c.outline, periodShadow: isPeriod ? '0 0 0 1px ' + c.danger : 'none',
+      linesHelp: hasLines ? 'Read from the bill. Edit, remove or add lines; they show on View bill.' : 'Optional. They show on View bill.',
+      hasLines: hasLines, lines: lines,
+      hasTotal: hasTotal,
+      totalBg: isSum ? c.warningTint : 'transparent',
+      totalLine: isSum ? c.warningLine : c.outlineVariant,
+      totalSvgPlaceholder: '',
+      totalLead: isSum ? 'Lines don’t add up to Current Charges' : 'Lines match Current Charges',
+      totalNote: isSum ? 'Lines total $398.10, which is $14.20 less. You can still save; the split uses Current Charges.' : 'Lines total $412.30.',
+      hasPartialNote: step === 'partial' || step === 'confirm',
+      partialTitle: step === 'partial' ? '1 line not found' : '2 lines not found',
+      warnItems: step === 'confirm' ? [{ text: '2 utility lines not found' }, { text: 'Lines don’t add up to Current Charges' }] : [],
+      addLineHref: 'Upload-AddLine-' + T + '.dc.html',
+      homeSaveHref: 'Home-Unsent-' + T + '.dc.html',
+      noLines: !hasLines,
+      noLinesNote: isUnread ? 'Add them if you want them on View bill.' : 'Optional. Current Charges is all the split needs.',
+      canSave: !isUnread && !isPeriod, cannotSave: isUnread || isPeriod,
+      cannotMsg: isPeriod ? 'Fix the billing period or choose another file to save' : 'Enter Current Charges to save',
+      backHref: (step === 'failed' || step === 'readingFail') ? (dark ? 'Upload-Pick-Dark.dc.html' : 'BillUpload.dc.html') : step === 'pick' ? (dark ? 'Home-Upload-Dark.dc.html' : 'Main.dc.html') : (step === 'reading' ? (dark ? 'Upload-Pick-Dark.dc.html' : 'BillUpload.dc.html') : 'Upload-Discard-' + T + '.dc.html'),
+      pickHref: dark ? 'Upload-Pick-Dark.dc.html' : 'BillUpload.dc.html',
+      readingHref: 'Upload-Reading-' + T + '.dc.html',
+      reviewHref: 'Upload-Review-' + T + '.dc.html',
+      discardHref: 'Upload-Discard-' + T + '.dc.html',
+      saveHref: (isSum || step === 'partial') ? 'Upload-Confirm-' + T + '.dc.html' : 'Home-Unsent-' + T + '.dc.html',
+      homeHref: dark ? 'Home-Upload-Dark.dc.html' : 'Main.dc.html'
+    };
+  }
+}
+</script>
+</body>
+</html>

@@ -1,0 +1,136 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Mark bill paid — sheet</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&display=swap">
+<style>
+body{margin:0}
+[data-field]:focus-within{border-color:currentColor !important;box-shadow:0 0 0 1px currentColor}
+[data-field] input:focus{outline:none}
+</style>
+</helmet>
+<div style="width: 400px; height: 848px; box-sizing: border-box; padding: 8px; background: #0B0C0C; border-radius: 26px; font-family: Manrope, 'Segoe UI', system-ui, sans-serif; color: {{c.onSurface}}">
+<div style="position: relative; width: 384px; height: 832px; border-radius: 18px; overflow: hidden; background: {{c.background}}">
+
+<div aria-hidden="true" style="padding: 48px 16px 0; display: flex; flex-direction: column; gap: 16px">
+<span style="font-size: 24px; line-height: 32px; font-weight: 800">{{bgTitle}}</span>
+<div style="height: 210px; border-radius: 24px; background: {{c.selected}}"></div>
+<div style="height: 330px; border-radius: 20px; background: {{c.surface}}"></div>
+</div>
+<a href="{{backHref}}" aria-label="Close" style="position: absolute; top: 0; right: 0; bottom: 0; left: 0; background: {{c.scrim}}"></a>
+<div style="position: absolute; top: 12px; left: 186px; width: 12px; height: 12px; border-radius: 6px; background: #050505; box-shadow: 0 0 0 2px #1C1D1E"></div>
+
+<section role="dialog" aria-modal="true" aria-labelledby="sheetTitle" aria-busy="{{busyAttr}}" style="position: absolute; left: 0; right: 0; bottom: 0; max-height: 784px; background: {{c.sheet}}; border-radius: 28px 28px 0 0; display: flex; flex-direction: column">
+<div style="display: flex; justify-content: center; padding: 10px 0 4px"><span style="width: 32px; height: 4px; border-radius: 2px; background: {{c.track}}"></span></div>
+
+<div style="overflow-y: auto; scrollbar-width: none; padding: 8px 16px 4px; display: flex; flex-direction: column; gap: 16px">
+<div style="display: flex; flex-direction: column; gap: 2px">
+<h1 id="sheetTitle" style="margin: 0; font-size: 20px; line-height: 28px; font-weight: 800">Mark bill paid</h1>
+<span style="font-size: 14px; line-height: 20px; font-weight: 500; color: {{c.onSurfaceVariant}}">Utilities bill · November</span>
+</div>
+
+<div style="background: {{c.container}}; border: 1px solid {{c.outlineVariant}}; border-radius: 16px; padding: 10px 14px; display: flex; justify-content: space-between; align-items: center; gap: 12px">
+<div style="display: flex; flex-direction: column; gap: 2px">
+<span style="font-size: 12px; line-height: 16px; font-weight: 600; color: {{c.onSurfaceVariant}}">Current Charges</span>
+<span style="font-size: 20px; line-height: 28px; font-weight: 800; font-variant-numeric: tabular-nums">$412.30</span>
+</div>
+<div style="display: flex; flex-direction: column; gap: 2px; align-items: flex-end">
+<span style="font-size: 12px; line-height: 16px; font-weight: 600; color: {{c.onSurfaceVariant}}">Due</span>
+<span style="font-size: 14px; line-height: 20px; font-weight: 700">Mon 16 Nov</span>
+</div>
+</div>
+
+<!-- FormControl: Amount paid -->
+<div style="display: flex; flex-direction: column; gap: 6px">
+<label for="amt" style="font-size: 14px; line-height: 20px; font-weight: 700; color: {{c.onSurface}}">Amount paid<span aria-hidden="true" style="color: {{c.danger}}"> *</span></label>
+<div data-field="" style="height: 48px; box-sizing: border-box; border-radius: 12px; background: {{fieldBg}}; display: flex; align-items: center; gap: 8px; padding: 0 14px; color: {{c.primary}}; border: 1px solid {{fieldBorder}}">
+<span style="font-size: 16px; line-height: 24px; font-weight: 500; color: {{c.onSurfaceVariant}}">$</span>
+<input id="amt" inputmode="decimal" value="412.30" placeholder="0.00" aria-readonly="{{busyAttr}}" style="flex-grow: 1; min-width: 0; border: 0; outline: 0; background: transparent; font-family: Manrope, sans-serif; font-size: 16px; line-height: 24px; font-weight: 500; color: {{fieldFg}}; font-variant-numeric: tabular-nums">
+</div>
+<span style="font-size: 12px; line-height: 16px; font-weight: 500; color: {{c.onSurfaceVariant}}">Change it if the amount you paid was different</span>
+</div>
+
+<!-- FormControl: Paid on (date field) -->
+<div style="display: flex; flex-direction: column; gap: 6px">
+<label id="whenLabel" style="font-size: 14px; line-height: 20px; font-weight: 700; color: {{c.onSurface}}">Paid on<span aria-hidden="true" style="color: {{c.danger}}"> *</span></label>
+<button data-field="" aria-labelledby="whenLabel whenValue" style="height: 48px; box-sizing: border-box; border-radius: 12px; background: {{fieldBg}}; display: flex; align-items: center; gap: 8px; padding: 0 14px; color: {{c.primary}}; width: 100%; border: 1px solid {{fieldBorder}}; font-family: inherit; text-align: left">
+<span id="whenValue" style="flex-grow: 1; font-size: 16px; line-height: 24px; font-weight: 500; color: {{fieldFg}}">Today, Wed 4 Nov</span>
+<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="flex-shrink: 0; color: {{c.onSurfaceVariant}}"><path d="M8 2v4"></path><path d="M16 2v4"></path><rect width="18" height="18" x="3" y="4" rx="2"></rect><path d="M3 10h18"></path></svg>
+</button>
+</div>
+
+<!-- Alert -->
+<div role="note" style="display: flex; gap: 10px; align-items: flex-start; padding: 12px 14px; border-radius: 14px; background: {{noteBg}}; border: 1px solid {{noteLine}}">
+<sc-if value="{{noteFull}}" hint-placeholder-val="{{false}}"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="flex-shrink: 0; margin-top: 1px; color: {{noteIcon}}"><circle cx="12" cy="12" r="10"></circle><path d="m9 12 2 2 4-4"></path></svg></sc-if>
+<sc-if value="{{notePartial}}" hint-placeholder-val="{{true}}"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="flex-shrink: 0; margin-top: 1px; color: {{noteIcon}}"><path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3"></path><path d="M12 9v4"></path><path d="M12 17h.01"></path></svg></sc-if>
+<span style="font-size: 14px; line-height: 20px; font-weight: 500; color: {{c.onSurfaceVariant}}">{{noteText}}</span>
+</div>
+</div>
+
+<footer style="padding: 12px 16px 24px; display: flex; flex-direction: column; gap: 8px">
+<sc-if value="{{isFailed}}" hint-placeholder-val="{{false}}">
+<!-- Alert (danger): failed save -->
+<div role="alert" style="display: flex; align-items: center; gap: 10px; padding: 10px 12px; border-radius: 12px; background: {{c.dangerTint}}; border: 1px solid {{c.dangerLine}}">
+<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="flex-shrink: 0; color: {{c.danger}}"><circle cx="12" cy="12" r="10"></circle><path d="M12 8v4"></path><path d="M12 16h.01"></path></svg>
+<span style="font-size: 13px; line-height: 18px; font-weight: 700; color: {{c.onDangerTint}}">Couldn't save. Check your connection and try again.</span>
+</div>
+</sc-if>
+<div style="display: flex; flex-direction: column; gap: 4px">
+<a href="{{doneHref}}" aria-disabled="{{busyAttr}}" style="height: 48px; border-radius: 24px; background: {{btnBg}}; color: {{btnFg}}; pointer-events: {{btnEvents}}; display: flex; align-items: center; justify-content: center; gap: 8px; font-size: 15px; line-height: 20px; font-weight: 700; text-decoration: none">
+<sc-if value="{{isIdle}}" hint-placeholder-val="{{true}}"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 6 9 17l-5-5"></path></svg></sc-if>
+<sc-if value="{{isSaving}}" hint-placeholder-val="{{false}}"><span aria-hidden="true" style="width: 16px; height: 16px; box-sizing: border-box; border-radius: 50%; border: 2px solid currentColor; border-right-color: transparent; flex-shrink: 0"></span></sc-if>
+{{btnLabel}}
+</a>
+<a href="{{backHref}}" aria-disabled="{{busyAttr}}" style="height: 44px; border-radius: 22px; color: {{cancelFg}}; pointer-events: {{btnEvents}}; display: flex; align-items: center; justify-content: center; font-size: 14px; line-height: 20px; font-weight: 700; text-decoration: none">Cancel</a>
+</div>
+</footer>
+</section>
+</div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"collected":{"editor":"enum","options":["partial","full"],"default":"partial"},"save":{"editor":"enum","options":["idle","saving","failed"],"default":"idle"},"theme":{"editor":"enum","options":["light","dark"],"default":"light"},"$preview":{"width":400,"height":848}}'>
+class Component extends DCLogic {
+  renderVals() {
+    var dark = this.props.theme === 'dark';
+    var full = this.props.collected === 'full';
+    var save = this.props.save || 'idle';
+    var saving = save === 'saving';
+    var failed = save === 'failed';
+    var c = dark ? {
+      background: '#111214', surface: '#1A1C1E', container: '#222427', sheet: '#222427',
+      onSurface: '#E3E3E6', onSurfaceVariant: '#C4C6CB', outline: '#8E9196', outlineVariant: '#2E3134',
+      primary: '#E2E2E6', onPrimary: '#1A1C1E', selected: '#2C2F33',
+      disabledBg: '#222427', disabledFg: '#5C5F64', track: '#3A3E43', scrim: 'rgba(0,0,0,0.6)',
+      success: '#66BB6A', warning: '#FFA726', warningTint: '#332108', warningLine: '#F57C00',
+      danger: '#F44336', dangerTint: '#3B1511', dangerLine: '#D32F2F', onDangerTint: '#FFD9D6'
+    } : {
+      background: '#F5F5F7', surface: '#FFFFFF', container: '#E9EAED', sheet: '#FFFFFF',
+      onSurface: '#1A1C1E', onSurfaceVariant: '#45484C', outline: '#74777C', outlineVariant: '#E6E7EA',
+      primary: '#2B2F33', onPrimary: '#FFFFFF', selected: '#E6E7EA',
+      disabledBg: '#E9EAED', disabledFg: '#9A9DA2', track: '#D3D5D9', scrim: 'rgba(0,0,0,0.5)',
+      success: '#2E7D32', warning: '#E65100', warningTint: '#FFF4E5', warningLine: '#FBE2CC',
+      danger: '#D32F2F', dangerTint: '#FDEDED', dangerLine: '#F6D5D5', onDangerTint: '#5F2120'
+    };
+    var T = dark ? 'Dark' : 'Light';
+    return {
+      c: c, fieldBg: saving ? c.disabledBg : c.surface, fieldBorder: saving ? c.outlineVariant : c.outline, fieldFg: saving ? c.disabledFg : c.onSurface,
+      busyAttr: saving ? 'true' : 'false', isSaving: saving, isFailed: failed, isIdle: !saving && !failed, btnEvents: saving ? 'none' : 'auto',
+      btnBg: saving ? c.disabledBg : c.primary, btnFg: saving ? c.disabledFg : c.onPrimary, cancelFg: saving ? c.disabledFg : c.primary,
+      btnLabel: failed ? 'Retry' : 'Mark as paid', bgTitle: 'November 2026',
+      backHref: 'Home-DueToday-' + T + '.dc.html',
+      doneHref: 'Bill-Paid-' + T + '.dc.html',
+      noteBg: full ? 'transparent' : c.warningTint, noteLine: full ? c.outlineVariant : c.warningLine, noteIcon: full ? c.success : c.warning,
+      noteFull: full, notePartial: !full,
+      noteText: full ? 'All $412.30 is collected. You’re not covering anything.' : 'You’ve collected $123.69 so far. You’re covering $288.61 until the others pay.'
+    };
+  }
+}
+</script>
+</body>
+</html>

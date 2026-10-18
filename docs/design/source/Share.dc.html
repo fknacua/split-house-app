@@ -1,0 +1,175 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Share bill — sheet</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&display=swap">
+<style>
+body{margin:0}
+</style>
+</helmet>
+<div style="width: 400px; height: 848px; box-sizing: border-box; padding: 8px; background: #0B0C0C; border-radius: 26px; font-family: Manrope, 'Segoe UI', system-ui, sans-serif; color: {{c.onSurface}}">
+<div style="position: relative; width: 384px; height: 832px; border-radius: 18px; overflow: hidden; background: {{c.background}}">
+
+<div aria-hidden="true" style="padding: 48px 16px 0; display: flex; flex-direction: column; gap: 16px">
+<span style="font-size: 24px; line-height: 32px; font-weight: 800">Primary Tenant</span>
+<div style="height: 190px; border-radius: 20px; background: {{c.surface}}"></div>
+<div style="height: 280px; border-radius: 20px; background: {{c.surface}}"></div>
+</div>
+<a href="{{backHref}}" aria-label="Close" style="position: absolute; top: 0; right: 0; bottom: 0; left: 0; background: {{c.scrim}}"></a>
+<div style="position: absolute; top: 12px; left: 186px; width: 12px; height: 12px; border-radius: 6px; background: #050505; box-shadow: 0 0 0 2px #1C1D1E"></div>
+
+<sc-if value="{{isSheet}}" hint-placeholder-val="{{true}}">
+<section role="dialog" aria-modal="true" aria-labelledby="shTitle" style="position: absolute; left: 0; right: 0; bottom: 0; max-height: 760px; background: {{c.sheet}}; border-radius: 28px 28px 0 0; display: flex; flex-direction: column">
+<div style="display: flex; justify-content: center; padding: 10px 0 4px"><span style="width: 32px; height: 4px; border-radius: 2px; background: {{c.track}}"></span></div>
+<div style="overflow-y: auto; scrollbar-width: none; padding: 8px 16px 4px; display: flex; flex-direction: column; gap: 16px">
+<div style="display: flex; flex-direction: column; gap: 2px">
+<h1 id="shTitle" style="margin: 0; font-size: 20px; line-height: 28px; font-weight: 800">Share bill</h1>
+<span style="font-size: 14px; line-height: 20px; font-weight: 500; color: {{c.onSurfaceVariant}}">Utilities bill · November 2026</span>
+</div>
+
+<!-- Radio group -->
+<div role="radiogroup" aria-label="What to share" style="display: flex; flex-direction: column; gap: 8px">
+<sc-for list="{{choices}}" as="o" hint-placeholder-count="2">
+<button role="radio" aria-checked="{{o.checked}}" onClick="{{o.pick}}" style="width: 100%; min-height: 64px; padding: 10px 14px; box-sizing: border-box; border: {{o.border}}; border-radius: 14px; background: {{o.bg}}; color: {{c.onSurface}}; display: flex; align-items: center; gap: 12px; font-family: inherit; text-align: left">
+<span style="width: 20px; height: 20px; border-radius: 10px; border: 2px solid {{o.ring}}; box-sizing: border-box; display: flex; align-items: center; justify-content: center; flex-shrink: 0"><span style="width: 10px; height: 10px; border-radius: 5px; background: {{o.dot}}"></span></span>
+<span style="display: flex; flex-direction: column; gap: 2px">
+<span style="font-size: 15px; line-height: 22px; font-weight: 700">{{o.title}}</span>
+<span style="font-size: 12px; line-height: 16px; font-weight: 600; color: {{c.onSurfaceVariant}}">{{o.detail}}</span>
+</span>
+</button>
+</sc-for>
+</div>
+
+<sc-if value="{{isSummary}}" hint-placeholder-val="{{false}}">
+<div style="display: flex; flex-direction: column; gap: 12px">
+<div style="background: {{c.container}}; border-radius: 14px; padding: 12px 14px; display: flex; flex-direction: column; gap: 2px; font-size: 14px; line-height: 20px; border: 1px solid {{c.outlineVariant}}">
+<sc-for list="{{previewLines}}" as="pl" hint-placeholder-count="4">
+<span style="font-weight: {{pl.weight}}; color: {{pl.fg}}">{{pl.text}}</span>
+</sc-for>
+</div>
+<!-- Switch row -->
+<button role="switch" aria-checked="{{shareOn}}" onClick="{{toggleShares}}" style="width: 100%; min-height: 56px; padding: 6px 4px 6px 4px; border: 0; background: none; color: {{c.onSurface}}; display: flex; align-items: center; gap: 12px; font-family: inherit; text-align: left">
+<span style="flex-grow: 1; display: flex; flex-direction: column; gap: 2px">
+<span style="font-size: 15px; line-height: 22px; font-weight: 700">Include each person’s share</span>
+<span style="font-size: 12px; line-height: 16px; font-weight: 600; color: {{c.onSurfaceVariant}}">Off: whoever gets it only sees the bill totals</span>
+</span>
+<span style="width: 52px; height: 32px; border-radius: 16px; background: {{swBg}}; border: 2px solid {{swBorder}}; box-sizing: border-box; position: relative; flex-shrink: 0"><span style="position: absolute; top: {{knobTop}}; left: {{knobLeft}}; width: {{knobSize}}; height: {{knobSize}}; border-radius: 50%; background: {{knobBg}}"></span></span>
+</button>
+</div>
+</sc-if>
+
+<sc-if value="{{isPdf}}" hint-placeholder-val="{{true}}">
+<div style="display: flex; align-items: center; gap: 12px; background: {{c.container}}; border: 1px solid {{c.outlineVariant}}; border-radius: 14px; padding: 10px 14px">
+<span style="width: 36px; height: 44px; border-radius: 6px; background: {{c.selected}}; display: flex; align-items: center; justify-content: center; flex-shrink: 0"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M15 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7Z"></path><path d="M14 2v4a2 2 0 0 0 2 2h4"></path></svg></span>
+<span style="display: flex; flex-direction: column; gap: 2px; min-width: 0"><span style="font-size: 14px; line-height: 20px; font-weight: 700">Utilities_Bill_Nov2026.pdf</span><span style="font-size: 12px; line-height: 16px; font-weight: 600; color: {{c.onSurfaceVariant}}">2 pages · the original, unchanged</span></span>
+</div>
+</sc-if>
+</div>
+<footer style="padding: 12px 16px 24px; display: flex; flex-direction: column; gap: 4px">
+<a href="{{systemHref}}" style="height: 48px; border-radius: 24px; background: {{c.primary}}; color: {{c.onPrimary}}; display: flex; align-items: center; justify-content: center; font-size: 15px; line-height: 20px; font-weight: 700; text-decoration: none">Choose where to send</a>
+<a href="{{backHref}}" style="height: 44px; border-radius: 22px; color: {{c.primary}}; display: flex; align-items: center; justify-content: center; font-size: 14px; line-height: 20px; font-weight: 700; text-decoration: none">Cancel</a>
+</footer>
+</section>
+</sc-if>
+
+<sc-if value="{{isSystem}}" hint-placeholder-val="{{false}}">
+<section role="dialog" aria-modal="true" aria-label="Share with" style="position: absolute; left: 0; right: 0; bottom: 0; background: {{c.sheet}}; border-radius: 28px 28px 0 0; display: flex; flex-direction: column">
+<div style="display: flex; justify-content: center; padding: 10px 0 4px"><span style="width: 32px; height: 4px; border-radius: 2px; background: {{c.track}}"></span></div>
+<div style="padding: 8px 16px 4px; display: flex; align-items: center; gap: 12px">
+<span style="width: 40px; height: 48px; border-radius: 6px; background: {{c.selected}}; display: flex; align-items: center; justify-content: center; flex-shrink: 0"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M15 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7Z"></path><path d="M14 2v4a2 2 0 0 0 2 2h4"></path></svg></span>
+<span style="display: flex; flex-direction: column; gap: 2px; min-width: 0"><span style="font-size: 15px; line-height: 22px; font-weight: 700">{{sysTitle}}</span><span style="font-size: 12px; line-height: 16px; font-weight: 600; color: {{c.onSurfaceVariant}}">{{sysMeta}}</span></span>
+</div>
+<div style="display: flex; flex-wrap: wrap; padding: 20px 8px 8px">
+<sc-for list="{{targets}}" as="t" hint-placeholder-count="8">
+<div style="width: 25%; box-sizing: border-box; display: flex; flex-direction: column; align-items: center; gap: 6px; padding: 6px 2px">
+<span style="width: 52px; height: 52px; border-radius: 26px; background: {{c.container}}; display: flex; align-items: center; justify-content: center">
+<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">{{t.icon}}</svg>
+</span>
+<span style="font-size: 12px; line-height: 16px; font-weight: 600; text-align: center">{{t.label}}</span>
+</div>
+</sc-for>
+</div>
+<div style="height: 28px"></div>
+</section>
+</sc-if>
+</div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"state":{"editor":"enum","options":["pdf","summary","system"],"default":"pdf"},"theme":{"editor":"enum","options":["light","dark"],"default":"light"},"$preview":{"width":400,"height":848}}'>
+class Component extends DCLogic {
+  renderVals() {
+    var dark = this.props.theme === 'dark';
+    var st = this.props.state || 'pdf';
+    var self = this;
+    var c = dark ? {
+      background: '#111214', surface: '#1A1C1E', container: '#222427', sheet: '#222427',
+      onSurface: '#E3E3E6', onSurfaceVariant: '#C4C6CB', outline: '#8E9196', outlineVariant: '#2E3134',
+      primary: '#E2E2E6', onPrimary: '#1A1C1E', selected: '#2C2F33', onSelected: '#E3E3E6',
+      track: '#3A3E43', scrim: 'rgba(0,0,0,0.6)'
+    } : {
+      background: '#F5F5F7', surface: '#FFFFFF', container: '#E9EAED', sheet: '#FFFFFF',
+      onSurface: '#1A1C1E', onSurfaceVariant: '#45484C', outline: '#74777C', outlineVariant: '#E6E7EA',
+      primary: '#2B2F33', onPrimary: '#FFFFFF', selected: '#E6E7EA', onSelected: '#1A1C1E',
+      track: '#D3D5D9', scrim: 'rgba(0,0,0,0.5)'
+    };
+    var ss = this.state || {};
+    var pick = ss.pick || (st === 'summary' ? 'summary' : 'pdf');
+    var withShares = ss.shares === undefined ? false : ss.shares;
+    var raw = [
+      { id: 'pdf', title: 'Bill PDF', detail: 'The original file from the utilities company' },
+      { id: 'summary', title: 'Summary', detail: 'Short text: amount, due date and the charges' }
+    ];
+    var choices = raw.map(function (r) {
+      var on = r.id === pick;
+      return { title: r.title, detail: r.detail, checked: on ? 'true' : 'false',
+        border: on ? '2px solid ' + c.primary : '1px solid ' + c.outline, bg: on ? c.selected : 'transparent',
+        ring: on ? c.primary : c.outline, dot: on ? c.primary : 'transparent',
+        pick: function () { self.setState({ pick: r.id }); } };
+    });
+    var pl = [
+      { text: 'Utilities bill · Nov 2026', weight: 700, fg: c.onSurface },
+      { text: 'Current Charges: $412.30', weight: 500, fg: c.onSurface },
+      { text: 'Due: Mon 16 Nov 2026', weight: 500, fg: c.onSurface },
+      { text: 'Electricity $268.45 · Gas $41.20 · Water $102.65', weight: 500, fg: c.onSurfaceVariant }
+    ];
+    if (withShares) pl.push({ text: 'Shares: You $123.69 · Primary Tenant $123.69 · Tenant 1 $82.46 · Tenant 2 $82.46', weight: 500, fg: c.onSurfaceVariant });
+    var ic = {
+      chat: '<path d="M7.9 20A9 9 0 1 0 4 16.1L2 22Z"></path>',
+      mail: '<rect width="20" height="16" x="2" y="4" rx="2"></rect><path d="m22 7-8.97 5.7a1.94 1.94 0 0 1-2.06 0L2 7"></path>',
+      sms: '<path d="M22 17a2 2 0 0 1-2 2H6.828a2 2 0 0 0-1.414.586l-2.202 2.202A.71.71 0 0 1 2 21.286V5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2z"></path>',
+      drive: '<line x1="22" x2="2" y1="12" y2="12"></line><path d="M5.45 5.11 2 12v6a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2v-6l-3.45-6.89A2 2 0 0 0 16.76 4H7.24a2 2 0 0 0-1.79 1.11z"></path><line x1="6" x2="6.01" y1="16" y2="16"></line>',
+      near: '<circle cx="18" cy="5" r="3"></circle><circle cx="6" cy="12" r="3"></circle><circle cx="18" cy="19" r="3"></circle><line x1="8.59" x2="15.42" y1="13.51" y2="17.49"></line><line x1="15.41" x2="8.59" y1="6.51" y2="10.49"></line>',
+      copy: '<rect width="14" height="14" x="8" y="8" rx="2" ry="2"></rect><path d="M4 16c-1.1 0-2-.9-2-2V4c0-1.1.9-2 2-2h10c1.1 0 2 .9 2 2"></path>',
+      print: '<path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"></path><path d="M6 9V3a1 1 0 0 1 1-1h10a1 1 0 0 1 1 1v6"></path><rect x="6" y="14" width="12" height="8" rx="1"></rect>',
+      more: '<circle cx="12" cy="12" r="1"></circle><circle cx="19" cy="12" r="1"></circle><circle cx="5" cy="12" r="1"></circle>'
+    };
+    var pdf = pick === 'pdf';
+    var targets = [['WhatsApp', 'chat'], ['Gmail', 'mail'], ['Messages', 'sms'], ['Drive', 'drive'], ['Quick Share', 'near'], ['Copy', 'copy'], ['Print', 'print'], ['More', 'more']]
+      .map(function (t) { return { label: t[0], icon: ic[t[1]] }; });
+    var sys = st === 'system';
+    var summaryOn = !sys && pick === 'summary';
+    return {
+      c: c, isSystem: sys, isSheet: !sys, isSummary: summaryOn, isPdf: !sys && pdf,
+      choices: choices, previewLines: pl,
+      shareOn: withShares ? 'true' : 'false',
+      toggleShares: function () { self.setState({ shares: !withShares }); },
+      swBg: withShares ? c.primary : 'transparent', swBorder: withShares ? c.primary : c.outline,
+      knobSize: withShares ? '24px' : '16px', knobTop: withShares ? '2px' : '6px', knobLeft: withShares ? '22px' : '6px',
+      knobBg: withShares ? c.onPrimary : c.outline,
+      sysTitle: pdf ? 'Utilities_Bill_Nov2026.pdf' : 'Utilities bill · Nov 2026',
+      sysMeta: pdf ? 'PDF · 2 pages' : 'Text · summary',
+      targets: targets,
+      backHref: dark ? 'Recipient-NotSent-Dark.dc.html' : 'Recipient.dc.html',
+      systemHref: dark ? 'Share-System-Dark.dc.html' : 'Share-System-Light.dc.html'
+    };
+  }
+}
+</script>
+</body>
+</html>

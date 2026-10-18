@@ -1,0 +1,269 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>History</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&display=swap">
+<style>
+body{margin:0}
+</style>
+</helmet>
+<div style="width: 400px; height: 848px; box-sizing: border-box; padding: 8px; background: #0B0C0C; border-radius: 26px; font-family: Manrope, 'Segoe UI', system-ui, sans-serif; color: {{c.onSurface}}">
+<div style="position: relative; width: 384px; height: 832px; border-radius: 18px; overflow: hidden; background: {{c.background}}; display: flex; flex-direction: column">
+<div style="position: absolute; top: 12px; left: 186px; width: 12px; height: 12px; border-radius: 6px; background: #050505; box-shadow: 0 0 0 2px #1C1D1E"></div>
+
+<div style="height: 36px; flex-shrink: 0"></div>
+
+<sc-if value="{{isList}}" hint-placeholder-val="{{true}}">
+<header style="display: flex; align-items: center; padding: 4px 16px; height: 56px; flex-shrink: 0">
+<h1 style="margin: 0; font-size: 24px; line-height: 32px; font-weight: 800; letter-spacing: -0.3px">History</h1>
+</header>
+
+<div style="flex-grow: 1; min-height: 0; overflow-y: auto; overscroll-behavior: contain; scrollbar-width: none">
+<sc-if value="{{isLoading}}" hint-placeholder-val="{{false}}">
+<!-- Loading: Skeleton blocks in place of the year labels, month Cards and footnote -->
+<div aria-busy="true" style="display: flex; flex-direction: column; gap: 8px; padding: 4px 16px 20px">
+<div aria-hidden="true" style="margin: 8px 4px 0; width: 44px; height: 14px; border-radius: 7px; background: {{c.skel}}"></div>
+<div aria-hidden="true" style="background: {{c.surface}}; border-radius: 20px; overflow: hidden; display: flex; flex-direction: column">
+<sc-for list="{{skelA}}" as="m" hint-placeholder-count="1">
+<div style="display: flex; align-items: center; gap: 12px; min-height: 72px; padding: 12px 10px 12px 16px; box-sizing: border-box; border-top: 1px solid {{m.divider}}">
+<div style="flex-grow: 1; min-width: 0; display: flex; flex-direction: column; gap: 6px">
+<div style="width: {{m.w1}}; height: 18px; border-radius: 9px; background: {{c.skel}}"></div>
+<div style="width: {{m.w2}}; height: 12px; border-radius: 6px; background: {{c.skel}}"></div>
+<div style="width: {{m.w3}}; height: 20px; border-radius: 10px; background: {{c.skel}}"></div>
+</div>
+<div style="width: 20px; height: 20px; flex-shrink: 0; border-radius: 6px; background: {{c.skel}}"></div>
+</div>
+</sc-for>
+</div>
+<div aria-hidden="true" style="margin: 8px 4px 0; width: 44px; height: 14px; border-radius: 7px; background: {{c.skel}}"></div>
+<div aria-hidden="true" style="background: {{c.surface}}; border-radius: 20px; overflow: hidden; display: flex; flex-direction: column">
+<sc-for list="{{skelB}}" as="m" hint-placeholder-count="2">
+<div style="display: flex; align-items: center; gap: 12px; min-height: 72px; padding: 12px 10px 12px 16px; box-sizing: border-box; border-top: 1px solid {{m.divider}}">
+<div style="flex-grow: 1; min-width: 0; display: flex; flex-direction: column; gap: 6px">
+<div style="width: {{m.w1}}; height: 18px; border-radius: 9px; background: {{c.skel}}"></div>
+<div style="width: {{m.w2}}; height: 12px; border-radius: 6px; background: {{c.skel}}"></div>
+<div style="width: {{m.w3}}; height: 20px; border-radius: 10px; background: {{c.skel}}"></div>
+</div>
+<div style="width: 20px; height: 20px; flex-shrink: 0; border-radius: 6px; background: {{c.skel}}"></div>
+</div>
+</sc-for>
+</div>
+<div aria-hidden="true" style="margin: 8px 4px 0; display: flex; flex-direction: column; gap: 6px">
+<div style="width: 100%; height: 12px; border-radius: 6px; background: {{c.skel}}"></div>
+<div style="width: 64%; height: 12px; border-radius: 6px; background: {{c.skel}}"></div>
+</div>
+</div>
+</sc-if>
+
+<sc-if value="{{isListLoaded}}" hint-placeholder-val="{{true}}">
+<div style="display: flex; flex-direction: column; gap: 8px; padding: 4px 16px 20px">
+<sc-for list="{{groups}}" as="g" hint-placeholder-count="2">
+<h2 style="margin: 8px 4px 0; font-size: 14px; line-height: 20px; font-weight: 700; color: {{c.onSurfaceVariant}}">{{g.year}}</h2>
+<!-- Card of Pressable month rows -->
+<div style="background: {{c.surface}}; border-radius: 20px; overflow: hidden; display: flex; flex-direction: column">
+<sc-for list="{{g.months}}" as="m" hint-placeholder-count="2">
+<a href="{{m.href}}" style="display: flex; align-items: center; gap: 12px; min-height: 72px; padding: 12px 10px 12px 16px; box-sizing: border-box; border-top: 1px solid {{m.divider}}; color: inherit; text-decoration: none">
+<div style="flex-grow: 1; min-width: 0; display: flex; flex-direction: column; gap: 4px">
+<span style="font-size: 16px; line-height: 24px; font-weight: 700">{{m.name}}</span>
+<span style="font-size: 12px; line-height: 16px; font-weight: 600; color: {{c.onSurfaceVariant}}; font-variant-numeric: tabular-nums">{{m.detail}}</span>
+<div style="display: flex; flex-wrap: wrap; gap: 6px; padding-top: 2px">
+<sc-for list="{{m.chips}}" as="ch" hint-placeholder-count="1">
+<!-- Badge -->
+<span style="padding: 2px 10px; border-radius: 999px; display: flex; align-items: center; font-size: 12px; line-height: 16px; font-weight: 700; white-space: nowrap; background: {{ch.bg}}; color: {{ch.fg}}">{{ch.label}}</span>
+</sc-for>
+</div>
+</div>
+<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="flex-shrink: 0; color: {{c.onSurfaceVariant}}"><path d="m9 18 6-6-6-6"></path></svg>
+</a>
+</sc-for>
+</div>
+</sc-for>
+<p style="margin: 8px 4px 0; font-size: 12px; line-height: 16px; font-weight: 600; color: {{c.onSurfaceVariant}}">February 2027 is in progress on This month. Months before November 2026 are in the old Google Sheet.</p>
+</div>
+</sc-if>
+</div>
+
+<!-- CUSTOM: Bottom navigation bar (4 items, built on restyled Tabs). Structure unchanged. -->
+<nav aria-label="Main" style="position: relative; z-index: 3; box-shadow: {{c.footShadow}}; flex-shrink: 0; height: 94px; box-sizing: border-box; padding: 12px 8px 22px; background: {{c.container}}; display: flex">
+<a href="{{homeHref}}" style="flex: 1 1 0; min-width: 0; display: flex; flex-direction: column; align-items: center; gap: 4px; text-decoration: none; color: {{c.onSurfaceVariant}}">
+<span style="width: 64px; height: 32px; display: flex; align-items: center; justify-content: center"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M15 21v-8a1 1 0 0 0-1-1h-4a1 1 0 0 0-1 1v8"></path><path d="M3 10a2 2 0 0 1 .709-1.528l7-5.999a2 2 0 0 1 2.582 0l7 5.999A2 2 0 0 1 21 10v9a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"></path></svg></span>
+<span style="font-size: 12px; line-height: 16px; font-weight: 600">This month</span>
+</a>
+<a href="#" aria-current="page" style="flex: 1 1 0; min-width: 0; display: flex; flex-direction: column; align-items: center; gap: 4px; text-decoration: none; color: {{c.onSurface}}">
+<span style="width: 64px; height: 32px; border-radius: 16px; background: {{c.track}}; color: {{c.onSelected}}; display: flex; align-items: center; justify-content: center"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"></path><path d="M3 3v5h5"></path><path d="M12 7v5l4 2"></path></svg></span>
+<span style="font-size: 12px; line-height: 16px; font-weight: 700">History</span>
+</a>
+<a href="{{householdHref}}" style="flex: 1 1 0; min-width: 0; display: flex; flex-direction: column; align-items: center; gap: 4px; text-decoration: none; color: {{c.onSurfaceVariant}}">
+<span style="width: 64px; height: 32px; display: flex; align-items: center; justify-content: center"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"></path><circle cx="9" cy="7" r="4"></circle><path d="M22 21v-2a4 4 0 0 0-3-3.87"></path><path d="M16 3.13a4 4 0 0 1 0 7.75"></path></svg></span>
+<span style="font-size: 12px; line-height: 16px; font-weight: 600">Household</span>
+</a>
+<a href="{{settingsHref}}" style="flex: 1 1 0; min-width: 0; display: flex; flex-direction: column; align-items: center; gap: 4px; text-decoration: none; color: {{c.onSurfaceVariant}}">
+<span style="width: 64px; height: 32px; display: flex; align-items: center; justify-content: center"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.39a2 2 0 0 0-.73-2.73l-.15-.08a2 2 0 0 1-1-1.74v-.5a2 2 0 0 1 1-1.74l.15-.09a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z"></path><circle cx="12" cy="12" r="3"></circle></svg></span>
+<span style="font-size: 12px; line-height: 16px; font-weight: 600">Settings</span>
+</a>
+</nav>
+</sc-if>
+
+<sc-if value="{{isMonth}}" hint-placeholder-val="{{false}}">
+<header style="display: flex; align-items: center; gap: 4px; padding: 4px 8px; height: 56px; flex-shrink: 0">
+<a href="{{backHref}}" aria-label="Back to History" style="width: 48px; height: 48px; border-radius: 24px; color: {{c.onSurface}}; display: flex; align-items: center; justify-content: center">
+<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m12 19-7-7 7-7"></path><path d="M19 12H5"></path></svg>
+</a>
+<div style="flex-grow: 1; display: flex; flex-direction: column">
+<span style="font-size: 20px; line-height: 28px; font-weight: 800">{{monthName}}</span>
+<span style="display: flex; align-items: center; gap: 4px; font-size: 12px; line-height: 16px; font-weight: 600; color: {{c.onSurfaceVariant}}">
+<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect width="18" height="11" x="3" y="11" rx="2" ry="2"></rect><path d="M7 11V7a5 5 0 0 1 10 0v4"></path></svg>
+Read-only
+</span>
+</div>
+</header>
+
+<main style="flex-grow: 1; min-height: 0; overflow-y: auto; overscroll-behavior: contain; scrollbar-width: none; padding: 4px 16px 24px; display: flex; flex-direction: column; gap: 14px">
+<!-- Alert (info for Corrected, warning for Carried), inside the month view -->
+<section role="status" style="background: {{bannerBg}}; border: 1px solid {{bannerLine}}; color: {{c.onSurface}}; border-radius: 16px; padding: 14px 16px; display: flex; gap: 12px">
+<sc-if value="{{isCorrected}}" hint-placeholder-val="{{true}}"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="{{bannerIcon}}" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="flex-shrink: 0; margin-top: 1px"><path d="M21.174 6.812a1 1 0 0 0-3.986-3.987L3.842 16.174a2 2 0 0 0-.5.83l-1.321 4.352a.5.5 0 0 0 .623.622l4.353-1.32a2 2 0 0 0 .83-.497z"></path><path d="m15 5 4 4"></path></svg></sc-if>
+<sc-if value="{{isCarried}}" hint-placeholder-val="{{false}}"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="{{bannerIcon}}" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="flex-shrink: 0; margin-top: 1px"><path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3"></path><path d="M12 9v4"></path><path d="M12 17h.01"></path></svg></sc-if>
+<div style="display: flex; flex-direction: column; gap: 3px">
+<span style="font-size: 14px; line-height: 20px; font-weight: 700">{{bannerTitle}}</span>
+<span style="font-size: 14px; line-height: 20px; font-weight: 500; color: {{c.onSurfaceVariant}}">{{bannerText}}</span>
+</div>
+</section>
+
+<section style="background: {{c.surface}}; border-radius: 20px; padding: 14px 16px; display: flex; flex-direction: column; gap: 10px">
+<div style="display: flex; justify-content: space-between; align-items: flex-start; gap: 8px">
+<div style="display: flex; flex-direction: column; gap: 2px">
+<span style="font-size: 12px; line-height: 16px; font-weight: 600; color: {{c.onSurfaceVariant}}">Utilities bill · Current Charges</span>
+<span style="font-size: 28px; line-height: 34px; font-weight: 800; letter-spacing: -0.6px; font-variant-numeric: tabular-nums">{{billAmount}}</span>
+<span style="font-size: 12px; line-height: 16px; font-weight: 600; color: {{c.onSurfaceVariant}}">{{billMeta}}</span>
+</div>
+<!-- Badge (success) -->
+<span style="padding: 2px 10px; border-radius: 999px; display: flex; align-items: center; font-size: 12px; line-height: 16px; font-weight: 700; background: {{c.successContainer}}; color: {{c.onSuccessContainer}}">Paid</span>
+</div>
+<!-- Button (link) -->
+<a href="#" style="align-self: flex-start; min-height: 44px; margin: -6px 0 -10px; display: flex; align-items: center; gap: 6px; font-size: 14px; line-height: 20px; font-weight: 700; color: {{c.onSurface}}; text-decoration: none">
+<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M15 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7Z"></path><path d="M14 2v4a2 2 0 0 0 2 2h4"></path><path d="M10 9H8"></path><path d="M16 13H8"></path><path d="M16 17H8"></path></svg>
+View bill
+</a>
+</section>
+
+<div style="display: flex; flex-direction: column; gap: 6px">
+<h2 style="margin: 0 4px; font-size: 15px; line-height: 22px; font-weight: 700">Payments</h2>
+<div style="background: {{c.surface}}; border-radius: 20px; overflow: hidden; display: flex; flex-direction: column">
+<sc-for list="{{payments}}" as="p" hint-placeholder-count="5">
+<div style="display: flex; flex-direction: column; gap: 3px; padding: 11px 16px; background: {{p.rowBg}}; border-top: 1px solid {{p.divider}}">
+<div style="display: flex; justify-content: space-between; gap: 8px; font-size: 15px; line-height: 22px; font-weight: 700"><span>{{p.title}}</span><span style="font-variant-numeric: tabular-nums; color: {{p.amountFg}}">{{p.amount}}</span></div>
+<div style="display: flex; justify-content: space-between; align-items: center; gap: 8px">
+<span style="font-size: 12px; line-height: 16px; font-weight: 600; color: {{c.onSurfaceVariant}}">{{p.detail}}</span>
+<!-- Badge -->
+<span style="flex-shrink: 0; padding: 2px 10px; border-radius: 999px; display: flex; align-items: center; font-size: 12px; line-height: 16px; font-weight: 700; white-space: nowrap; background: {{p.chipBg}}; color: {{p.chipFg}}">{{p.chip}}</span>
+</div>
+</div>
+</sc-for>
+</div>
+</div>
+</main>
+</sc-if>
+</div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"state":{"editor":"enum","options":["list","monthCorrected","monthCarried","loading"],"default":"list"},"theme":{"editor":"enum","options":["light","dark"],"default":"light"},"$preview":{"width":400,"height":848}}'>
+class Component extends DCLogic {
+  renderVals() {
+    var dark = this.props.theme === 'dark';
+    var st = this.props.state || 'list';
+    var c = dark ? {
+      background: '#111214', surface: '#1A1C1E', container: '#222427', sheet: '#222427',
+      onSurface: '#E3E3E6', onSurfaceVariant: '#C4C6CB', outline: '#8E9196', outlineVariant: '#2E3134',
+      primary: '#E2E2E6', onPrimary: '#1A1C1E', selected: '#2C2F33', onSelected: '#E3E3E6',
+      disabledBg: '#222427', disabledFg: '#5C5F64', track: '#3A3E43', scrim: 'rgba(0,0,0,0.6)',
+      success: '#66BB6A', successContainer: '#1B5E20', onSuccessContainer: '#CBE4CB',
+      warning: '#FFA726', warningContainer: '#66430F', onWarningContainer: '#FFE2B7', warningTint: '#332108', warningLine: '#F57C00',
+      danger: '#F44336', dangerTint: '#3B1511', dangerLine: '#D32F2F', onDangerTint: '#FFD9D6',
+      info: '#29B6F6', infoTint: '#082431', infoLine: '#1B76A0', infoContainer: '#104962', onInfoContainer: '#B8E7FB',
+      footShadow: '0 -8px 16px rgba(0,0,0,0.45)',
+      skel: 'linear-gradient(100deg, #222427 0%, #222427 35%, rgba(255,255,255,0.07) 50%, #222427 65%, #222427 100%)'
+    } : {
+      background: '#F5F5F7', surface: '#FFFFFF', container: '#E9EAED', sheet: '#FFFFFF',
+      onSurface: '#1A1C1E', onSurfaceVariant: '#45484C', outline: '#74777C', outlineVariant: '#E6E7EA',
+      primary: '#2B2F33', onPrimary: '#FFFFFF', selected: '#E6E7EA', onSelected: '#1A1C1E',
+      disabledBg: '#E9EAED', disabledFg: '#9A9DA2', track: '#D3D5D9', scrim: 'rgba(0,0,0,0.5)',
+      success: '#2E7D32', successContainer: '#C8E6C9', onSuccessContainer: '#1E4620',
+      warning: '#E65100', warningContainer: '#FBE2CC', onWarningContainer: '#663C00', warningTint: '#FFF4E5', warningLine: '#FBE2CC',
+      danger: '#D32F2F', dangerTint: '#FDEDED', dangerLine: '#F6D5D5', onDangerTint: '#5F2120',
+      info: '#0288D1', infoTint: '#E5F6FD', infoLine: '#CCE7F6', infoContainer: '#CCE7F6', onInfoContainer: '#014361',
+      footShadow: '0 -6px 14px rgba(0,0,0,0.14)',
+      skel: 'linear-gradient(100deg, #E9EAED 0%, #E9EAED 35%, rgba(255,255,255,0.65) 50%, #E9EAED 65%, #E9EAED 100%)'
+    };
+    var chip = function (k, label) {
+      if (k === 'paid') return { label: label, bg: c.successContainer, fg: c.onSuccessContainer };
+      if (k === 'warn') return { label: label, bg: c.warningContainer, fg: c.onWarningContainer };
+      if (k === 'info') return { label: label, bg: c.infoContainer, fg: c.onInfoContainer };
+      return { label: label, bg: c.container, fg: c.onSurfaceVariant };
+    };
+    var H = dark ? {
+      list: 'History-List-Dark.dc.html', nov: 'History-Corrected-Dark.dc.html', dec: 'History-Carried-Dark.dc.html',
+      home: 'Home-Upload-Dark.dc.html', household: 'Household-View-Dark.dc.html'
+    } : {
+      list: 'History.dc.html', nov: 'History-Corrected-Light.dc.html', dec: 'History-Carried-Light.dc.html',
+      home: 'Main.dc.html', household: 'Household.dc.html'
+    };
+    var v = {
+      c: c, isList: st === 'list' || st === 'loading', isListLoaded: st === 'list', isLoading: st === 'loading',
+      isMonth: st === 'monthCorrected' || st === 'monthCarried', isCorrected: st === 'monthCorrected', isCarried: st === 'monthCarried',
+      homeHref: H.home, householdHref: H.household, backHref: H.list,
+      settingsHref: dark ? 'Settings-View-Dark.dc.html' : 'Settings.dc.html',
+      skelA: [{ w1: '46%', w2: '82%', w3: '64px', divider: 'transparent' }],
+      skelB: [{ w1: '52%', w2: '70%', w3: '150px', divider: 'transparent' }, { w1: '50%', w2: '76%', w3: '120px', divider: c.outlineVariant }],
+      groups: [
+        { year: '2027', months: [
+          { name: 'January 2027', detail: 'Utilities bill $398.75 · 5 of 5 paid · incl. Tenant 2’s Dec utilities', chips: [chip('paid', 'Settled')], href: '#', divider: 'transparent' }
+        ] },
+        { year: '2026', months: [
+          { name: 'December 2026', detail: 'Utilities bill $436.10 · 4 of 5 paid', chips: [chip('warn', '1 unpaid · carried to Jan')], href: H.dec, divider: 'transparent' },
+          { name: 'November 2026', detail: 'Utilities bill $412.30 · 5 of 5 paid', chips: [chip('paid', 'Settled'), chip('info', 'Corrected in Dec')], href: H.nov, divider: c.outlineVariant }
+        ] }
+      ]
+    };
+    var pay = function (title, amount, detail, kind, label, i, amountFg) {
+      var k = chip(kind, label);
+      return { title: title, amount: amount, detail: detail, chip: label, chipBg: k.bg, chipFg: k.fg,
+        rowBg: kind === 'warn' ? c.warningTint : 'transparent', divider: i === 0 ? 'transparent' : c.outlineVariant, amountFg: amountFg || c.onSurface };
+    };
+    if (st === 'monthCorrected') {
+      v.monthName = 'November 2026';
+      v.bannerBg = c.infoTint; v.bannerLine = c.infoLine; v.bannerIcon = c.info;
+      v.bannerTitle = 'Corrected in December';
+      v.bannerText = 'A −$8.20 credit for Tenant 2 was added on 2 Dec and taken off their December payment. November’s amounts below stay as sent.';
+      v.billAmount = '$412.30'; v.billMeta = 'Due 16 Nov · you paid 16 Nov';
+      v.payments = [
+        pay('Tenant 2 · Rent', '$950.00', 'Moved to savings 3 Nov', 'paid', 'Paid 3 Nov', 0),
+        pay('Tenant 2 · Utilities', '$100.79', 'Utilities $82.46 + aircon $18.33', 'paid', 'Paid 4 Nov', 1),
+        pay('Primary Tenant + Tenant 1’s share', '$1,963.65', 'Incl. Tenant 1’s $100.79', 'paid', 'Paid 7 Nov', 2),
+        pay('Tenant 1 · Rent', '$950.00', 'Paid you directly', 'paid', 'Paid 27 Nov', 3),
+        pay('Correction · Tenant 2', '−$8.20', 'Added 2 Dec · on Dec payment', 'info', 'Correction', 4, c.success)
+      ];
+    } else if (st === 'monthCarried') {
+      v.monthName = 'December 2026';
+      v.bannerBg = c.warningTint; v.bannerLine = c.warningLine; v.bannerIcon = c.warning;
+      v.bannerTitle = '1 charge carried to January';
+      v.bannerText = 'Tenant 2’s December utilities ($87.22) weren’t paid, so they were added to their January payment.';
+      v.billAmount = '$436.10'; v.billMeta = 'Due 16 Dec · you paid 17 Dec';
+      v.payments = [
+        pay('Tenant 2 · Rent', '$950.00', 'Moved to savings 1 Dec', 'paid', 'Paid 1 Dec', 0),
+        pay('Tenant 2 · Utilities', '$87.22', 'Utilities share · carried to Jan', 'warn', 'Unpaid', 1),
+        pay('Primary Tenant + Tenant 1’s share', '$1,920.55', 'Incl. Tenant 1’s $87.22', 'paid', 'Paid 7 Dec', 2),
+        pay('Tenant 1 · Rent', '$950.00', 'Paid you directly', 'paid', 'Paid 27 Dec', 3)
+      ];
+    }
+    return v;
+  }
+}
+</script>
+</body>
+</html>
