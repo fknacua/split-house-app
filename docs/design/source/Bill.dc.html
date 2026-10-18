@@ -1,0 +1,238 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>View bill</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&display=swap">
+<style>
+body{margin:0}
+</style>
+</helmet>
+<div style="width: 400px; height: 848px; box-sizing: border-box; padding: 8px; background: #0B0C0C; border-radius: 26px; font-family: Manrope, 'Segoe UI', system-ui, sans-serif; color: {{c.onSurface}}">
+<div style="position: relative; width: 384px; height: 832px; border-radius: 18px; overflow: hidden; background: {{c.background}}; display: flex; flex-direction: column">
+<div style="position: absolute; top: 12px; left: 186px; width: 12px; height: 12px; border-radius: 6px; background: #050505; box-shadow: 0 0 0 2px #1C1D1E"></div>
+<div style="height: 36px; flex-shrink: 0"></div>
+
+<header style="display: flex; align-items: center; gap: 4px; padding: 4px 8px; height: 56px; flex-shrink: 0">
+<a href="{{backHref}}" aria-label="Back" style="width: 48px; height: 48px; border-radius: 24px; color: {{c.onSurface}}; display: flex; align-items: center; justify-content: center">
+<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m12 19-7-7 7-7"></path><path d="M19 12H5"></path></svg>
+</a>
+<div style="display: flex; flex-direction: column">
+<span style="font-size: 20px; line-height: 28px; font-weight: 800">Utilities bill</span>
+<span style="font-size: 12px; line-height: 16px; font-weight: 600; color: {{c.onSurfaceVariant}}">November 2026</span>
+</div>
+</header>
+
+<sc-if value="{{isLoading}}" hint-placeholder-val="{{false}}">
+<!-- Loading: Skeleton blocks in place of the four Cards -->
+<main aria-busy="true" style="flex-grow: 1; min-height: 0; overflow-y: auto; overscroll-behavior: contain; scrollbar-width: none; padding: 8px 16px 32px; display: flex; flex-direction: column; gap: 16px">
+
+<section aria-hidden="true" style="background: {{c.surface}}; border-radius: 20px; padding: 16px; display: flex; flex-direction: column; gap: 14px">
+<div style="display: flex; justify-content: space-between; align-items: flex-start">
+<div style="display: flex; flex-direction: column; gap: 6px">
+<div style="width: 108px; height: 14px; border-radius: 7px; background: {{c.skel}}"></div>
+<div style="width: 168px; height: 40px; border-radius: 10px; background: {{c.skel}}"></div>
+</div>
+<div style="width: 96px; height: 24px; margin-top: 4px; border-radius: 12px; background: {{c.skel}}"></div>
+</div>
+<div style="display: flex; flex-direction: column; gap: 10px">
+<sc-for list="{{skelLines}}" as="l" hint-placeholder-count="3">
+<div style="display: flex; justify-content: space-between"><div style="width: {{l.w}}; height: 14px; border-radius: 7px; background: {{c.skel}}"></div><div style="width: 56px; height: 14px; border-radius: 7px; background: {{c.skel}}"></div></div>
+</sc-for>
+</div>
+</section>
+
+<section aria-hidden="true" style="background: {{c.surface}}; border-radius: 20px; padding: 16px 16px 6px; display: flex; flex-direction: column; gap: 12px">
+<div style="display: flex; flex-direction: column; gap: 10px">
+<div style="display: flex; justify-content: space-between; align-items: baseline"><div style="width: 120px; height: 16px; border-radius: 8px; background: {{c.skel}}"></div><div style="width: 96px; height: 14px; border-radius: 7px; background: {{c.skel}}"></div></div>
+<div style="height: 6px; border-radius: 3px; background: {{c.skel}}"></div>
+</div>
+<div style="display: flex; flex-direction: column">
+<sc-for list="{{skelPeople}}" as="p" hint-placeholder-count="4">
+<div style="display: flex; align-items: center; gap: 12px; min-height: 52px; border-top: 1px solid {{p.divider}}">
+<div style="flex-grow: 1; display: flex; flex-direction: column; gap: 6px"><div style="width: {{p.w}}; height: 14px; border-radius: 7px; background: {{c.skel}}"></div><div style="width: 72px; height: 12px; border-radius: 6px; background: {{c.skel}}"></div></div>
+<div style="width: 56px; height: 14px; border-radius: 7px; background: {{c.skel}}"></div>
+<div style="width: 76px; height: 24px; border-radius: 12px; background: {{c.skel}}"></div>
+</div>
+</sc-for>
+</div>
+</section>
+
+<section aria-hidden="true" style="background: {{c.surface}}; border-radius: 20px; padding: 4px 16px; display: flex; flex-direction: column">
+<sc-for list="{{skelFacts}}" as="f" hint-placeholder-count="3">
+<div style="display: flex; justify-content: space-between; align-items: center; min-height: 44px; border-top: 1px solid {{f.divider}}">
+<div style="width: 88px; height: 14px; border-radius: 7px; background: {{c.skel}}"></div><div style="width: {{f.w}}; height: 14px; border-radius: 7px; background: {{c.skel}}"></div>
+</div>
+</sc-for>
+</section>
+
+<section aria-hidden="true" style="background: {{c.surface}}; border-radius: 20px; padding: 12px 8px 12px 16px; display: flex; align-items: center; gap: 12px">
+<div style="width: 44px; height: 52px; border-radius: 8px; flex-shrink: 0; background: {{c.skel}}"></div>
+<div style="flex-grow: 1; min-width: 0; display: flex; flex-direction: column; gap: 6px"><div style="width: 70%; height: 14px; border-radius: 7px; background: {{c.skel}}"></div><div style="width: 40%; height: 12px; border-radius: 6px; background: {{c.skel}}"></div></div>
+<div style="width: 44px; height: 14px; margin-right: 14px; border-radius: 7px; background: {{c.skel}}"></div>
+</section>
+</main>
+
+<footer aria-hidden="true" style="position: relative; z-index: 3; flex-shrink: 0; padding: 12px 16px 28px; background: {{c.background}}; box-shadow: {{c.footShadow}}">
+<div style="height: 48px; border-radius: 24px; background: {{c.skel}}"></div>
+</footer>
+</sc-if>
+
+<sc-if value="{{isLoaded}}" hint-placeholder-val="{{true}}">
+<main style="flex-grow: 1; min-height: 0; overflow-y: auto; overscroll-behavior: contain; scrollbar-width: none; padding: 8px 16px 32px; display: flex; flex-direction: column; gap: 16px">
+
+<!-- Card -->
+<section style="background: {{c.surface}}; border-radius: 20px; padding: 16px; display: flex; flex-direction: column; gap: 14px">
+<div style="display: flex; justify-content: space-between; align-items: flex-start">
+<div style="display: flex; flex-direction: column; gap: 2px">
+<span style="font-size: 12px; line-height: 16px; font-weight: 600; color: {{c.onSurfaceVariant}}">Current Charges</span>
+<span style="font-size: 34px; line-height: 40px; font-weight: 800; letter-spacing: -1px; font-variant-numeric: tabular-nums">$412.30</span>
+</div>
+<!-- Badge -->
+<span style="padding: 2px 10px; border-radius: 999px; background: {{chipBg}}; color: {{chipFg}}; display: flex; align-items: center; gap: 6px; font-size: 12px; line-height: 16px; font-weight: 700; margin-top: 4px">{{chipText}}</span>
+</div>
+<div style="display: flex; flex-direction: column; gap: 6px; font-size: 15px; line-height: 22px; font-weight: 500">
+<sc-for list="{{lines}}" as="l" hint-placeholder-count="3">
+<div style="display: flex; justify-content: space-between"><span style="color: {{c.onSurfaceVariant}}">{{l.label}}</span><span style="font-variant-numeric: tabular-nums; font-weight: 700">{{l.value}}</span></div>
+</sc-for>
+</div>
+</section>
+
+<!-- Card with Progress (collected so far) and per-person rows with Badges -->
+<section style="background: {{c.surface}}; border-radius: 20px; padding: 16px 16px 6px; display: flex; flex-direction: column; gap: 12px">
+<div style="display: flex; flex-direction: column; gap: 8px">
+<div style="display: flex; justify-content: space-between; align-items: baseline">
+<span style="font-size: 14px; line-height: 20px; font-weight: 700">{{collectTitle}}</span>
+<span style="font-size: 12px; line-height: 16px; font-weight: 600; color: {{c.onSurfaceVariant}}; font-variant-numeric: tabular-nums">{{collectNote}}</span>
+</div>
+<!-- Progress -->
+<div role="progressbar" aria-valuemin="0" aria-valuemax="100" style="height: 6px; border-radius: 3px; background: {{c.track}}; overflow: hidden"><div style="width: {{pct}}; height: 6px; border-radius: 3px; background: {{c.primary}}"></div></div>
+</div>
+<div style="display: flex; flex-direction: column">
+<sc-for list="{{people}}" as="p" hint-placeholder-count="4">
+<div style="display: flex; align-items: center; gap: 12px; min-height: 52px; border-top: 1px solid {{p.divider}}">
+<div style="flex-grow: 1; display: flex; flex-direction: column; gap: 1px">
+<span style="font-size: 15px; line-height: 22px; font-weight: 700">{{p.who}}</span>
+<span style="font-size: 12px; line-height: 16px; font-weight: 600; color: {{c.onSurfaceVariant}}">{{p.shares}}</span>
+</div>
+<span style="font-size: 15px; line-height: 22px; font-weight: 800; font-variant-numeric: tabular-nums">{{p.amount}}</span>
+<span style="min-width: 76px; padding: 2px 10px; box-sizing: border-box; border-radius: 999px; background: {{p.bg}}; color: {{p.fg}}; display: flex; align-items: center; justify-content: center; font-size: 12px; line-height: 16px; font-weight: 700">{{p.status}}</span>
+</div>
+</sc-for>
+</div>
+</section>
+
+<section style="background: {{c.surface}}; border-radius: 20px; padding: 4px 16px; display: flex; flex-direction: column">
+<sc-for list="{{facts}}" as="f" hint-placeholder-count="4">
+<div style="display: flex; justify-content: space-between; align-items: center; min-height: 44px; border-top: 1px solid {{f.divider}}; font-size: 15px; line-height: 22px; font-weight: 500">
+<span style="color: {{c.onSurfaceVariant}}">{{f.label}}</span><span style="font-weight: 700">{{f.value}}</span>
+</div>
+</sc-for>
+</section>
+
+<!-- Card: attached PDF row; "Open" launches the PDF viewer (CUSTOM piece) -->
+<section style="background: {{c.surface}}; border-radius: 20px; padding: 12px 8px 12px 16px; display: flex; align-items: center; gap: 12px">
+<span style="width: 44px; height: 52px; border-radius: 8px; background: {{c.selected}}; color: {{c.onSelected}}; display: flex; align-items: center; justify-content: center; flex-shrink: 0"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M15 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7Z"></path><path d="M14 2v4a2 2 0 0 0 2 2h4"></path><path d="M10 9H8"></path><path d="M16 13H8"></path><path d="M16 17H8"></path></svg></span>
+<div style="flex-grow: 1; min-width: 0; display: flex; flex-direction: column; gap: 2px">
+<span style="font-size: 14px; line-height: 20px; font-weight: 700; white-space: nowrap; overflow: hidden; text-overflow: ellipsis">Utilities_Bill_Nov2026.pdf</span>
+<span style="font-size: 12px; line-height: 16px; font-weight: 600; color: {{c.onSurfaceVariant}}">2 pages · added 2 Nov</span>
+</div>
+<!-- Button (link, 44px) -->
+<button style="height: 44px; padding: 0 14px; border: 0; background: none; color: {{c.onSurface}}; font-family: inherit; font-size: 14px; line-height: 20px; font-weight: 700; cursor: pointer">Open</button>
+</section>
+</main>
+
+<sc-if value="{{isCollecting}}" hint-placeholder-val="{{true}}">
+<footer style="position: relative; z-index: 3; flex-shrink: 0; padding: 12px 16px 28px; background: {{c.background}}; box-shadow: {{c.footShadow}}">
+<!-- Button (solid, 48px) -->
+<a href="{{payHref}}" style="height: 48px; border-radius: 24px; background: {{c.primary}}; color: {{c.onPrimary}}; font-size: 15px; line-height: 20px; font-weight: 700; display: flex; align-items: center; justify-content: center; text-decoration: none">Mark bill paid</a>
+</footer>
+</sc-if>
+</sc-if>
+
+</div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"state":{"editor":"enum","options":["collecting","paid","loading"],"default":"collecting"},"theme":{"editor":"enum","options":["light","dark"],"default":"light"},"$preview":{"width":400,"height":848}}'>
+class Component extends DCLogic {
+  renderVals() {
+    var dark = this.props.theme === 'dark';
+    var st = this.props.state || 'collecting';
+    var isLoading = st === 'loading';
+    var paid = st === 'paid';
+    var c = dark ? {
+      background: '#111214', surface: '#1A1C1E', container: '#222427', sheet: '#222427',
+      onSurface: '#E3E3E6', onSurfaceVariant: '#C4C6CB', outline: '#8E9196', outlineVariant: '#2E3134',
+      primary: '#E2E2E6', onPrimary: '#1A1C1E', selected: '#2C2F33', onSelected: '#E3E3E6',
+      disabledBg: '#222427', disabledFg: '#5C5F64', track: '#3A3E43', scrim: 'rgba(0,0,0,0.6)',
+      success: '#66BB6A', successContainer: '#1B5E20', onSuccessContainer: '#CBE4CB',
+      warning: '#FFA726', warningContainer: '#66430F', onWarningContainer: '#FFE2B7', warningTint: '#332108', warningLine: '#F57C00',
+      danger: '#F44336', dangerTint: '#3B1511', dangerLine: '#D32F2F', onDangerTint: '#FFD9D6',
+      info: '#29B6F6', infoTint: '#082431', infoLine: '#1B76A0', infoContainer: '#104962', onInfoContainer: '#B8E7FB',
+      footShadow: '0 -8px 16px rgba(0,0,0,0.45)',
+      skel: 'linear-gradient(100deg, #222427 0%, #222427 35%, rgba(255,255,255,0.07) 50%, #222427 65%, #222427 100%)'
+    } : {
+      background: '#F5F5F7', surface: '#FFFFFF', container: '#E9EAED', sheet: '#FFFFFF',
+      onSurface: '#1A1C1E', onSurfaceVariant: '#45484C', outline: '#74777C', outlineVariant: '#E6E7EA',
+      primary: '#2B2F33', onPrimary: '#FFFFFF', selected: '#E6E7EA', onSelected: '#1A1C1E',
+      disabledBg: '#E9EAED', disabledFg: '#9A9DA2', track: '#D3D5D9', scrim: 'rgba(0,0,0,0.5)',
+      success: '#2E7D32', successContainer: '#C8E6C9', onSuccessContainer: '#1E4620',
+      warning: '#E65100', warningContainer: '#FBE2CC', onWarningContainer: '#663C00', warningTint: '#FFF4E5', warningLine: '#FBE2CC',
+      danger: '#D32F2F', dangerTint: '#FDEDED', dangerLine: '#F6D5D5', onDangerTint: '#5F2120',
+      info: '#0288D1', infoTint: '#E5F6FD', infoLine: '#CCE7F6', infoContainer: '#CCE7F6', onInfoContainer: '#014361',
+      footShadow: '0 -6px 14px rgba(0,0,0,0.14)',
+      skel: 'linear-gradient(100deg, #E9EAED 0%, #E9EAED 35%, rgba(255,255,255,0.65) 50%, #E9EAED 65%, #E9EAED 100%)'
+    };
+    var P = function (who, shares, amount, status, kind) {
+      var k = { paid: [c.successContainer, c.onSuccessContainer], wait: [c.container, c.onSurfaceVariant] }[kind];
+      return { who: who, shares: shares, amount: amount, status: status, bg: k[0], fg: k[1] };
+    };
+    var people = paid ? [
+      P('You', '1.5 shares', '$123.69', 'Covered', 'paid'),
+      P('Primary Tenant', '1.5 shares', '$123.69', 'Paid 5 Nov', 'paid'),
+      P('Tenant 1', '1 share', '$82.46', 'Paid 6 Nov', 'paid'),
+      P('Tenant 2', '1 share', '$82.46', 'Paid 4 Nov', 'paid')
+    ] : [
+      P('You', '1.5 shares', '$123.69', 'Covered', 'paid'),
+      P('Primary Tenant', '1.5 shares', '$123.69', 'Waiting', 'wait'),
+      P('Tenant 1', '1 share', '$82.46', 'Waiting', 'wait'),
+      P('Tenant 2', '1 share', '$82.46', 'Waiting', 'wait')
+    ];
+    people.forEach(function (p, i) { p.divider = c.outlineVariant; });
+    var facts = [
+      { label: 'Bill month', value: 'November 2026' },
+      { label: 'Billing period', value: '1–31 Oct 2026' },
+      { label: 'Due date', value: 'Mon 16 Nov 2026' }
+    ];
+    if (paid) facts.push({ label: 'You paid', value: '16 Nov 2026' });
+    facts.forEach(function (f, i) { f.divider = i === 0 ? 'transparent' : c.outlineVariant; });
+    var T = dark ? 'Dark' : 'Light';
+    return {
+      c: c, isPaid: paid, isCollecting: !paid, isLoading: isLoading, isLoaded: !isLoading,
+      skelLines: [{ w: '30%' }, { w: '22%' }, { w: '26%' }],
+      skelPeople: [{ w: '18%', divider: c.outlineVariant }, { w: '22%', divider: c.outlineVariant }, { w: '14%', divider: c.outlineVariant }, { w: '16%', divider: c.outlineVariant }],
+      skelFacts: [{ w: '90px', divider: 'transparent' }, { w: '96px', divider: c.outlineVariant }, { w: '104px', divider: c.outlineVariant }],
+      chipText: paid ? 'Paid 16 Nov' : 'Due in 12 days',
+      chipBg: paid ? c.successContainer : c.container, chipFg: paid ? c.onSuccessContainer : c.onSurfaceVariant,
+      collectTitle: paid ? 'Fully collected' : 'Collected so far',
+      collectNote: paid ? '$412.30 of $412.30' : '$123.69 of $412.30',
+      pct: paid ? '100%' : '30%',
+      people: people, facts: facts,
+      lines: [
+        { label: 'Electricity', value: '$268.45' },
+        { label: 'Gas', value: '$41.20' },
+        { label: 'Water', value: '$102.65' }
+      ],
+      backHref: 'Home-Overdue-' + T + '.dc.html',
+      payHref: 'PayBill-Partial-' + T + '.dc.html'
+    };
+  }
+}
+</script>
+</body>
+</html>

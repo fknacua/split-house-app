@@ -1,0 +1,152 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Notifications</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<!-- Android system UI reference: copy, channels, actions and app icon only. Not a gluestack screen; only theme tokens were swapped. -->
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&display=swap">
+<style>
+body{margin:0}
+</style>
+</helmet>
+<div style="width: 400px; height: 848px; box-sizing: border-box; padding: 8px; background: #0B0C0C; border-radius: 26px; font-family: Manrope, 'Segoe UI', system-ui, sans-serif; color: {{c.onSurface}}">
+<div style="position: relative; width: 384px; height: 832px; border-radius: 18px; overflow: hidden; background: {{c.shadeBg}}; display: flex; flex-direction: column">
+<div style="position: absolute; top: 12px; left: 186px; width: 12px; height: 12px; border-radius: 6px; background: #050505; box-shadow: 0 0 0 2px #1C1D1E; z-index: 5"></div>
+
+<sc-if value="{{isHeadsUp}}" hint-placeholder-val="{{false}}">
+<div aria-hidden="true" style="padding: 48px 16px 0; display: flex; flex-direction: column; gap: 16px">
+<span style="font-size: 22px; font-weight: 700">November 2026</span>
+<div style="height: 210px; border-radius: 24px; background: {{c.track}}"></div>
+<div style="height: 360px; border-radius: 20px; background: {{c.surface}}"></div>
+</div>
+<div aria-hidden="true" style="position: absolute; inset: 0; background: rgba(0,0,0,0.35)"></div>
+
+<a href="{{uploadHref}}" aria-label="Upload this month’s utilities bill. Opens bill upload" style="position: absolute; top: 40px; left: 8px; right: 8px; z-index: 4; background: {{c.card}}; border-radius: 24px; padding: 12px 16px 14px; box-shadow: 0 10px 28px rgba(0,0,0,0.38); display: flex; flex-direction: column; gap: 6px; color: inherit; text-decoration: none">
+<div style="display: flex; align-items: center; gap: 8px; font-size: 12px; color: {{c.onSurfaceVariant}}">
+<span style="width: 20px; height: 20px; border-radius: 10px; background: {{c.primary}}; color: {{c.onPrimary}}; display: flex; align-items: center; justify-content: center"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M15 21v-8a1 1 0 0 0-1-1h-4a1 1 0 0 0-1 1v8"></path><path d="M3 10a2 2 0 0 1 .709-1.528l7-5.999a2 2 0 0 1 2.582 0l7 5.999A2 2 0 0 1 21 10v9a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"></path></svg></span>
+<span style="font-weight: 700">SplitHouse</span><span>·</span><span>Action needed</span><span>·</span><span>now</span>
+</div>
+<span style="font-size: 15px; font-weight: 800">Upload this month’s utilities bill</span>
+<span style="font-size: 13.5px; line-height: 19px; color: {{c.onSurfaceVariant}}">It usually lands around the 2nd. Upload it to work out everyone’s share.</span>
+</a>
+</sc-if>
+
+<sc-if value="{{isShade}}" hint-placeholder-val="{{true}}">
+<div style="height: 40px; flex-shrink: 0"></div>
+<header style="flex-shrink: 0; padding: 4px 20px 12px; display: flex; flex-direction: column; gap: 2px">
+<span style="font-size: 34px; line-height: 40px; font-weight: 700; letter-spacing: -0.8px">9:00</span>
+<span style="font-size: 13.5px; color: {{c.onSurfaceVariant}}">Wed 4 Nov</span>
+</header>
+
+<main style="flex-grow: 1; min-height: 0; overflow-y: auto; overscroll-behavior: contain; scrollbar-width: none; padding: 0 8px 12px; display: flex; flex-direction: column; gap: 14px">
+<sc-for list="{{groups}}" as="g" hint-placeholder-count="3">
+<section aria-label="{{g.title}}" style="display: flex; flex-direction: column; gap: 4px">
+<div style="display: flex; align-items: center; gap: 8px; padding: 0 12px 2px; font-size: 12.5px; font-weight: 700; color: {{c.onSurfaceVariant}}">
+<sc-if value="{{g.silent}}" hint-placeholder-val="{{false}}"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M10.268 21a2 2 0 0 0 3.464 0"></path><path d="M17 17H4a1 1 0 0 1-.74-1.673C4.59 13.956 6 12.499 6 8a6 6 0 0 1 .258-1.742"></path><path d="m2 2 20 20"></path><path d="M8.668 3.01A6 6 0 0 1 18 8c0 2.687.77 4.653 1.707 6.05"></path></svg></sc-if>
+{{g.title}}
+</div>
+<sc-for list="{{g.items}}" as="n" hint-placeholder-count="2">
+<div style="background: {{c.card}}; border-radius: {{n.radius}}; padding: 12px 16px 6px; display: flex; flex-direction: column; gap: 2px; opacity: {{n.opacity}}">
+<a href="{{n.href}}" style="display: flex; flex-direction: column; gap: 4px; padding-bottom: 6px; color: inherit; text-decoration: none">
+<span style="display: flex; align-items: center; gap: 8px; font-size: 12px; color: {{c.onSurfaceVariant}}">
+<span style="width: 20px; height: 20px; border-radius: 10px; background: {{c.primary}}; color: {{c.onPrimary}}; display: flex; align-items: center; justify-content: center"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M15 21v-8a1 1 0 0 0-1-1h-4a1 1 0 0 0-1 1v8"></path><path d="M3 10a2 2 0 0 1 .709-1.528l7-5.999a2 2 0 0 1 2.582 0l7 5.999A2 2 0 0 1 21 10v9a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"></path></svg></span>
+<span style="font-weight: 700">SplitHouse</span><span>·</span><span>{{n.time}}</span>
+</span>
+<span style="font-size: 15px; font-weight: 800">{{n.title}}</span>
+<span style="font-size: 13.5px; line-height: 19px; color: {{c.onSurfaceVariant}}">{{n.body}}</span>
+</a>
+<sc-if value="{{n.hasActions}}" hint-placeholder-val="{{false}}">
+<div style="display: flex; gap: 4px; margin: 0 -8px; padding-bottom: 4px">
+<sc-for list="{{n.actions}}" as="a" hint-placeholder-count="2">
+<a href="{{a.href}}" style="min-height: 44px; padding: 0 12px; display: flex; align-items: center; font-size: 14px; font-weight: 800; color: {{c.primary}}; text-decoration: none">{{a.label}}</a>
+</sc-for>
+</div>
+</sc-if>
+</div>
+</sc-for>
+</section>
+</sc-for>
+</main>
+
+<footer style="flex-shrink: 0; padding: 8px 16px 26px; display: flex; justify-content: space-between; align-items: center">
+<a href="{{settingsHref}}" style="min-height: 44px; padding: 0 16px; border-radius: 22px; background: {{c.card}}; color: {{c.onSurface}}; display: flex; align-items: center; gap: 8px; font-size: 14px; font-weight: 700; text-decoration: none">
+<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 7h-9"></path><path d="M14 17H5"></path><circle cx="17" cy="17" r="3"></circle><circle cx="7" cy="7" r="3"></circle></svg>
+Manage
+</a>
+<span style="min-height: 44px; padding: 0 20px; border-radius: 22px; background: {{c.card}}; color: {{c.onSurface}}; display: flex; align-items: center; font-size: 14px; font-weight: 700">Clear all</span>
+</footer>
+</sc-if>
+</div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"state":{"editor":"enum","options":["headsUp","shade"],"default":"shade"},"theme":{"editor":"enum","options":["light","dark"],"default":"light"},"$preview":{"width":400,"height":848}}'>
+class Component extends DCLogic {
+  renderVals() {
+    var dark = this.props.theme === 'dark';
+    var st = this.props.state || 'shade';
+    var c = dark ? {
+      background: '#111214', surface: '#1A1C1E', container: '#222427', sheet: '#222427',
+      onSurface: '#E3E3E6', onSurfaceVariant: '#C4C6CB', outline: '#8E9196', outlineVariant: '#2E3134',
+      primary: '#E2E2E6', onPrimary: '#1A1C1E', selected: '#2C2F33', onSelected: '#E3E3E6',
+      disabledBg: '#222427', disabledFg: '#5C5F64', track: '#3A3E43', scrim: 'rgba(0,0,0,0.6)',
+      success: '#66BB6A', successContainer: '#1B5E20', onSuccessContainer: '#CBE4CB',
+      warning: '#FFA726', warningContainer: '#66430F', onWarningContainer: '#FFE2B7', warningTint: '#332108', warningLine: '#F57C00',
+      danger: '#F44336', dangerTint: '#3B1511', dangerLine: '#D32F2F', onDangerTint: '#FFD9D6',
+      info: '#29B6F6', infoTint: '#082431', infoLine: '#1B76A0', infoContainer: '#104962', onInfoContainer: '#B8E7FB',
+      footShadow: '0 -8px 16px rgba(0,0,0,0.45)',
+      card: '#26292C', shadeBg: '#0E0F10'
+    } : {
+      background: '#F5F5F7', surface: '#FFFFFF', container: '#E9EAED', sheet: '#FFFFFF',
+      onSurface: '#1A1C1E', onSurfaceVariant: '#45484C', outline: '#74777C', outlineVariant: '#E6E7EA',
+      primary: '#2B2F33', onPrimary: '#FFFFFF', selected: '#E6E7EA', onSelected: '#1A1C1E',
+      disabledBg: '#E9EAED', disabledFg: '#9A9DA2', track: '#D3D5D9', scrim: 'rgba(0,0,0,0.5)',
+      success: '#2E7D32', successContainer: '#C8E6C9', onSuccessContainer: '#1E4620',
+      warning: '#E65100', warningContainer: '#FBE2CC', onWarningContainer: '#663C00', warningTint: '#FFF4E5', warningLine: '#FBE2CC',
+      danger: '#D32F2F', dangerTint: '#FDEDED', dangerLine: '#F6D5D5', onDangerTint: '#5F2120',
+      info: '#0288D1', infoTint: '#E5F6FD', infoLine: '#CCE7F6', infoContainer: '#CCE7F6', onInfoContainer: '#014361',
+      footShadow: '0 -6px 14px rgba(0,0,0,0.14)',
+      card: '#FFFFFF', shadeBg: '#E4E5E9'
+    };
+    var home = dark ? 'Home-Overdue-Dark.dc.html' : 'Home-Overdue-Light.dc.html';
+    var upload = dark ? 'Upload-Pick-Dark.dc.html' : 'BillUpload.dc.html';
+    var homeCollect = dark ? 'Home-DueToday-Dark.dc.html' : 'Home-DueToday-Light.dc.html';
+    var paidSheet = dark ? 'MarkPaid-Record-Dark.dc.html' : 'MarkPaid-Record-Light.dc.html';
+    var A = function (label, href) { return { label: label, href: href }; };
+    var item = function (o) {
+      o.radius = '20px'; o.opacity = '1';
+      o.hasActions = !!(o.actions && o.actions.length);
+      return o;
+    };
+    var groups = [
+      { title: 'Action needed', silent: false, items: [
+        item({ time: '9:00', title: 'Upload this month’s utilities bill', body: 'It usually lands around the 2nd. Tap to upload it.', href: upload }),
+        item({ time: 'Fri', title: 'Collect Tenant 1’s rent', body: 'Their October rent of $950.00 is still unpaid. Weekend transfers can be slow.', href: homeCollect,
+          actions: [A('Paid', paidSheet), A('Nudge', home)] }),
+        item({ time: 'Yesterday', title: 'Transfer $950.00 to savings', body: 'Tenant 2’s rent was marked received. Move it to your second account.', href: home }),
+        item({ time: 'Yesterday', title: 'Pay utilities bill: collected $123.69 of $412.30', body: 'Due Mon 16 Nov.', href: home })
+      ] },
+      { title: 'Payment checks', silent: false, items: [
+        item({ time: '9:00', title: 'Did Tenant 2 pay Nov utilities ($100.79)?', body: 'Due today.', href: home,
+          actions: [A('Paid', paidSheet), A('Nudge', home)] })
+      ] },
+      { title: 'Silent', silent: true, items: [
+        item({ time: '9:00', title: 'Unusual bill amount', body: 'October’s $349.40 was 18% higher than September’s.', href: home }),
+        item({ time: 'Yesterday', title: 'Aircon servicing due?', body: 'It’s been 3 months since the last one.', href: home }),
+        item({ time: 'Mon', title: 'October is settled', body: 'Everyone has paid and the utilities bill is covered.', href: home })
+      ] }
+    ];
+    return {
+      c: c, groups: groups, isHeadsUp: st === 'headsUp', isShade: st === 'shade',
+      uploadHref: upload,
+      settingsHref: dark ? 'Settings-View-Dark.dc.html' : 'Settings.dc.html'
+    };
+  }
+}
+</script>
+</body>
+</html>

@@ -1,0 +1,178 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Form controls</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&display=swap">
+<style>
+body{margin:0}
+</style>
+</helmet>
+<div style="width: 400px; height: 848px; box-sizing: border-box; padding: 8px; background: #0B0C0C; border-radius: 26px; font-family: Manrope, 'Segoe UI', system-ui, sans-serif; color: {{c.onSurface}}">
+<div style="position: relative; width: 384px; height: 832px; border-radius: 18px; overflow: hidden; background: {{c.background}}; display: flex; flex-direction: column">
+<div style="position: absolute; top: 12px; left: 186px; width: 12px; height: 12px; border-radius: 6px; background: #050505; box-shadow: 0 0 0 2px #1C1D1E"></div>
+<div style="height: 36px; flex-shrink: 0"></div>
+
+<main style="flex-grow: 1; min-height: 0; overflow-y: auto; overscroll-behavior: contain; scrollbar-width: none; padding: 16px 16px 24px; display: flex; flex-direction: column; gap: 16px">
+<h1 style="margin: 0; font-size: 24px; line-height: 32px; font-weight: 800">{{heading}}</h1>
+<p style="margin: 0; font-size: 13px; line-height: 18px; font-weight: 500; color: {{c.onSurfaceVariant}}">{{intro}}</p>
+
+<!-- ===== FIELDS: gluestack FormControl (label, input, helper, error) ===== -->
+<sc-if value="{{isFields}}" hint-placeholder-val="{{true}}">
+<section aria-label="Form control states" style="background: {{c.surface}}; border-radius: 20px; padding: 16px; display: flex; flex-direction: column; gap: 16px">
+<sc-for list="{{fields}}" as="f" hint-placeholder-count="9">
+<div style="display: flex; flex-direction: column; gap: 6px">
+<span style="font-size: 11px; line-height: 14px; font-weight: 700; letter-spacing: 0.4px; text-transform: uppercase; color: {{c.onSurfaceVariant}}">{{f.caption}}</span>
+<label style="font-size: 14px; line-height: 20px; font-weight: 700; color: {{f.labelFg}}">{{f.label}}<sc-if value="{{f.required}}" hint-placeholder-val="{{false}}"><span aria-hidden="true" style="color: {{c.danger}}"> *</span></sc-if></label>
+<div style="min-height: {{f.h}}; box-sizing: border-box; border: 1px solid {{f.border}}; box-shadow: {{f.ring}}; border-radius: 12px; background: {{f.bg}}; display: flex; align-items: {{f.align}}; gap: 8px; padding: {{f.pad}}">
+<span style="flex-grow: 1; min-width: 0; font-size: 16px; line-height: 24px; font-weight: 500; color: {{f.fg}}">{{f.text}}</span>
+<sc-if value="{{f.chevron}}" hint-placeholder-val="{{false}}"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="flex-shrink: 0; color: {{c.onSurfaceVariant}}"><path d="m6 9 6 6 6-6"></path></svg></sc-if>
+<sc-if value="{{f.calendar}}" hint-placeholder-val="{{false}}"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="flex-shrink: 0; color: {{c.onSurfaceVariant}}"><path d="M8 2v4"></path><path d="M16 2v4"></path><rect width="18" height="18" x="3" y="4" rx="2"></rect><path d="M3 10h18"></path></svg></sc-if>
+</div>
+<sc-if value="{{f.helper}}" hint-placeholder-val="{{false}}"><span style="font-size: 12px; line-height: 16px; font-weight: 500; color: {{c.onSurfaceVariant}}">{{f.helperText}}</span></sc-if>
+<sc-if value="{{f.error}}" hint-placeholder-val="{{false}}"><span style="display: flex; align-items: center; gap: 4px; font-size: 12px; line-height: 16px; font-weight: 600; color: {{c.danger}}"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="10"></circle><path d="M12 8v4"></path><path d="M12 16h.01"></path></svg>{{f.errorText}}</span></sc-if>
+</div>
+</sc-for>
+</section>
+</sc-if>
+
+<!-- ===== PICKERS: Select list, month list, native date dialog ===== -->
+<sc-if value="{{isPickers}}" hint-placeholder-val="{{false}}">
+
+<section aria-label="Select opened" style="display: flex; flex-direction: column; gap: 8px">
+<span style="font-size: 11px; line-height: 14px; font-weight: 700; letter-spacing: 0.4px; text-transform: uppercase; color: {{c.onSurfaceVariant}}">Select, opened (bottom sheet list)</span>
+<!-- gluestack Select / BottomSheet -->
+<div style="background: {{c.sheet}}; border-radius: 28px 28px 0 0; padding: 12px 16px 16px; display: flex; flex-direction: column; gap: 4px; border: 1px solid {{c.outlineVariant}}; border-bottom: 0">
+<span style="width: 32px; height: 4px; border-radius: 2px; background: {{c.track}}; align-self: center; margin-bottom: 8px"></span>
+<sc-for list="{{selectItems}}" as="o" hint-placeholder-count="3">
+<div style="min-height: 48px; display: flex; align-items: center; gap: 12px; padding: 0 12px; border-radius: 12px; background: {{o.bg}}; font-size: 15px; line-height: 22px; font-weight: {{o.weight}}; color: {{c.onSurface}}"><span style="flex-grow: 1">{{o.label}}</span><sc-if value="{{o.on}}" hint-placeholder-val="{{false}}"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 6 9 17l-5-5"></path></svg></sc-if></div>
+</sc-for>
+</div>
+</section>
+
+<section aria-label="Month list" style="display: flex; flex-direction: column; gap: 8px">
+<span style="font-size: 11px; line-height: 14px; font-weight: 700; letter-spacing: 0.4px; text-transform: uppercase; color: {{c.onSurfaceVariant}}">Month field, opened (simple list; used for Bill month, Starts from, Month being fixed)</span>
+<div style="background: {{c.sheet}}; border-radius: 28px 28px 0 0; padding: 12px 16px 16px; display: flex; flex-direction: column; gap: 4px; border: 1px solid {{c.outlineVariant}}; border-bottom: 0">
+<span style="width: 32px; height: 4px; border-radius: 2px; background: {{c.track}}; align-self: center; margin-bottom: 8px"></span>
+<sc-for list="{{months}}" as="o" hint-placeholder-count="4">
+<div style="min-height: 48px; display: flex; align-items: center; gap: 12px; padding: 0 12px; border-radius: 12px; background: {{o.bg}}; font-size: 15px; line-height: 22px; font-weight: {{o.weight}}; color: {{c.onSurface}}"><span style="flex-grow: 1">{{o.label}}</span><sc-if value="{{o.on}}" hint-placeholder-val="{{false}}"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 6 9 17l-5-5"></path></svg></sc-if></div>
+</sc-for>
+</div>
+</section>
+
+<section aria-label="Date picker" style="display: flex; flex-direction: column; gap: 8px">
+<span style="font-size: 11px; line-height: 14px; font-weight: 700; letter-spacing: 0.4px; text-transform: uppercase; color: {{c.onSurfaceVariant}}">Date field, opened (gluestack DateTimePicker as provided: Android system dialog)</span>
+<div style="background: {{c.sheet}}; border-radius: 28px; padding: 20px 16px 12px; display: flex; flex-direction: column; gap: 12px; border: 1px solid {{c.outlineVariant}}">
+<div style="display: flex; flex-direction: column; gap: 2px; padding: 0 8px">
+<span style="font-size: 12px; line-height: 16px; font-weight: 600; color: {{c.onSurfaceVariant}}">Select date</span>
+<span style="font-size: 24px; line-height: 32px; font-weight: 800">Mon, Nov 2</span>
+</div>
+<div style="display: flex; align-items: center; justify-content: space-between; padding: 0 8px; font-size: 14px; line-height: 20px; font-weight: 700"><span>November 2026</span>
+<span style="display: flex; gap: 8px; color: {{c.onSurfaceVariant}}"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m15 18-6-6 6-6"></path></svg><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m9 18 6-6-6-6"></path></svg></span></div>
+<div style="display: flex; flex-direction: column; gap: 2px">
+<div style="display: flex">
+<sc-for list="{{dow}}" as="d" hint-placeholder-count="7"><span style="flex: 1 1 0; text-align: center; font-size: 12px; line-height: 20px; font-weight: 700; color: {{c.onSurfaceVariant}}">{{d.l}}</span></sc-for>
+</div>
+<sc-for list="{{weeks}}" as="w" hint-placeholder-count="5">
+<div style="display: flex">
+<sc-for list="{{w.days}}" as="d" hint-placeholder-count="7">
+<span style="flex: 1 1 0; height: 40px; display: flex; align-items: center; justify-content: center"><span style="width: 36px; height: 36px; border-radius: 18px; display: flex; align-items: center; justify-content: center; font-size: 13px; font-weight: 600; background: {{d.bg}}; color: {{d.fg}}">{{d.n}}</span></span>
+</sc-for>
+</div>
+</sc-for>
+</div>
+<div style="display: flex; justify-content: flex-end; gap: 8px"><span style="min-height: 44px; padding: 0 16px; display: flex; align-items: center; font-size: 14px; font-weight: 700; color: {{c.onSurface}}">Cancel</span><span style="min-height: 44px; padding: 0 16px; display: flex; align-items: center; font-size: 14px; font-weight: 700; color: {{c.onSurface}}">OK</span></div>
+</div>
+</section>
+</sc-if>
+
+</main>
+<div style="height: 8px; flex-shrink: 0"></div>
+</div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"view":{"editor":"enum","options":["fields","pickers"],"default":"fields"},"theme":{"editor":"enum","options":["light","dark"],"default":"light"},"$preview":{"width":400,"height":848}}'>
+class Component extends DCLogic {
+  renderVals() {
+    var dark = this.props.theme === 'dark';
+    var view = this.props.view || 'fields';
+    var c = dark ? {
+      background: '#111214', surface: '#1A1C1E', container: '#222427', sheet: '#222427',
+      onSurface: '#E3E3E6', onSurfaceVariant: '#C4C6CB', outline: '#8E9196', outlineVariant: '#2E3134',
+      primary: '#E2E2E6', onPrimary: '#1A1C1E', selected: '#2C2F33', onSelected: '#E3E3E6',
+      disabledBg: '#222427', disabledFg: '#5C5F64', track: '#3A3E43', danger: '#F44336'
+    } : {
+      background: '#F5F5F7', surface: '#FFFFFF', container: '#E9EAED', sheet: '#FFFFFF',
+      onSurface: '#1A1C1E', onSurfaceVariant: '#45484C', outline: '#74777C', outlineVariant: '#E6E7EA',
+      primary: '#2B2F33', onPrimary: '#FFFFFF', selected: '#E6E7EA', onSelected: '#1A1C1E',
+      disabledBg: '#E9EAED', disabledFg: '#9A9DA2', track: '#D3D5D9', danger: '#D32F2F'
+    };
+    // kind: text | textarea | select | date ; mode: default | focused | error | disabled
+    var mk = function (caption, label, o) {
+      o = o || {};
+      var mode = o.mode || 'default';
+      var empty = !o.value;
+      var f = {
+        caption: caption, label: label, required: !!o.required,
+        text: empty ? (o.placeholder || '') : o.value,
+        fg: empty ? c.onSurfaceVariant : c.onSurface,
+        labelFg: mode === 'disabled' ? c.disabledFg : c.onSurface,
+        border: c.outline, ring: 'none', bg: c.surface,
+        h: o.kind === 'textarea' ? '96px' : '48px', align: o.kind === 'textarea' ? 'flex-start' : 'center',
+        pad: o.kind === 'textarea' ? '12px 14px' : '0 14px',
+        chevron: o.kind === 'select', calendar: o.kind === 'date',
+        helper: !!o.helper, helperText: o.helper || '', error: mode === 'error', errorText: o.error || ''
+      };
+      if (mode === 'focused') { f.border = c.primary; f.ring = '0 0 0 1px ' + c.primary; }
+      if (mode === 'error') { f.border = c.danger; f.ring = '0 0 0 1px ' + c.danger; }
+      if (mode === 'disabled') { f.border = c.outlineVariant; f.bg = c.disabledBg; f.fg = c.disabledFg; }
+      return f;
+    };
+    var fields = [
+      mk('Default, empty', 'Current Charges', { required: true, placeholder: '0.00', helper: 'Required. The split uses this number.' }),
+      mk('Focused, filled', 'Current Charges', { required: true, value: '412.30', mode: 'focused', helper: 'Required. The split uses this number.' }),
+      mk('Optional with helper', 'What’s it for', { placeholder: 'e.g. Aircon service', helper: 'Shown on the charge in the message.' }),
+      mk('Error', 'Amount', { required: true, value: '0.00', mode: 'error', error: 'Enter an amount greater than 0.' }),
+      mk('Disabled', 'Month being fixed', { value: 'November 2026', mode: 'disabled', kind: 'select' }),
+      mk('Textarea', 'Message template', { kind: 'textarea', value: 'Hi Alex, here is the breakdown for November 2026.' }),
+      mk('Select', 'From', { required: true, kind: 'select', placeholder: 'Choose who paid' }),
+      mk('Date field', 'Received on', { required: true, kind: 'date', value: 'Mon, 2 Nov 2026' }),
+      mk('Month field (list choice)', 'Bill month', { required: true, kind: 'select', value: 'November 2026' })
+    ];
+    var opts = function (labels, on) {
+      return labels.map(function (l, i) { return { label: l, on: i === on, bg: i === on ? c.selected : 'transparent', weight: i === on ? '800' : '500' }; });
+    };
+    var days = [];
+    var weeks = [];
+    var n = 1;
+    for (var w = 0; w < 5; w++) {
+      var row = [];
+      for (var d = 0; d < 7; d++) {
+        if (w === 0 && d < 0) { row.push({ n: '', bg: 'transparent', fg: c.onSurface }); }
+        else if (n > 30) { row.push({ n: '', bg: 'transparent', fg: c.onSurface }); }
+        else { var sel = n === 2; row.push({ n: String(n), bg: sel ? c.primary : 'transparent', fg: sel ? c.onPrimary : c.onSurface }); n++; }
+      }
+      weeks.push({ days: row });
+    }
+    return {
+      c: c, isFields: view === 'fields', isPickers: view === 'pickers',
+      heading: view === 'fields' ? 'Form controls' : 'Pickers',
+      intro: view === 'fields'
+        ? 'Every input is a gluestack FormControl: label above, then the field, then helper or error text. Used on all screens.'
+        : 'Opened states for Select, month fields and date fields. Dates use gluestack’s DateTimePicker as provided.',
+      fields: fields,
+      selectItems: opts(['Primary Tenant', 'Tenant 1', 'Tenant 2'], 2),
+      months: opts(['October 2026', 'November 2026', 'December 2026', 'January 2027'], 1),
+      dow: ['S', 'M', 'T', 'W', 'T', 'F', 'S'].map(function (l) { return { l: l }; }),
+      weeks: weeks
+    };
+  }
+}
+</script>
+</body>
+</html>

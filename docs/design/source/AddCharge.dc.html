@@ -1,0 +1,229 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Add charge</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&display=swap">
+<style>
+body{margin:0}
+[data-field]:focus-within{border-color:currentColor !important;box-shadow:0 0 0 1px currentColor}
+[data-field] input:focus{outline:none}
+</style>
+</helmet>
+<div style="width: 400px; height: 848px; box-sizing: border-box; padding: 8px; background: #0B0C0C; border-radius: 26px; font-family: Manrope, 'Segoe UI', system-ui, sans-serif; color: {{c.onSurface}}">
+<div style="position: relative; width: 384px; height: 832px; border-radius: 18px; overflow: hidden; background: {{c.background}}">
+
+<div aria-hidden="true" style="padding: 48px 16px 0; display: flex; flex-direction: column; gap: 16px">
+<span style="font-size: 24px; line-height: 32px; font-weight: 800">November 2026</span>
+<div style="height: 150px; border-radius: 24px; background: {{c.container}}"></div>
+<div style="height: 300px; border-radius: 20px; background: {{c.surface}}"></div>
+</div>
+<div style="position: absolute; top: 0; right: 0; bottom: 0; left: 0; background: {{c.scrim}}"></div>
+<div style="position: absolute; top: 12px; left: 186px; width: 12px; height: 12px; border-radius: 6px; background: #050505; box-shadow: 0 0 0 2px #1C1D1E"></div>
+
+<section role="dialog" aria-label="Add charge" aria-busy="{{busyAttr}}" style="position: absolute; left: 0; right: 0; bottom: 0; height: 768px; box-sizing: border-box; background: {{c.sheet}}; border-radius: 28px 28px 0 0; padding: 10px 16px 28px; display: flex; flex-direction: column; gap: 12px">
+<div style="align-self: center; width: 32px; height: 4px; border-radius: 2px; background: {{c.track}}"></div>
+
+<div style="display: flex; justify-content: space-between; align-items: center">
+<h1 style="margin: 0; font-size: 20px; line-height: 28px; font-weight: 800">Add charge</h1>
+<button aria-label="Close" aria-disabled="{{busyAttr}}" style="width: 44px; height: 44px; border-radius: 22px; border: 0; background: none; color: {{closeFg}}; display: flex; align-items: center; justify-content: center"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M18 6 6 18"></path><path d="m6 6 12 12"></path></svg></button>
+</div>
+
+<!-- CUSTOM: Segmented control (joined group, one selected value) -->
+<div role="group" aria-label="Charge type" style="display: flex; border: 1px solid {{segBorder}}; border-radius: 22px; overflow: hidden">
+<sc-for list="{{kinds}}" as="k" hint-placeholder-count="2">
+<button aria-pressed="{{k.pressed}}" style="flex: 1 1 0; min-width: 0; height: 44px; border: 0; border-left: 1px solid {{k.divider}}; background: {{k.bg}}; color: {{k.fg}}; font-family: inherit; font-size: 14px; line-height: 20px; font-weight: 700; display: flex; align-items: center; justify-content: center; gap: 6px">
+<sc-if value="{{k.on}}" hint-placeholder-val="{{false}}"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 6 9 17l-5-5"></path></svg></sc-if>
+{{k.label}}
+</button>
+</sc-for>
+</div>
+
+<div style="display: flex; gap: 12px">
+<div style="flex: 1 1 0; min-width: 0; display: flex; flex-direction: column; gap: 6px">
+<label for="amt" style="font-size: 14px; line-height: 20px; font-weight: 700; color: {{c.onSurface}}">Amount (SGD)<span aria-hidden="true" style="color: {{c.danger}}"> *</span></label>
+<div data-field="" style="color: {{c.primary}}; height: 48px; box-sizing: border-box; border: 1px solid {{fieldBorder}}; border-radius: 12px; background: {{fieldBg}}; display: flex; align-items: center; gap: 8px; padding: 0 14px">
+<input id="amt" inputmode="decimal" value="{{amount}}" aria-readonly="{{busyAttr}}" style="flex-grow: 1; min-width: 0; width: 100%; border: 0; outline: 0; background: transparent; font-family: Manrope, sans-serif; font-size: 16px; line-height: 24px; font-weight: 800; color: {{amountFg}}; font-variant-numeric: tabular-nums">
+</div>
+</div>
+<div style="flex: 1.2 1 0; min-width: 0; display: flex; flex-direction: column; gap: 6px">
+<label for="what" style="font-size: 14px; line-height: 20px; font-weight: 700; color: {{c.onSurface}}">What’s it for</label>
+<div data-field="" style="color: {{c.primary}}; height: 48px; box-sizing: border-box; border: 1px solid {{fieldBorder}}; border-radius: 12px; background: {{fieldBg}}; display: flex; align-items: center; gap: 8px; padding: 0 14px">
+<input id="what" value="{{note}}" aria-readonly="{{busyAttr}}" style="flex-grow: 1; min-width: 0; width: 100%; border: 0; outline: 0; background: transparent; font-family: Manrope, sans-serif; font-size: 16px; line-height: 24px; font-weight: 500; color: {{fieldFg}}">
+</div>
+</div>
+</div>
+
+<!-- CUSTOM: single-select Chip group -->
+<div style="display: flex; flex-direction: column; gap: 6px">
+<span style="font-size: 14px; line-height: 20px; font-weight: 700; color: {{c.onSurface}}">{{chipsLabel}}</span>
+<div style="display: flex; gap: 8px">
+<sc-for list="{{chips}}" as="ch" hint-placeholder-count="3">
+<button aria-pressed="{{ch.pressed}}" style="height: 44px; padding: 0 14px; border-radius: 22px; border: 1px solid {{ch.border}}; background: {{ch.bg}}; color: {{ch.fg}}; font-family: inherit; font-size: 14px; line-height: 20px; font-weight: 700; display: flex; align-items: center; gap: 6px; white-space: nowrap">
+<sc-if value="{{ch.on}}" hint-placeholder-val="{{false}}"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 6 9 17l-5-5"></path></svg></sc-if>
+{{ch.label}}
+</button>
+</sc-for>
+</div>
+</div>
+
+<div style="display: flex; flex-direction: column; gap: 8px">
+<!-- Switch row -->
+<div style="display: flex; align-items: center; justify-content: space-between; min-height: 44px">
+<div style="display: flex; flex-direction: column">
+<span style="font-size: 15px; line-height: 22px; font-weight: 700">Fixes a past month</span>
+<span style="font-size: 12px; line-height: 16px; font-weight: 500; color: {{c.onSurfaceVariant}}">{{correctionHint}}</span>
+</div>
+<button role="switch" aria-label="Fixes a past month" aria-checked="{{corrPressed}}" style="width: 52px; height: 32px; border-radius: 16px; border: 2px solid {{switchBorder}}; background: {{switchBg}}; padding: 0; display: flex; align-items: center; justify-content: {{switchJustify}}; box-sizing: border-box">
+<span style="width: {{thumbSize}}; height: {{thumbSize}}; margin: 0 4px; border-radius: 12px; background: {{thumbBg}}"></span>
+</button>
+</div>
+<sc-if value="{{corrOn}}" hint-placeholder-val="{{false}}">
+<div style="display: flex; flex-direction: column; gap: 6px">
+<label id="fixLabel" style="font-size: 14px; line-height: 20px; font-weight: 700; color: {{c.onSurface}}">Month being fixed<span aria-hidden="true" style="color: {{c.danger}}"> *</span></label>
+<button data-field="" aria-haspopup="listbox" aria-labelledby="fixLabel fixValue" style="color: {{c.primary}}; width: 100%; height: 48px; box-sizing: border-box; border-radius: 12px; border: 1px solid {{fieldBorder}}; background: {{fieldBg}}; padding: 0 14px; font-family: inherit; display: flex; align-items: center; gap: 8px; text-align: left">
+<span id="fixValue" style="flex-grow: 1; font-size: 16px; line-height: 24px; font-weight: 500; color: {{fieldFg}}">October 2026</span>
+<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="flex-shrink: 0; color: {{c.onSurfaceVariant}}"><path d="m6 9 6 6 6-6"></path></svg>
+</button>
+</div>
+</sc-if>
+</div>
+
+<div style="display: flex; flex-direction: column; gap: 6px; flex-grow: 1; min-height: 0">
+<div style="display: flex; justify-content: space-between; align-items: baseline; gap: 8px">
+<span style="font-size: 14px; line-height: 20px; font-weight: 700; color: {{c.onSurface}}">{{previewLabel}}</span>
+<span style="font-size: 12px; line-height: 16px; font-weight: 600; color: {{c.onSurfaceVariant}}">Lands on each person’s next payment</span>
+</div>
+<div style="background: {{c.container}}; border-radius: 16px; padding: 2px 12px; display: flex; flex-direction: column">
+<sc-for list="{{rows}}" as="r" hint-placeholder-count="4">
+<div style="display: flex; align-items: center; gap: 10px; min-height: 42px; border-top: 1px solid {{r.divider}}">
+<span style="flex-grow: 1; display: flex; flex-direction: column">
+<span style="font-size: 14px; line-height: 20px; font-weight: 700">{{r.who}}</span>
+<span style="font-size: 12px; line-height: 16px; font-weight: 600; color: {{c.onSurfaceVariant}}">{{r.basis}}</span>
+</span>
+<span style="min-width: 72px; text-align: right; padding: {{r.boxPad}}; border: 1px solid {{r.boxBorder}}; border-radius: 8px; background: {{r.boxBg}}; font-size: 14px; line-height: 20px; font-weight: 700; font-variant-numeric: tabular-nums; color: {{r.fg}}">{{r.value}}</span>
+</div>
+</sc-for>
+</div>
+<sc-if value="{{checkOk}}" hint-placeholder-val="{{true}}">
+<div style="display: flex; align-items: center; gap: 6px; padding: 2px 4px; font-size: 14px; line-height: 20px; font-weight: 700; color: {{checkFg}}">
+<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 6 9 17l-5-5"></path></svg>
+{{checkText}}
+</div>
+</sc-if>
+<sc-if value="{{checkBad}}" hint-placeholder-val="{{false}}">
+<!-- Alert (danger): blocking -->
+<div role="alert" style="display: flex; align-items: center; gap: 10px; padding: 10px 12px; border-radius: 12px; background: {{c.dangerTint}}; border: 1px solid {{c.dangerLine}}">
+<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="flex-shrink: 0; color: {{c.danger}}"><circle cx="12" cy="12" r="10"></circle><path d="M12 8v4"></path><path d="M12 16h.01"></path></svg>
+<span style="font-size: 13px; line-height: 18px; font-weight: 700; color: {{c.onDangerTint}}">{{checkText}}</span>
+</div>
+</sc-if>
+</div>
+
+<sc-if value="{{isFailed}}" hint-placeholder-val="{{false}}">
+<!-- Alert (danger): failed save -->
+<div role="alert" style="flex-shrink: 0; display: flex; align-items: center; gap: 10px; padding: 10px 12px; border-radius: 12px; background: {{c.dangerTint}}; border: 1px solid {{c.dangerLine}}">
+<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="flex-shrink: 0; color: {{c.danger}}"><circle cx="12" cy="12" r="10"></circle><path d="M12 8v4"></path><path d="M12 16h.01"></path></svg>
+<span style="font-size: 13px; line-height: 18px; font-weight: 700; color: {{c.onDangerTint}}">Couldn't save. Check your connection and try again.</span>
+</div>
+</sc-if>
+
+<button aria-disabled="{{btnDisabled}}" style="flex-shrink: 0; height: 48px; border-radius: 24px; border: 0; background: {{btnBg}}; color: {{btnFg}}; font-family: inherit; font-size: 15px; line-height: 20px; font-weight: 700; display: flex; align-items: center; justify-content: center; gap: 8px">
+<sc-if value="{{isSaving}}" hint-placeholder-val="{{false}}"><!-- Spinner --><span aria-hidden="true" style="width: 16px; height: 16px; box-sizing: border-box; border-radius: 50%; border: 2px solid currentColor; border-right-color: transparent"></span></sc-if>
+{{btnLabel}}
+</button>
+</section>
+</div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"mode":{"editor":"enum","options":["shared","correction","error"],"default":"shared"},"save":{"editor":"enum","options":["idle","saving","failed"],"default":"idle"},"theme":{"editor":"enum","options":["light","dark"],"default":"light"},"$preview":{"width":400,"height":848}}'>
+class Component extends DCLogic {
+  renderVals() {
+    var dark = this.props.theme === 'dark';
+    var m = this.props.mode || 'shared';
+    var save = this.props.save || 'idle';
+    var saving = save === 'saving';
+    var failed = save === 'failed';
+    var c = dark ? {
+      background: '#111214', surface: '#1A1C1E', container: '#222427', sheet: '#222427',
+      onSurface: '#E3E3E6', onSurfaceVariant: '#C4C6CB', outline: '#8E9196', outlineVariant: '#2E3134',
+      primary: '#E2E2E6', onPrimary: '#1A1C1E', selected: '#2C2F33', onSelected: '#E3E3E6',
+      disabledBg: '#222427', disabledFg: '#5C5F64', track: '#3A3E43', scrim: 'rgba(0,0,0,0.6)',
+      success: '#66BB6A', danger: '#F44336', dangerTint: '#3B1511', dangerLine: '#D32F2F', onDangerTint: '#FFD9D6'
+    } : {
+      background: '#F5F5F7', surface: '#FFFFFF', container: '#E9EAED', sheet: '#FFFFFF',
+      onSurface: '#1A1C1E', onSurfaceVariant: '#45484C', outline: '#74777C', outlineVariant: '#E6E7EA',
+      primary: '#2B2F33', onPrimary: '#FFFFFF', selected: '#E6E7EA', onSelected: '#1A1C1E',
+      disabledBg: '#E9EAED', disabledFg: '#9A9DA2', track: '#D3D5D9', scrim: 'rgba(0,0,0,0.5)',
+      success: '#2E7D32', danger: '#D32F2F', dangerTint: '#FDEDED', dangerLine: '#F6D5D5', onDangerTint: '#5F2120'
+    };
+    var fieldBg = saving ? c.disabledBg : c.surface;
+    var fieldBorder = saving ? c.outlineVariant : c.outline;
+    var fieldFg = saving ? c.disabledFg : c.onSurface;
+    var ctlFg = function (on) { return saving ? c.disabledFg : (on ? c.onSelected : c.onSurface); };
+    var personal = m === 'correction';
+    var kinds = ['Shared', 'Personal'].map(function (l, i) {
+      var on = personal ? i === 1 : i === 0;
+      return { label: l, on: on, pressed: on ? 'true' : 'false', bg: on ? c.selected : 'transparent', fg: ctlFg(on), divider: i === 0 ? 'transparent' : (saving ? c.outlineVariant : c.outline) };
+    });
+    var pick = function (labels, sel) {
+      return labels.map(function (l, i) {
+        var on = i === sel;
+        return { label: l, on: on, pressed: on ? 'true' : 'false', bg: on ? c.selected : 'transparent', fg: ctlFg(on), border: on ? 'transparent' : (saving ? c.outlineVariant : c.outline) };
+      });
+    };
+    var plain = function (who, basis, value, i) {
+      return { who: who, basis: basis, value: value, fg: c.onSurface, divider: i === 0 ? 'transparent' : c.outlineVariant, boxPad: '0', boxBorder: 'transparent', boxBg: 'transparent' };
+    };
+    var v = { c: c, fieldBg: fieldBg, fieldBorder: fieldBorder, fieldFg: fieldFg, segBorder: fieldBorder, isSaving: saving, isFailed: failed, busyAttr: saving ? 'true' : 'false', closeFg: saving ? c.disabledFg : c.onSurfaceVariant, kinds: kinds, corrOn: false, correctionHint: 'Link it as a correction', previewLabel: 'Split preview', disabled: 'false' };
+    if (m === 'shared') {
+      v.amount = '110.00'; v.amountFg = c.onSurface; v.note = 'Aircon servicing';
+      v.chipsLabel = 'Split method'; v.chips = pick(['Per share (5)', 'Per unit (6)', 'Custom'], 1);
+      v.rows = [
+        plain('You', '2 units', '$36.67', 0),
+        plain('Primary Tenant', '2 units', '$36.67', 1),
+        plain('Tenant 1', '1 unit · collected via Primary Tenant', '$18.33', 2),
+        plain('Tenant 2', '1 unit', '$18.33', 3)
+      ];
+      v.checkOk = true; v.checkBad = false; v.checkFg = c.success; v.checkText = 'Adds up to $110.00';
+    } else if (m === 'correction') {
+      v.amount = '−8.20'; v.amountFg = c.success; v.note = 'Oct utilities share overcharged';
+      v.chipsLabel = 'Who'; v.chips = pick(['Primary Tenant', 'Tenant 1', 'Tenant 2'], 2);
+      v.corrOn = true; v.correctionHint = 'Shows as a correction in History';
+      v.previewLabel = 'Preview';
+      v.rows = [ plain('Tenant 2', 'Credit on their next payment', '−$8.20', 0) ];
+      v.rows[0].fg = c.success;
+      v.checkOk = true; v.checkBad = false; v.checkFg = c.onSurfaceVariant; v.checkText = 'Linked to October 2026';
+    } else {
+      v.amount = '110.00'; v.amountFg = c.onSurface; v.note = 'Aircon servicing';
+      v.chipsLabel = 'Split method'; v.chips = pick(['Per share (5)', 'Per unit (6)', 'Custom'], 2);
+      var box = function (who, value, i) {
+        return { who: who, basis: 'Custom amount', value: value, fg: c.onSurface, divider: i === 0 ? 'transparent' : c.outlineVariant, boxPad: '6px 8px', boxBorder: c.danger, boxBg: c.sheet };
+      };
+      v.rows = [ box('You', '40.00', 0), box('Primary Tenant', '40.00', 1), box('Tenant 1', '15.00', 2), box('Tenant 2', '10.00', 3) ];
+      v.checkOk = false; v.checkBad = true; v.checkFg = c.danger; v.checkText = 'Adds up to $105.00 · $5.00 short of $110.00';
+      v.disabled = 'true';
+    }
+    if (saving) { v.amountFg = c.disabledFg; }
+    v.corrPressed = v.corrOn ? 'true' : 'false';
+    v.switchBg = v.corrOn ? (saving ? c.disabledFg : c.primary) : 'transparent';
+    v.switchBorder = saving ? (v.corrOn ? c.disabledFg : c.outlineVariant) : (v.corrOn ? c.primary : c.outline);
+    v.switchJustify = v.corrOn ? 'flex-end' : 'flex-start';
+    v.thumbSize = v.corrOn ? '24px' : '16px';
+    v.thumbBg = v.corrOn ? c.onPrimary : (saving ? c.disabledFg : c.outline);
+    var off = v.disabled === 'true' || saving;
+    v.btnDisabled = off ? 'true' : 'false';
+    v.btnBg = off ? c.disabledBg : c.primary;
+    v.btnFg = off ? c.disabledFg : c.onPrimary;
+    v.btnLabel = failed ? 'Retry' : 'Add charge';
+    return v;
+  }
+}
+</script>
+</body>
+</html>
