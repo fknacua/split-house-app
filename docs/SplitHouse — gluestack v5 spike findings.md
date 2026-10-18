@@ -54,3 +54,19 @@ That said: everything did eventually work once patched, the token system (the pa
 2. **Fall back to NativeWind v4 (actually stable) and hand-style components ourselves**, using gluestack's components only as a visual/structural reference rather than installing them. More upfront work (no free Bottom Sheet/Select/DateTimePicker), but removes this entire category of risk. The design tokens carry over unchanged either way — this is a styling-engine and component-sourcing decision, not a redesign.
 
 Recommendation: given how much of the token/theme work (the actual design) is already done and proven to work, and that every bug hit so far had a real, one-time fix, I'd lean toward **option 1** — but this is explicitly the kind of call this project's own working agreements say should go to Francis, not get decided silently. The Accordion bug should get root-caused before committing either way, since an unexplained interactivity bug is a different category of risk than a missing dependency.
+
+## Phase 0 device checks: sign-in (step 0.4a)
+
+Tested on the dev build, light and dark. The spike sign-in screen's idle, signing-in, cancel, error and not-allowed states all behave as expected.
+
+Gaps found and fixed:
+- **Account picker not reappearing.** The screen never cleared Google's remembered account. It now calls `GoogleSignin.signOut()` before each attempt and after a backend rejection.
+- **Allowlist hole.** The `databaseHooks` email check only ran when a user row was first created, so an account that already had a row signed in without error. A `session.create.before` check now runs on every new session, and the comparison is case-insensitive.
+
+Known gap, not fixed here: there is no session gate yet, so a successful sign-in does not leave the screen on its own. That is Phase 3, step 3.2. A temporary dev-only "Sign in" button on Home reaches the screen until then.
+
+## Phase 0 summary
+
+Phase 0 is complete. On the dev build, the bottom sheet (including the Android back gesture), Select, DateTimePicker, Switch, Menu, Textarea, Radio, Popover and AlertDialog all work, and the Accordion opens and closes (the earlier report was a web-preview artefact). Google sign-in works end to end, including the allowlist rejection. The theme files match the design values, and the app follows the phone's light/dark setting.
+
+Other fixes from Phase 0: the Select padding sits on the trigger; the font-size token `--text-sheet` is renamed `--text-sheet-title` because `text-sheet` also matched the `--color-sheet` background colour; and five type errors remain inside copied gluestack components (alert-dialog, popover), left as they are.

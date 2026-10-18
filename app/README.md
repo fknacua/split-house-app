@@ -1,56 +1,43 @@
-# Welcome to your Expo app 👋
+# SplitHouse app
 
-This is an [Expo](https://expo.dev) project created with [`create-expo-app`](https://www.npmjs.com/package/create-expo-app).
+Expo (React Native) Android app, NativeWind, gluestack-ui v5. Never use Expo Go: this app runs in a development build.
 
-## Get started
+## Run on a phone (development build, LAN mode)
 
-1. Install dependencies
-
-   ```bash
-   npm install
-   ```
-
-2. Start the app
+1. Install the development build APK on the phone once (`eas build --profile development --platform android`, then install the APK). Rebuild only when native dependencies change.
+2. Put the phone and the computer on the same Wi-Fi network.
+3. From `app/`, start Metro for the dev client:
 
    ```bash
-   npx expo start
+   npx expo start --dev-client
    ```
 
-In the output, you'll find options to open the app in a
+4. Open the SplitHouse dev build on the phone. It lists the Metro server on the LAN, or scan the QR code shown in the terminal.
 
-- [development build](https://docs.expo.dev/develop/development-builds/introduction/)
-- [Android emulator](https://docs.expo.dev/workflow/android-studio-emulator/)
-- [iOS simulator](https://docs.expo.dev/workflow/ios-simulator/)
-- [Expo Go](https://expo.dev/go), a limited sandbox for trying out app development with Expo
+If the phone cannot connect:
 
-You can start developing by editing the files inside the **app** directory. This project uses [file-based routing](https://docs.expo.dev/router/introduction).
+- Allow Node.js through Windows Firewall for private networks (the first run asks for this).
+- Check that the Wi-Fi network is set to "Private" on Windows and that it has no client isolation (guest networks often do).
+- Fallback: `npx expo start --dev-client --tunnel` (slower, works across networks).
 
-## Get a fresh project
+## Environment
 
-When you're ready, run:
+Values live in `app/.env.local` (never committed): `EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID` and `EXPO_PUBLIC_BACKEND_URL`.
+
+## Point the app at a local backend
+
+`EXPO_PUBLIC_BACKEND_URL` decides which backend the app talks to (Vercel, or your own computer). The phone cannot reach `localhost`, so use the computer's LAN address (`ipconfig`, IPv4 line; it can change).
+
+1. In `app/.env.local`, set `EXPO_PUBLIC_BACKEND_URL=http://<LAN-IP>:3000`. Keep the Vercel value commented out above it.
+2. In `backend/.env`, set `BETTER_AUTH_URL=http://<LAN-IP>:3000`, and check `DATABASE_URL` is the Neon dev branch.
+3. Start the backend so it listens on the LAN: `cd backend && npm run dev -- -H 0.0.0.0`.
+4. Restart Metro with `npx expo start --dev-client -c`. `EXPO_PUBLIC_*` values are baked in at bundle time, so a reload is not enough.
+
+To go back to Vercel, restore the old values and restart Metro the same way.
+
+## Checks
 
 ```bash
-npm run reset-project
+npx tsc --noEmit   # about 21 known errors inside src/components/ui/*
+npm run lint
 ```
-
-This command will move the starter code to the **app-example** directory and create a blank **app** directory where you can start developing.
-
-### Other setup steps
-
-- To set up ESLint for linting, run `npx expo lint`, or follow our guide on ["Using ESLint and Prettier"](https://docs.expo.dev/guides/using-eslint/)
-- If you'd like to set up unit testing, follow our guide on ["Unit Testing with Jest"](https://docs.expo.dev/develop/unit-testing/)
-- Learn more about the TypeScript setup in this template in our guide on ["Using TypeScript"](https://docs.expo.dev/guides/typescript/)
-
-## Learn more
-
-To learn more about developing your project with Expo, look at the following resources:
-
-- [Expo documentation](https://docs.expo.dev/): Learn fundamentals, or go into advanced topics with our [guides](https://docs.expo.dev/guides).
-- [Learn Expo tutorial](https://docs.expo.dev/tutorial/introduction/): Follow a step-by-step tutorial where you'll create a project that runs on Android, iOS, and the web.
-
-## Join the community
-
-Join our community of developers creating universal apps.
-
-- [Expo on GitHub](https://github.com/expo/expo): View our open source platform and contribute.
-- [Discord community](https://chat.expo.dev): Chat with Expo users and ask questions.

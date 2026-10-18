@@ -19,13 +19,14 @@ import React, {
   forwardRef,
   useCallback,
   useContext,
+  useEffect,
   useImperativeHandle,
   useMemo,
   useRef,
   useState,
 } from 'react';
 import type { PressableProps, TextInputProps, TextProps } from 'react-native';
-import { Keyboard, Platform, Text, View } from 'react-native';
+import { BackHandler, Keyboard, Platform, Text, View } from 'react-native';
 import { Pressable as RNPressable } from 'react-native';
 import { Pressable as GGHPressable } from 'react-native-gesture-handler';
 
@@ -208,11 +209,24 @@ export const BottomSheetPortal = ({
   const { bottomSheetRef, handleSheetChanges, isVisible, currentIndex } =
     useContext(BottomSheetContext);
 
+  // Keep the same array identity while the snap point values are unchanged
+  const snapPointsKey = JSON.stringify(snapPoints);
   const memoizedSnapPoints = useMemo(
     () => snapPoints,
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    [JSON.stringify(snapPoints)]
+    [snapPointsKey]
   );
+
+  // Android back gesture/button closes the sheet instead of the app
+  useEffect(() => {
+    if (!isVisible || Platform.OS !== 'android') return;
+    const sub = BackHandler.addEventListener('hardwareBackPress', () => {
+      Keyboard.dismiss();
+      bottomSheetRef.current?.close();
+      return true;
+    });
+    return () => sub.remove();
+  }, [isVisible, bottomSheetRef]);
 
   if (!isVisible) return null;
 

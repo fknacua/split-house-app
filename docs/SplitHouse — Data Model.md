@@ -17,7 +17,7 @@ Stack it assumes: Postgres on Neon, Prisma, Next.js route handlers on Vercel, Be
 - **Payments are paid fields on the Charge.** No separate Payment table. Recording a payment marks charges paid, with who paid.
 - **Split engine** is one pure function that runs only on the backend. Add charge and Household previews call preview endpoints. Its unit tests use the Nov 2026 fixtures below.
 - **Rounding rule.** Every person except Francis gets their exact share rounded to the nearest cent (half up). Francis gets the total minus everyone else, so shares always add up to the amount.
-- **Replace bill.** If the month's charges are unsent and unpaid, Replace recreates the utilities charges. If any are sent or paid, Replace shows the difference per person and creates correction charges for it. The corrections are a record only: no new message is sent, and Francis settles the difference offline and marks the correction paid. An unpaid correction appears in that person's next monthly breakdown.
+- **Replace bill.** If the month's charges are unsent and unpaid, Replace recreates the utilities charges. If any are sent or paid, Replace shows the difference per person and creates correction charges for it. The corrections are a record only: no new message is sent, and Francis settles the difference offline and marks the correction paid. An unpaid correction appears in that person's next monthly breakdown. *(Not built in v1, deferred: a wrong bill is fixed with a correction charge.)*
 
 ## Entities
 

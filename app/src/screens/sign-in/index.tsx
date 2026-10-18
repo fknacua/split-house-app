@@ -27,6 +27,8 @@ export function SignIn() {
     setState('signing-in');
     try {
       await GoogleSignin.hasPlayServices();
+      // Clear any remembered Google account so the picker always shows.
+      await GoogleSignin.signOut().catch(() => {});
       const response = await GoogleSignin.signIn();
       if (!isSuccessResponse(response)) {
         setState('idle'); // cancelled
@@ -42,6 +44,8 @@ export function SignIn() {
         idToken: { token: idToken },
       });
       if (error) {
+        // Forget the Google account so the picker shows again on the next try.
+        await GoogleSignin.signOut().catch(() => {});
         // The backend's databaseHooks reject any email but ALLOWED_EMAIL.
         setState(error.status === 403 ? 'not-allowed' : 'error');
         return;

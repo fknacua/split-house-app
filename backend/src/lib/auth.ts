@@ -10,6 +10,9 @@ if (!allowedEmail) {
   throw new Error("ALLOWED_EMAIL env var is required");
 }
 
+const isAllowed = (email: string) =>
+  email.toLowerCase() === allowedEmail.toLowerCase();
+
 export const auth = betterAuth({
   secret: process.env.BETTER_AUTH_SECRET,
   baseURL: process.env.BETTER_AUTH_URL,
@@ -32,12 +35,31 @@ export const auth = betterAuth({
     user: {
       create: {
         before: async (user) => {
-          if (user.email !== allowedEmail) {
+          if (!isAllowed(user.email)) {
             throw new APIError("FORBIDDEN", {
               message: "This account is not allowed to sign in.",
             });
           }
           return { data: user };
+        },
+      },
+    },
+    // The user hook only runs when a user row is first created. Check again
+    // on every new session so an account that already has a row (created
+    // before the allowlist, or by an earlier test) cannot sign in either.
+    session: {
+      create: {
+        before: async (session) => {
+          const user = await prisma.user.findUnique({
+            where: { id: session.userId },
+            select: { email: true },
+          });
+          if (!user || !isAllowed(user.email)) {
+            throw new APIError("FORBIDDEN", {
+              message: "This account is not allowed to sign in.",
+            });
+          }
+          return { data: session };
         },
       },
     },

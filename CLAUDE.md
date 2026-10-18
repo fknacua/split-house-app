@@ -3,10 +3,10 @@
 Personal Android app, single user (Francis), to split monthly rent and utilities with housemates and send each person their breakdown on WhatsApp. v1 goes live for the November 2026 cycle.
 
 ## Read first (docs/)
-- SplitHouse — Design Brief.md: rules, screens, decisions. Its "Decisions made in design" section overrides earlier text in it.
-- SplitHouse — Tech Stack.md and Data Model.md (Oct 15, 2026): these win over older text elsewhere.
-- SplitHouse — gluestack v5 theme and screen mapping.md, plus config.ts and global.css (theme tokens).
-- SplitHouse — Account Setup Guide.md: accounts, env vars, names.
+- plans/implementation-plan.md: the phased build plan and the per-screen working rules.
+- SplitHouse — Data Model.md and Tech Stack.md (Oct 15, 2026): these win over older text elsewhere.
+- SplitHouse — gluestack v5 theme and screen mapping.md: the gluestack component for each screen.
+- SplitHouse — Design Brief.md: product rules and screens. Its "Decisions made in design" section overrides earlier text in it.
 If two docs disagree, stop and ask instead of choosing.
 
 ## Layout
@@ -40,15 +40,13 @@ This repo may become public as a portfolio piece.
 Check current docs before using Expo SDK, gluestack v5, NativeWind, Prisma, Better Auth and Next.js. Don't rely on memory for setup steps or APIs.
 
 ## Windows notes
-Developer is on Windows (Command Prompt or PowerShell). NODE_USE_SYSTEM_CA=1 is set because the network inspects HTTPS. Never disable TLS verification.
+Developer is on Windows using bash as the terminal, on a personal device.
 
-## First tasks, in order
-1. Scaffold backend/: Next.js, Prisma against the Neon dev branch (pooled URL at runtime, direct URL for migrations), Better Auth with the Google provider.
-2. Scaffold app/: Expo with the slug and package name above, NativeWind, gluestack v5, and the theme from docs/config.ts and docs/global.css. Link it with eas init.
-3. Spike: build Home and the Add charge sheet from the mapping doc. Verify Manrope (5 weights), Lucide, the bottom sheet, the month Select, the DateTimePicker (alpha), and Better Auth in Expo with secure storage and the email restriction. Report what worked and what didn't before building more.
+## Setup and spike: done
+Scaffolding the backend and app and the gluestack v5 spike are finished (findings in docs/SplitHouse — gluestack v5 spike findings.md). Ignore the old "first tasks" list.
 
-## Build order (confirm with Francis)
-Data model and split engine against the fixtures; Home and bill upload; Recipient and messages; collecting payments and corrections; Household and Settings; notifications; History and first-run setup.
+## Build order
+Follow docs/plans/implementation-plan.md, phase by phase (Phase 0 to Phase 12), and the working rules (the loop) at the top of that file. Stop for Francis's review after each screen.
 
 ## Working agreements
-Don't commit or push unless asked. Flag any conflict between docs or any decision you want to change before acting on it.
+Don't commit or push unless asked. Never stage, commit or push anything in docs/plans/ (local only, and not in .gitignore): when staging, add files by explicit path and skip that folder, and never use `git add -A`, `git add .` or `git commit -a`. Flag any conflict between docs or any decision you want to change before acting on it.
