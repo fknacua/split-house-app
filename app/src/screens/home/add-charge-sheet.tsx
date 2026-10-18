@@ -87,7 +87,7 @@ export function AddChargeSheet() {
       >
         <BottomSheetContent>
           <ScrollView contentContainerClassName="gap-4 px-4 pb-8 pt-2">
-            <Text className="font-manrope-extrabold text-sheet text-foreground">
+            <Text className="font-manrope-extrabold text-sheet-title text-foreground">
               Add charge
             </Text>
 

@@ -127,7 +127,7 @@ export function Home() {
                           </Text>
                         </View>
                       </View>
-                      <Text className="font-manrope-extrabold text-sheet text-foreground">
+                      <Text className="font-manrope-extrabold text-sheet-title text-foreground">
                         {money(person.totalCents)}
                       </Text>
                       <Badge

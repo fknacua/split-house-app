@@ -5,17 +5,17 @@ This is the design reference for the coding agent working in this repo. It point
 ## How to use this
 
 1. The design is the source of truth for layout, copy, states and colour. Do not invent screens, states, wording or tokens. If something is missing or unclear, stop and ask the owner.
-2. Work one screen (or one flow row below) at a time. For each: read its source component in `design/source/`, build it with the gluestack component named in the mapping doc, wire its states, then stop for review.
+2. Work one screen (or one flow row below) at a time. For each: read its source component in `docs/design/source/`, build it with the gluestack component named in the mapping doc, wire its states, then stop for review.
 3. Build every state listed for a screen, not only the happy path. Loading, saving, failed and empty states are part of the design.
-4. Both themes are required. Colour comes only from the theme variables in `design/config.ts` and `design/global.css`. No hex values in screen code.
+4. Both themes are required. Colour comes only from the theme variables in `docs/design/config.ts` and `docs/design/global.css`. No hex values in screen code.
 5. Behaviour, data and money rules come from the docs, not from the design: `Data Model`, `Tech Stack`, `Design Brief`, `Account Setup Guide`. The design only shows what the screens look like.
 
 ## What is in this folder
 
 | Path | What it is |
 |---|---|
-| `design/source/*.dc.html` | One file per screen component (18). Read them as markup (they need the design tool to render): the HTML gives exact spacing, sizes, copy and the token set `c` in the script block. They are a visual reference, not code to port line by line. |
-| `design/config.ts`, `design/global.css` | NativeWind and gluestack v5 theme variables, light and dark. Copy into the app's gluestack provider config and global CSS. |
+| `docs/design/source/*.dc.html` | One file per screen component (18). Read them as markup (they need the design tool to render): the HTML gives exact spacing, sizes, copy and the token set `c` in the script block. They are a visual reference, not code to port line by line. |
+| `docs/design/config.ts`, `docs/design/global.css` | NativeWind and gluestack v5 theme variables, light and dark. Copy into the app's gluestack provider config and global CSS. |
 | `docs/Rent & Utils — gluestack v5 theme and screen mapping.md` | Token names, which gluestack component each part of each screen uses, and what is custom. |
 | Design canvas (private, owner only) | https://claude.ai/artifact/Lknba8Qamp5n3N7BLMNuQe. The agent cannot open it. Ask the owner for a screenshot of a board when the source file is not enough. |
 
@@ -52,7 +52,7 @@ Not a plan the agent should follow on its own. The owner decides what to build n
 
 ## Screens and states
 
-Component and props are what to pass to the source file in `design/source/` to see that board.
+Component and props are what to pass to the source file in `docs/design/source/` to see that board.
 
 ### Sign in & session
 
@@ -161,7 +161,7 @@ Component and props are what to pass to the source file in `design/source/` to s
 | History · Loading | `History` | `state=loading` |
 | History · Months | `History` | `state=list` |
 | History · Nov 2026, corrected later | `History` | `state=monthCorrected` |
-| History · Dec 2026, unpaid carried | `History` | `state=monthCarried` |
+| History · Dec 2026, unpaid carried | `History` | `state=monthCarried` *(Not built in v1, deferred.)* |
 
 ### Household — rooms, people & splits
 
