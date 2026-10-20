@@ -74,3 +74,231 @@ model Verification {
   @@index([identifier])
   @@map("verification")
 }
+
+// ---------------------------------------------------------------------------
+// Domain models (see docs/SplitHouse — Data Model.md)
+// Money is integer cents (SGD). Months are `YYYY-MM` keys. Date-only fields use
+// @db.Date so the Asia/Singapore calendar day never shifts with time zones.
+// ---------------------------------------------------------------------------
+
+enum ChargeCategory {
+  RENT
+  UTILITIES
+  AIRCON
+  RECURRING
+  ONE_OFF
+  CORRECTION
+}
+
+enum SplitMethod {
+  PER_SHARE
+  PER_UNIT
+  CUSTOM
+}
+
+enum Scope {
+  SHARED
+  PERSONAL
+}
+
+enum MessageKind {
+  MONTHLY
+  NUDGE
+}
+
+enum ParseStatus {
+  PARSED
+  NOT_PARSED
+  MANUAL
+}
+
+enum TaskType {
+  SAVINGS_TRANSFER
+}
+
+// People are never hard-deleted because charges reference them. Removing someone
+// is a new HouseholdVersion that stops including them.
+model Person {
+  id           String   @id @default(cuid())
+  name         String
+  whatsappE164 String?
+  isOwner      Boolean  @default(false)
+  isActive     Boolean  @default(true)
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  charges       Charge[]       @relation("ChargeOwes")
+  routedCharges Charge[]       @relation("ChargePayVia")
+  paidCharges   Charge[]       @relation("ChargePaidBy")
+  messageEvents MessageEvent[]
+
+  @@map("person")
+}
+
+// Immutable once created. `config` is validated in code (backend/src/lib/household).
+model HouseholdVersion {
+  id              String   @id @default(cuid())
+  startsFromMonth String   @unique
+  schemaVersion   Int
+  config          Json
+  createdAt       DateTime @default(now())
+
+  months  Month[]
+  charges Charge[]
+
+  @@map("household_version")
+}
+
+model Month {
+  id                 String   @id @default(cuid())
+  month              String   @unique
+  householdVersionId String
+  openedAt           DateTime @default(now())
+
+  householdVersion HouseholdVersion @relation(fields: [householdVersionId], references: [id])
+
+  @@index([householdVersionId])
+  @@map("month")
+}
+
+model Bill {
+  id                  String      @id @default(cuid())
+  month               String      @unique
+  provider            String
+  currentChargesCents Int
+  billingPeriodStart  DateTime?   @db.Date
+  billingPeriodEnd    DateTime?   @db.Date
+  dueDate             DateTime?   @db.Date
+  lines               Json
+  parseStatus         ParseStatus
+  paidCents           Int?
+  paidOn              DateTime?   @db.Date
+  paidNote            String?
+  createdAt           DateTime    @default(now())
+
+  file    BillFile?
+  charges Charge[]
+
+  @@map("bill")
+}
+
+// Separate table so bill lists never load file bytes.
+model BillFile {
+  id        String @id @default(cuid())
+  billId    String @unique
+  filename  String
+  mimeType  String
+  sizeBytes Int
+  bytes     Bytes
+
+  bill Bill @relation(fields: [billId], references: [id], onDelete: Cascade)
+
+  @@map("bill_file")
+}
+
+// One unsaved upload per month; replaced by the next upload. Save moves it into
+// Bill + BillFile in one transaction.
+model BillDraft {
+  id         String    @id @default(cuid())
+  month      String    @unique
+  filename   String
+  bytes      Bytes
+  parsedJson Json?
+  parseOk    Boolean   @default(false)
+  expiresAt  DateTime?
+  createdAt  DateTime  @default(now())
+
+  @@map("bill_draft")
+}
+
+// Keeps the original input of a one-off from the Add charge sheet.
+model ChargeGroup {
+  id            String      @id @default(cuid())
+  scope         Scope
+  splitMethod   SplitMethod
+  totalCents    Int
+  note          String?
+  correctsMonth String?
+  createdAt     DateTime    @default(now())
+
+  charges Charge[]
+
+  @@map("charge_group")
+}
+
+// One row per person per obligation. `amountCents` is signed and never
+// recalculated after creation. Paid / unpaid / due / overdue are derived.
+model Charge {
+  id                 String         @id @default(cuid())
+  month              String
+  personId           String
+  payViaPersonId     String?
+  category           ChargeCategory
+  label              String
+  amountCents        Int
+  dueDate            DateTime?      @db.Date
+  billId             String?
+  chargeGroupId      String?
+  correctsMonth      String?
+  householdVersionId String
+  paidCents          Int?
+  paidOn             DateTime?      @db.Date
+  paidByPersonId     String?
+  createdAt          DateTime       @default(now())
+
+  person           Person           @relation("ChargeOwes", fields: [personId], references: [id])
+  payViaPerson     Person?          @relation("ChargePayVia", fields: [payViaPersonId], references: [id])
+  paidByPerson     Person?          @relation("ChargePaidBy", fields: [paidByPersonId], references: [id])
+  bill             Bill?            @relation(fields: [billId], references: [id])
+  chargeGroup      ChargeGroup?     @relation(fields: [chargeGroupId], references: [id])
+  householdVersion HouseholdVersion @relation(fields: [householdVersionId], references: [id])
+  messageEvents    MessageEvent[]
+  tasks            Task[]
+
+  @@index([month])
+  @@index([personId, month])
+  @@index([billId])
+  @@index([chargeGroupId])
+  @@map("charge")
+}
+
+// Records when a WhatsApp chat was opened; the app cannot know if it was sent.
+model MessageEvent {
+  id           String      @id @default(cuid())
+  month        String
+  personId     String
+  kind         MessageKind
+  chargeId     String?
+  renderedText String
+  openedAt     DateTime    @default(now())
+
+  person Person  @relation(fields: [personId], references: [id])
+  charge Charge? @relation(fields: [chargeId], references: [id])
+
+  @@index([month, personId])
+  @@map("message_event")
+}
+
+model Task {
+  id          String    @id @default(cuid())
+  type        TaskType
+  month       String
+  chargeId    String
+  amountCents Int
+  doneAt      DateTime?
+  createdAt   DateTime  @default(now())
+
+  charge Charge @relation(fields: [chargeId], references: [id])
+
+  @@index([month])
+  @@map("task")
+}
+
+// Single row (id is always "singleton"): notification toggles per channel and type.
+model Settings {
+  id            String   @id @default("singleton")
+  notifications Json
+  updatedAt     DateTime @updatedAt
+
+  @@map("settings")
+}
