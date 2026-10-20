@@ -38,15 +38,16 @@ Never mark ✅ on your own for anything the plan says the user must review, test
 
 ## Each run
 
-1. **Orient.** Read the plan and the progress log, plus any project instructions the plan points to (CLAUDE.md, referenced docs). Check the log against reality (`git status`, files the step should have produced). A 🔄 step with nothing to show means the marker is stale: tell the user and ask rather than guessing. If the user's message approves a 🔄 step, mark it ✅ first.
+1. **Orient.** Read only the plan and the progress log. A 🔄 phase/section heading is just derived from its steps — for that, only check that the markers underneath actually back it up (i.e. at least one step really is 🔄 or ✅), nothing more. Then find the first individual step that's 🔄 or has no marker. If a step is 🔄, check what's actually there to see what's still needed to finish it. If it has no marker, that's it — no checking, no reading other files yet. If the user's message approves a 🔄 step, mark it ✅ first.
 2. **Choose the work, strictly in plan order.** Use the step the user named. Otherwise suggest the first step that isn't ✅: a 🔄 step, then a 🚫 step the user has now answered, then the first step with no marker. Never skip or reorder, even if the step looks hard, manual or user-only. Skip only when the user explicitly says to, and log it as "skipped at the user's request".
    - If that step is one the user must do by hand (a device test, an account setup), still suggest it. Say what they need to do and ask them to do it or confirm it's done. Mark it 🔄 while it waits.
 3. **Give the quick summary, before touching anything.** Two short parts, so the user can confirm you read the plan the same way they do:
-   - **So far:** counts and highlights from the markers and log (for example "Phase 0 done, Phase 1: 1.1 and 1.2 done, 1.3 waiting on your review"). Name anything 🔄 or 🚫 and why.
+   - **So far:** a quick note on what happened in the most recent step/run — not a recap of the whole plan.
    - **About to do:** the single step you are starting, in a line or two of plain language.
-4. **Do the work**, following the plan's own rules and the project's instructions. Verify the way the plan and project say (tests, type check, lint, running the thing). Report real results; if a check fails, say so with the output.
-5. **Update the markers** in the plan and **append a log entry**.
-6. **Stop.** End with a short report: what was done, how it was verified, what the user needs to review or do themselves, and which step comes next. Don't start the next step.
+Ask the user to confirm you should proceed. Do not proceed until they confirm.
+4. **Do the work.** Now read whatever's needed to do it: project instructions the plan points to (CLAUDE.md, referenced docs), the relevant source files. Follow the plan's own rules and the project's instructions. Verify the way the plan and project say (tests, type check, lint, running the thing). If a check fails or anything unexpected comes up, stop and tell the user immediately with the real output — don't attempt a fix on your own first. Provide a clear explanation of the issue and the suggested resolution. Only fix it once the user confirms how they want it handled.
+5. **Confirm, then update, and stop.** Summarize what was done and how it was verified. Ask the user if the step can be marked done. Update the marker and log entry to match their answer. If they say no, leave it as 🔄 and stop. If they say yes, mark it ✅ then log the run and stop. 
+6. **Stop.** Don't continue to the next step until the user explicitly says to. If they confirm to proceed, go back to step 1.
 
 ## Rules while working
 
@@ -57,11 +58,10 @@ Never mark ✅ on your own for anything the plan says the user must review, test
 
 ## When blocked
 
-Stop at the first point where continuing would need a guess: a document conflict, a failing check you can't fix within the step's scope, a missing design or input, a manual step only the user can do, or a change you think the plan itself should make. Don't work around it or bend the plan to fit.
+Stop at the first point where continuing would need a guess: a document conflict, a failing check, a missing design or input, a manual step only the user can do, or a change you think the plan itself should make. Don't work around it, attempt a fix on your own, or bend the plan to fit — report and ask first.
 
-1. Mark the step 🚫.
-2. Log it: what was done so far, what is blocking, and the exact question for the user.
-3. Say so in the reply, question first, with a recommended answer if you have one.
+1. Say so in the reply, question first, with a recommended answer if you have one.
+2. Mark the step 🚫 and log it: what was done so far, what is blocking, and the exact question asked.
 
 When they answer, the next run resumes that step and the 🚫 becomes 🔄.
 
