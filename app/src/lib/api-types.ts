@@ -13,3 +13,12 @@ export interface ApiErrorBody {
 export interface MeResponse {
   email: string;
 }
+
+/**
+ * `GET /api/months/:month/summary`. PLACEHOLDER with only the fields the mock
+ * hook returns; step 5.1 replaces it with the full shape from the backend.
+ */
+export interface MonthSummaryResponse {
+  month: string;
+  status: 'bill_missing' | 'draft' | 'unsent' | 'collecting' | 'settled';
+}
