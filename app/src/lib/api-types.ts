@@ -1,0 +1,15 @@
+/**
+ * Response types for the backend API, hand-synced from the backend zod
+ * schemas (the repo has no shared package). Add each endpoint's types here
+ * when the endpoint is built; the list lives in backend/README.md.
+ */
+
+/** Body of every failed API response: `{ error: { code, message } }`. */
+export interface ApiErrorBody {
+  error: { code: string; message: string };
+}
+
+/** `GET /api/me` */
+export interface MeResponse {
+  email: string;
+}
