@@ -50,3 +50,6 @@ Follow docs/plans/implementation-plan.md, phase by phase (Phase 0 to Phase 12), 
 
 ## Working agreements
 Don't commit or push unless asked. Never stage, commit or push anything in docs/plans/ (local only, and not in .gitignore): when staging, add files by explicit path and skip that folder, and never use `git add -A`, `git add .` or `git commit -a`. Flag any conflict between docs or any decision you want to change before acting on it.
+
+## Code comments
+Document exported functions, types and interfaces with JSDoc (`/** ... */`, with `@param`, `@returns` and `@throws` where they apply), not `//` header comments, so the contract shows on hover for consumers. Use `//` only for short inline notes inside a body.
