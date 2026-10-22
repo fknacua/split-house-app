@@ -34,13 +34,10 @@ body{margin:0}
 <button aria-label="Close" aria-disabled="{{busyAttr}}" style="width: 44px; height: 44px; border-radius: 22px; border: 0; background: none; color: {{closeFg}}; display: flex; align-items: center; justify-content: center"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M18 6 6 18"></path><path d="m6 6 12 12"></path></svg></button>
 </div>
 
-<!-- CUSTOM: Segmented control (joined group, one selected value) -->
-<div role="group" aria-label="Charge type" style="display: flex; border: 1px solid {{segBorder}}; border-radius: 22px; overflow: hidden">
+<!-- CUSTOM: Connected button group (M3 Expressive). One selected value; the selected button turns into a full pill and fills, sizes never change -->
+<div role="group" aria-label="Charge type" style="display: flex; gap: 2px">
 <sc-for list="{{kinds}}" as="k" hint-placeholder-count="2">
-<button aria-pressed="{{k.pressed}}" style="flex: 1 1 0; min-width: 0; height: 44px; border: 0; border-left: 1px solid {{k.divider}}; background: {{k.bg}}; color: {{k.fg}}; font-family: inherit; font-size: 14px; line-height: 20px; font-weight: 700; display: flex; align-items: center; justify-content: center; gap: 6px">
-<sc-if value="{{k.on}}" hint-placeholder-val="{{false}}"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 6 9 17l-5-5"></path></svg></sc-if>
-{{k.label}}
-</button>
+<button aria-pressed="{{k.pressed}}" onClick="{{k.click}}" style="flex: 1 1 0; min-width: 0; height: 48px; padding: 0; box-sizing: border-box; border: 0; border-radius: {{k.radius}}; background: {{k.bg}}; color: {{k.fg}}; font-family: inherit; font-size: 14px; line-height: 20px; font-weight: 700; display: flex; align-items: center; justify-content: center; transition: border-radius 0.15s ease, background-color 0.15s ease, color 0.15s ease">{{k.label}}</button>
 </sc-for>
 </div>
 
@@ -64,10 +61,7 @@ body{margin:0}
 <span style="font-size: 14px; line-height: 20px; font-weight: 700; color: {{c.onSurface}}">{{chipsLabel}}</span>
 <div style="display: flex; gap: 8px">
 <sc-for list="{{chips}}" as="ch" hint-placeholder-count="3">
-<button aria-pressed="{{ch.pressed}}" style="height: 44px; padding: 0 14px; border-radius: 22px; border: 1px solid {{ch.border}}; background: {{ch.bg}}; color: {{ch.fg}}; font-family: inherit; font-size: 14px; line-height: 20px; font-weight: 700; display: flex; align-items: center; gap: 6px; white-space: nowrap">
-<sc-if value="{{ch.on}}" hint-placeholder-val="{{false}}"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 6 9 17l-5-5"></path></svg></sc-if>
-{{ch.label}}
-</button>
+<button aria-pressed="{{ch.pressed}}" onClick="{{ch.click}}" style="height: 44px; padding: 0 16px; box-sizing: border-box; border-radius: 22px; border: 1px solid {{ch.border}}; background: {{ch.bg}}; color: {{ch.fg}}; font-family: inherit; font-size: 14px; line-height: 20px; font-weight: 700; display: flex; align-items: center; justify-content: center; white-space: nowrap; transition: background-color 0.15s ease, color 0.15s ease, border-color 0.15s ease">{{ch.label}}</button>
 </sc-for>
 </div>
 </div>
@@ -79,7 +73,7 @@ body{margin:0}
 <span style="font-size: 15px; line-height: 22px; font-weight: 700">Fixes a past month</span>
 <span style="font-size: 12px; line-height: 16px; font-weight: 500; color: {{c.onSurfaceVariant}}">{{correctionHint}}</span>
 </div>
-<button role="switch" aria-label="Fixes a past month" aria-checked="{{corrPressed}}" style="width: 52px; height: 32px; border-radius: 16px; border: 2px solid {{switchBorder}}; background: {{switchBg}}; padding: 0; display: flex; align-items: center; justify-content: {{switchJustify}}; box-sizing: border-box">
+<button role="switch" aria-label="Fixes a past month" aria-checked="{{corrPressed}}" onClick="{{corrClick}}" style="width: 52px; height: 32px; border-radius: 16px; border: 2px solid {{switchBorder}}; background: {{switchBg}}; padding: 0; display: flex; align-items: center; justify-content: {{switchJustify}}; box-sizing: border-box">
 <span style="width: {{thumbSize}}; height: {{thumbSize}}; margin: 0 4px; border-radius: 12px; background: {{thumbBg}}"></span>
 </button>
 </div>
@@ -166,48 +160,73 @@ class Component extends DCLogic {
     var fieldBorder = saving ? c.outlineVariant : c.outline;
     var fieldFg = saving ? c.disabledFg : c.onSurface;
     var ctlFg = function (on) { return saving ? c.disabledFg : (on ? c.onSelected : c.onSurface); };
-    var personal = m === 'correction';
-    var kinds = ['Shared', 'Personal'].map(function (l, i) {
+    // Interactive state: starts from the mode prop, then follows taps
+    var self = this;
+    var st = this.state || {};
+    var kind = st.kind !== undefined ? st.kind : (m === 'correction' ? 'personal' : 'shared');
+    var split = st.split !== undefined ? st.split : (m === 'error' ? 2 : 1);
+    var who = st.who !== undefined ? st.who : 2;
+    var corr = st.corr !== undefined ? st.corr : (m === 'correction');
+    var personal = kind === 'personal';
+    var setS = function (patch) { return function () { if (!saving) self.setState(patch); }; };
+    var kinds = ['Shared', 'Personal'].map(function (l, i, arr) {
       var on = personal ? i === 1 : i === 0;
-      return { label: l, on: on, pressed: on ? 'true' : 'false', bg: on ? c.selected : 'transparent', fg: ctlFg(on), divider: i === 0 ? 'transparent' : (saving ? c.outlineVariant : c.outline) };
+      var first = i === 0, last = i === arr.length - 1;
+      var radius = on ? '24px' : ((first ? '24px' : '8px') + ' ' + (last ? '24px' : '8px') + ' ' + (last ? '24px' : '8px') + ' ' + (first ? '24px' : '8px'));
+      var bg = saving ? (on ? c.track : c.disabledBg) : (on ? c.primary : c.selected);
+      var fg = saving ? c.disabledFg : (on ? c.onPrimary : c.onSurface);
+      return { label: l, on: on, pressed: on ? 'true' : 'false', bg: bg, fg: fg, radius: radius, click: setS({ kind: i === 1 ? 'personal' : 'shared' }) };
     });
-    var pick = function (labels, sel) {
+    var pick = function (labels, sel, key) {
       return labels.map(function (l, i) {
         var on = i === sel;
-        return { label: l, on: on, pressed: on ? 'true' : 'false', bg: on ? c.selected : 'transparent', fg: ctlFg(on), border: on ? 'transparent' : (saving ? c.outlineVariant : c.outline) };
+        var patch = {}; patch[key] = i;
+        var bg = on ? (saving ? c.track : c.primary) : 'transparent';
+        var fg = saving ? c.disabledFg : (on ? c.onPrimary : c.onSurface);
+        var border = on ? bg : (saving ? c.outlineVariant : c.outline);
+        return { label: l, on: on, pressed: on ? 'true' : 'false', bg: bg, fg: fg, border: border, click: setS(patch) };
       });
     };
     var plain = function (who, basis, value, i) {
       return { who: who, basis: basis, value: value, fg: c.onSurface, divider: i === 0 ? 'transparent' : c.outlineVariant, boxPad: '0', boxBorder: 'transparent', boxBg: 'transparent' };
     };
-    var v = { c: c, fieldBg: fieldBg, fieldBorder: fieldBorder, fieldFg: fieldFg, segBorder: fieldBorder, isSaving: saving, isFailed: failed, busyAttr: saving ? 'true' : 'false', closeFg: saving ? c.disabledFg : c.onSurfaceVariant, kinds: kinds, corrOn: false, correctionHint: 'Link it as a correction', previewLabel: 'Split preview', disabled: 'false' };
-    if (m === 'shared') {
+    var v = { c: c, fieldBg: fieldBg, fieldBorder: fieldBorder, fieldFg: fieldFg, segBorder: fieldBorder, isSaving: saving, isFailed: failed, busyAttr: saving ? 'true' : 'false', closeFg: saving ? c.disabledFg : c.onSurfaceVariant, kinds: kinds, corrOn: corr, correctionHint: corr ? 'Shows as a correction in History' : 'Link it as a correction', previewLabel: personal ? 'Preview' : 'Split preview', disabled: 'false' };
+    v.corrClick = setS({ corr: !corr });
+    if (!personal) {
       v.amount = '110.00'; v.amountFg = c.onSurface; v.note = 'Aircon servicing';
-      v.chipsLabel = 'Split method'; v.chips = pick(['Per share (5)', 'Per unit (6)', 'Custom'], 1);
-      v.rows = [
-        plain('You', '2 units', '$36.67', 0),
-        plain('Primary Tenant', '2 units', '$36.67', 1),
-        plain('Tenant 1', '1 unit · collected via Primary Tenant', '$18.33', 2),
-        plain('Tenant 2', '1 unit', '$18.33', 3)
-      ];
-      v.checkOk = true; v.checkBad = false; v.checkFg = c.success; v.checkText = 'Adds up to $110.00';
-    } else if (m === 'correction') {
-      v.amount = '−8.20'; v.amountFg = c.success; v.note = 'Oct utilities share overcharged';
-      v.chipsLabel = 'Who'; v.chips = pick(['Primary Tenant', 'Tenant 1', 'Tenant 2'], 2);
-      v.corrOn = true; v.correctionHint = 'Shows as a correction in History';
-      v.previewLabel = 'Preview';
-      v.rows = [ plain('Tenant 2', 'Credit on their next payment', '−$8.20', 0) ];
-      v.rows[0].fg = c.success;
-      v.checkOk = true; v.checkBad = false; v.checkFg = c.onSurfaceVariant; v.checkText = 'Linked to October 2026';
+      v.chipsLabel = 'Split method'; v.chips = pick(['Per share (5)', 'Per unit (6)', 'Custom'], split, 'split');
+      if (split === 0) {
+        v.rows = [
+          plain('You', '1.5 shares', '$33.00', 0),
+          plain('Primary Tenant', '1.5 shares', '$33.00', 1),
+          plain('Tenant 1', '1 share · collected via Primary Tenant', '$22.00', 2),
+          plain('Tenant 2', '1 share', '$22.00', 3)
+        ];
+        v.checkOk = true; v.checkBad = false; v.checkFg = c.success; v.checkText = 'Adds up to $110.00';
+      } else if (split === 1) {
+        v.rows = [
+          plain('You', '2 units', '$36.67', 0),
+          plain('Primary Tenant', '2 units', '$36.67', 1),
+          plain('Tenant 1', '1 unit · collected via Primary Tenant', '$18.33', 2),
+          plain('Tenant 2', '1 unit', '$18.33', 3)
+        ];
+        v.checkOk = true; v.checkBad = false; v.checkFg = c.success; v.checkText = 'Adds up to $110.00';
+      } else {
+        var box = function (who, value, i) {
+          return { who: who, basis: 'Custom amount', value: value, fg: c.onSurface, divider: i === 0 ? 'transparent' : c.outlineVariant, boxPad: '6px 8px', boxBorder: c.danger, boxBg: c.sheet };
+        };
+        v.rows = [ box('You', '40.00', 0), box('Primary Tenant', '40.00', 1), box('Tenant 1', '15.00', 2), box('Tenant 2', '10.00', 3) ];
+        v.checkOk = false; v.checkBad = true; v.checkFg = c.danger; v.checkText = 'Adds up to $105.00 · $5.00 short of $110.00';
+        v.disabled = 'true';
+      }
     } else {
-      v.amount = '110.00'; v.amountFg = c.onSurface; v.note = 'Aircon servicing';
-      v.chipsLabel = 'Split method'; v.chips = pick(['Per share (5)', 'Per unit (6)', 'Custom'], 2);
-      var box = function (who, value, i) {
-        return { who: who, basis: 'Custom amount', value: value, fg: c.onSurface, divider: i === 0 ? 'transparent' : c.outlineVariant, boxPad: '6px 8px', boxBorder: c.danger, boxBg: c.sheet };
-      };
-      v.rows = [ box('You', '40.00', 0), box('Primary Tenant', '40.00', 1), box('Tenant 1', '15.00', 2), box('Tenant 2', '10.00', 3) ];
-      v.checkOk = false; v.checkBad = true; v.checkFg = c.danger; v.checkText = 'Adds up to $105.00 · $5.00 short of $110.00';
-      v.disabled = 'true';
+      var people = ['Primary Tenant', 'Tenant 1', 'Tenant 2'];
+      v.amount = corr ? '−8.20' : '8.20'; v.amountFg = corr ? c.success : c.onSurface;
+      v.note = corr ? 'Oct utilities share overcharged' : 'Replacement key';
+      v.chipsLabel = 'Who'; v.chips = pick(people, who, 'who');
+      v.rows = [ plain(people[who], corr ? 'Credit on their next payment' : 'Added to their next payment', corr ? '−$8.20' : '$8.20', 0) ];
+      if (corr) v.rows[0].fg = c.success;
+      v.checkOk = true; v.checkBad = false; v.checkFg = c.onSurfaceVariant; v.checkText = corr ? 'Linked to October 2026' : 'Only ' + people[who] + ' pays this';
     }
     if (saving) { v.amountFg = c.disabledFg; }
     v.corrPressed = v.corrOn ? 'true' : 'false';

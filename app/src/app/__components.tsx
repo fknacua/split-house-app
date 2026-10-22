@@ -12,7 +12,7 @@ import { Badge } from '@/components/badge';
 import { Button, type ButtonVariant } from '@/components/button';
 import { ChipGroup } from '@/components/chip';
 import { TextField } from '@/components/form-field';
-import { SegmentedControl } from '@/components/segmented-control';
+import { ConnectedButtonGroup } from '@/components/connected-button-group';
 import { TouchTargetCheck, TouchTargetCheckProvider } from '@/components/touch-target-check';
 // eslint-disable-next-line no-restricted-imports -- TODO: replace with a wrapper from src/components
 import { Switch } from '@/components/ui/switch';
@@ -152,7 +152,7 @@ export default function ComponentTestPage() {
         <View className="gap-3 border-b border-outline-variant bg-background px-4 pb-3 pt-12">
           <Text className="font-manrope-bold text-title text-foreground">Component test page</Text>
           <TouchTargetCheck>
-            <SegmentedControl<ThemePreference>
+            <ConnectedButtonGroup<ThemePreference>
               value={preference}
               onChange={setPreference}
               options={[
@@ -196,10 +196,10 @@ export default function ComponentTestPage() {
           </View>
           <View className="gap-3">
             <Text className="font-manrope-bold text-label text-foreground">
-              Segmented control
+              Connected button group
             </Text>
             <TouchTargetCheck>
-              <SegmentedControl
+              <ConnectedButtonGroup
                 label="Charge type"
                 value={scope}
                 onChange={setScope}
@@ -212,7 +212,7 @@ export default function ComponentTestPage() {
             <Text className="font-manrope-medium text-caption text-on-surface-variant">
               Content-width segments (Settings preview sample)
             </Text>
-            <SegmentedControl
+            <ConnectedButtonGroup
               fit
               label="Preview sample"
               value={sample}
@@ -222,7 +222,7 @@ export default function ComponentTestPage() {
             <Text className="font-manrope-medium text-caption text-on-surface-variant">
               Disabled (saving)
             </Text>
-            <SegmentedControl
+            <ConnectedButtonGroup
               disabled
               value={scope}
               onChange={setScope}
@@ -262,7 +262,7 @@ export default function ComponentTestPage() {
               Taps: {taps}. Press and hold a button to see the pressed look. Disabled and loading
               buttons must not count taps.
             </Text>
-            <SegmentedControl
+            <ConnectedButtonGroup
               label="Button state"
               value={buttonState}
               onChange={setButtonState}

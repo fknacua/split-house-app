@@ -6,7 +6,7 @@
 
 Current repo state (from git and the spike findings):
 - `backend/`: Next.js, Prisma with only the Better Auth tables (migration `init_better_auth`), Better Auth with Google + email allowlist (`src/lib/auth.ts`), route `api/auth/[...all]`. No split engine, no domain models, no API.
-- `app/`: Expo SDK 57, expo-router with 3 files (`_layout`, `index`, `sign-in`), tokens installed (`src/components/ui/gluestack-ui-provider/config.ts`, `src/global.css`), copied-in gluestack components, custom `bottom-nav.tsx`, `chip.tsx`, `segmented-control.tsx`, spike `screens/home` and `screens/sign-in` (hard-coded sample data, simplified states). Dev build installed on device. Accordion works on device (the web preview misreported it). Google sign-in untested on device.
+- `app/`: Expo SDK 57, expo-router with 3 files (`_layout`, `index`, `sign-in`), tokens installed (`src/components/ui/gluestack-ui-provider/config.ts`, `src/global.css`), copied-in gluestack components, custom `bottom-nav.tsx`, `chip.tsx`, `connected-button-group.tsx`, spike `screens/home` and `screens/sign-in` (hard-coded sample data, simplified states). Dev build installed on device. Accordion works on device (the web preview misreported it). Google sign-in untested on device.
 
 Decisions taken in this planning session:
 - **Stay on gluestack v5 + NativeWind v5.** The Accordion works on device, so that spike concern is closed.
@@ -82,7 +82,7 @@ Shared pieces go under `app/src/components/`.
 - **Native (`components/ui/<name>`):** holds the looks: variants, sizes, colours, shapes, and the disabled and pressed states. Customise the copied file in place.
 - **Wrapper (`components/<name>.tsx`):** our own props, designed from the native ones, translated to what the native component needs. It adds only behaviour the native one lacks (for Button: `loading`, the label and icon composition) and exposes no gluestack types. Screens import only the wrapper, so swapping the library means rewriting the wrappers (ESLint `no-restricted-imports` enforces this; direct `components/ui` imports need a disable comment with a reason).
 - **Before writing a wrapper:** fix every type check error and lint error or warning in the native component it wraps (for example the known ones in `ui/alert-dialog`, `ui/popover`, `ui/calendar`, `ui/date-time-picker`), so the wrapper sits on a clean base. Report anything you cannot fix without changing behaviour instead of suppressing it.
-- **Custom pieces with no gluestack native** (segmented control, chips, bottom navigation) stay custom, as the mapping doc says.
+- **Custom pieces with no gluestack native** (connected button group, single-select chips, bottom navigation) stay custom, as the mapping doc says.
 
 - ✅ **2.1a** **Theme preference (real, not a stub)**
   - **Build:** `app/src/lib/theme-preference.tsx` with `ThemePreferenceProvider` and `useThemePreference()` returning `{ preference: 'light' | 'dark' | 'system', resolved: 'light' | 'dark', setPreference }`.
@@ -99,10 +99,11 @@ Shared pieces go under `app/src/components/`.
   - **Build:** one route, `app/src/app/__components.tsx`, dev only (guarded by `__DEV__`, absent from release builds), so everything is tested on the phone in one place. One scrollable page.
   - **Access:** until the bottom navigation exists (2.13), reach it from a temporary dev-only link on the Home route (`app/src/app/index.tsx`), removed in 2.13.
   - **Scope:** this step builds only the shell and the two pinned controls below. Every later step adds its own section (heading plus fully working pieces, not static mocks) and names it in its **Test page** line.
-  - **Theme toggle**, pinned at the top (does not depend on Settings): Light / Dark / System segmented control wired to `useThemePreference()`. It switches the whole app live and persists across restarts, so both themes are checked on every component without leaving the page.
+  - **Theme toggle**, pinned at the top (does not depend on Settings): Light / Dark / System ConnectedButtonGroup wired to `useThemePreference()`. It switches the whole app live and persists across restarts, so both themes are checked on every component without leaving the page.
   - **Touch-target overlay switch**, also pinned near the top: toggles a debug outline on anything under 44px.
 
 - ✅ **2.4** **Segmented control and chips** (`segmented-control.tsx`, `chip.tsx` exist)
+  - **Design update, Oct 22 (done separately, step stays ✅):** the controls were reworked to the Round 2 design. `segmented-control.tsx` became `connected-button-group.tsx` (`ConnectedButtonGroup`): 2px gap, no outer border, 48px (44px compact), selected is a `primary` pill, no check icon. `chip.tsx` lost its check icon and has a fixed 1px border, radius 22, `primary` fill when selected. See DESIGN.md.
   - **Build:** verify against the Add charge, Household and Settings boards. Same `value/onChange` API; selected = `bg-selected text-on-selected` + check icon for chips; single-select; 44px. The 2.3 theme toggle already uses the segmented control.
   - **Test page:** add the **Segmented control** (Shared / Personal) and **single-select chips** (split method, Who) section, with the live selected value printed beneath.
 
@@ -217,7 +218,7 @@ Source: `SignIn.dc.html`, `Returning.dc.html`, `ServerError.dc.html`. Replaces s
 Source `Household.dc.html` (largest file, 48KB; read in full).
 - **4B.1** Backend: `GET /api/household` (current version, upcoming version if any, people, per-version history), `POST /api/household/preview` (config draft + starts-from -> per-person amounts via split engine; this is what the edit preview card shows; **the app never calculates**), `POST /api/household/versions` (validates: starts-from must be after current month, except first version; shares add to 100%/totals; creates a new immutable version), `POST /api/people` / person updates go through versions (name and WhatsApp live on `Person`; everything else in config), `DELETE` of a person = a new version excluding them (never hard-delete), plus `removeVersion` for a not-yet-started future version only.
 - **4B.2** `view` overview: Cards for each person (route chip Directly/Via someone, rent, shares), landlord rent summary, 50/50 split bars (custom two-segment Progress), version/"starts from" badges, Add person button. `loading` skeleton.
-- **4B.3** Edit screens/sheets by state: `editPerson` (Tenant 2 from Jan 2027 with preview), `editPrimary` (rename, rename applies immediately on Person), `editTenant1` (segmented Directly/Via someone per charge type, Applies-to Select), `editHome` (landlord rent from Jan 2027), `addPerson` (empty form, PhoneField starting with +65), `splitError` (shares not adding to 100% -> danger Alert + disabled Save).
+- **4B.3** Edit screens/sheets by state: `editPerson` (Tenant 2 from Jan 2027 with preview), `editPrimary` (rename, rename applies immediately on Person), `editTenant1` (ConnectedButtonGroup Directly/Via someone per charge type, Applies-to Select), `editHome` (landlord rent from Jan 2027), `addPerson` (empty form, ConnectedButtonGroup for the payment route, PhoneField starting with +65), `splitError` (shares not adding to 100% -> danger Alert + disabled Save).
 - **4B.4** "Starts from" MonthSelectField lists only months after the current month (first setup: current month allowed). Live preview via debounced call to `/api/household/preview`; show Spinner in the preview card while fetching.
 - **4B.5** Confirmations (Phase 10): removePerson, removeVersion, discard unsaved changes (back with dirty form).
 - **4B.6** Required markers and label-above on every field; verify against FormControls.
@@ -292,7 +293,7 @@ Source `MarkPaid.dc.html` (`full`, `different`, `record`, `recordOpen`, `recordF
 ### 9A. Add charge (5 states)
 Source `AddCharge.dc.html`.
 - **9A.1** Backend: `POST /api/charges/preview` (mode, split method, total, who, custom amounts, month) -> per-person cents via engine; `POST /api/charges` creates `ChargeGroup` + charges in one transaction (amounts stored, never recalculated). `Correction` = personal charge with `correctsMonth`, signed amount.
-- **9A.2** UI sheet: segmented Shared / Personal, single-select chips for split method (Per share, Per unit, Custom) and Who, Label, Amount (MoneyField), Month being fixed (MonthSelect, corrections), Due date, Note. Live preview card from the preview endpoint (debounced, Spinner while loading); `error` state (custom split doesn't add up) = danger Alert + Save disabled; Saving/Failed via scaffold. Replaces spike `add-charge-sheet.tsx`.
+- **9A.2** UI sheet: ConnectedButtonGroup Shared / Personal (Add charge is not final), single-select chips for split method (Per share, Per unit, Custom) and Who, Label, Amount (MoneyField), Month being fixed (MonthSelect, corrections), Due date, Note. Live preview card from the preview endpoint (debounced, Spinner while loading); `error` state (custom split doesn't add up) = danger Alert + Save disabled; Saving/Failed via scaffold. Replaces spike `add-charge-sheet.tsx`.
 
 ### 9B. History (4 states)
 Source `History.dc.html`.
@@ -307,8 +308,8 @@ Source `History.dc.html`.
 ### 10A. Settings (5 states)
 Source `Settings.dc.html` (33KB).
 - **10A.1** Backend: `GET/PUT /api/settings` (notification toggles per channel/type); message templates are part of the versioned household config, so template edits go through `POST /api/household/versions` with "starts from" (Settings "Applies to" Select: everyone / a person).
-- **10A.2** `view`: Account Card (signed-in email, Sign out, no confirmation dialog per mapping), Appearance (segmented Light/Dark/System bound to the existing `useThemePreference()` from step 2.1a; no new theme logic), Messages (links to template editors), Notifications (Switches per channel/type).
-- **10A.3** `template` / `override` / `nudge`: Textarea editors (label above), placeholder chips to insert, preview card with segmented sample selector (custom), per-person override via Applies-to Select; Save creates a version (starts-from rule applies).
+- **10A.2** `view`: Account Card (signed-in email, Sign out, no confirmation dialog per mapping), Appearance (ConnectedButtonGroup Light/Dark/System bound to the existing `useThemePreference()` from step 2.1a; no new theme logic), Messages (links to template editors), Notifications (Switches per channel/type).
+- **10A.3** `template` / `override` / `nudge`: Textarea editors (label above), placeholder chips to insert, preview card with compact ConnectedButtonGroup sample selector (custom), per-person override via Applies-to Select; Save creates a version (starts-from rule applies).
 - **10A.4** `blocked`: when notification permission is denied, warning Alert + "Open system settings" (`Linking.openSettings()`, external-link icon); re-check on app foreground.
 - **10A.5** Sign out: `authClient.signOut()`, clear query cache, `GoogleSignin.signOut()`, cancel scheduled notifications.
 
@@ -349,7 +350,7 @@ Source `Notifications.dc.html` (`headsUp`, `shade`) for copy, channel names, act
 ## Critical files
 
 - `docs/DESIGN.md`, `docs/design/source/*.dc.html`, `docs/design/config.ts`, `docs/design/global.css`
-- Existing to extend: `app/src/app/_layout.tsx`, `app/src/components/bottom-nav.tsx`, `segmented-control.tsx`, `chip.tsx`, `app/src/components/ui/*`, `app/src/lib/auth-client.ts`, `app/src/screens/home/*`, `app/src/screens/sign-in/*`
+- Existing to extend: `app/src/app/_layout.tsx`, `app/src/components/bottom-nav.tsx`, `connected-button-group.tsx`, `chip.tsx`, `app/src/components/ui/*`, `app/src/lib/auth-client.ts`, `app/src/screens/home/*`, `app/src/screens/sign-in/*`
 - Backend: `backend/prisma/schema.prisma`, `backend/src/lib/auth.ts`, `backend/src/lib/prisma.ts`, new `backend/src/lib/split/`, `backend/src/lib/household/`, `backend/src/lib/bill/`, `backend/src/app/api/**`
 
 ## Verification (every phase)

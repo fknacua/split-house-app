@@ -287,13 +287,10 @@ Add subtenant
 <sc-for list="{{payGroups}}" as="pg" hint-placeholder-count="2">
 <div style="display: flex; flex-direction: column; gap: 6px">
 <span style="font-size: 14px; line-height: 20px; font-weight: 700; color: {{c.onSurface}}">{{pg.label}}</span>
-<!-- CUSTOM: Segmented control (joined group, one selected value) -->
-<div role="group" aria-label="{{pg.label}}" style="display: flex; border: 1px solid {{c.outline}}; border-radius: 22px; overflow: hidden">
+<!-- CUSTOM: Connected button group (M3 Expressive). Selected button becomes a full pill and fills; sizes never change -->
+<div role="group" aria-label="{{pg.label}}" style="display: flex; gap: 2px">
 <sc-for list="{{pg.opts}}" as="o" hint-placeholder-count="2">
-<button aria-pressed="{{o.pressed}}" style="flex: 1 1 0; min-width: 0; height: 44px; border: 0; border-left: 1px solid {{o.divider}}; background: {{o.bg}}; color: {{o.fg}}; font-family: inherit; font-size: 14px; line-height: 20px; font-weight: 700; display: flex; align-items: center; justify-content: center; gap: 6px">
-<sc-if value="{{o.on}}" hint-placeholder-val="{{false}}"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 6 9 17l-5-5"></path></svg></sc-if>
-{{o.label}}
-</button>
+<button aria-pressed="{{o.pressed}}" style="flex: 1 1 0; min-width: 0; height: 48px; padding: 0; box-sizing: border-box; border: 0; border-radius: {{o.radius}}; background: {{o.bg}}; color: {{o.fg}}; font-family: inherit; font-size: 14px; line-height: 20px; font-weight: 700; display: flex; align-items: center; justify-content: center; transition: border-radius 0.15s ease, background-color 0.15s ease, color 0.15s ease">{{o.label}}</button>
 </sc-for>
 </div>
 <sc-if value="{{pg.hasVia}}" hint-placeholder-val="{{false}}">
@@ -480,10 +477,11 @@ class Component extends DCLogic {
       };
     };
     var payOpts = function (labels, sel) {
-      return labels.map(function (l, i) {
+      return labels.map(function (l, i, arr) {
         var on = i === sel;
-        return { label: l, on: on, pressed: on ? 'true' : 'false', bg: on ? c.selected : 'transparent', fg: on ? c.onSelected : c.onSurface,
-          divider: i === 0 ? 'transparent' : c.outline };
+        var first = i === 0, last = i === arr.length - 1;
+        var radius = on ? '24px' : ((first ? '24px' : '8px') + ' ' + (last ? '24px' : '8px') + ' ' + (last ? '24px' : '8px') + ' ' + (first ? '24px' : '8px'));
+        return { label: l, on: on, pressed: on ? 'true' : 'false', bg: on ? c.primary : c.selected, fg: on ? c.onPrimary : c.onSurface, radius: radius };
       });
     };
     var row = function (label, from, to) {
