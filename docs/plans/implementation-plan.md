@@ -66,47 +66,119 @@ Backend work, in `backend/`, follows the Data Model doc and CLAUDE.md. Check cur
 - ✅ **1.8** **Typed client**: shared TS types for responses. Simplest: `app/src/lib/api-types.ts` hand-synced from backend zod schemas (monorepo has no shared package for now; a shared schemas package is required before go-live, see 12.5e). `app/src/lib/api.ts` fetch wrapper adding the Better Auth session token (from `authClient`), 20s timeout, maps network failure/timeout/5xx-cold-start to a `ServerUnreachableError`.
 - ✅ **1.9** **Data hooks**: add TanStack Query (check current docs) in `app/`: `QueryClientProvider`, `useMonthSummary`, etc. Mutations invalidate affected keys. Retry policy: auto-retry reads twice with backoff (covers Neon cold start) before surfacing the blocking prompt.
 - ✅ **1.10** **State management decision**: no global state library (no Redux/Zustand). Server data lives in TanStack Query; theme preference in one Context (2.1a); session in Better Auth's `useSession()`; sheet open/closed and selected month in local state or route params.
-- ✅ **1.11** **Forms**: add `react-hook-form` and `zod` (with `@hookform/resolvers`; check current docs) to `app/`. Shared form schemas live in `app/src/lib/schemas/` (money as integer cents, month keys, E.164 phone), mirroring the backend's zod request schemas by hand for now (replaced by a shared package before go-live, see 12.5e). The Phase 2 field components (2.2) take a `control`/`name` so label, helper and error text come from the form state; `formState.isDirty` drives the "Discard unsaved changes" dialog; submit state drives the sheet scaffold's saving/failed states. Server validation errors map back onto fields.
+- ✅ **1.11** **Forms**: add `react-hook-form` and `zod` (with `@hookform/resolvers`; check current docs) to `app/`. Shared form schemas live in `app/src/lib/schemas/` (money as integer cents, month keys, E.164 phone), mirroring the backend's zod request schemas by hand for now (replaced by a shared package before go-live, see 12.5e). The Phase 2 field components (2.8 to 2.12) take a `control`/`name` so label, helper and error text come from the form state; `formState.isDirty` drives the "Discard unsaved changes" dialog; submit state drives the sheet scaffold's saving/failed states. Server validation errors map back onto fields.
 
 Exit: engine tests green; seeded dev DB; `GET /api/health` and an authenticated `GET /api/me` work from the device.
 
 ---
 
-## Phase 2: Theme, provider and shared pieces ("Suggested build order" step 1)
+## 🔄 Phase 2: Theme, provider and shared pieces ("Suggested build order" step 1)
 
-Create under `app/src/components/`:
+Shared pieces go under `app/src/components/`.
 
-- **2.1a** **Theme preference (real, not a stub)**: `app/src/lib/theme-preference.tsx` with `ThemePreferenceProvider` and `useThemePreference()` returning `{ preference: 'light' | 'dark' | 'system', resolved: 'light' | 'dark', setPreference }`. Persists the choice on the device with `expo-secure-store` or AsyncStorage (wrapped in try/catch; defaults to `system`), resolves `system` from `useColorScheme()`, and feeds `GluestackUIProvider mode` and the status bar style in `_layout.tsx`. The test page toggle (2.14) uses it, and Settings (Phase 10, step 10A.2) later reuses the same hook for its Appearance control with no new theme code.
-- **2.1** **Provider/app shell** (`app/src/app/_layout.tsx`): `GestureHandlerRootView` > `GluestackUIProvider` > `BottomSheetModalProvider` > session gate (Phase 3). Status bar style follows theme, `expo-system-ui` background = `background` token (no white flash).
-- **2.2** **`FormControl` wrapper** (`components/form-field.tsx`) on gluestack `form-control`: props `label`, `required` (marker), `helper`, `error`, children. Label 14/20 bold above, 6px gap, helper/error caption 12/16 below, 16px gap between controls. Variants: `TextField` (Input, 48px, radius 12, field text 16/24 medium), `MoneyField` (Input with `$` prefix, numeric keyboard, stores integer cents, shows 2 decimals, parse helper in `lib/money.ts`), `SelectField`, `MonthSelectField` (Select list of `YYYY-MM`, shown "Nov 2026"), `DateField` (DateTimePicker date mode, calendar icon), `TextareaField`, `PhoneField` (field starts with an editable `+65` so other countries work; value checked with `z.e164()`). Check against `FormControls.dc.html` `fields` and `pickers` views, all states (default, focus, filled, error, disabled).
-- **2.3** **`lib/money.ts`**: `formatCents(c)` -> `$1,862.86` (tabular numerals via font feature), `parseMoneyToCents(str)`, negative formatting for corrections. Display-only; no split maths in the app.
-- **2.4** **`lib/month.ts`**: `YYYY-MM` keys, label formatting, current month in Asia/Singapore (match server).
-- **2.5** **Button** variants from the design: primary (solid), outline, outline-danger (red outline), warning (Nudge), text, small (44px). 48px height, pill radius, 15/20 bold, loading state with `Spinner`, disabled = `bg-disabled text-on-disabled`.
-- **2.6** **Alert** variants: info, warning, danger, success using `*-tint` / `*-line` / `on-*-tint` tokens, 16px radius, Lucide icons per mapping (`circle-alert`, `triangle-alert`, `info`, `circle-check`).
-- **2.7** **Badge/status chips**: Paid (success-container), Due/Overdue (warning/danger), Due today (info), Nudged, Corrected, Unpaid, neutral (container).
-- **2.8** **Bottom navigation** (`bottom-nav.tsx` exists; includes a dev-only fifth "Test" item that opens the component test page, see 2.14): switch from local state to expo-router `Tabs` layout (`app/src/app/(tabs)/_layout.tsx` with `tabBar={props => <BottomNav .../>}`): Home, History, Household, Settings; top shadow per elevation table (`0 -6px 14px rgba(0,0,0,.14)` light, `0 -8px 16px rgba(0,0,0,.45)` dark via `elevation`/shadow style), bottom inset via `useSafeAreaInsets`, 44px targets, selected pill uses `selected`/`on-selected`. Hidden on stack screens (Bill upload, Recipient, etc).
-- **2.9** **Segmented control and chips** (`segmented-control.tsx`, `chip.tsx` exist): verify against Add charge, Household, Settings boards; same `value/onChange` API; selected = `bg-selected text-on-selected` + check icon for chips; single-select; 44px.
-- **2.10** **Sheet scaffold** (`components/app-sheet.tsx`): wraps gluestack bottom sheet: grabber, title 20/28, close `x`, scroll body, sticky footer with Save/Cancel, `saving` (inputs disabled, button spinner) and `failed` (danger Alert above footer, "Try again" button, input values preserved) props. Used by Add charge, Mark paid, Record payment, Mark bill paid, Share bill.
-- **2.11** **Dialog scaffold** (`components/confirm-dialog.tsx`) on `AlertDialog`: radius 24, filled Cancel, red-outline action. Used by Confirm boards and Discard draft, Save with warnings (neutral outline "Save anyway", filled "Go back and fix").
-- **2.12** **Skeleton helpers** (`components/skeletons.tsx`) for card rows, lists.
-- **2.13** **Screen header** (`components/screen-header.tsx`): page title 24/32 (tab screens) and back-arrow header with sheet-title 20/28 (stack screens); Android back gesture via router.
-- **2.14** **Component test page (the Phase 2 deliverable)**: one route, `app/src/app/__components.tsx` (dev only, guarded by `__DEV__`, reachable from a fifth item in the bottom navigation bar, shown only when `__DEV__` is true, with a Lucide `flask-conical` icon and the label "Test"; absent from release builds), so everything is tested in one pass on the phone. One scrollable page, sections in this order, each with a heading and each interactive piece fully working (not static mocks):
-  - **Theme toggle** pinned at the top of the test page (does not depend on Settings): Light / Dark / System segmented control wired to `useThemePreference()` (2.1a). It switches the whole app live and the choice persists across app restarts, so both themes are checked on every component without leaving the page.
-  - **Buttons**: primary, outline, outline-danger, warning (Nudge), text, small (44px); each in default, pressed, loading, disabled.
-  - **Form fields** (match `FormControls.dc.html` `fields` view): TextField, MoneyField (type `1862.86`, check it shows `$1,862.86` and yields 186286 cents), PhoneField (starts with an editable +65), TextareaField; each in default, filled, required, helper, error, disabled.
-  - **Pickers** (match `pickers` view): SelectField, MonthSelectField (tap, list opens, choose Nov 2026), DateField (native Android dialog), Switch.
-  - **Segmented control** (Shared / Personal) and **single-select chips** (split method, Who) with live selected value printed beneath.
-  - **Alerts**: info, warning, danger, success.
-  - **Badges and status chips**: Paid, Due, Overdue, Due today, Nudged, Corrected, Unpaid, neutral.
-  - **Cards, Progress, Accordion** (with 3 sample rows), **Skeleton** blocks, **Spinner**.
-  - **Bottom sheet scaffold**: buttons "Open sheet (idle)", "Open sheet (saving)", "Open sheet (failed)" showing grabber, title, close, scrolling body, sticky footer, keyboard behaviour with a field inside, Android back gesture closes it. A "Fake save" button runs idle -> saving -> failed -> retry -> success.
-  - **Dialogs**: Confirm (filled Cancel + red-outline action), Save with warnings (Go back and fix / Save anyway).
-  - **Server-unreachable prompt**: a button that triggers the blocking "Can't reach the server" state with Retry (full version wired in Phase 3).
-  - **Bottom navigation** rendered at the bottom of the page with working tab highlight.
-  - **Screen headers**: tab-style title and back-arrow style.
-  - **Touch-target overlay switch**: toggles a debug outline on anything under 44px to check targets quickly.
-  - **Hex check**: no hex in the page or kit (grep run before review).
-- **2.15** Compare the test page with `FormControls.dc.html` (both views) and the mapping doc; fix differences; then Francis runs the page on device in both themes and signs off before Phase 3. This page stays in the app (dev only) and gains new shared pieces over time; later screen phases use its `__gallery` states for per-screen state review.
+**Working rule for this phase:** the provider shell is built first (2.2), then the test page shell (2.3). Every later step that builds a component also adds its section to the test page in that same step, fully working and in every state, and is not done until it shows there.
+
+- ✅ **2.1a** **Theme preference (real, not a stub)**
+  - **Build:** `app/src/lib/theme-preference.tsx` with `ThemePreferenceProvider` and `useThemePreference()` returning `{ preference: 'light' | 'dark' | 'system', resolved: 'light' | 'dark', setPreference }`.
+  - Persists the choice on the device with `expo-secure-store` or AsyncStorage (wrapped in try/catch; defaults to `system`).
+  - Resolves `system` from `useColorScheme()`; feeds `GluestackUIProvider mode` and the status bar style in `_layout.tsx`.
+  - **Reuse:** the test page toggle (2.3) uses it, and Settings (Phase 10, step 10A.2) later reuses the same hook for its Appearance control with no new theme code.
+
+- **2.2** **Provider/app shell** (`app/src/app/_layout.tsx`)
+  - **Build:** `GestureHandlerRootView` > `GluestackUIProvider` > `BottomSheetModalProvider` > session gate (Phase 3).
+  - Status bar style follows theme; `expo-system-ui` background = `background` token (no white flash).
+  - **Test page:** none yet; the page is built in 2.3 and checks both themes through this shell. The **Server-unreachable prompt** section goes on the page when the step that builds it lands (this one if it does, otherwise Phase 3): a button that triggers the blocking "Can't reach the server" state with Retry.
+
+- **2.3** **Component test page shell**
+  - **Build:** one route, `app/src/app/__components.tsx`, dev only (guarded by `__DEV__`, absent from release builds), so everything is tested on the phone in one place. One scrollable page.
+  - **Access:** until the bottom navigation exists (2.13), reach it from a temporary dev-only link on the Home route (`app/src/app/index.tsx`), removed in 2.13.
+  - **Scope:** this step builds only the shell and the two pinned controls below. Every later step adds its own section (heading plus fully working pieces, not static mocks) and names it in its **Test page** line.
+  - **Theme toggle**, pinned at the top (does not depend on Settings): Light / Dark / System segmented control wired to `useThemePreference()`. It switches the whole app live and persists across restarts, so both themes are checked on every component without leaving the page.
+  - **Touch-target overlay switch**, also pinned near the top: toggles a debug outline on anything under 44px.
+
+- **2.4** **Segmented control and chips** (`segmented-control.tsx`, `chip.tsx` exist)
+  - **Build:** verify against the Add charge, Household and Settings boards. Same `value/onChange` API; selected = `bg-selected text-on-selected` + check icon for chips; single-select; 44px. The 2.3 theme toggle already uses the segmented control.
+  - **Test page:** add the **Segmented control** (Shared / Personal) and **single-select chips** (split method, Who) section, with the live selected value printed beneath.
+
+- **2.5** **Button**
+  - **Build:** variants from the design: primary (solid), outline, outline-danger (red outline), warning (Nudge), text, small (44px).
+  - 48px height, pill radius, 15/20 bold; loading state with `Spinner`; disabled = `bg-disabled text-on-disabled`.
+  - **Test page:** add the **Buttons** section: every variant in default, pressed, loading, disabled.
+
+- **2.6** **Alert**
+  - **Build:** variants info, warning, danger, success using `*-tint` / `*-line` / `on-*-tint` tokens, 16px radius.
+  - Lucide icons per mapping: `circle-alert`, `triangle-alert`, `info`, `circle-check`.
+  - **Test page:** add the **Alerts** section: info, warning, danger, success.
+
+- **2.7** **Badge/status chips**
+  - **Build:** Paid (success-container), Due/Overdue (warning/danger), Due today (info), Nudged, Corrected, Unpaid, neutral (container).
+  - **Test page:** add the **Badges and status chips** section with all of the above.
+
+- **2.8** **`FormControl` wrapper and TextField** (`components/form-field.tsx`)
+  - **Build:** on gluestack `form-control`. Props: `label`, `required` (marker), `helper`, `error`, children.
+  - **Layout:** label 14/20 bold above, 6px gap, helper/error caption 12/16 below, 16px gap between controls.
+  - **TextField:** Input, 48px, radius 12, field text 16/24 medium.
+  - **Check against:** `FormControls.dc.html` `fields` view, all states (default, focus, filled, error, disabled).
+  - **Test page:** add the **Form fields** section with TextField in default, filled, required, helper, error, disabled.
+
+- **2.9** **TextareaField and PhoneField**
+  - **Build:**
+    - `TextareaField`.
+    - `PhoneField`: starts with an editable `+65` so other countries work; value checked with `z.e164()`.
+  - **Check against:** `FormControls.dc.html` `fields` view, all states.
+  - **Test page:** add both to the **Form fields** section, each in default, filled, required, helper, error, disabled.
+
+- **2.10** **MoneyField and `lib/money.ts`**
+  - **Build `lib/money.ts`:** `formatCents(c)` -> `$1,862.86` (tabular numerals via font feature), `parseMoneyToCents(str)`, negative formatting for corrections. Display-only; no split maths in the app.
+  - **Build `MoneyField`:** Input with `$` prefix, numeric keyboard, stores integer cents, shows 2 decimals, uses the helpers above.
+  - **Test page:** add MoneyField to **Form fields**; typing `1862.86` must show `$1,862.86` and yield 186286 cents.
+
+- **2.11** **SelectField, MonthSelectField and `lib/month.ts`**
+  - **Build `lib/month.ts`:** `YYYY-MM` keys, label formatting, current month in Asia/Singapore (match server).
+  - **Build `SelectField`**, and **`MonthSelectField`**: Select list of `YYYY-MM`, shown "Nov 2026".
+  - **Check against:** `FormControls.dc.html` `pickers` view, all states.
+  - **Test page:** add the **Pickers** section with SelectField and MonthSelectField (tap, list opens, choose Nov 2026).
+
+- **2.12** **DateField and Switch**
+  - **Build:** `DateField` (DateTimePicker date mode, calendar icon), and the gluestack `Switch`.
+  - **Check against:** `FormControls.dc.html` `pickers` view, all states.
+  - **Test page:** add both to the **Pickers** section (DateField opens the native Android dialog).
+
+- **2.13** **Bottom navigation** (`bottom-nav.tsx` exists)
+  - **Build:** switch from local state to an expo-router `Tabs` layout (`app/src/app/(tabs)/_layout.tsx` with `tabBar={props => <BottomNav .../>}`): Home, History, Household, Settings.
+  - **Style:** top shadow per elevation table (`0 -6px 14px rgba(0,0,0,.14)` light, `0 -8px 16px rgba(0,0,0,.45)` dark via `elevation`/shadow style); bottom inset via `useSafeAreaInsets`; 44px targets; selected pill uses `selected`/`on-selected`.
+  - Hidden on stack screens (Bill upload, Recipient, etc).
+  - **Test item:** add the dev-only fifth item (Lucide `flask-conical`, label "Test", shown only when `__DEV__` is true) that opens the test page, and remove the temporary Home link from 2.3.
+  - **Test page:** add the **Bottom navigation** section, rendered at the bottom of the page with working tab highlight.
+
+- **2.14** **Sheet scaffold** (`components/app-sheet.tsx`)
+  - **Build:** wraps the gluestack bottom sheet: grabber, title 20/28, close `x`, scroll body, sticky footer with Save/Cancel.
+  - **Props:** `saving` (inputs disabled, button spinner) and `failed` (danger Alert above footer, "Try again" button, input values preserved).
+  - **Used by:** Add charge, Mark paid, Record payment, Mark bill paid, Share bill.
+  - **Test page:** add the **Bottom sheet scaffold** section.
+    - Buttons "Open sheet (idle)", "Open sheet (saving)", "Open sheet (failed)" showing grabber, title, close, scrolling body, sticky footer.
+    - Keyboard behaviour with a field inside; Android back gesture closes it.
+    - A "Fake save" button runs idle -> saving -> failed -> retry -> success.
+
+- **2.15** **Dialog scaffold** (`components/confirm-dialog.tsx`)
+  - **Build:** on `AlertDialog`: radius 24, filled Cancel, red-outline action.
+  - **Used by:** Confirm boards and Discard draft; Save with warnings (neutral outline "Save anyway", filled "Go back and fix").
+  - **Test page:** add the **Dialogs** section: Confirm, and Save with warnings.
+
+- **2.16** **Skeleton helpers** (`components/skeletons.tsx`)
+  - **Build:** skeletons for card rows and lists.
+  - **Test page:** add the **Skeleton** blocks.
+
+- **2.17** **Screen header** (`components/screen-header.tsx`)
+  - **Build:** page title 24/32 (tab screens) and back-arrow header with sheet-title 20/28 (stack screens); Android back gesture via router.
+  - **Test page:** add the **Screen headers** section: tab-style title and back-arrow style.
+
+- **2.18** **Final pass over the test page**
+  - Compare it with `FormControls.dc.html` (both views) and the mapping doc; fix differences.
+  - Add any section still missing: Cards, Progress, Accordion (with 3 sample rows), Spinner, if no earlier step added them.
+  - Run the hex grep over the page and kit (none allowed).
+  - Francis runs the page on device in both themes and signs off before Phase 3.
+  - The page stays in the app (dev only) and gains new shared pieces over time; later screen phases use its `__gallery` states for per-screen state review.
 
 Exit: Francis can open the single test page on the phone, exercise every shared component in light and dark, and approves it; later phases use only these pieces.
 
