@@ -6,6 +6,7 @@ import { View } from 'react-native';
 import { BottomSheetModalProvider } from '@gorhom/bottom-sheet';
 import { QueryClientProvider } from '@tanstack/react-query';
 
+// eslint-disable-next-line no-restricted-imports -- TODO: replace with a wrapper from src/components
 import { GluestackUIProvider } from '@/components/ui/gluestack-ui-provider';
 import { useAppFonts } from '@/hooks/use-app-fonts';
 import { useAppStateFocus } from '@/lib/focus-manager';

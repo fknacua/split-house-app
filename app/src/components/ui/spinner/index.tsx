@@ -29,7 +29,8 @@ const Spinner = React.forwardRef<
       focusable={focusable}
       aria-label={ariaLabel}
       {...props}
-      color={color}
+      // An explicit undefined `color` would override the colour mapped from the className.
+      {...(color !== undefined ? { color } : {})}
       className={spinnerStyle({ class: className })}
     />
   );

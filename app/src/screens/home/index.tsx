@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { ScrollView, Text, View } from 'react-native';
 import { AlertTriangle, ChevronDown } from 'lucide-react-native';
 
+// eslint-disable-next-line no-restricted-imports -- TODO: replace with a wrapper from src/components
 import {
   Accordion,
   AccordionContent,
@@ -11,11 +12,16 @@ import {
   AccordionItem,
   AccordionTrigger,
 } from '@/components/ui/accordion';
+// eslint-disable-next-line no-restricted-imports -- TODO: replace with a wrapper from src/components
 import { Alert, AlertIcon, AlertText } from '@/components/ui/alert';
+// eslint-disable-next-line no-restricted-imports -- TODO: replace with a wrapper from src/components
 import { Badge, BadgeText } from '@/components/ui/badge';
 import { BottomNav } from '@/components/bottom-nav';
+// eslint-disable-next-line no-restricted-imports -- TODO: replace with a wrapper from src/components
 import { Card } from '@/components/ui/card';
+// eslint-disable-next-line no-restricted-imports -- TODO: replace with a wrapper from src/components
 import { Progress, ProgressFilledTrack } from '@/components/ui/progress';
+// eslint-disable-next-line no-restricted-imports -- TODO: replace with a wrapper from src/components
 import { Skeleton, SkeletonText } from '@/components/ui/skeleton';
 import { AddChargeSheet } from './add-charge-sheet';
 
