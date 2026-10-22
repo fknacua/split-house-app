@@ -25,7 +25,7 @@ export const AnimatedIcon: React.FC<AnimatedIconProps> = ({
 
   useEffect(() => {
     animatedValue.value = withTiming(isExpanded ? 1 : 0, { duration });
-  }, [isExpanded, duration]);
+  }, [isExpanded, duration, animatedValue]);
 
   const animatedStyle = useAnimatedStyle(() => {
     const rotate = interpolate(animatedValue.value, [0, 1], [0, rotation]);

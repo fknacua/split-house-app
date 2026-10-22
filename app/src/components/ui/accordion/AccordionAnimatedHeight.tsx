@@ -32,7 +32,7 @@ export const AnimatedHeight: React.FC<AnimatedHeightProps> = ({
   // Update progress when isExpanded changes
   React.useEffect(() => {
     progress.value = withTiming(isExpanded ? 1 : 0, { duration });
-  }, [isExpanded, duration]);
+  }, [isExpanded, duration, progress]);
 
   const animatedStyle = useAnimatedStyle(() => {
     const height = progress.value * measuredHeight.value;

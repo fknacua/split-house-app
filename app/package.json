@@ -94,7 +94,8 @@
     "web": "expo start --web",
     "typecheck": "tsc --noEmit",
     "test": "vitest run",
-    "lint": "expo lint"
+    "lint": "expo lint && eslint",
+    "eslint-fix": "eslint --fix"
   },
   "private": true,
   "overrides": {
