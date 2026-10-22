@@ -14,12 +14,15 @@ import { ChipGroup } from '@/components/chip';
 import { FieldControl, FieldControlProps } from '@/components/form-field/';
 import { ConnectedButtonGroup } from '@/components/connected-button-group';
 import { MoneyInput } from '@/components/money-input';
+import { MonthSelectField } from '@/components/month-select-field';
 import { PhoneInput } from '@/components/phone-input';
+import { SelectField } from '@/components/select-field';
 import { TextareaInput } from '@/components/textarea-input';
 import { TextInput } from '@/components/text-input';
 import { TouchTargetCheck, TouchTargetCheckProvider } from '@/components/touch-target-check';
 // eslint-disable-next-line no-restricted-imports -- TODO: replace with a wrapper from src/components
 import { Switch } from '@/components/ui/switch';
+import { currentMonth, addMonths, monthRange } from '@/lib/month';
 import { formatCents } from '@/lib/money';
 import { cents, e164Phone, positiveCents, requiredText } from '@/lib/schemas/common';
 import { type ThemePreference, useThemePreference } from '@/lib/theme-preference';
@@ -277,6 +280,119 @@ function FormFieldsDemo() {
         lines={2}
         maxLines={4}
       />
+    </View>
+  );
+}
+
+const PAYER_OPTIONS = [
+  { label: 'Primary tenant', value: 'primary' },
+  { label: 'Tenant 1', value: 'tenant1' },
+  { label: 'Tenant 2', value: 'tenant2' },
+];
+
+const pickersSchema = z.object({
+  who: z.string().min(1, 'Choose who paid'),
+  whoFilled: z.string(),
+  whoInvalid: z.string(),
+  whoDisabled: z.string(),
+  month: z.string().min(1, 'Choose a month'),
+  monthFilled: z.string(),
+  monthDisabled: z.string(),
+});
+
+type PickersValues = z.infer<typeof pickersSchema>;
+
+/** The Pickers section: Select and month list in every state, plus the bare (no form) versions. */
+function PickersDemo() {
+  const thisMonth = currentMonth();
+  const months = monthRange(addMonths(thisMonth, -1), 4);
+  const { control } = useForm<PickersValues>({
+    resolver: zodResolver(pickersSchema),
+    mode: 'onBlur',
+    defaultValues: {
+      who: '',
+      whoFilled: 'tenant2',
+      whoInvalid: '',
+      whoDisabled: 'tenant1',
+      month: '',
+      monthFilled: thisMonth,
+      monthDisabled: thisMonth,
+    },
+  });
+  const [bareWho, setBareWho] = useState('');
+  const [bareMonth, setBareMonth] = useState('');
+  const who = useWatch({ control, name: 'who' });
+  const month = useWatch({ control, name: 'month' });
+
+  return (
+    <View className="gap-4">
+      <Text className="font-manrope-bold text-sheet-title text-on-surface">Pickers</Text>
+      <TouchTargetCheck>
+        <SelectField
+          options={PAYER_OPTIONS}
+          placeholder="Choose who paid"
+          fieldControlProps={{ control, name: 'who', label: 'From', required: true }}
+        />
+      </TouchTargetCheck>
+      <Text className="font-manrope-medium text-caption text-on-surface-variant">
+        Live value: {who === '' ? '(none)' : who}. Open the list and close it without picking to see
+        the required error on blur.
+      </Text>
+      <SelectField
+        options={PAYER_OPTIONS}
+        fieldControlProps={{ control, name: 'whoFilled', label: 'From (filled)', required: true }}
+      />
+      <SelectField
+        options={PAYER_OPTIONS}
+        placeholder="Choose who paid"
+        fieldControlProps={{
+          control,
+          name: 'whoInvalid',
+          label: 'From (error)',
+          required: true,
+          error: 'Choose who paid.',
+        }}
+      />
+      <SelectField
+        options={PAYER_OPTIONS}
+        fieldControlProps={{ control, name: 'whoDisabled', label: 'From (disabled)', disabled: true }}
+      />
+      <TouchTargetCheck>
+        <MonthSelectField
+          months={months}
+          placeholder="Choose a month"
+          fieldControlProps={{ control, name: 'month', label: 'Bill month', required: true }}
+        />
+      </TouchTargetCheck>
+      <Text className="font-manrope-medium text-caption text-on-surface-variant">
+        Live value: {month === '' ? '(none)' : month}
+      </Text>
+      <MonthSelectField
+        months={months}
+        fieldControlProps={{ control, name: 'monthFilled', label: 'Bill month (filled)', required: true }}
+      />
+      <MonthSelectField
+        months={months}
+        fieldControlProps={{ control, name: 'monthDisabled', label: 'Month being fixed (disabled)', disabled: true }}
+      />
+      <Text className="font-manrope-bold text-label text-on-surface-variant">Bare, no form</Text>
+      <SelectField
+        value={bareWho}
+        onChange={setBareWho}
+        accessibilityLabel="Who"
+        options={PAYER_OPTIONS}
+        placeholder="Choose who paid"
+      />
+      <MonthSelectField
+        value={bareMonth}
+        onChange={setBareMonth}
+        accessibilityLabel="Month"
+        months={months}
+        placeholder="Choose a month"
+      />
+      <Text className="font-manrope-medium text-caption text-on-surface-variant">
+        Bare values: {bareWho === '' ? '(none)' : bareWho} / {bareMonth === '' ? '(none)' : bareMonth}
+      </Text>
     </View>
   );
 }
@@ -555,6 +671,7 @@ export default function ComponentTestPage() {
             ))}
           </View>
           <FormFieldsDemo />
+          <PickersDemo />
           <Text className="font-manrope-medium text-body text-on-surface-variant">
             Sections are added by the later Phase 2 steps.
           </Text>
