@@ -312,7 +312,7 @@ class Component extends DCLogic {
       disabledBg: '#222427', disabledFg: '#5C5F64', track: '#3A3E43', scrim: 'rgba(0,0,0,0.6)',
       success: '#66BB6A', successContainer: '#1B5E20', onSuccessContainer: '#CBE4CB',
       warning: '#FFA726', warningContainer: '#66430F', onWarningContainer: '#FFE2B7', warningTint: '#332108', warningLine: '#F57C00',
-      danger: '#F44336', dangerTint: '#3B1511', dangerLine: '#D32F2F', onDangerTint: '#FFD9D6',
+      danger: '#F44336', dangerContainer: '#7A1F18', onDangerContainer: '#FFD9D6', dangerTint: '#3B1511', dangerLine: '#D32F2F', onDangerTint: '#FFD9D6',
       info: '#29B6F6', infoTint: '#082431', infoLine: '#1B76A0', infoContainer: '#104962', onInfoContainer: '#B8E7FB',
       footShadow: '0 -8px 16px rgba(0,0,0,0.45)',
       heroTile: 'rgba(0,0,0,0.25)',
@@ -324,7 +324,7 @@ class Component extends DCLogic {
       disabledBg: '#E9EAED', disabledFg: '#9A9DA2', track: '#D3D5D9', scrim: 'rgba(0,0,0,0.5)',
       success: '#2E7D32', successContainer: '#C8E6C9', onSuccessContainer: '#1E4620',
       warning: '#E65100', warningContainer: '#FBE2CC', onWarningContainer: '#663C00', warningTint: '#FFF4E5', warningLine: '#FBE2CC',
-      danger: '#D32F2F', dangerTint: '#FDEDED', dangerLine: '#F6D5D5', onDangerTint: '#5F2120',
+      danger: '#D32F2F', dangerContainer: '#F9D4D1', onDangerContainer: '#5F2120', dangerTint: '#FDEDED', dangerLine: '#F6D5D5', onDangerTint: '#5F2120',
       info: '#0288D1', infoTint: '#E5F6FD', infoLine: '#CCE7F6', infoContainer: '#CCE7F6', onInfoContainer: '#014361',
       footShadow: '0 -6px 14px rgba(0,0,0,0.14)',
       heroTile: 'rgba(255,255,255,0.75)',
@@ -332,7 +332,7 @@ class Component extends DCLogic {
     };
     var T = dark ? 'Dark' : 'Light';
     var chip = function (k) {
-      if (k === 'overdue') return { bg: c.warningContainer, fg: c.onWarningContainer };
+      if (k === 'overdue') return { bg: c.dangerContainer, fg: c.onDangerContainer };
       if (k === 'due' || k === 'today') return { bg: c.infoContainer, fg: c.onInfoContainer };
       if (k === 'todo') return { bg: c.primary, fg: c.onPrimary };
       if (k === 'paid') return { bg: c.successContainer, fg: c.onSuccessContainer };
@@ -360,7 +360,7 @@ class Component extends DCLogic {
         day: day, title: title, amount: amount, detail: detail, chip: label,
         chipBg: k.bg, chipFg: k.fg,
         rowBg: kind === 'overdue' ? c.warningTint : (kind === 'today' ? c.infoTint : 'transparent'),
-        dayFg: kind === 'overdue' ? c.warning : (kind === 'today' ? c.info : c.onSurface),
+        dayFg: c.onSurface,
         divider: id === 'r0' ? 'transparent' : c.outlineVariant,
         href: href || '#', linkLabel: linkLabel,
         actions: actions || [], hasActions: !!(actions && actions.length),

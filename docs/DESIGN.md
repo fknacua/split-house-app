@@ -31,6 +31,9 @@ The canvas boards are the same component with different props. The tables below 
 ## Rules that are easy to get wrong
 
 - Status colours (success, warning, danger) keep the MUI values from the old design. They are in the theme variables already.
+- Success alert (gluestack `Alert`, success variant): only on Mark bill paid, fully collected ("All $412.30 is collected..."). Tinted background (`success-tint`), `success-line` border, `success` check icon, `on-success-container` text. Alert text is tinted per variant (info, warning, success, error), not neutral. The partial-collected note stays a warning alert. Status chips such as Paid are unchanged.
+- Overdue is an error badge: `danger-container` background with `on-danger-container` text, on Home, Recipient and the Can't reach the server backdrop. Recipient's "Rent overdue since..." status line is `danger`. The overdue row's background tint on Home stays the warning tint. Due today and Due tomorrow stay info.
+- The big day number in every Home charge row uses `on-surface`, whatever the status.
 - gluestack v5 has no segmented control, chip or bottom navigation. These are custom pieces: the bottom navigation bar, the segmented controls, the chips, and the Google sign-in button.
 - Every field is a `FormControl` with the label above the field and helper or error text below. No floating labels. See the Form controls row.
 - Month-only fields (bill month, Starts from) are Select-style lists. The date picker has no month-only mode. Date fields use the native picker.
