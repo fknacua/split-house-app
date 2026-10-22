@@ -93,7 +93,7 @@ Added during design:
 | Screen | What it shows and does | States built |
 | --- | --- | --- |
 | View bill | Read-only: Current Charges with electricity, gas and water, how much is collected and each person's status, bill facts, and the PDF. Opened from Home's bill row; the only action is Mark bill paid while collecting | Collecting; paid |
-| Mark bill paid (sheet) | Amount paid (prefilled), Paid on date, and a note on how much Francis is covering until others pay. Opens from Home and View bill | Collected less than the bill (warning colors); fully collected |
+| Mark bill paid (sheet) | Amount paid (prefilled), Paid on date, and a note on how much Francis is covering until others pay. Opens from Home and View bill | Collected less than the bill (warning alert); fully collected (success alert, green) |
 | Mark paid and Record payment (sheets) | Mark paid: expected vs. received, editable amount, date, and, when the payment is short, the difference shown as information (no carry; the shortfall is history only). Record payment: From and For dropdowns for money received outside a row | Full; different amount; record; dropdowns open |
 | Share bill (sheet) | Choose the bill PDF or a text summary (optionally with each person's share), then Android's share sheet. Opened from the Recipient screen only | PDF; summary; system share sheet |
 | Notifications | Heads-up and shade matching the notification table below; Paid on a notification opens Record payment | Heads-up; shade |
@@ -188,7 +188,7 @@ Checks: utilities bill shares add to $412.30, and aircon shares add to $110.00. 
 These settled during design and override anything earlier in this brief that disagrees.
 
 - **Messages are never sent automatically.** Francis reviews each message on its Recipient screen and sends it on WhatsApp himself. There is no send-all action. Send on WhatsApp, Send again and Nudge again leave the app by design.
-- **Look and feel:** graphite neutral palette, Manrope, Lucide icons, light and dark themes. Errors and overdue text use standard danger red; warnings use orange. Destructive dialogs have a filled Cancel and a red outline action. Fields are outlined with the label above (gluestack FormControl) and a neutral focus ring.
+- **Look and feel:** graphite neutral palette, Manrope, Lucide icons, light and dark themes. Errors and overdue (the Overdue badge and the Recipient status line) use standard danger red; warnings use orange. The overdue row on Home keeps the warning tint. Destructive dialogs have a filled Cancel and a red outline action. Fields are outlined with the label above (gluestack FormControl) and a neutral focus ring.
 - **People:** the primary tenant is a named person in the app. Tenant 1 is modelled as a subtenant with a route per charge type, either Directly or Via someone. Phone fields default to Singapore (+65).
 - **No payment details.** PayNow and similar are not stored in v1.
 - **Tenant 2's rent to savings** is a notification task only; the app does not track the savings account.

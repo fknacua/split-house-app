@@ -13,7 +13,7 @@ Every v1 screen is redrawn for gluestack-ui v5 (NativeWind) in light and dark, w
 
 ## Colour tokens
 
-The handover's twelve semantic names are the tokens. The third column says which gluestack v5 variable each one drives, since v5's defaults are shadcn-style (background, foreground, card, muted, accent, destructive, border, input, ring) and have no success, warning or info. Status colours keep the MUI values already used on the v1 canvas, as agreed; `destructive` is set to the danger value instead of v5's default #e7000b.
+The handover's twelve semantic names are the tokens, plus four added in the October 2026 design update (success-tint, success-line, danger-container, on-danger-container). The third column says which gluestack v5 variable each one drives, since v5's defaults are shadcn-style (background, foreground, card, muted, accent, destructive, border, input, ring) and have no success, warning or info. Status colours keep the MUI values already used on the v1 canvas, as agreed; `destructive` is set to the danger value instead of v5's default #e7000b.
 
 | Token | Drives in gluestack v5 | Light | Dark | Used for |
 | --- | --- | --- | --- | --- |
@@ -33,13 +33,15 @@ The handover's twelve semantic names are the tokens. The third column says which
 | track | custom | #D3D5D9 | #3A3E43 | Progress tracks, sheet grabber |
 | scrim | custom | rgba(0,0,0,0.5) | rgba(0,0,0,0.6) | Behind sheets and dialogs |
 | success | custom | #2E7D32 | #66BB6A | Success icon and text |
+| success-tint / line | custom | #EDF7ED / #CDE5CE | #0F2A12 / #2E7D32 | Success alert card (Mark bill paid, fully collected). The only success alert in the app |
 | success-container / on | custom | #C8E6C9 / #1E4620 | #1B5E20 / #CBE4CB | Paid badge |
-| warning | custom | #E65100 | #FFA726 | Overdue, non-blocking warnings |
+| warning | custom | #E65100 | #FFA726 | Non-blocking warnings, overdue row tint on Home |
 | warning-container / on | custom | #FBE2CC / #663C00 | #66430F / #FFE2B7 | Warning badge, Nudge button |
 | warning-tint / line | custom | #FFF4E5 / #FBE2CC | #332108 / #F57C00 | Warning alert card |
 | danger | destructive | #D32F2F | #F44336 | Errors, blocking states, destructive action |
 | danger-tint / line | custom | #FDEDED / #F6D5D5 | #3B1511 / #D32F2F | Danger alert card |
 | on-danger-tint | custom | #5F2120 | #FFD9D6 | Text on danger tint |
+| danger-container / on | custom | #F9D4D1 / #5F2120 | #7A1F18 / #FFD9D6 | Error badge: Overdue, Overdue 2 days |
 | on-danger | custom | #FFFFFF | #FFFFFF | Text on a solid danger fill (danger Button) |
 | info | custom | #0288D1 | #29B6F6 | Notes, due-today |
 | info-tint / line | custom | #E5F6FD / #CCE7F6 | #082431 / #1B76A0 | Info alert card |
@@ -111,9 +113,9 @@ Icons are Lucide, stroke 2, drawn inline. By action:
 
 The tokens above are delivered as two files that drop into a gluestack v5 project: `gluestack-ui-provider/config.ts` (light and dark variable sets) and `global.css` (Tailwind theme mapping, type and radii). Both were written from the tables in this doc, so the tables and files agree.
 
-- **config.ts:** each theme is a `vars({...})` set of space-separated RGB triplets, as gluestack v5 documents, so `bg-primary/50` works. The first 18 entries override gluestack's own variables (background, foreground, card, popover, primary, secondary, muted, accent, destructive, border, input, ring). The rest are the app tokens: surface, container, sheet, on-surface, outline, selected, disabled, track, scrim, success, warning, danger, info and their tint, line and container variants.
+- **config.ts:** each theme is a `vars({...})` set of space-separated RGB triplets, as gluestack v5 documents, so `bg-primary/50` works. The first 18 entries override gluestack's own variables (background, foreground, card, popover, primary, secondary, muted, accent, destructive, border, input, ring). The rest are the app tokens: surface, container, sheet, on-surface, outline, selected, disabled, track, scrim, success, warning, danger, info and their tint, line and container variants (danger-container and on-danger-container drive the error badge).
 - **global.css:** an `@theme inline` block maps every variable to a Tailwind colour (`bg-surface`, `text-on-surface-variant`, `border-outline-variant`, `bg-danger-tint`) and adds the Manrope family, the type sizes above and the radii (`rounded-field`, `rounded-card`, `rounded-sheet`).
-- **Usage pattern:** screens use only token classes, never hex. A danger Alert is `bg-danger-tint border border-danger-line text-on-danger-tint`; a disabled button is `bg-disabled text-on-disabled`; a Paid badge is `bg-success-container text-on-success-container`.
+- **Usage pattern:** screens use only token classes, never hex. A danger Alert is `bg-danger-tint border border-danger-line text-on-danger-tint`; a disabled button is `bg-disabled text-on-disabled`; a Paid badge is `bg-success-container text-on-success-container`; an Overdue badge is `bg-danger-container text-on-danger-container`; the fully-collected success Alert is `bg-success-tint border border-success-line text-on-success-container` with a `text-success` icon. Alert text is tinted per variant: on-info-container, on-warning-container, on-success-container, on-danger-tint.
 
 ```ts
 // gluestack-ui-provider/config.ts (excerpt; the full file has all 49 variables per theme)

@@ -107,14 +107,14 @@ class Component extends DCLogic {
       onSurface: '#E3E3E6', onSurfaceVariant: '#C4C6CB', outline: '#8E9196', outlineVariant: '#2E3134',
       primary: '#E2E2E6', onPrimary: '#1A1C1E', selected: '#2C2F33',
       disabledBg: '#222427', disabledFg: '#5C5F64', track: '#3A3E43', scrim: 'rgba(0,0,0,0.6)',
-      success: '#66BB6A', warning: '#FFA726', warningTint: '#332108', warningLine: '#F57C00',
+      success: '#66BB6A', successTint: '#0F2A12', successLine: '#2E7D32', warning: '#FFA726', warningTint: '#332108', warningLine: '#F57C00',
       danger: '#F44336', dangerTint: '#3B1511', dangerLine: '#D32F2F', onDangerTint: '#FFD9D6'
     } : {
       background: '#F5F5F7', surface: '#FFFFFF', container: '#E9EAED', sheet: '#FFFFFF',
       onSurface: '#1A1C1E', onSurfaceVariant: '#45484C', outline: '#74777C', outlineVariant: '#E6E7EA',
       primary: '#2B2F33', onPrimary: '#FFFFFF', selected: '#E6E7EA',
       disabledBg: '#E9EAED', disabledFg: '#9A9DA2', track: '#D3D5D9', scrim: 'rgba(0,0,0,0.5)',
-      success: '#2E7D32', warning: '#E65100', warningTint: '#FFF4E5', warningLine: '#FBE2CC',
+      success: '#2E7D32', successTint: '#EDF7ED', successLine: '#CDE5CE', warning: '#E65100', warningTint: '#FFF4E5', warningLine: '#FBE2CC',
       danger: '#D32F2F', dangerTint: '#FDEDED', dangerLine: '#F6D5D5', onDangerTint: '#5F2120'
     };
     var T = dark ? 'Dark' : 'Light';
@@ -125,7 +125,7 @@ class Component extends DCLogic {
       btnLabel: failed ? 'Retry' : 'Mark as paid', bgTitle: 'November 2026',
       backHref: 'Home-DueToday-' + T + '.dc.html',
       doneHref: 'Bill-Paid-' + T + '.dc.html',
-      noteBg: full ? 'transparent' : c.warningTint, noteLine: full ? c.outlineVariant : c.warningLine, noteIcon: full ? c.success : c.warning,
+      noteBg: full ? c.successTint : c.warningTint, noteLine: full ? c.successLine : c.warningLine, noteIcon: full ? c.success : c.warning,
       noteFull: full, notePartial: !full,
       noteText: full ? 'All $412.30 is collected. You’re not covering anything.' : 'You’ve collected $123.69 so far. You’re covering $288.61 until the others pay.'
     };
