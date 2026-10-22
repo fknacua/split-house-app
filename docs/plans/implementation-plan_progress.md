@@ -167,3 +167,7 @@ At Francis's request, the PhoneField wording in 2.2, its test-page line and 4B.3
 ## 2026-10-21: Phase 1 ✅
 
 Phase 1 exit check passed: on the device, against the local backend, the temporary `useMe()` log showed `GET /api/me` returning the signed-in account's email. The earlier "Sign-in failed" was the app pointing at a stale LAN IP in `app/.env` (the PC's address had changed), not a code problem; no code change was needed. The temporary logs in the Home route and the sign-in screen are removed. All Phase 1 steps are done, engine tests pass and the dev database is seeded.
+
+## 2026-10-22: 2.1a ✅
+
+Added `app/src/lib/theme-preference.tsx` (`ThemePreferenceProvider`, `useThemePreference()`) and wired it into `_layout.tsx` (splash waits for the saved choice, `GluestackUIProvider mode={preference}`, status bar follows the resolved theme). The gluestack provider now maps `system` to `'unspecified'` so System follows the phone again after a forced theme. Storage is `expo-secure-store`, not AsyncStorage: AsyncStorage failed on the existing dev build (no native module) and was removed; the plan allowed either. A temporary Light/Dark/System toggle on Home (marked TEMP 2.1a, remove with the 2.14 test page toggle) let Francis confirm on device that forcing a theme works; he approved the step. Type check and lint are clean outside `components/ui`.
