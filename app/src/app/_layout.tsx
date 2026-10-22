@@ -2,6 +2,8 @@ import { useEffect } from 'react';
 import { Stack } from 'expo-router';
 import * as SplashScreen from 'expo-splash-screen';
 import { StatusBar } from 'expo-status-bar';
+import { View } from 'react-native';
+import { BottomSheetModalProvider } from '@gorhom/bottom-sheet';
 import { QueryClientProvider } from '@tanstack/react-query';
 
 import { GluestackUIProvider } from '@/components/ui/gluestack-ui-provider';
@@ -42,7 +44,12 @@ function RootShell() {
       <GluestackUIProvider mode={preference}>
         <StatusBar style={resolved === 'dark' ? 'light' : 'dark'} />
         <QueryClientProvider client={queryClient}>
-          <Stack screenOptions={{ headerShown: false }} />
+          <BottomSheetModalProvider>
+            <View className="flex-1 bg-background">
+              {/* Phase 3 (3.2): session gate wraps the Stack here */}
+              <Stack screenOptions={{ headerShown: false }} />
+            </View>
+          </BottomSheetModalProvider>
         </QueryClientProvider>
       </GluestackUIProvider>
     </GestureHandlerRootView>
