@@ -2,8 +2,7 @@
 import React from 'react';
 import { createInput } from '@gluestack-ui/core/input/creator';
 import { View, Pressable, TextInput } from 'react-native';
-import { tva } from '@gluestack-ui/utils/nativewind-utils';
-import { withStyleContext } from '@gluestack-ui/utils/nativewind-utils';
+import { tva, withStyleContext } from '@gluestack-ui/utils/nativewind-utils';
 import { styled } from 'nativewind';
 import type { VariantProps } from '@gluestack-ui/utils/nativewind-utils';
 import { UIIcon } from '@gluestack-ui/core/icon/creator';
@@ -21,11 +20,11 @@ const UIInput = createInput({
 
 
 const inputStyle = tva({
-  base: 'min-h-9 w-full flex-row items-center rounded-md border border-border  dark:bg-input/30 bg-transparent shadow-xs transition-[color,box-shadow] overflow-hidden data-[focus=true]:outline-none data-[focus=true]:border-ring dark:data-[focus=true]:border-ring data-[focus=true]:web:ring-[3px] data-[focus=true]:web:ring-ring/50 data-[invalid=true]:border-destructive/40 dark:data-[invalid=true]:border-destructive/40 data-[invalid=true]:web:ring-destructive/20 dark:data-[invalid=true]:web:ring-destructive/40 data-[disabled=true]:pointer-events-none data-[disabled=true]:cursor-not-allowed data-[disabled=true]:opacity-50 px-3 gap-2',
+  base: 'min-h-12 w-full flex-row items-center rounded-field border border-outline bg-surface px-3.5 gap-2 overflow-hidden data-[focus=true]:border-2 data-[focus=true]:border-primary data-[focus=true]:px-[13px] data-[invalid=true]:border-2 data-[invalid=true]:border-danger data-[invalid=true]:px-[13px] data-[disabled=true]:border-outline-variant data-[disabled=true]:bg-disabled',
 });
 
 const inputIconStyle = tva({
-  base: 'justify-center items-center text-muted-foreground fill-none h-4 w-4',
+  base: 'justify-center items-center text-on-surface-variant fill-none h-5 w-5',
 });
 
 const inputSlotStyle = tva({
@@ -33,7 +32,7 @@ const inputSlotStyle = tva({
 });
 
 const inputFieldStyle = tva({
-  base: 'flex-1 text-foreground text-sm md:text-sm py-1 h-full placeholder:text-muted-foreground  web:outline-none ios:leading-[0px] web:cursor-text web:data-[disabled=true]:cursor-not-allowed',
+  base: 'flex-1 h-full py-0 text-field font-manrope-medium text-on-surface placeholder:text-on-surface-variant',
 });
 
 type IInputProps = React.ComponentProps<typeof UIInput> &

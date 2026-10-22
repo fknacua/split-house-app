@@ -2,8 +2,7 @@
 import { Text, View } from 'react-native';
 import React from 'react';
 import { createFormControl } from '@gluestack-ui/core/form-control/creator';
-import { tva } from '@gluestack-ui/utils/nativewind-utils';
-import { withStyleContext } from '@gluestack-ui/utils/nativewind-utils';
+import { tva, withStyleContext } from '@gluestack-ui/utils/nativewind-utils';
 import { styled } from 'nativewind';
 import type { VariantProps } from '@gluestack-ui/utils/nativewind-utils';
 import { UIIcon } from '@gluestack-ui/core/icon/creator';
@@ -15,15 +14,15 @@ const formControlStyle = tva({
 });
 
 const formControlErrorIconStyle = tva({
-  base: 'text-destructive fill-none h-[18px] w-[18px]',
+  base: 'text-danger fill-none h-3.5 w-3.5',
 });
 
 const formControlErrorStyle = tva({
-  base: 'flex flex-row justify-start items-center mt-1 gap-1',
+  base: 'flex flex-row justify-start items-center mt-1.5 gap-1',
 });
 
 const formControlErrorTextStyle = tva({
-  base: 'text-destructive text-xs font-body',
+  base: 'text-danger text-caption font-manrope-semibold',
   variants: {
     isTruncated: {
       true: 'web:truncate',
@@ -50,11 +49,11 @@ const formControlErrorTextStyle = tva({
 });
 
 const formControlHelperStyle = tva({
-  base: 'flex flex-row justify-start items-center mt-1 font-body',
+  base: 'flex flex-row justify-start items-center mt-1.5',
 });
 
 const formControlHelperTextStyle = tva({
-  base: 'text-foreground/70 font-body text-sm',
+  base: 'text-on-surface-variant text-caption font-manrope-medium',
   variants: {
     isTruncated: {
       true: 'web:truncate',
@@ -81,11 +80,11 @@ const formControlHelperTextStyle = tva({
 });
 
 const formControlLabelStyle = tva({
-  base: 'flex flex-row justify-start items-center mb-1',
+  base: 'flex flex-row justify-start items-center mb-1.5',
 });
 
 const formControlLabelTextStyle = tva({
-  base: 'font-medium text-foreground text-base font-body',
+  base: 'text-on-surface text-label font-manrope-bold',
   variants: {
     isTruncated: {
       true: 'web:truncate',
@@ -112,7 +111,7 @@ const formControlLabelTextStyle = tva({
 });
 
 const formControlLabelAstrickStyle = tva({
-  base: 'font-medium text-foreground text-base',
+  base: 'text-danger text-label font-manrope-bold',
   variants: {
     isTruncated: {
       true: 'web:truncate',
