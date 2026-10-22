@@ -9,6 +9,7 @@ import {
 } from '@react-native-google-signin/google-signin';
 
 import { authClient } from '@/lib/auth-client';
+// eslint-disable-next-line no-restricted-imports -- TODO: replace with a wrapper from src/components
 import { Spinner } from '@/components/ui/spinner';
 
 // Needs a real Android OAuth client (package + signing-key SHA-1) to do

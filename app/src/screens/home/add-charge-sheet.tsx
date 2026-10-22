@@ -2,7 +2,9 @@ import { useRef, useState } from 'react';
 import { ScrollView, Text, View } from 'react-native';
 import { CalendarDays, TriangleAlert } from 'lucide-react-native';
 
+// eslint-disable-next-line no-restricted-imports -- TODO: replace with a wrapper from src/components
 import { Alert, AlertIcon, AlertText } from '@/components/ui/alert';
+// eslint-disable-next-line no-restricted-imports -- TODO: replace with a wrapper from src/components
 import {
   BottomSheet,
   BottomSheetBackdrop,
@@ -11,14 +13,17 @@ import {
   BottomSheetPortal,
   type BottomSheetRef,
 } from '@/components/ui/bottomsheet';
+// eslint-disable-next-line no-restricted-imports -- TODO: replace with a wrapper from src/components
 import { Button, ButtonSpinner, ButtonText } from '@/components/ui/button';
 import { ChipGroup } from '@/components/chip';
+// eslint-disable-next-line no-restricted-imports -- TODO: replace with a wrapper from src/components
 import {
   DateTimePicker,
   DateTimePickerIcon,
   DateTimePickerInput,
   DateTimePickerTrigger,
 } from '@/components/ui/date-time-picker';
+// eslint-disable-next-line no-restricted-imports -- TODO: replace with a wrapper from src/components
 import {
   FormControl,
   FormControlHelper,
@@ -26,7 +31,9 @@ import {
   FormControlLabel,
   FormControlLabelText,
 } from '@/components/ui/form-control';
+// eslint-disable-next-line no-restricted-imports -- TODO: replace with a wrapper from src/components
 import { Input, InputField } from '@/components/ui/input';
+// eslint-disable-next-line no-restricted-imports -- TODO: replace with a wrapper from src/components
 import {
   Select,
   SelectBackdrop,
@@ -40,7 +47,9 @@ import {
   SelectTrigger,
 } from '@/components/ui/select';
 import { SegmentedControl } from '@/components/segmented-control';
+// eslint-disable-next-line no-restricted-imports -- TODO: replace with a wrapper from src/components
 import { Switch } from '@/components/ui/switch';
+// eslint-disable-next-line no-restricted-imports -- TODO: replace with a wrapper from src/components
 import { ChevronDownIcon } from '@/components/ui/icon';
 
 const WHO_OPTIONS = [

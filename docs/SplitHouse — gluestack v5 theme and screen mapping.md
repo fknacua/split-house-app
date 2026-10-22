@@ -40,6 +40,7 @@ The handover's twelve semantic names are the tokens. The third column says which
 | danger | destructive | #D32F2F | #F44336 | Errors, blocking states, destructive action |
 | danger-tint / line | custom | #FDEDED / #F6D5D5 | #3B1511 / #D32F2F | Danger alert card |
 | on-danger-tint | custom | #5F2120 | #FFD9D6 | Text on danger tint |
+| on-danger | custom | #FFFFFF | #FFFFFF | Text on a solid danger fill (danger Button) |
 | info | custom | #0288D1 | #29B6F6 | Notes, due-today |
 | info-tint / line | custom | #E5F6FD / #CCE7F6 | #082431 / #1B76A0 | Info alert card |
 | info-container / on | custom | #CCE7F6 / #014361 | #104962 / #B8E7FB | Info badge |

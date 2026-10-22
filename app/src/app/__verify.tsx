@@ -3,6 +3,7 @@ import { useState } from 'react';
 import { ScrollView, Text, View } from 'react-native';
 import { CalendarDays, ChevronDown, Circle, MoreVertical } from 'lucide-react-native';
 
+// eslint-disable-next-line no-restricted-imports -- TODO: replace with a wrapper from src/components
 import {
   AlertDialog,
   AlertDialogBackdrop,
@@ -11,17 +12,24 @@ import {
   AlertDialogFooter,
   AlertDialogHeader,
 } from '@/components/ui/alert-dialog';
+// eslint-disable-next-line no-restricted-imports -- TODO: replace with a wrapper from src/components
 import { Button, ButtonText } from '@/components/ui/button';
+// eslint-disable-next-line no-restricted-imports -- TODO: replace with a wrapper from src/components
 import {
   DateTimePicker,
   DateTimePickerIcon,
   DateTimePickerInput,
   DateTimePickerTrigger,
 } from '@/components/ui/date-time-picker';
+// eslint-disable-next-line no-restricted-imports -- TODO: replace with a wrapper from src/components
 import { Divider } from '@/components/ui/divider';
+// eslint-disable-next-line no-restricted-imports -- TODO: replace with a wrapper from src/components
 import { Menu, MenuItem, MenuItemLabel } from '@/components/ui/menu';
+// eslint-disable-next-line no-restricted-imports -- TODO: replace with a wrapper from src/components
 import { Popover, PopoverBackdrop, PopoverBody, PopoverContent } from '@/components/ui/popover';
+// eslint-disable-next-line no-restricted-imports -- TODO: replace with a wrapper from src/components
 import { Radio, RadioGroup, RadioIcon, RadioIndicator, RadioLabel } from '@/components/ui/radio';
+// eslint-disable-next-line no-restricted-imports -- TODO: replace with a wrapper from src/components
 import {
   Select,
   SelectBackdrop,
@@ -34,7 +42,9 @@ import {
   SelectPortal,
   SelectTrigger,
 } from '@/components/ui/select';
+// eslint-disable-next-line no-restricted-imports -- TODO: replace with a wrapper from src/components
 import { Switch } from '@/components/ui/switch';
+// eslint-disable-next-line no-restricted-imports -- TODO: replace with a wrapper from src/components
 import { Textarea, TextareaInput } from '@/components/ui/textarea';
 
 export default function Verify() {

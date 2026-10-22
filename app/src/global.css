@@ -57,6 +57,7 @@
     --danger-tint: 253 237 237;
     --danger-line: 246 213 213;
     --on-danger-tint: 95 33 32;
+    --on-danger: 255 255 255;
     --info: 2 136 209;
     --info-tint: 229 246 253;
     --info-line: 204 231 246;
@@ -110,6 +111,7 @@
       --danger-tint: 59 21 17;
       --danger-line: 211 47 47;
       --on-danger-tint: 255 217 214;
+      --on-danger: 255 255 255;
       --info: 41 182 246;
       --info-tint: 8 36 49;
       --info-line: 27 118 160;
@@ -163,6 +165,7 @@
     --danger-tint: 59 21 17;
     --danger-line: 211 47 47;
     --on-danger-tint: 255 217 214;
+    --on-danger: 255 255 255;
     --info: 41 182 246;
     --info-tint: 8 36 49;
     --info-line: 27 118 160;
@@ -215,6 +218,7 @@
     --danger-tint: 253 237 237;
     --danger-line: 246 213 213;
     --on-danger-tint: 95 33 32;
+    --on-danger: 255 255 255;
     --info: 2 136 209;
     --info-tint: 229 246 253;
     --info-line: 204 231 246;
@@ -279,6 +283,7 @@
   --color-danger-tint: rgb(var(--danger-tint));
   --color-danger-line: rgb(var(--danger-line));
   --color-on-danger-tint: rgb(var(--on-danger-tint));
+  --color-on-danger: rgb(var(--on-danger));
   --color-info: rgb(var(--info));
   --color-info-tint: rgb(var(--info-tint));
   --color-info-line: rgb(var(--info-line));

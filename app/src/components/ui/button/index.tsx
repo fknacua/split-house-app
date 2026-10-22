@@ -9,7 +9,9 @@ import {
 } from '@gluestack-ui/utils/nativewind-utils';
 import { styled } from 'nativewind';
 import React from 'react';
-import { ActivityIndicator, Pressable, Text, View } from 'react-native';
+import { Pressable, Text, View } from 'react-native';
+
+import { Spinner } from '../spinner';
 const SCOPE = 'BUTTON';
 const Root = withStyleContext(Pressable, SCOPE);
 const StyledUIIcon = styled(UIIcon, {
@@ -19,83 +21,97 @@ const UIButton = createButton({
   Root: Root,
   Text,
   Group: View,
-  Spinner: ActivityIndicator,
+  Spinner,
   Icon: StyledUIIcon,
 });
+const FADE = 'data-[active=true]:opacity-80';
+
+/*
+ * Variants follow the design. Filled variants keep their shape when disabled (flat
+ * disabled fill); outlined ones keep a border in a muted colour; ghost stays transparent.
+ * Pressed feedback: filled variants fade, outlined and ghost ones show a background
+ * (touch has no hover, so only the pressed state is styled).
+ */
 const buttonStyle = tva({
-  base: 'rounded-md flex-row items-center justify-center data-[focus-visible=true]:web:outline-none data-[focus-visible=true]:web:ring-2 data-[disabled=true]:opacity-40 gap-2 h-fit',
+  base: 'rounded-full flex-row items-center justify-center gap-1.5 data-[focus-visible=true]:web:outline-none data-[focus-visible=true]:web:ring-2 h-fit',
   variants: {
     variant: {
-      default:
-        'bg-primary data-[hover=true]:bg-primary/90 data-[active=true]:bg-primary/90',
-      destructive:
-        'bg-destructive data-[hover=true]:bg-destructive/90 data-[active=true]:bg-destructive/90 focus-visible:ring-destructive/20 dark:focus-visible:ring-destructive/40 dark:bg-destructive/60',
+      default: `bg-primary ${FADE} data-[disabled=true]:bg-disabled`,
+      destructive: `bg-danger ${FADE} data-[disabled=true]:bg-disabled`,
+      warning: `border border-warning bg-warning-container ${FADE} data-[disabled=true]:border-transparent data-[disabled=true]:bg-disabled`,
       outline:
-        'border border-border bg-background shadow-xs data-[hover=true]:bg-accent data-[active=true]:bg-accent dark:bg-input/[0.045] dark:border-border/90 dark:data-[hover=true]:bg-input/[0.075] dark:data-[active=true]:bg-input/[0.075]',
-      secondary:
-        'bg-secondary text-secondary-foreground data-[hover=true]:bg-secondary/80 data-[active=true]:bg-secondary/80',
-      ghost: 'data-[hover=true]:bg-accent data-[active=true]:bg-accent dark:data-[hover=true]:bg-accent/50 dark:data-[active=true]:bg-accent/50',
-      link: 'text-primary underline-offset-4 data-[hover=true]:underline data-[active=true]:underline',
+        'border border-outline data-[active=true]:bg-container data-[disabled=true]:border-outline-variant',
+      'outline-warning':
+        'border border-warning data-[active=true]:bg-warning-tint data-[disabled=true]:border-outline-variant',
+      'outline-destructive':
+        'border border-danger data-[active=true]:bg-danger-tint data-[disabled=true]:border-outline-variant',
+      ghost: 'data-[active=true]:bg-container',
     },
     size: {
-      default: 'px-4 py-2',
-      sm: 'min-h-8 rounded-md px-3 text-xs',
-      lg: 'min-h-10 rounded-md px-8',
-      icon: 'min-h-9 min-w-9',
-    },
-  },
-});
-const buttonTextStyle = tva({
-  base: 'web:select-none font-sans',
-  parentVariants: {
-    variant: {
-      default: 'text-primary-foreground',
-      destructive: 'text-white',
-      outline: 'text-foreground data-[hover=true]:text-accent-foreground data-[active=true]:text-accent-foreground',
-      secondary: 'text-secondary-foreground',
-      ghost: 'text-foreground ',
-      link: 'text-primary data-[hover=true]:underline data-[active=true]:underline',
-    },
-    size: {
-      default: 'text-sm',
-      sm: 'text-xs',
-      lg: 'text-sm',
-      icon: 'text-sm',
+      default: 'h-12 px-6',
+      sm: 'h-11 px-4',
     },
   },
 });
 
+const variantContent = {
+  default: 'text-on-primary',
+  destructive: 'text-on-danger',
+  warning: 'text-warning',
+  outline: 'text-on-surface',
+  'outline-warning': 'text-warning',
+  'outline-destructive': 'text-danger',
+  ghost: 'text-on-surface',
+};
+
+// The disabled colour comes from the style context, not a data-[disabled] selector: it must
+// override the variant colour, and listing it after `variant` lets tailwind-merge keep it.
+const disabledContent = { true: 'text-on-disabled' };
+
+// tailwind-merge (inside tva) doesn't know our custom text sizes, so it reads `text-body` as a
+// colour and lets it cancel the label colour. Declaring them as font sizes keeps both. (This
+// tailwind-merge version takes the groups directly, with no `extend` key.) A font size also
+// cancels an earlier line height, so `leading-5` follows the size inside each size class.
+const textSizeMergeConfig = {
+  twMergeConfig: {
+    classGroups: {
+      'font-size': [{ text: ['hero', 'title', 'sheet-title', 'field', 'body', 'label', 'caption'] }],
+    },
+  },
+};
+
+const buttonTextStyle = tva(
+  {
+    base: 'web:select-none font-manrope-bold',
+    parentVariants: {
+      variant: variantContent,
+      size: {
+        default: 'text-body leading-5',
+        sm: 'text-label leading-5',
+      },
+      disabled: disabledContent,
+    },
+  },
+  textSizeMergeConfig,
+);
+
 const buttonSpinnerStyle = tva({
   base: '',
   parentVariants: {
-    size: {
-      default: 'h-4 w-4',
-      sm: 'h-3 w-3',
-      lg: 'h-5 w-5',
-      icon: 'h-4 w-4',
-    },
+    variant: variantContent,
+    disabled: disabledContent,
   },
 });
 
 const buttonIconStyle = tva({
   base: 'fill-none pointer-events-none shrink-0',
   parentVariants: {
-    variant: {
-      default: 'text-primary-foreground',
-      destructive: 'text-white',
-      outline:
-        'text-foreground data-[hover=true]:text-accent-foreground data-[active=true]:text-accent-foreground',
-      secondary: 'text-secondary-foreground',
-      ghost:
-        'text-foreground data-[hover=true]:text-accent-foreground data-[active=true]:text-accent-foreground',
-      link: 'text-primary',
-    },
+    variant: variantContent,
     size: {
       default: 'h-4 w-4',
-      sm: 'h-3 w-3',
-      lg: 'h-5 w-5',
-      icon: 'h-4 w-4',
+      sm: 'h-4 w-4',
     },
+    disabled: disabledContent,
   },
 });
 const buttonGroupStyle = tva({
@@ -130,13 +146,14 @@ type IButtonProps = Omit<
 const Button = React.forwardRef<
   React.ElementRef<typeof UIButton>,
   IButtonProps
->(({ className, variant = 'default', size = 'default', ...props }, ref) => {
+>(({ className, variant = 'default', size = 'default', isDisabled, ...props }, ref) => {
   return (
     <UIButton
       ref={ref}
       {...props}
+      isDisabled={isDisabled}
       className={buttonStyle({ variant, size, class: className })}
-      context={{ variant, size }}
+      context={{ variant, size, disabled: !!isDisabled }}
     />
   );
 });
@@ -146,7 +163,11 @@ const ButtonText = React.forwardRef<
   React.ElementRef<typeof UIButton.Text>,
   IButtonTextProps
 >(({ className, size, ...props }, ref) => {
-  const { size: parentSize, variant: parentVariant } = useStyleContext(SCOPE);
+  const {
+    size: parentSize,
+    variant: parentVariant,
+    disabled: parentDisabled,
+  } = useStyleContext(SCOPE);
   return (
     <UIButton.Text
       ref={ref}
@@ -155,6 +176,7 @@ const ButtonText = React.forwardRef<
         parentVariants: {
           size: parentSize,
           variant: parentVariant,
+          disabled: parentDisabled,
         },
         size,
         class: className,
@@ -166,8 +188,8 @@ const ButtonSpinner = React.forwardRef<
   React.ElementRef<typeof UIButton.Spinner>,
   React.ComponentPropsWithoutRef<typeof UIButton.Spinner>
 >(({ className, ...props }, ref) => {
-  const { size: parentSize } = useStyleContext(SCOPE);
-  return <UIButton.Spinner ref={ref} {...props} className={buttonSpinnerStyle({ parentVariants: { size: parentSize }, class: className })} />;
+  const { variant: parentVariant, disabled: parentDisabled } = useStyleContext(SCOPE);
+  return <UIButton.Spinner ref={ref} size="small" {...props} className={buttonSpinnerStyle({ parentVariants: { variant: parentVariant, disabled: parentDisabled }, class: className })} />;
 });
 type IButtonIcon = React.ComponentPropsWithoutRef<typeof UIButton.Icon> &
   VariantProps<typeof buttonIconStyle> & {
@@ -180,7 +202,11 @@ const ButtonIcon = React.forwardRef<
   React.ElementRef<typeof UIButton.Icon>,
   IButtonIcon
 >(({ className, size, ...props }, ref) => {
-  const { size: parentSize, variant: parentVariant } = useStyleContext(SCOPE);
+  const {
+    size: parentSize,
+    variant: parentVariant,
+    disabled: parentDisabled,
+  } = useStyleContext(SCOPE);
   if (typeof size === 'number') {
     return (
       <UIButton.Icon
@@ -209,6 +235,7 @@ const ButtonIcon = React.forwardRef<
         parentVariants: {
           size: parentSize,
           variant: parentVariant,
+          disabled: parentDisabled,
         },
         size,
         class: className,
