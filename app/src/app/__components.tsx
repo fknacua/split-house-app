@@ -2,8 +2,9 @@ import { Redirect } from 'expo-router';
 import { useState } from 'react';
 import { ScrollView, Text, View } from 'react-native';
 
-import { Bell, Check, Send } from 'lucide-react-native';
+import { Bell, Check, Clock, Send } from 'lucide-react-native';
 
+import { Alert } from '@/components/alert';
 import { Button, type ButtonVariant } from '@/components/button';
 import { ChipGroup } from '@/components/chip';
 import { SegmentedControl } from '@/components/segmented-control';
@@ -234,6 +235,36 @@ export default function ComponentTestPage() {
                 onPress={() => setTaps((n) => n + 1)}
               />
             </View>
+          </View>
+          <View className="gap-3">
+            <Text className="font-manrope-bold text-sheet-title text-on-surface">Alerts</Text>
+            <Alert variant="info" message="Your session ended, sign in again." />
+            <Alert
+              variant="info"
+              icon={Clock}
+              message="Tenant 2’s utilities are due today"
+            />
+            <Alert
+              variant="warning"
+              title="Bill total looks unusual"
+              message="This month is 40% higher than the last three months."
+            />
+            <Alert
+              variant="danger"
+              title="Couldn’t sign in"
+              message="Something went wrong reaching Google. Try again."
+            />
+            <Alert variant="success" message="Everyone’s paid. Utilities bill paid 16 Nov." />
+            <Alert
+              variant="info"
+              title="Unfinished bill draft"
+              message="You started adding the November bill."
+            >
+              <View className="flex-row gap-2">
+                <Button size="small" label="Continue" className="flex-1" />
+                <Button size="small" variant="outline" label="Discard" className="flex-1" />
+              </View>
+            </Alert>
           </View>
           <Text className="font-manrope-medium text-body text-on-surface-variant">
             Sections are added by the later Phase 2 steps.
