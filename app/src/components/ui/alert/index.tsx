@@ -10,31 +10,37 @@ import { Text, View } from 'react-native';
 const SCOPE = 'ALERT';
 
 const alertStyle = tva({
-  base: 'rounded-lg border px-2.5 py-2 flex-row gap-2 items-start ',
+  base: 'rounded-alert border px-3.5 py-3 flex-row gap-3 items-start',
   variants: {
     variant: {
-      default: 'bg-card border-border',
-      destructive: 'bg-card border-destructive',
+      info: 'bg-info-tint border-info-line',
+      warning: 'bg-warning-tint border-warning-line',
+      danger: 'bg-danger-tint border-danger-line',
+      success: 'bg-success-container border-success',
     },
   },
 });
 
 const alertTextStyle = tva({
-  base: 'font-medium tracking-tight text-sm flex-1',
+  base: 'text-label',
   parentVariants: {
     variant: {
-      default: 'text-card-foreground',
-      destructive: 'text-destructive',
+      info: 'text-on-surface',
+      warning: 'text-on-surface',
+      danger: 'text-on-danger-tint',
+      success: 'text-on-success-container',
     },
   },
 });
 
 const alertIconStyle = tva({
-  base: 'fill-none w-4 h-4 mt-0.5',
+  base: 'fill-none w-5 h-5 mt-px shrink-0',
   parentVariants: {
     variant: {
-      default: 'text-card-foreground',
-      destructive: 'text-destructive',
+      info: 'text-info',
+      warning: 'text-warning',
+      danger: 'text-danger',
+      success: 'text-success',
     },
   },
 });
@@ -56,7 +62,7 @@ type IAlertProps = Omit<
   VariantProps<typeof alertStyle>;
 
 const Alert = React.forwardRef<React.ComponentRef<typeof UIAlert>, IAlertProps>(
-  function Alert({ className, variant = 'default', ...props }, ref) {
+  function Alert({ className, variant = 'info', ...props }, ref) {
     return (
       <UIAlert
         className={alertStyle({ variant, class: className })}
