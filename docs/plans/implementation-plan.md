@@ -78,43 +78,49 @@ Shared pieces go under `app/src/components/`.
 
 **Working rule for this phase:** the provider shell is built first (2.2), then the test page shell (2.3). Every later step that builds a component also adds its section to the test page in that same step, fully working and in every state, and is not done until it shows there.
 
+**Wrapper rule for every shared component (set by the Button, 2.5):** do not build a new component when gluestack has a native one.
+- **Native (`components/ui/<name>`):** holds the looks: variants, sizes, colours, shapes, and the disabled and pressed states. Customise the copied file in place.
+- **Wrapper (`components/<name>.tsx`):** our own props, designed from the native ones, translated to what the native component needs. It adds only behaviour the native one lacks (for Button: `loading`, the label and icon composition) and exposes no gluestack types. Screens import only the wrapper, so swapping the library means rewriting the wrappers (ESLint `no-restricted-imports` enforces this; direct `components/ui` imports need a disable comment with a reason).
+- **Before writing a wrapper:** fix every type check error and lint error or warning in the native component it wraps (for example the known ones in `ui/alert-dialog`, `ui/popover`, `ui/calendar`, `ui/date-time-picker`), so the wrapper sits on a clean base. Report anything you cannot fix without changing behaviour instead of suppressing it.
+- **Custom pieces with no gluestack native** (segmented control, chips, bottom navigation) stay custom, as the mapping doc says.
+
 - ✅ **2.1a** **Theme preference (real, not a stub)**
   - **Build:** `app/src/lib/theme-preference.tsx` with `ThemePreferenceProvider` and `useThemePreference()` returning `{ preference: 'light' | 'dark' | 'system', resolved: 'light' | 'dark', setPreference }`.
   - Persists the choice on the device with `expo-secure-store` or AsyncStorage (wrapped in try/catch; defaults to `system`).
   - Resolves `system` from `useColorScheme()`; feeds `GluestackUIProvider mode` and the status bar style in `_layout.tsx`.
   - **Reuse:** the test page toggle (2.3) uses it, and Settings (Phase 10, step 10A.2) later reuses the same hook for its Appearance control with no new theme code.
 
-- **2.2** **Provider/app shell** (`app/src/app/_layout.tsx`)
+- ✅ **2.2** **Provider/app shell** (`app/src/app/_layout.tsx`)
   - **Build:** `GestureHandlerRootView` > `GluestackUIProvider` > `BottomSheetModalProvider` > session gate (Phase 3).
   - Status bar style follows theme; `expo-system-ui` background = `background` token (no white flash).
   - **Test page:** none yet; the page is built in 2.3 and checks both themes through this shell. The **Server-unreachable prompt** section goes on the page when the step that builds it lands (this one if it does, otherwise Phase 3): a button that triggers the blocking "Can't reach the server" state with Retry.
 
-- **2.3** **Component test page shell**
+- ✅ **2.3** **Component test page shell**
   - **Build:** one route, `app/src/app/__components.tsx`, dev only (guarded by `__DEV__`, absent from release builds), so everything is tested on the phone in one place. One scrollable page.
   - **Access:** until the bottom navigation exists (2.13), reach it from a temporary dev-only link on the Home route (`app/src/app/index.tsx`), removed in 2.13.
   - **Scope:** this step builds only the shell and the two pinned controls below. Every later step adds its own section (heading plus fully working pieces, not static mocks) and names it in its **Test page** line.
   - **Theme toggle**, pinned at the top (does not depend on Settings): Light / Dark / System segmented control wired to `useThemePreference()`. It switches the whole app live and persists across restarts, so both themes are checked on every component without leaving the page.
   - **Touch-target overlay switch**, also pinned near the top: toggles a debug outline on anything under 44px.
 
-- **2.4** **Segmented control and chips** (`segmented-control.tsx`, `chip.tsx` exist)
+- ✅ **2.4** **Segmented control and chips** (`segmented-control.tsx`, `chip.tsx` exist)
   - **Build:** verify against the Add charge, Household and Settings boards. Same `value/onChange` API; selected = `bg-selected text-on-selected` + check icon for chips; single-select; 44px. The 2.3 theme toggle already uses the segmented control.
   - **Test page:** add the **Segmented control** (Shared / Personal) and **single-select chips** (split method, Who) section, with the live selected value printed beneath.
 
-- **2.5** **Button**
+- ✅ **2.5** **Button**
   - **Build:** variants from the design: primary (solid), outline, outline-danger (red outline), warning (Nudge), text, small (44px).
   - 48px height, pill radius, 15/20 bold; loading state with `Spinner`; disabled = `bg-disabled text-on-disabled`.
   - **Test page:** add the **Buttons** section: every variant in default, pressed, loading, disabled.
 
-- **2.6** **Alert**
+- ✅ **2.6** **Alert**
   - **Build:** variants info, warning, danger, success using `*-tint` / `*-line` / `on-*-tint` tokens, 16px radius.
   - Lucide icons per mapping: `circle-alert`, `triangle-alert`, `info`, `circle-check`.
   - **Test page:** add the **Alerts** section: info, warning, danger, success.
 
-- **2.7** **Badge/status chips**
+- ✅ **2.7** **Badge/status chips**
   - **Build:** Paid (success-container), Due/Overdue (warning/danger), Due today (info), Nudged, Corrected, Unpaid, neutral (container).
   - **Test page:** add the **Badges and status chips** section with all of the above.
 
-- **2.8** **`FormControl` wrapper and TextField** (`components/form-field.tsx`)
+- ✅ **2.8** **`FormControl` wrapper and TextField** (`components/form-field.tsx`)
   - **Build:** on gluestack `form-control`. Props: `label`, `required` (marker), `helper`, `error`, children.
   - **Layout:** label 14/20 bold above, 6px gap, helper/error caption 12/16 below, 16px gap between controls.
   - **TextField:** Input, 48px, radius 12, field text 16/24 medium.
@@ -177,6 +183,7 @@ Shared pieces go under `app/src/components/`.
   - Compare it with `FormControls.dc.html` (both views) and the mapping doc; fix differences.
   - Add any section still missing: Cards, Progress, Accordion (with 3 sample rows), Spinner, if no earlier step added them.
   - Run the hex grep over the page and kit (none allowed).
+  - **Clear the TODO lint disables:** list them with `grep -rn "TODO: replace with a wrapper" app/src`. Replace each one in code that stays (the provider import in `_layout.tsx`, `__verify.tsx`, `__components.tsx`) by importing the wrapper from `src/components`, adding the missing wrapper first where there isn't one. The spike screens (`screens/home`, `screens/sign-in`) are rebuilt in Phases 3, 5 and 9, so their disables go away when each screen is rewritten with wrappers; list what is left at the end of Phase 2. No new disables without a reason that names a plan step.
   - Francis runs the page on device in both themes and signs off before Phase 3.
   - The page stays in the app (dev only) and gains new shared pieces over time; later screen phases use its `__gallery` states for per-screen state review.
 
@@ -328,7 +335,7 @@ Source `Notifications.dc.html` (`headsUp`, `shade`) for copy, channel names, act
 - **12.1** Dark-mode sweep of all 18 components x all states via `__gallery`; hex grep; touch targets; font weights.
 - **12.2** Layout nudges the design warned about: taller label-above forms (MarkPaid different amount, failed sheets), Settings `blocked`; keyboard-avoiding in sheets; small phone and large font scale.
 - **12.3** Accessibility: labels on icon buttons, contrast of tokens already designed, focus order.
-- **12.4** Public-repo hygiene scan: no real names/numbers/amounts in code, tests, seed, README; `.env.example` names only; no `assets-old` content.
+- **12.4** Public-repo hygiene scan: no real names/numbers/amounts in code, tests, seed, README; `.env.example` names only; no `assets-old` content. Also none of the `TODO: replace with a wrapper` lint disables left in `app/src` (see 2.18), and `no-restricted-imports` clean without disables except justified ones.
 - **12.5a** **Backup bucket account setup (Francis, by hand; add as a new section to `docs/SplitHouse — Account Setup Guide.md`)**: create a free Cloudflare account and enable R2 (**decided: Cloudflare R2**; chosen over Backblaze B2 for free egress so restores cost nothing, a 10 GB free tier that includes 1M writes and 10M reads a month, and S3-compatible tooling; B2 is the fallback). R2 enabling goes through a checkout flow for an R2 subscription; the docs do not say whether a card is required, so check at signup and confirm Francis is fine with that. Create a private bucket named `split-house-backups` (no public access, no custom domain). Create an API token scoped to that single bucket with write/read only (no account-wide key, no delete rights if the provider allows). Note the endpoint URL, access key ID and secret in a password manager. Set a lifecycle rule to expire objects after about 60 days (or the job prunes to the last 8).
 - **12.5b** **GitHub secrets (Francis, in the repo's Settings > Secrets and variables > Actions)**: `NEON_DIRECT_URL` (direct, not pooled, read-only role if Neon allows), `BACKUP_PASSPHRASE` (also saved in the password manager; without it backups can't be restored), `BACKUP_BUCKET`, `BACKUP_ENDPOINT`, `BACKUP_ACCESS_KEY_ID`, `BACKUP_SECRET_ACCESS_KEY`. Add the names (no values) to `.env.example` or the setup guide.
 - **12.5c** **Workflow** `.github/workflows/backup.yml`: weekly cron plus manual `workflow_dispatch`; steps: install the Postgres client matching Neon's major version, `pg_dump --format=custom`, encrypt with `age`/`gpg` using the passphrase, upload to the bucket with an S3-compatible CLI, prune older than the last 8, fail the job (GitHub emails Francis) on any error. No dump or secret is ever printed to logs or kept as a public artifact.

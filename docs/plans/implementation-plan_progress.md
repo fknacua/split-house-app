@@ -171,3 +171,39 @@ Phase 1 exit check passed: on the device, against the local backend, the tempora
 ## 2026-10-22: 2.1a ✅
 
 Added `app/src/lib/theme-preference.tsx` (`ThemePreferenceProvider`, `useThemePreference()`) and wired it into `_layout.tsx` (splash waits for the saved choice, `GluestackUIProvider mode={preference}`, status bar follows the resolved theme). The gluestack provider now maps `system` to `'unspecified'` so System follows the phone again after a forced theme. Storage is `expo-secure-store`, not AsyncStorage: AsyncStorage failed on the existing dev build (no native module) and was removed; the plan allowed either. A temporary Light/Dark/System toggle on Home (marked TEMP 2.1a, remove with the 2.14 test page toggle) let Francis confirm on device that forcing a theme works; he approved the step. Type check and lint are clean outside `components/ui`.
+
+## 2026-10-22: 2.2 ✅
+
+Completed the provider shell in `_layout.tsx`: added `BottomSheetModalProvider` and a `bg-background` View around the Stack, with a marker where the session gate goes in 3.2. The `expo-system-ui` window background from the plan line is left out for now: reading a CSS token from JS needs an unstable NativeWind hook whose types do not match its native version, and the in-app background is already covered by the token class. Revisit (for example with the config.ts RGB values) if a white gap shows behind the keyboard or on the first frame. Type check and lint are clean for the file; not yet run on the device. Francis asked to mark it done.
+
+## 2026-10-22: 2.3 ✅
+
+Added the dev-only test page `app/src/app/__components.tsx` with the pinned theme toggle and a touch-target outline switch, a reusable `TouchTargetCheck` wrapper, and a temporary Home link (remove in 2.13). The first outline version flickered because the border changed the measured size; it is now an overlay. A demo showed the 48px box measuring about 42dp: NativeWind 5 preview ignores `inlineRem: 16` and converts rem at 14, so spacing classes were about 12.5% small. Fixed with `--spacing: 4px` in `app/src/global.css`; Francis re-checked on device and approved. Open: `docs/design/global.css` does not have this line (decision pending), the demo section and its TEMP measured-size readout go in 2.18, and the dialog spacing is handled in 2.15.
+
+## 2026-10-22: 2.4 ✅
+
+Rebuilt the segmented control and chips to the design (joined outlined group and outlined chips, 44px, check icon on the selected item, `disabled` for the saving state, and a `fit` option for Settings' content-width preview sample), and added both sections to the test page. Also added the `--spacing: 4px` line to `docs/design/global.css` and removed the temporary theme toggle from Home. Francis checked it on device and approved. Francis does not like how the single-select chips behave and will revisit that design himself; the chips stay as designed until he says otherwise.
+
+## 2026-10-22: 2.5 🔄
+
+Built the Button and its test-page section (seven variants, default and small sizes, loading, disabled, pressed states). Francis then set the direction: `ui/button` stays the native gluestack button and carries all the looks (variants, sizes, disabled and pressed states, new `on-danger` token added to the theme files and mapping doc), while `components/button.tsx` is a thin wrapper that renames props (`size: 'default' | 'small'`) and adds loading. The ui spinner now only passes `color` when given, so class colours apply. Lint, type check and the device check have not been run on the rebuilt version; Francis will run the checks later, so the step stays in progress. A lint rule against direct `components/ui` imports was discussed for later (around 2.18).
+
+## 2026-10-22: 2.5 ✅
+
+The Button now follows Francis's wrapper rule: `ui/button` is the native gluestack button and holds all the looks (seven variants, two sizes, disabled, pressed and the new `on-danger` token), and `components/button.tsx` only renames props and adds loading. Fixed two bugs found on the device: tailwind-merge was dropping the label colour next to our custom text sizes (now registered in `ui/button`), and the disabled label colour now comes from the style context instead of a data selector. Added an ESLint rule against direct `components/ui` imports, with existing violations marked by a standard TODO disable comment. Francis checked all variants and states on the device and approved. Lint and the type check were not run on this version; Francis chose to do them later.
+
+## 2026-10-22: 2.5 ✅ (checks)
+
+Ran the checks Francis had deferred: the type check shows 4 errors, all in `ui/alert-dialog` and `ui/popover`, and ESLint shows 19 errors, all in `ui/calendar` and `ui/date-time-picker`. These are not from this step: none are in files it touched, and the ESLint totals match the start of the step. The hex grep on the Button files finds nothing. The commit message was amended to say so (now `3ab4a85`, not pushed).
+
+## 2026-10-22: 2.6 ✅
+
+Built the Alert: `ui/alert` is the native gluestack alert with the info, warning, danger and success looks (tint and line tokens, 16px `rounded-alert`), and `components/alert.tsx` is the wrapper that picks the Lucide icon and lays out the title, message and optional buttons. Added an Alerts section to the test page. The first device check showed missing backgrounds and corners because Metro's cache was stale for the new classes; a cleared build confirmed every class and token compiles in both themes, and Francis then approved it on device. The design has no success alert, so it uses the success container colours. Type check and lint are clean for the new files.
+
+## 2026-10-22: 2.7 ✅
+
+Built the Badge: `ui/badge` is the native gluestack badge as a pill with six looks (neutral, primary, success, warning, danger, info) on the container tokens, and `components/badge.tsx` is the wrapper with label, variant and optional Lucide icon. Overdue uses the new danger look, per Francis, who also updated the badge tokens and is exporting new design files to refresh the design refs. Added a Badges and status chips section to the test page, grouped by variant plus a "with icon" group. Type check and lint are clean for the new files; Francis checked it on device and approved.
+
+## 2026-10-22: 2.8 ✅
+
+Built the FormControl wrapper and TextField: `ui/form-control` and `ui/input` now carry the design looks (14/20 bold label with a red required marker, 12/16 helper and error text, 48px field with radius 12, thicker focus and error borders, disabled fill), and `components/form-field.tsx` adds `FormField` and a react-hook-form-bound `TextField` using `Controller`. Added a Form fields section to the test page, including a field validated on blur through the zod resolver. Type check, lint and hex grep are clean; Francis checked invalid and disabled on device and approved.
