@@ -24,15 +24,35 @@ function assignRef<R>(ref: Ref<R> | undefined, node: R | null) {
  * label-above `FormField`: the label, helper and error text come from `fieldControlProps` and the
  * form state. The branch is written here once, so each input file only holds its bare component.
  *
+ * This is the form for inputs whose value is a string: `Own` and `R` are inferred from the bare
+ * input. For another value type, such as `number | null`, use `withFormControlledFieldOf`.
+ *
  * @param Bare - The bare input. It receives `BareInputProps` plus its own props.
  * @returns A generic component, so `fieldControlProps.name` is checked against the form's fields.
  */
 export function withFormControlledField<Own extends object, R>(
   Bare: ComponentType<Own & BareInputProps & RefAttributes<R>>
 ) {
+  return withFormControlledFieldOf<Own, R, string>(Bare, '');
+}
+
+/**
+ * Same as `withFormControlledField`, for an input whose value is not a string. The type
+ * arguments are always passed explicitly: TypeScript cannot infer `Own` once the value type is
+ * part of the props, for example
+ * `withFormControlledFieldOf<MoneyInputOwnProps, ComponentRef<typeof Field>, number | null>(Bare, null)`.
+ *
+ * @param Bare - The bare input. It receives `BareInputProps<V>` plus its own props.
+ * @param emptyValue - What the bare input gets while the field has no value, for example `null`.
+ * @returns A generic component, so `fieldControlProps.name` is checked against the form's fields.
+ */
+export function withFormControlledFieldOf<Own extends object, R, V>(
+  Bare: ComponentType<Own & BareInputProps<V> & RefAttributes<R>>,
+  emptyValue: V
+) {
   const Bound = forwardRef<R, Own & { fieldControlProps: FieldControlProps<FieldValues> }>(
     function Bound({ fieldControlProps, ...own }, ref) {
-      const { binding, message } = useFormControlledField(fieldControlProps);
+      const { binding, message } = useFormControlledField<FieldValues, V>(fieldControlProps, emptyValue);
       const { ref: fieldRef, ...bareProps } = binding;
       // react-hook-form needs its own ref to focus the field on error, so set both refs.
       const mergedRef = useCallback(
@@ -73,13 +93,13 @@ export function withFormControlledField<Own extends object, R>(
           />
         );
       }
-      return <Bare {...(props as unknown as Own & BareInputProps)} ref={ref} />;
+      return <Bare {...(props as unknown as Own & BareInputProps<V>)} ref={ref} />;
     }
   );
   Field.displayName = `WithFieldControl(${Bare.displayName ?? Bare.name ?? 'Input'})`;
 
   // forwardRef erases the form's generic; restore it so `T` is inferred from `control`.
   return Field as unknown as <T extends FieldValues = FieldValues>(
-    props: WithFieldControlProps<T, Own> & RefAttributes<R>
+    props: WithFieldControlProps<T, Own, V> & RefAttributes<R>
   ) => ReactElement | null;
 }

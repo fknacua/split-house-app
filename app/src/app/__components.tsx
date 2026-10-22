@@ -1,7 +1,7 @@
 import { Redirect } from 'expo-router';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useState } from 'react';
-import { type Control, useForm } from 'react-hook-form';
+import { type Control, useForm, useWatch } from 'react-hook-form';
 import { z } from 'zod';
 import { KeyboardAvoidingView, ScrollView, Text, View } from 'react-native';
 
@@ -13,13 +13,15 @@ import { Button, type ButtonVariant } from '@/components/button';
 import { ChipGroup } from '@/components/chip';
 import { FieldControl, FieldControlProps } from '@/components/form-field/';
 import { ConnectedButtonGroup } from '@/components/connected-button-group';
+import { MoneyInput } from '@/components/money-input';
 import { PhoneInput } from '@/components/phone-input';
 import { TextareaInput } from '@/components/textarea-input';
 import { TextInput } from '@/components/text-input';
 import { TouchTargetCheck, TouchTargetCheckProvider } from '@/components/touch-target-check';
 // eslint-disable-next-line no-restricted-imports -- TODO: replace with a wrapper from src/components
 import { Switch } from '@/components/ui/switch';
-import { e164Phone, requiredText } from '@/lib/schemas/common';
+import { formatCents } from '@/lib/money';
+import { cents, e164Phone, positiveCents, requiredText } from '@/lib/schemas/common';
 import { type ThemePreference, useThemePreference } from '@/lib/theme-preference';
 
 const SCOPE_OPTIONS = [
@@ -67,6 +69,11 @@ const demoSchema = z.object({
   phoneFilled: z.string(),
   phoneInvalid: z.string(),
   phoneDisabled: z.string(),
+  moneyLive: positiveCents,
+  moneyInvalid: cents,
+  moneyFilled: cents,
+  moneyCorrection: cents,
+  moneyDisabled: cents,
 });
 
 type DemoValues = z.infer<typeof demoSchema>;
@@ -102,12 +109,17 @@ function FormFieldsDemo() {
       phoneFilled: '+6591234567',
       phoneInvalid: '+65',
       phoneDisabled: '+6591234567',
+      moneyFilled: 186286,
+      moneyCorrection: -1500,
+      moneyDisabled: 430000,
     },
   });
   const [submitted, setSubmitted] = useState<string>('Not submitted');
   const [bareText, setBareText] = useState('');
   const [bareNote, setBareNote] = useState('');
   const [bareNote2, setBareNote2] = useState('');
+  const [bareMoney, setBareMoney] = useState<number | null>(null);
+  const moneyLive = useWatch({ control, name: 'moneyLive' });
 
   return (
     <View className="gap-4">
@@ -191,6 +203,38 @@ function FormFieldsDemo() {
       <PhoneInput
         fieldControlProps={{ control, name: 'phoneDisabled', label: 'WhatsApp number', disabled: true }}
       />
+      <MoneyInput
+        fieldControlProps={{
+          control,
+          name: 'moneyLive',
+          label: 'Current Charges',
+          required: true,
+          helper: 'Type 1862.86: it shows $1,862.86 when you leave the field. Checked on blur.',
+        }}
+      />
+      <Text className="font-manrope-medium text-caption text-on-surface-variant">
+        Form value: {typeof moneyLive === 'number' ? `${moneyLive} cents` : 'empty'}
+      </Text>
+      <MoneyInput fieldControlProps={{ control, name: 'moneyFilled', label: 'Amount', required: true }} />
+      <MoneyInput
+        allowNegative
+        fieldControlProps={{
+          control,
+          name: 'moneyCorrection',
+          label: 'Correction',
+          helper: 'Corrections can be negative: use the +/- button.',
+        }}
+      />
+      <MoneyInput
+        fieldControlProps={{
+          control,
+          name: 'moneyInvalid',
+          label: 'Amount',
+          required: true,
+          error: 'Enter an amount above $0.00',
+        }}
+      />
+      <MoneyInput fieldControlProps={{ control, name: 'moneyDisabled', label: 'Landlord rent', disabled: true }} />
       <Text className="font-manrope-medium text-caption text-on-surface-variant">
         Live: the first WhatsApp number and Label are checked on blur and on Submit; leave one empty and tap away to see the error.
       </Text>
@@ -218,6 +262,10 @@ function FormFieldsDemo() {
       </Text>
       <TextInput value={bareText} onChange={setBareText} accessibilityLabel="Search" placeholder="Search" />
       <TextareaInput value={bareNote} onChange={setBareNote} accessibilityLabel="Note" placeholder="Note" />
+      <MoneyInput value={bareMoney} onChange={setBareMoney} accessibilityLabel="Amount" />
+      <Text className="font-manrope-medium text-caption text-on-surface-variant">
+        Bare money value: {bareMoney === null ? 'empty' : `${bareMoney} cents (${formatCents(bareMoney)})`}
+      </Text>
       <Text className="font-manrope-medium text-caption text-on-surface-variant">
         Lines: 2 tall when empty, grows to 4 then scrolls inside. Add line breaks to check.
       </Text>

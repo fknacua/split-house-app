@@ -25,9 +25,9 @@ export interface FieldControlProps<T extends FieldValues> {
  * What a form binding hands to a bare input: the field state it needs, named to match the bare
  * inputs' props so it can be spread straight onto them.
  */
-export interface FieldBinding {
-  value: string;
-  onChange: (value: string) => void;
+export interface FieldBinding<V = string> {
+  value: V;
+  onChange: (value: V) => void;
   onBlur: () => void;
   ref: Ref<any>;
   accessibilityLabel: string;
@@ -42,9 +42,9 @@ export interface RenderPropFieldControlProps<T extends FieldValues> extends Fiel
 }
 
 /** Props of an input used on its own, with no form: the caller owns the value. */
-export interface StandaloneFieldProps {
-  value: string;
-  onChange: (value: string) => void;
+export interface StandaloneFieldProps<V = string> {
+  value: V;
+  onChange: (value: V) => void;
   onBlur?: () => void;
   /** Draws the error border. */
   invalid?: boolean;
@@ -72,11 +72,11 @@ export interface FormControlledFieldProps<T extends FieldValues> {
  * Props of an input that works both ways: standalone, or form-controlled when `fieldControlProps`
  * is passed. `Own` holds the props only that input has, such as `placeholder`.
  */
-export type WithFieldControlProps<T extends FieldValues, Own> = (
-  | StandaloneFieldProps
+export type WithFieldControlProps<T extends FieldValues, Own, V = string> = (
+  | StandaloneFieldProps<V>
   | FormControlledFieldProps<T>
 ) &
   Own;
 
 /** The props every bare input receives, from either the caller or a form binding. */
-export type BareInputProps = Omit<StandaloneFieldProps, 'fieldControlProps'>;
+export type BareInputProps<V = string> = Omit<StandaloneFieldProps<V>, 'fieldControlProps'>;
