@@ -1,6 +1,6 @@
 import { useRef, useState } from 'react';
 import { ScrollView, Text, View } from 'react-native';
-import { CalendarDays, TriangleAlert } from 'lucide-react-native';
+import { TriangleAlert } from 'lucide-react-native';
 
 // eslint-disable-next-line no-restricted-imports -- TODO: replace with a wrapper from src/components
 import { Alert, AlertIcon, AlertText } from '@/components/ui/alert';
@@ -16,13 +16,7 @@ import {
 // eslint-disable-next-line no-restricted-imports -- TODO: replace with a wrapper from src/components
 import { Button, ButtonSpinner, ButtonText } from '@/components/ui/button';
 import { ChipGroup } from '@/components/chip';
-// eslint-disable-next-line no-restricted-imports -- TODO: replace with a wrapper from src/components
-import {
-  DateTimePicker,
-  DateTimePickerIcon,
-  DateTimePickerInput,
-  DateTimePickerTrigger,
-} from '@/components/ui/date-time-picker';
+
 // eslint-disable-next-line no-restricted-imports -- TODO: replace with a wrapper from src/components
 import {
   FormControl,
@@ -70,7 +64,6 @@ export function AddChargeSheet() {
   const [splitMethod, setSplitMethod] = useState<(typeof SPLIT_METHOD_OPTIONS)[number]['value']>('per_share');
   const [who, setWho] = useState<(typeof WHO_OPTIONS)[number]['value']>('priya');
   const [recurring, setRecurring] = useState(false);
-  const [dueDate, setDueDate] = useState<Date | undefined>(new Date());
   const [saving, setSaving] = useState(false);
 
   const handleSave = () => {
@@ -165,25 +158,6 @@ export function AddChargeSheet() {
                 </AlertText>
               </Alert>
             ) : null}
-
-            <FormControl>
-              <FormControlLabel>
-                <FormControlLabelText className="font-manrope-bold text-label text-foreground">
-                  Due date
-                </FormControlLabelText>
-              </FormControlLabel>
-              <DateTimePicker
-                mode="date"
-                value={dueDate}
-                onChange={setDueDate}
-                format="dd MMM yyyy"
-              >
-                <DateTimePickerTrigger className="h-12 rounded-field border border-outline bg-surface px-3">
-                  <DateTimePickerIcon as={CalendarDays} className="text-on-surface-variant mr-2" />
-                  <DateTimePickerInput className="font-manrope-medium text-field text-foreground" />
-                </DateTimePickerTrigger>
-              </DateTimePicker>
-            </FormControl>
 
             <FormControl>
               <FormControlLabel>

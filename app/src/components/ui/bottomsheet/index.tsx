@@ -11,7 +11,6 @@ import GorhomBottomSheet, {
   BottomSheetScrollView as GorhomBottomSheetScrollView,
   BottomSheetSectionList as GorhomBottomSheetSectionList,
   BottomSheetView as GorhomBottomSheetView,
-  type BottomSheetBackdropProps,
 } from '@gorhom/bottom-sheet';
 import { styled } from 'nativewind';
 import React, {
@@ -26,8 +25,8 @@ import React, {
   useState,
 } from 'react';
 import type { PressableProps, TextInputProps, TextProps } from 'react-native';
-import { BackHandler, Keyboard, Platform, Text, View } from 'react-native';
-import { Pressable as RNPressable } from 'react-native';
+import { BackHandler, Keyboard, Platform, Text, View , Pressable as RNPressable } from 'react-native';
+
 import { Pressable as GGHPressable } from 'react-native-gesture-handler';
 
 const bottomSheetBackdropStyle = tva({

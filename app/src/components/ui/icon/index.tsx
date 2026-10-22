@@ -1,10 +1,9 @@
 import React from 'react';
-import { createIcon } from '@gluestack-ui/core/icon/creator';
 import { Path } from 'react-native-svg';
-import { tva } from '@gluestack-ui/utils/nativewind-utils';
+import { tva, VariantProps } from '@gluestack-ui/utils/nativewind-utils';
 import { styled } from 'nativewind';
-import { VariantProps } from '@gluestack-ui/utils/nativewind-utils';
 import {
+  createIcon,
   PrimitiveIcon,
   IPrimitiveIcon,
   Svg,
