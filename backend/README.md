@@ -2,6 +2,31 @@
 
 Next.js route handlers on Vercel, Prisma, Better Auth, Neon Postgres. Route files are thin wrappers (`route(...)` from `src/lib/api.ts`); the logic lives in plain functions under `src/lib/`.
 
+## Environment
+
+Set this up before running the server. Copy `.env.example` to `.env` (never committed) and fill in the values. This file is for local development only: production values are set as environment variables in the Vercel project.
+
+- `DATABASE_URL`: Neon pooled connection string, used by the running server. Point it at the `dev` branch.
+- `DIRECT_URL`: Neon direct connection string, used for migrations only.
+- `BETTER_AUTH_SECRET`: a long random string (`openssl rand -base64 32`), different from production.
+- `BETTER_AUTH_URL`: this server's own address as the phone reaches it, `http://<PC-LAN-IP>:3000`. Use your computer's IPv4 address from `ipconfig`, not the phone's. `localhost` does not work for the app, and the address can change, so check it each session.
+- `GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET`: the Google OAuth Web client, used to verify the Google sign-in.
+- `ALLOWED_EMAIL`: the only email that may sign in.
+
+Restart the server after changing `.env`.
+
+## Run locally
+
+From `backend/`, start the server so it listens on the network, because the phone connects to your computer over the LAN:
+
+```bash
+npm run dev -- -H 0.0.0.0
+```
+
+Wait for the "Ready" line. The first request after the database has been idle for 5 minutes is slow, because the free Neon database sleeps and wakes on demand.
+
+The app side, including which backend it points at, is covered in the app README. `BETTER_AUTH_URL` and the app's `EXPO_PUBLIC_BACKEND_URL` must hold the same value; see [Keeping the two env files in sync](../README.md#keeping-the-two-env-files-in-sync).
+
 ## Conventions
 
 - Every route except `api/auth/*` needs a session: `requireSession(request)` throws a 401.
@@ -14,7 +39,7 @@ Next.js route handlers on Vercel, Prisma, Better Auth, Neon Postgres. Route file
 ## Commands
 
 ```bash
-npm run dev          # local server (add -H 0.0.0.0 to reach it from a phone on the LAN)
+npm run dev          # local server (use -H 0.0.0.0 for the phone, see Run locally)
 npm test             # vitest
 npm run typecheck
 npm run lint
