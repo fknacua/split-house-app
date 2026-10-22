@@ -2,10 +2,27 @@ import { Redirect } from 'expo-router';
 import { useState } from 'react';
 import { ScrollView, Text, View } from 'react-native';
 
+import { ChipGroup } from '@/components/chip';
 import { SegmentedControl } from '@/components/segmented-control';
 import { TouchTargetCheck, TouchTargetCheckProvider } from '@/components/touch-target-check';
 import { Switch } from '@/components/ui/switch';
 import { type ThemePreference, useThemePreference } from '@/lib/theme-preference';
+
+const SCOPE_OPTIONS = [
+  { label: 'Shared', value: 'shared' },
+  { label: 'Personal', value: 'personal' },
+] as const;
+const SAMPLE_OPTIONS = [
+  { label: 'Priya', value: 'priya' },
+  { label: 'Sam', value: 'sam' },
+  { label: 'Jordan', value: 'jordan' },
+] as const;
+const METHOD_OPTIONS = [
+  { label: 'Per share (5)', value: 'share' },
+  { label: 'Per unit (6)', value: 'unit' },
+  { label: 'Custom', value: 'custom' },
+] as const;
+const WHO_OPTIONS = SAMPLE_OPTIONS;
 
 /**
  * Dev-only component test page (plan 2.3). Every shared component gets a section here.
@@ -14,6 +31,10 @@ import { type ThemePreference, useThemePreference } from '@/lib/theme-preference
 export default function ComponentTestPage() {
   const { preference, setPreference } = useThemePreference();
   const [checkTargets, setCheckTargets] = useState(false);
+  const [scope, setScope] = useState('shared');
+  const [sample, setSample] = useState('priya');
+  const [method, setMethod] = useState('unit');
+  const [who, setWho] = useState('sam');
   const [measured32, setMeasured32] = useState('?');
   const [measured48, setMeasured48] = useState('?');
 
@@ -66,6 +87,68 @@ export default function ComponentTestPage() {
             <Text className="font-manrope-medium text-caption text-on-surface-variant">
               Measured: 32 box = {measured32}, 48 box = {measured48}
             </Text>
+          </View>
+          <View className="gap-3">
+            <Text className="font-manrope-bold text-label text-foreground">
+              Segmented control
+            </Text>
+            <TouchTargetCheck>
+              <SegmentedControl
+                label="Charge type"
+                value={scope}
+                onChange={setScope}
+                options={SCOPE_OPTIONS}
+              />
+            </TouchTargetCheck>
+            <Text className="font-manrope-medium text-caption text-on-surface-variant">
+              Selected: {scope}
+            </Text>
+            <Text className="font-manrope-medium text-caption text-on-surface-variant">
+              Content-width segments (Settings preview sample)
+            </Text>
+            <SegmentedControl
+              fit
+              label="Preview sample"
+              value={sample}
+              onChange={setSample}
+              options={SAMPLE_OPTIONS}
+            />
+            <Text className="font-manrope-medium text-caption text-on-surface-variant">
+              Disabled (saving)
+            </Text>
+            <SegmentedControl
+              disabled
+              value={scope}
+              onChange={setScope}
+              options={SCOPE_OPTIONS}
+            />
+          </View>
+          <View className="gap-3">
+            <Text className="font-manrope-bold text-label text-foreground">
+              Single-select chips
+            </Text>
+            <View className="gap-1.5">
+              <Text className="font-manrope-bold text-label text-foreground">Split method</Text>
+              <TouchTargetCheck>
+                <ChipGroup
+                  label="Split method"
+                  value={method}
+                  onChange={setMethod}
+                  options={METHOD_OPTIONS}
+                />
+              </TouchTargetCheck>
+            </View>
+            <View className="gap-1.5">
+              <Text className="font-manrope-bold text-label text-foreground">Who</Text>
+              <ChipGroup label="Who" value={who} onChange={setWho} options={WHO_OPTIONS} />
+            </View>
+            <Text className="font-manrope-medium text-caption text-on-surface-variant">
+              Selected: {method} / {who}
+            </Text>
+            <Text className="font-manrope-medium text-caption text-on-surface-variant">
+              Disabled (saving)
+            </Text>
+            <ChipGroup disabled value={method} onChange={setMethod} options={METHOD_OPTIONS} />
           </View>
           <Text className="font-manrope-medium text-body text-on-surface-variant">
             Sections are added by the later Phase 2 steps.
