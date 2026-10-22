@@ -1,17 +1,22 @@
 import { Redirect } from 'expo-router';
+import { zodResolver } from '@hookform/resolvers/zod';
 import { useState } from 'react';
+import { useForm } from 'react-hook-form';
+import { z } from 'zod';
 import { ScrollView, Text, View } from 'react-native';
 
-import { Bell, Check, CheckCircle, CircleAlert, CircleCheck, Clock, Send, TriangleAlert } from 'lucide-react-native';
+import { Bell, Check, CircleAlert, CircleCheck, Clock, Send, TriangleAlert } from 'lucide-react-native';
 
 import { Alert } from '@/components/alert';
 import { Badge } from '@/components/badge';
 import { Button, type ButtonVariant } from '@/components/button';
 import { ChipGroup } from '@/components/chip';
+import { TextField } from '@/components/form-field';
 import { SegmentedControl } from '@/components/segmented-control';
 import { TouchTargetCheck, TouchTargetCheckProvider } from '@/components/touch-target-check';
 // eslint-disable-next-line no-restricted-imports -- TODO: replace with a wrapper from src/components
 import { Switch } from '@/components/ui/switch';
+import { requiredText } from '@/lib/schemas/common';
 import { type ThemePreference, useThemePreference } from '@/lib/theme-preference';
 
 const SCOPE_OPTIONS = [
@@ -43,6 +48,85 @@ const BUTTON_STATE_OPTIONS = [
   { label: 'Loading', value: 'loading' },
   { label: 'Disabled', value: 'disabled' },
 ] as const;
+
+const demoSchema = z.object({
+  empty: z.string(),
+  filled: z.string(),
+  optional: z.string(),
+  invalid: z.string(),
+  disabled: z.string(),
+  live: requiredText,
+});
+
+type DemoValues = z.infer<typeof demoSchema>;
+
+/** The Form fields section: every TextField state, plus one field validated live on blur. */
+function FormFieldsDemo() {
+  const { control, handleSubmit, reset } = useForm<DemoValues>({
+    resolver: zodResolver(demoSchema),
+    mode: 'onBlur',
+    defaultValues: {
+      empty: '',
+      filled: 'Aircon service',
+      optional: '',
+      invalid: '',
+      disabled: 'November 2026',
+      live: '',
+    },
+  });
+  const [submitted, setSubmitted] = useState<string>('Not submitted');
+
+  return (
+    <View className="gap-4">
+      <Text className="font-manrope-bold text-sheet-title text-on-surface">Form fields</Text>
+      <TouchTargetCheck>
+        <TextField
+          control={control}
+          name="empty"
+          label="Current Charges"
+          required
+          placeholder="0.00"
+          helper="Required. The split uses this number."
+        />
+      </TouchTargetCheck>
+      <TextField control={control} name="filled" label="What’s it for" required />
+      <TextField
+        control={control}
+        name="optional"
+        label="What’s it for"
+        placeholder="e.g. Aircon service"
+        helper="Shown on the charge in the message."
+      />
+      <TextField
+        control={control}
+        name="invalid"
+        label="Amount"
+        required
+        error="Enter an amount greater than 0."
+      />
+      <TextField control={control} name="disabled" label="Month being fixed" disabled />
+      <Text className="font-manrope-medium text-caption text-on-surface-variant">
+        Live: leave empty and tap away to see the error, type to clear it on the next blur.
+      </Text>
+      <TextField
+        control={control}
+        name="live"
+        label="Label"
+        required
+        placeholder="Required"
+        helper="Checked when you leave the field."
+      />
+      <Button
+        size="small"
+        variant="outline"
+        label="Submit"
+        onPress={handleSubmit((v) => setSubmitted(`Submitted label: ${v.live}`))}
+      />
+      <Button size="small" variant="ghost" label="Reset" onPress={() => reset()} />
+      <Text className="font-manrope-medium text-caption text-on-surface-variant">{submitted}</Text>
+    </View>
+  );
+}
 
 /**
  * Dev-only component test page (plan 2.3). Every shared component gets a section here.
@@ -316,6 +400,7 @@ export default function ComponentTestPage() {
               </View>
             ))}
           </View>
+          <FormFieldsDemo />
           <Text className="font-manrope-medium text-body text-on-surface-variant">
             Sections are added by the later Phase 2 steps.
           </Text>
