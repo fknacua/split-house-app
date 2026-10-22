@@ -14,7 +14,8 @@ export function GluestackUIProvider({
   style?: ViewProps['style'];
 }) {
   useEffect(() => {
-    Appearance.setColorScheme(mode as ColorSchemeName);
+    // 'unspecified' hands control back to the phone's setting
+    Appearance.setColorScheme(mode === 'system' ? 'unspecified' : (mode as ColorSchemeName));
   }, [mode]);
 
   return (
