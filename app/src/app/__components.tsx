@@ -2,9 +2,10 @@ import { Redirect } from 'expo-router';
 import { useState } from 'react';
 import { ScrollView, Text, View } from 'react-native';
 
-import { Bell, Check, Clock, Send } from 'lucide-react-native';
+import { Bell, Check, CheckCircle, CircleAlert, CircleCheck, Clock, Send, TriangleAlert } from 'lucide-react-native';
 
 import { Alert } from '@/components/alert';
+import { Badge } from '@/components/badge';
 import { Button, type ButtonVariant } from '@/components/button';
 import { ChipGroup } from '@/components/chip';
 import { SegmentedControl } from '@/components/segmented-control';
@@ -265,6 +266,55 @@ export default function ComponentTestPage() {
                 <Button size="small" variant="outline" label="Discard" className="flex-1" />
               </View>
             </Alert>
+          </View>
+          <View className="gap-3">
+            <Text className="font-manrope-bold text-sheet-title text-on-surface">
+              Badges and status chips
+            </Text>
+            {[
+              {
+                title: 'success',
+                badges: [<Badge key="paid" variant="success" label="Paid" />],
+              },
+              {
+                title: 'warning',
+                badges: [<Badge key="unpaid" variant="warning" label="Unpaid" />],
+              },
+              {
+                title: 'danger',
+                badges: [<Badge key="overdue" variant="danger" label="Overdue 2 days" />],
+              },
+              {
+                title: 'info',
+                badges: [<Badge key="due" variant="info" label="Due 16 Nov" />],
+              },
+              {
+                title: 'neutral',
+                badges: [<Badge key="neutral" variant="neutral" label="Neutral" />],
+              },
+              {
+                title: 'primary',
+                badges: [<Badge key="todo" variant="primary" label="To do" />],
+              },
+              {
+                title: 'with icon',
+                badges: [
+                  <Badge key="success" variant="success" icon={CircleCheck} label="Success" />,
+                  <Badge key="warning" variant="warning" icon={TriangleAlert} label="Warning" />,
+                  <Badge key="error" variant="danger" icon={CircleAlert} label="Error" />,
+                  <Badge key="due" variant="info" icon={Clock} label="Due today" />,
+                  <Badge key="icon-primary" variant="primary" icon={Bell} label="Primary Icon" />,
+                  <Badge key="nudged" variant="neutral" icon={Bell} label="Nudged Mon 2 Nov" />,
+                ],
+              },
+            ].map((group) => (
+              <View key={group.title} className="gap-2">
+                <Text className="font-manrope-bold text-label text-on-surface-variant">
+                  {group.title}
+                </Text>
+                <View className="flex-row flex-wrap items-center gap-2">{group.badges}</View>
+              </View>
+            ))}
           </View>
           <Text className="font-manrope-medium text-body text-on-surface-variant">
             Sections are added by the later Phase 2 steps.
