@@ -2,6 +2,24 @@
 
 Expo (React Native) Android app, NativeWind, gluestack-ui v5. Never use Expo Go: this app runs in a development build.
 
+## Environment
+
+Set this up before running the app. Copy `.env.example` to `.env.local` (never committed) and fill in the values:
+
+- `EXPO_PUBLIC_BACKEND_URL`: the backend the app sends its requests to. The app throws at launch if it is missing.
+- `EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID`: the Google OAuth Web client ID (not the Android one), used by the sign-in screen.
+
+`EXPO_PUBLIC_*` values are baked in at bundle time, so after changing one, restart Metro with `npx expo start --dev-client -c`. A reload is not enough.
+
+## Choosing a backend
+
+`EXPO_PUBLIC_BACKEND_URL` is the only thing that decides which backend the app talks to.
+
+- **Deployed backend:** the `https://` address of the Vercel project.
+- **Backend on your computer:** `http://<PC-LAN-IP>:3000`, using your computer's IPv4 address from `ipconfig`. It is not the phone's IP, and `localhost` does not work because on the phone it means the phone itself. The address can change, so check it each session. A stale address shows up as "Sign-in failed".
+
+Running the backend itself is covered in the backend README. When using a backend on your computer, `EXPO_PUBLIC_BACKEND_URL` must hold the same value as the backend's `BETTER_AUTH_URL`; see [Keeping the two env files in sync](../README.md#keeping-the-two-env-files-in-sync).
+
 ## Run on a phone (development build, LAN mode)
 
 1. Install the development build APK on the phone once (`eas build --profile development --platform android`, then install the APK). Rebuild only when native dependencies change.
@@ -19,21 +37,6 @@ If the phone cannot connect:
 - Allow Node.js through Windows Firewall for private networks (the first run asks for this).
 - Check that the Wi-Fi network is set to "Private" on Windows and that it has no client isolation (guest networks often do).
 - Fallback: `npx expo start --dev-client --tunnel` (slower, works across networks).
-
-## Environment
-
-Values live in `app/.env.local` (never committed): `EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID` and `EXPO_PUBLIC_BACKEND_URL`.
-
-## Point the app at a local backend
-
-`EXPO_PUBLIC_BACKEND_URL` decides which backend the app talks to (Vercel, or your own computer). The phone cannot reach `localhost`, so use the computer's LAN address (`ipconfig`, IPv4 line; it can change).
-
-1. In `app/.env.local`, set `EXPO_PUBLIC_BACKEND_URL=http://<LAN-IP>:3000`. Keep the Vercel value commented out above it.
-2. In `backend/.env`, set `BETTER_AUTH_URL=http://<LAN-IP>:3000`, and check `DATABASE_URL` is the Neon dev branch.
-3. Start the backend so it listens on the LAN: `cd backend && npm run dev -- -H 0.0.0.0`.
-4. Restart Metro with `npx expo start --dev-client -c`. `EXPO_PUBLIC_*` values are baked in at bundle time, so a reload is not enough.
-
-To go back to Vercel, restore the old values and restart Metro the same way.
 
 ## Checks
 
