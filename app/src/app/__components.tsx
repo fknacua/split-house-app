@@ -13,6 +13,7 @@ import { Button, type ButtonVariant } from '@/components/button';
 import { ChipGroup } from '@/components/chip';
 import { FieldControl, FieldControlProps } from '@/components/form-field/';
 import { ConnectedButtonGroup } from '@/components/connected-button-group';
+import { DateField } from '@/components/date-field';
 import { MoneyInput } from '@/components/money-input';
 import { MonthSelectField } from '@/components/month-select-field';
 import { PhoneInput } from '@/components/phone-input';
@@ -20,8 +21,8 @@ import { SelectField } from '@/components/select-field';
 import { TextareaInput } from '@/components/textarea-input';
 import { TextInput } from '@/components/text-input';
 import { TouchTargetCheck, TouchTargetCheckProvider } from '@/components/touch-target-check';
-// eslint-disable-next-line no-restricted-imports -- TODO: replace with a wrapper from src/components
-import { Switch } from '@/components/ui/switch';
+import { Switch, SwitchRow } from '@/components/switch';
+import { todayKey } from '@/lib/date';
 import { currentMonth, addMonths, monthRange } from '@/lib/month';
 import { formatCents } from '@/lib/money';
 import { cents, e164Phone, positiveCents, requiredText } from '@/lib/schemas/common';
@@ -298,6 +299,16 @@ const pickersSchema = z.object({
   month: z.string().min(1, 'Choose a month'),
   monthFilled: z.string(),
   monthDisabled: z.string(),
+  date: z.string().min(1, 'Choose a date'),
+  dateFilled: z.string(),
+  dateOptional: z.string(),
+  dateInvalid: z.string(),
+  dateDisabled: z.string(),
+  switchOn: z.boolean(),
+  switchOff: z.boolean(),
+  switchInvalid: z.boolean(),
+  switchDisabledOn: z.boolean(),
+  switchDisabledOff: z.boolean(),
 });
 
 type PickersValues = z.infer<typeof pickersSchema>;
@@ -305,6 +316,7 @@ type PickersValues = z.infer<typeof pickersSchema>;
 /** The Pickers section: Select and month list in every state, plus the bare (no form) versions. */
 function PickersDemo() {
   const thisMonth = currentMonth();
+  const today = todayKey();
   const months = monthRange(addMonths(thisMonth, -1), 4);
   const { control } = useForm<PickersValues>({
     resolver: zodResolver(pickersSchema),
@@ -317,10 +329,25 @@ function PickersDemo() {
       month: '',
       monthFilled: thisMonth,
       monthDisabled: thisMonth,
+      date: '',
+      dateFilled: today,
+      dateOptional: today,
+      dateInvalid: '',
+      dateDisabled: today,
+      switchOn: true,
+      switchOff: false,
+      switchInvalid: false,
+      switchDisabledOn: true,
+      switchDisabledOff: false,
     },
   });
+  const [bareSwitch, setBareSwitch] = useState(false);
+  const [bareSwitchRow, setBareSwitchRow] = useState(true);
+  const switchOn = useWatch({ control, name: 'switchOn' });
   const [bareWho, setBareWho] = useState('');
   const [bareMonth, setBareMonth] = useState('');
+  const [bareDate, setBareDate] = useState('');
+  const date = useWatch({ control, name: 'date' });
   const who = useWatch({ control, name: 'who' });
   const month = useWatch({ control, name: 'month' });
 
@@ -340,7 +367,8 @@ function PickersDemo() {
       </Text>
       <SelectField
         options={PAYER_OPTIONS}
-        fieldControlProps={{ control, name: 'whoFilled', label: 'From (filled)', required: true }}
+        clearable
+        fieldControlProps={{ control, name: 'whoFilled', label: 'From (filled, clearable)', required: true }}
       />
       <SelectField
         options={PAYER_OPTIONS}
@@ -360,8 +388,9 @@ function PickersDemo() {
       <TouchTargetCheck>
         <MonthSelectField
           months={months}
+          clearable
           placeholder="Choose a month"
-          fieldControlProps={{ control, name: 'month', label: 'Bill month', required: true }}
+          fieldControlProps={{ control, name: 'month', label: 'Bill month (clearable)', required: true }}
         />
       </TouchTargetCheck>
       <Text className="font-manrope-medium text-caption text-on-surface-variant">
@@ -375,7 +404,55 @@ function PickersDemo() {
         months={months}
         fieldControlProps={{ control, name: 'monthDisabled', label: 'Month being fixed (disabled)', disabled: true }}
       />
+      <TouchTargetCheck>
+        <DateField
+          placeholder="Choose a date"
+          maxDate={today}
+          fieldControlProps={{ control, name: 'date', label: 'Received on', required: true }}
+        />
+      </TouchTargetCheck>
+      <Text className="font-manrope-medium text-caption text-on-surface-variant">
+        Live value: {date === '' ? '(none)' : date}. The dialog opens on today and stops at today
+        (maxDate). Close it without picking to see the required error.
+      </Text>
+      <DateField
+        clearable={false}
+        fieldControlProps={{
+          control,
+          name: 'dateFilled',
+          label: 'Received on (filled, not clearable)',
+          required: true,
+        }}
+      />
+      <DateField
+        placeholder="No due date"
+        fieldControlProps={{
+          control,
+          name: 'dateOptional',
+          label: 'Due date (optional)',
+          helper: 'Tap × to clear it.',
+        }}
+      />
+      <DateField
+        placeholder="Choose a date"
+        fieldControlProps={{
+          control,
+          name: 'dateInvalid',
+          label: 'Received on (error)',
+          required: true,
+          error: 'Choose a date.',
+        }}
+      />
+      <DateField
+        fieldControlProps={{ control, name: 'dateDisabled', label: 'Received on (disabled)', disabled: true }}
+      />
       <Text className="font-manrope-bold text-label text-on-surface-variant">Bare, no form</Text>
+      <DateField
+        value={bareDate}
+        onChange={setBareDate}
+        accessibilityLabel="Date"
+        placeholder="Choose a date"
+      />
       <SelectField
         value={bareWho}
         onChange={setBareWho}
@@ -393,6 +470,46 @@ function PickersDemo() {
       <Text className="font-manrope-medium text-caption text-on-surface-variant">
         Bare values: {bareWho === '' ? '(none)' : bareWho} / {bareMonth === '' ? '(none)' : bareMonth}
       </Text>
+
+      <Text className="font-manrope-bold text-sheet-title text-on-surface">Switch</Text>
+      <TouchTargetCheck>
+        <SwitchRow
+          label="Fixes a past month"
+          description="Turn on to pick the month being corrected"
+          fieldControlProps={{ control, name: 'switchOn' }}
+        />
+      </TouchTargetCheck>
+      <Text className="font-manrope-medium text-caption text-on-surface-variant">
+        Live value: {switchOn ? 'on' : 'off'}
+      </Text>
+      <SwitchRow label="Off, no hint" fieldControlProps={{ control, name: 'switchOff' }} />
+      <SwitchRow
+        label="Error"
+        description="Shown instead of this hint"
+        fieldControlProps={{ control, name: 'switchInvalid', error: 'Turn this on to continue.' }}
+      />
+      <SwitchRow
+        label="Disabled, on"
+        description="Notifications are blocked on this phone"
+        fieldControlProps={{ control, name: 'switchDisabledOn', disabled: true }}
+      />
+      <SwitchRow
+        label="Disabled, off"
+        fieldControlProps={{ control, name: 'switchDisabledOff', disabled: true }}
+      />
+      <Text className="font-manrope-bold text-label text-on-surface-variant">Bare, no form</Text>
+      <SwitchRow
+        label="Row with no form"
+        description="Value and handler come from the screen"
+        value={bareSwitchRow}
+        onChange={setBareSwitchRow}
+      />
+      <View className="flex-row items-center gap-3">
+        <Switch value={bareSwitch} onChange={setBareSwitch} accessibilityLabel="Bare switch" />
+        <Text className="font-manrope-medium text-caption text-on-surface-variant">
+          Bare switch, no label: {bareSwitch ? 'on' : 'off'}
+        </Text>
+      </View>
     </View>
   );
 }
@@ -435,7 +552,11 @@ export default function ComponentTestPage() {
             <Text className="font-manrope-medium text-body text-foreground">
               Outline targets under 44px
             </Text>
-            <Switch value={checkTargets} onValueChange={setCheckTargets} />
+            <Switch
+              value={checkTargets}
+              onChange={setCheckTargets}
+              accessibilityLabel="Outline targets under 44px"
+            />
           </View>
         </View>
         <KeyboardAvoidingView behavior="padding" className="flex-1">
