@@ -16,7 +16,7 @@ const alertStyle = tva({
       info: 'bg-info-tint border-info-line',
       warning: 'bg-warning-tint border-warning-line',
       danger: 'bg-danger-tint border-danger-line',
-      success: 'bg-success-container border-success',
+      success: 'bg-success-tint border-success-line',
     },
   },
 });
@@ -25,8 +25,8 @@ const alertTextStyle = tva({
   base: 'text-label',
   parentVariants: {
     variant: {
-      info: 'text-on-surface',
-      warning: 'text-on-surface',
+      info: 'text-on-info-container',
+      warning: 'text-on-warning-container',
       danger: 'text-on-danger-tint',
       success: 'text-on-success-container',
     },
