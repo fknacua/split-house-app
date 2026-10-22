@@ -223,6 +223,15 @@
   }
 }
 
+/*
+ * Spacing base in px. NativeWind 5 preview ignores `inlineRem: 16` in metro.config.js and
+ * converts rem at 14, which made every spacing class about 12.5% too small (size-12 = 42dp).
+ * With a px base, size-12 = 48dp and min-h-11 = 44dp regardless of the rem setting.
+ */
+@theme {
+  --spacing: 4px;
+}
+
 @theme inline {
   /* gluestack v5 variables */
   --color-background: rgb(var(--background));
