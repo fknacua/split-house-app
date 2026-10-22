@@ -30,18 +30,30 @@ export interface SelectFieldOwnProps {
   options: SelectOption[];
   /** Shown in the field while no choice is picked (the value is `''`). */
   placeholder?: string;
+  /** Shows an × button to clear a picked choice. Off by default; pass `true` to opt in. */
+  clearable?: boolean;
 }
 
 /**
  * Bare select: the 48px outlined field that opens a bottom sheet list, with no label or form
  * state. The value is the picked option's `value`, or `''` when nothing is picked. While a
- * choice is picked, an × button in the field clears it back to `''`.
+ * choice is picked, an × button in the field clears it back to `''` (opt in with `clearable`).
  */
 export const BareSelectField = forwardRef<
   ComponentRef<typeof SelectTrigger>,
   BareInputProps & SelectFieldOwnProps
 >(function BareSelectField(
-  { value, onChange, onBlur, accessibilityLabel, invalid, disabled, options, placeholder },
+  {
+    value,
+    onChange,
+    onBlur,
+    accessibilityLabel,
+    invalid,
+    disabled,
+    options,
+    placeholder,
+    clearable = false,
+  },
   ref
 ) {
   const selected = options.find((option) => option.value === value);
@@ -57,7 +69,7 @@ export const BareSelectField = forwardRef<
       <SelectTrigger ref={ref} accessibilityLabel={accessibilityLabel}>
         {/* The label is passed in so the field follows the value when a form sets it. */}
         <SelectInput placeholder={placeholder} value={selected?.label ?? ''} />
-        {selected && !disabled && (
+        {clearable && selected && !disabled && (
           <Pressable
             accessibilityRole="button"
             accessibilityLabel="Clear"
@@ -70,7 +82,7 @@ export const BareSelectField = forwardRef<
             <SelectIcon as={X} />
           </Pressable>
         )}
-        <SelectIcon as={ChevronDown} />
+        <SelectIcon as={ChevronDown} className={disabled ? 'text-on-disabled' : undefined} />
       </SelectTrigger>
       <SelectPortal>
         <SelectBackdrop />
@@ -99,6 +111,7 @@ export const BareSelectField = forwardRef<
  *
  * @param options - The choices.
  * @param placeholder - Shown while nothing is picked.
+ * @param clearable - Shows an × button to clear the choice. Defaults to `false`; pass `true` to show it.
  * @param value - The picked option's value, or `''` (standalone only).
  * @param onChange - Called with the picked option's value (standalone only).
  * @param fieldControlProps - Binds the select to a form field (form-controlled only).

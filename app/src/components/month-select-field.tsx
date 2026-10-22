@@ -10,6 +10,8 @@ export interface MonthSelectFieldOwnProps {
   months: string[];
   /** Shown in the field while no month is picked (the value is `''`). */
   placeholder?: string;
+  /** Shows an × button to clear a picked month. Off by default; pass `true` to opt in. */
+  clearable?: boolean;
 }
 
 /** Bare month select: a select whose choices are month keys shown as "November 2026". */
@@ -28,6 +30,7 @@ const BareMonthSelectField = forwardRef<
  *
  * @param months - The month keys that can be picked.
  * @param placeholder - Shown while nothing is picked.
+ * @param clearable - Shows an × button to clear the month. Defaults to `false`; pass `true` to show it.
  * @param value - The picked month key, or `''` (standalone only).
  * @param onChange - Called with the picked month key (standalone only).
  * @param fieldControlProps - Binds the select to a form field (form-controlled only).
