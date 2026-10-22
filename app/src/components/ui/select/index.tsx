@@ -1,11 +1,10 @@
 'use client';
 
 import React from 'react';
-import { tva } from '@gluestack-ui/utils/nativewind-utils';
 import { UIIcon } from '@gluestack-ui/core/icon/creator';
 import {
+  tva,
   withStyleContext,
-  useStyleContext,
 } from '@gluestack-ui/utils/nativewind-utils';
 import type { VariantProps } from '@gluestack-ui/utils/nativewind-utils';
 import { createSelect } from '@gluestack-ui/core/select/creator';
@@ -34,17 +33,7 @@ const SelectTriggerWrapper = React.forwardRef<
 });
 
 const selectIconStyle = tva({
-  base: 'text-foreground/50 fill-none',
-  parentVariants: {
-    size: {
-      '2xs': 'h-3 w-3',
-      'xs': 'h-3.5 w-3.5',
-      'sm': 'h-4 w-4',
-      'md': 'h-[18px] w-[18px]',
-      'lg': 'h-5 w-5',
-      'xl': 'h-6 w-6',
-    },
-  },
+  base: 'text-on-surface-variant fill-none h-5 w-5',
 });
 
 const selectStyle = tva({
@@ -52,40 +41,11 @@ const selectStyle = tva({
 });
 
 const selectTriggerStyle = tva({
-  base: 'border border-border rounded flex-row items-center overflow-hidden px-3 data-[hover=true]:border-primary/80 data-[focus=true]:border-primary/80 data-[disabled=true]:opacity-40 data-[disabled=true]:data-[hover=true]:border-border/80',
-  variants: {
-    size: {
-      xl: 'min-h-12',
-      lg: 'min-h-11',
-      md: 'min-h-10',
-      sm: 'min-h-9',
-    },
-    variant: {
-      underlined:
-        'border-0 border-b rounded-none data-[hover=true]:border-primary/80 data-[focus=true]:border-primary/80 data-[focus=true]:web:shadow-[inset_0_-1px_0_0] data-[focus=true]:web:shadow-primary/80 data-[invalid=true]:border-destructive data-[invalid=true]:web:shadow-destructive',
-      outline:
-        'data-[focus=true]:border-primary/80 data-[focus=true]:web:shadow-[inset_0_0_0_1px] data-[focus=true]:data-[hover=true]:web:shadow-primary/80 data-[invalid=true]:web:shadow-[inset_0_0_0_1px] data-[invalid=true]:border-destructive data-[invalid=true]:web:shadow-destructive data-[invalid=true]:data-[hover=true]:border-destructive',
-      rounded:
-        'rounded-full data-[focus=true]:border-primary/80 data-[focus=true]:web:shadow-[inset_0_0_0_1px] data-[focus=true]:web:shadow-primary/80 data-[invalid=true]:border-destructive data-[invalid=true]:web:shadow-destructive',
-    },
-  },
+  base: 'min-h-12 w-full flex-row items-center rounded-field border border-outline bg-surface px-3.5 gap-2 overflow-hidden data-[focus=true]:border-2 data-[focus=true]:border-primary data-[focus=true]:px-[13px] data-[invalid=true]:border-2 data-[invalid=true]:border-danger data-[invalid=true]:px-[13px] data-[disabled=true]:border-outline-variant data-[disabled=true]:bg-disabled',
 });
 
 const selectInputStyle = tva({
-  base: 'flex-1 px-0 placeholder:text-foreground/50 web:w-full h-full text-foreground/90 pointer-events-none web:outline-none ios:leading-[0px] py-0',
-  parentVariants: {
-    size: {
-      xl: 'text-xl',
-      lg: 'text-lg',
-      md: 'text-base',
-      sm: 'text-sm',
-    },
-    variant: {
-      underlined: 'px-0',
-      outline: '',
-      rounded: 'px-4',
-    },
-  },
+  base: 'flex-1 h-full py-0 px-0 text-field font-manrope-medium text-on-surface placeholder:text-on-surface-variant data-[disabled=true]:text-on-disabled pointer-events-none',
 });
 
 const StyledIcon = styled(UIIcon, {
@@ -135,92 +95,52 @@ const Select = React.forwardRef<
   );
 });
 
-type ISelectTriggerProps = VariantProps<typeof selectTriggerStyle> &
-  React.ComponentProps<typeof UISelect.Trigger> & { className?: string };
+type ISelectTriggerProps = React.ComponentProps<typeof UISelect.Trigger> & {
+  className?: string;
+};
 
 const SelectTrigger = React.forwardRef<
   React.ComponentRef<typeof UISelect.Trigger>,
   ISelectTriggerProps
->(function SelectTrigger(
-  { className, size = 'md', variant = 'outline', ...props },
-  ref
-) {
+>(function SelectTrigger({ className, ...props }, ref) {
   return (
     <UISelect.Trigger
-      className={selectTriggerStyle({
-        class: className,
-        size,
-        variant,
-      })}
+      className={selectTriggerStyle({ class: className })}
       ref={ref}
-      context={{ size, variant }}
+      context={{}}
       {...props}
     />
   );
 });
 
-type ISelectInputProps = VariantProps<typeof selectInputStyle> &
-  React.ComponentProps<typeof UISelect.Input> & { className?: string };
+type ISelectInputProps = React.ComponentProps<typeof UISelect.Input> & {
+  className?: string;
+};
 
 const SelectInput = React.forwardRef<
   React.ComponentRef<typeof UISelect.Input>,
   ISelectInputProps
 >(function SelectInput({ className, ...props }, ref) {
-  const { size: parentSize, variant: parentVariant } = useStyleContext();
   return (
     <UISelect.Input
-      className={selectInputStyle({
-        class: className,
-        parentVariants: {
-          size: parentSize,
-          variant: parentVariant,
-        },
-      })}
+      className={selectInputStyle({ class: className })}
       ref={ref}
       {...props}
     />
   );
 });
 
-type ISelectIcon = VariantProps<typeof selectIconStyle> &
-  React.ComponentProps<typeof UISelect.Icon> & { className?: string };
+type ISelectIcon = React.ComponentProps<typeof UISelect.Icon> & {
+  className?: string;
+};
 
 const SelectIcon = React.forwardRef<
   React.ComponentRef<typeof UISelect.Icon>,
   ISelectIcon
->(function SelectIcon({ className, size, ...props }, ref) {
-  const { size: parentSize } = useStyleContext();
-  if (typeof size === 'number') {
-    return (
-      <UISelect.Icon
-        ref={ref}
-        {...props}
-        className={selectIconStyle({ class: className })}
-        size={size}
-      />
-    );
-  } else if (
-    //@ts-expect-error : web only
-    (props?.height !== undefined || props?.width !== undefined) &&
-    size === undefined
-  ) {
-    return (
-      <UISelect.Icon
-        ref={ref}
-        {...props}
-        className={selectIconStyle({ class: className })}
-      />
-    );
-  }
+>(function SelectIcon({ className, ...props }, ref) {
   return (
     <UISelect.Icon
-      className={selectIconStyle({
-        class: className,
-        size,
-        parentVariants: {
-          size: parentSize,
-        },
-      })}
+      className={selectIconStyle({ class: className })}
       ref={ref}
       {...props}
     />
