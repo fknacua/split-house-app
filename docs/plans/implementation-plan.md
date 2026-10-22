@@ -81,6 +81,7 @@ Shared pieces go under `app/src/components/`.
 **Wrapper rule for every shared component (set by the Button, 2.5):** do not build a new component when gluestack has a native one.
 - **Native (`components/ui/<name>`):** holds the looks: variants, sizes, colours, shapes, and the disabled and pressed states. Customise the copied file in place.
 - **Wrapper (`components/<name>.tsx`):** our own props, designed from the native ones, translated to what the native component needs. It adds only behaviour the native one lacks (for Button: `loading`, the label and icon composition) and exposes no gluestack types. Screens import only the wrapper, so swapping the library means rewriting the wrappers (ESLint `no-restricted-imports` enforces this; direct `components/ui` imports need a disable comment with a reason).
+- **Form inputs (set by 2.9):** every input is a bare wrapper that works standalone and, with the optional `fieldControlProps`, is form-controlled (`withFormControlledField` in `components/form-field/`). Later fields (MoneyField, SelectField, DateField, ...) follow the same pattern, so the Controller and `FormField` wiring is written once.
 - **Before writing a wrapper:** fix every type check error and lint error or warning in the native component it wraps (for example the known ones in `ui/alert-dialog`, `ui/popover`, `ui/calendar`, `ui/date-time-picker`), so the wrapper sits on a clean base. Report anything you cannot fix without changing behaviour instead of suppressing it.
 - **Custom pieces with no gluestack native** (connected button group, single-select chips, bottom navigation) stay custom, as the mapping doc says.
 
@@ -128,28 +129,30 @@ Shared pieces go under `app/src/components/`.
   - **Check against:** `FormControls.dc.html` `fields` view, all states (default, focus, filled, error, disabled).
   - **Test page:** add the **Form fields** section with TextField in default, filled, required, helper, error, disabled.
 
-- **2.9** **TextareaField and PhoneField**
+- ✅ **2.9** **TextareaInput and PhoneInput, and the form-controlled input pattern** (`components/textarea-input.tsx`, `components/phone-input.tsx`, `components/form-field/`)
+  - **Pattern (also applies to `TextInput` from 2.8):** each input is a bare wrapper over the native gluestack input (standalone: `value`, `onChange`, no label). Passing the optional `fieldControlProps` (type `FieldControlProps<T>`: `control`, `name`, `label`, `required`, `helper`, `error`, `disabled`, `className`) makes the same input form-controlled: bound to that react-hook-form field and wrapped in the label-above `FormField`. The two modes are a discriminated union (`StandaloneFieldProps` or `FormControlledFieldProps<T>`). One helper, `withFormControlledField`, adds the branch, built on the `useFormControlledField` hook, so each input file holds only its bare component. The render-prop `FieldControl` stays as an escape hatch.
   - **Build:**
-    - `TextareaField`.
-    - `PhoneField`: starts with an editable `+65` so other countries work; value checked with `z.e164()`.
+    - `TextareaInput`: 96px field on a restyled `ui/textarea` (same look as the input).
+    - `PhoneInput`: shows an editable `+65` while empty so other countries work; value is `+` and digits, checked with `e164Phone` (`z.e164()`).
   - **Check against:** `FormControls.dc.html` `fields` view, all states.
-  - **Test page:** add both to the **Form fields** section, each in default, filled, required, helper, error, disabled.
+  - **Test page:** add both to the **Form fields** section, each in default, filled, required, helper, error, disabled, plus a **Bare inputs** group with no form.
 
-- **2.10** **MoneyField and `lib/money.ts`**
-  - **Build `lib/money.ts`:** `formatCents(c)` -> `$1,862.86` (tabular numerals via font feature), `parseMoneyToCents(str)`, negative formatting for corrections. Display-only; no split maths in the app.
-  - **Build `MoneyField`:** Input with `$` prefix, numeric keyboard, stores integer cents, shows 2 decimals, uses the helpers above.
-  - **Test page:** add MoneyField to **Form fields**; typing `1862.86` must show `$1,862.86` and yield 186286 cents.
+- ✅ **2.10** **MoneyInput and `lib/money.ts`** (named `MoneyInput`, not `MoneyField`, to match `TextInput` and `PhoneInput`; later steps that say MoneyField mean this component)
+  - **Build `lib/money.ts`:** `formatCents(c)` -> `$1,862.86`, `parseMoneyToCents(str)`, negative formatting for corrections (`-$15.00`), plus `sanitizeMoneyInput` and `centsToInputText` for typing. Display-only; no split maths in the app. First app lib with unit tests: vitest added to `app/` (`npm test`, `src/lib/*.test.ts`); app libs get tests from now on.
+  - **Build `MoneyInput`:** bare input following the 2.9 pattern, value is integer cents (`number | null`), shows the typed text while focused and `$1,862.86` on blur, optional `allowNegative` +/- button. The shared pattern gained `withFormControlledFieldOf<Own, R, V>` for non-string values (type arguments passed explicitly); `withFormControlledField` is unchanged for string inputs.
+  - **Test page:** MoneyInput added to **Form fields** (live, filled, negative, error, disabled, bare); typing `1862.86` shows `$1,862.86` and yields 186286 cents.
 
-- **2.11** **SelectField, MonthSelectField and `lib/month.ts`**
+- ✅ **2.11** **SelectField, MonthSelectField and `lib/month.ts`**
   - **Build `lib/month.ts`:** `YYYY-MM` keys, label formatting, current month in Asia/Singapore (match server).
-  - **Build `SelectField`**, and **`MonthSelectField`**: Select list of `YYYY-MM`, shown "Nov 2026".
+  - **Build `SelectField`**, and **`MonthSelectField`**: Select list of `YYYY-MM`, shown "November 2026" (as in the design source).
   - **Check against:** `FormControls.dc.html` `pickers` view, all states.
-  - **Test page:** add the **Pickers** section with SelectField and MonthSelectField (tap, list opens, choose Nov 2026).
+  - **Test page:** add the **Pickers** section with SelectField and MonthSelectField (tap, list opens, choose November 2026).
 
-- **2.12** **DateField and Switch**
+- ✅ **2.12** **DateField and Switch**
   - **Build:** `DateField` (DateTimePicker date mode, calendar icon), and the gluestack `Switch`.
   - **Check against:** `FormControls.dc.html` `pickers` view, all states.
   - **Test page:** add both to the **Pickers** section (DateField opens the native Android dialog).
+  - **Note (Francis, 2026-10-23):** `ui/date-time-picker` and `ui/calendar` are already deleted (the app is Android only, so `DateField` is a custom field that opens the system dialog directly). Where this plan lists them as known errors or unused code (Phase 2 wrapper rule, 12.4a), they no longer exist.
 
 - **2.13** **Bottom navigation** (`bottom-nav.tsx` exists)
   - **Build:** switch from local state to an expo-router `Tabs` layout (`app/src/app/(tabs)/_layout.tsx` with `tabBar={props => <BottomNav .../>}`): Home, History, Household, Settings.
@@ -337,11 +340,12 @@ Source `Notifications.dc.html` (`headsUp`, `shade`) for copy, channel names, act
 - **12.2** Layout nudges the design warned about: taller label-above forms (MarkPaid different amount, failed sheets), Settings `blocked`; keyboard-avoiding in sheets; small phone and large font scale.
 - **12.3** Accessibility: labels on icon buttons, contrast of tokens already designed, focus order.
 - **12.4** Public-repo hygiene scan: no real names/numbers/amounts in code, tests, seed, README; `.env.example` names only; no `assets-old` content. Also none of the `TODO: replace with a wrapper` lint disables left in `app/src` (see 2.18), and `no-restricted-imports` clean without disables except justified ones.
+- **12.4a** **Unused code sweep**: `isMonthKey` in `app/src/lib/month.ts` (added in 2.11) had no caller outside its tests. If still unused, delete it and its tests. Also list the other exports under `app/src/lib/` that nothing imports, and remove or justify each.
 - **12.5a** **Backup bucket account setup (Francis, by hand; add as a new section to `docs/SplitHouse — Account Setup Guide.md`)**: create a free Cloudflare account and enable R2 (**decided: Cloudflare R2**; chosen over Backblaze B2 for free egress so restores cost nothing, a 10 GB free tier that includes 1M writes and 10M reads a month, and S3-compatible tooling; B2 is the fallback). R2 enabling goes through a checkout flow for an R2 subscription; the docs do not say whether a card is required, so check at signup and confirm Francis is fine with that. Create a private bucket named `split-house-backups` (no public access, no custom domain). Create an API token scoped to that single bucket with write/read only (no account-wide key, no delete rights if the provider allows). Note the endpoint URL, access key ID and secret in a password manager. Set a lifecycle rule to expire objects after about 60 days (or the job prunes to the last 8).
 - **12.5b** **GitHub secrets (Francis, in the repo's Settings > Secrets and variables > Actions)**: `NEON_DIRECT_URL` (direct, not pooled, read-only role if Neon allows), `BACKUP_PASSPHRASE` (also saved in the password manager; without it backups can't be restored), `BACKUP_BUCKET`, `BACKUP_ENDPOINT`, `BACKUP_ACCESS_KEY_ID`, `BACKUP_SECRET_ACCESS_KEY`. Add the names (no values) to `.env.example` or the setup guide.
 - **12.5c** **Workflow** `.github/workflows/backup.yml`: weekly cron plus manual `workflow_dispatch`; steps: install the Postgres client matching Neon's major version, `pg_dump --format=custom`, encrypt with `age`/`gpg` using the passphrase, upload to the bucket with an S3-compatible CLI, prune older than the last 8, fail the job (GitHub emails Francis) on any error. No dump or secret is ever printed to logs or kept as a public artifact.
 - **12.5d** **Restore test, once before go-live**: download the latest object, decrypt, `pg_restore` into a scratch Neon branch, check row counts for `Charge`, `Bill`, `BillFile` and that a bill PDF opens; delete the scratch branch. Write the restore steps in `backend/README.md` (no secrets).
-- **12.5e** **Shared schemas package (required before go-live)**: replace the hand-mirrored zod schemas in `app/src/lib/schemas/` (and the hand-synced `app/src/lib/api-types.ts`) with one shared package that both `backend/` and `app/` import, so the two sides cannot drift. Do it once the backend and app tests are in place, so regressions show up. Start with a short spike: npm workspaces with a `shared/` package that depends only on `zod`, then confirm the backend build and Vercel (root directory), the Expo/Metro bundle and EAS builds all resolve it. Form-only schemas stay app-side, built from the shared pieces. This reverses the 1.8 and 1.11 "do not add a shared package in v1" decision (Francis, 2026-10-21).
+- **12.5e** **Shared schemas package (required before go-live)**: replace the hand-mirrored zod schemas in `app/src/lib/schemas/` (and the hand-synced `app/src/lib/api-types.ts`) with one shared package that both `backend/` and `app/` import, so the two sides cannot drift. Do it once the backend and app tests are in place, so regressions show up. Start with a short spike: npm workspaces with a `shared/` package that depends only on `zod`, then confirm the backend build and Vercel (root directory), the Expo/Metro bundle and EAS builds all resolve it. Form-only schemas stay app-side, built from the shared pieces. **Candidate: `app/src/lib/month.ts`** (added in 2.11): pure month-key helpers on `date-fns` and `@date-fns/tz`. The backend has its own `backend/src/lib/month.ts` (Intl-based `monthKeyOf`/`currentMonth`), so move the shared logic into the package so both sides use one implementation and cannot drift on the Singapore month; the backend's `DEV_NOW` clock stays backend-side. This reverses the 1.8 and 1.11 "do not add a shared package in v1" decision (Francis, 2026-10-21).
 - **12.6** Production: Vercel project `split-house-api`, env vars, Neon prod branch migration (`prisma migrate deploy`), seed *real* household through the app's First run (not through code), EAS production-profile APK, new-phone test (install, sign in, old session revoked, reminders rebuilt).
 - **12.7** Go-live check for the Nov 2026 cycle: end-to-end dry run on the dev branch with fixtures: set up household, open month, upload (test) bill, preview messages, WhatsApp open, record payments, corrections, settle.
 
