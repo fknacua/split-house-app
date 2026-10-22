@@ -28,9 +28,10 @@ module.exports = defineConfig([
       ],
     },
   },
-  // The wrappers (src/components/*.tsx) and the native components themselves may import ui.
+  // The wrappers (anything under src/components, including subfolders such as form-field) and the
+  // native components themselves may import ui.
   {
-    files: ["src/components/*.{ts,tsx}", "src/components/ui/**/*.{ts,tsx}"],
+    files: ["src/components/**/*.{ts,tsx}"],
     rules: {
       "no-restricted-imports": "off",
     },

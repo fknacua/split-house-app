@@ -1,9 +1,9 @@
 import { Redirect } from 'expo-router';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useState } from 'react';
-import { useForm } from 'react-hook-form';
+import { type Control, useForm } from 'react-hook-form';
 import { z } from 'zod';
-import { ScrollView, Text, View } from 'react-native';
+import { KeyboardAvoidingView, ScrollView, Text, View } from 'react-native';
 
 import { Bell, Check, CircleAlert, CircleCheck, Clock, Send, TriangleAlert } from 'lucide-react-native';
 
@@ -11,12 +11,15 @@ import { Alert } from '@/components/alert';
 import { Badge } from '@/components/badge';
 import { Button, type ButtonVariant } from '@/components/button';
 import { ChipGroup } from '@/components/chip';
-import { TextField } from '@/components/form-field';
+import { FieldControl, FieldControlProps } from '@/components/form-field/';
 import { ConnectedButtonGroup } from '@/components/connected-button-group';
+import { PhoneInput } from '@/components/phone-input';
+import { TextareaInput } from '@/components/textarea-input';
+import { TextInput } from '@/components/text-input';
 import { TouchTargetCheck, TouchTargetCheckProvider } from '@/components/touch-target-check';
 // eslint-disable-next-line no-restricted-imports -- TODO: replace with a wrapper from src/components
 import { Switch } from '@/components/ui/switch';
-import { requiredText } from '@/lib/schemas/common';
+import { e164Phone, requiredText } from '@/lib/schemas/common';
 import { type ThemePreference, useThemePreference } from '@/lib/theme-preference';
 
 const SCOPE_OPTIONS = [
@@ -56,11 +59,30 @@ const demoSchema = z.object({
   invalid: z.string(),
   disabled: z.string(),
   live: requiredText,
+  note: z.string(),
+  noteFilled: z.string(),
+  noteInvalid: z.string(),
+  noteDisabled: z.string(),
+  phone: e164Phone,
+  phoneFilled: z.string(),
+  phoneInvalid: z.string(),
+  phoneDisabled: z.string(),
 });
 
 type DemoValues = z.infer<typeof demoSchema>;
 
-/** The Form fields section: every TextField state, plus one field validated live on blur. */
+/** A form binding built outside the JSX, annotated so `name` is still checked against the form. */
+function invalidAmountField(control: Control<DemoValues>): FieldControlProps<DemoValues> {
+  return {
+    control,
+    name: 'invalid',
+    label: 'Amount',
+    required: true,
+    error: 'Enter an amount greater than 0.',
+  };
+}
+
+/** The Form fields section: every field state, plus one field validated live on blur. */
 function FormFieldsDemo() {
   const { control, handleSubmit, reset } = useForm<DemoValues>({
     resolver: zodResolver(demoSchema),
@@ -72,49 +94,115 @@ function FormFieldsDemo() {
       invalid: '',
       disabled: 'November 2026',
       live: '',
+      note: '',
+      noteFilled: 'Hi Alex, here is the breakdown for November 2026.',
+      noteInvalid: '',
+      noteDisabled: 'Hi Alex, here is the breakdown for November 2026.',
+      phone: '',
+      phoneFilled: '+6591234567',
+      phoneInvalid: '+65',
+      phoneDisabled: '+6591234567',
     },
   });
   const [submitted, setSubmitted] = useState<string>('Not submitted');
+  const [bareText, setBareText] = useState('');
+  const [bareNote, setBareNote] = useState('');
+  const [bareNote2, setBareNote2] = useState('');
 
   return (
     <View className="gap-4">
       <Text className="font-manrope-bold text-sheet-title text-on-surface">Form fields</Text>
       <TouchTargetCheck>
-        <TextField
-          control={control}
-          name="empty"
-          label="Current Charges"
-          required
+        <TextInput
+          fieldControlProps={{
+            control,
+            name: 'empty',
+            label: 'Current Charges',
+            required: true,
+            helper: 'Required. The split uses this number.',
+          }}
           placeholder="0.00"
-          helper="Required. The split uses this number."
         />
       </TouchTargetCheck>
-      <TextField control={control} name="filled" label="What’s it for" required />
-      <TextField
+      <TextInput fieldControlProps={{ control, name: 'filled', label: 'What’s it for', required: true }} />
+      <Text className="font-manrope-medium text-caption text-on-surface-variant">
+        This one uses the render-prop FieldControl instead of fieldControlProps.
+      </Text>
+      <FieldControl
         control={control}
         name="optional"
         label="What’s it for"
-        placeholder="e.g. Aircon service"
         helper="Shown on the charge in the message."
-      />
-      <TextField
-        control={control}
-        name="invalid"
-        label="Amount"
-        required
-        error="Enter an amount greater than 0."
-      />
-      <TextField control={control} name="disabled" label="Month being fixed" disabled />
+      >
+        {(bind) => <TextInput {...bind} placeholder="e.g. Aircon service" />}
+      </FieldControl>
       <Text className="font-manrope-medium text-caption text-on-surface-variant">
-        Live: leave empty and tap away to see the error, type to clear it on the next blur.
+        This one passes a shared FieldControlProps object.
       </Text>
-      <TextField
-        control={control}
-        name="live"
-        label="Label"
-        required
+      <TextInput fieldControlProps={invalidAmountField(control)} />
+      <TextInput
+        fieldControlProps={{ control, name: 'disabled', label: 'Month being fixed', disabled: true }}
+      />
+      <TextareaInput
+        fieldControlProps={{
+          control,
+          name: 'note',
+          label: 'Message template',
+          helper: 'Placeholders like {name} are filled in when sent.',
+        }}
+        placeholder="Write the message"
+      />
+      <TextareaInput
+        fieldControlProps={{ control, name: 'noteFilled', label: 'Message template', required: true }}
+      />
+      <TextareaInput
+        fieldControlProps={{
+          control,
+          name: 'noteInvalid',
+          label: 'Message template',
+          required: true,
+          error: 'Write a message.',
+        }}
+      />
+      <TextareaInput
+        fieldControlProps={{ control, name: 'noteDisabled', label: 'Message template', disabled: true }}
+      />
+      <PhoneInput
+        fieldControlProps={{
+          control,
+          name: 'phone',
+          label: 'WhatsApp number',
+          required: true,
+          helper: 'Starts with +65. Change the code for another country. Checked when you leave the field.',
+        }}
+      />
+      <PhoneInput
+        fieldControlProps={{ control, name: 'phoneFilled', label: 'WhatsApp number', required: true }}
+      />
+      <PhoneInput
+        fieldControlProps={{
+          control,
+          name: 'phoneInvalid',
+          label: 'WhatsApp number',
+          required: true,
+          error: 'Enter a valid phone number',
+        }}
+      />
+      <PhoneInput
+        fieldControlProps={{ control, name: 'phoneDisabled', label: 'WhatsApp number', disabled: true }}
+      />
+      <Text className="font-manrope-medium text-caption text-on-surface-variant">
+        Live: the first WhatsApp number and Label are checked on blur and on Submit; leave one empty and tap away to see the error.
+      </Text>
+      <TextInput
+        fieldControlProps={{
+          control,
+          name: 'live',
+          label: 'Label',
+          required: true,
+          helper: 'Checked when you leave the field.',
+        }}
         placeholder="Required"
-        helper="Checked when you leave the field."
       />
       <Button
         size="small"
@@ -124,6 +212,23 @@ function FormFieldsDemo() {
       />
       <Button size="small" variant="ghost" label="Reset" onPress={() => reset()} />
       <Text className="font-manrope-medium text-caption text-on-surface-variant">{submitted}</Text>
+      <Text className="font-manrope-bold text-sheet-title text-on-surface">Bare inputs</Text>
+      <Text className="font-manrope-medium text-caption text-on-surface-variant">
+        No label or form state; they stand on their own.
+      </Text>
+      <TextInput value={bareText} onChange={setBareText} accessibilityLabel="Search" placeholder="Search" />
+      <TextareaInput value={bareNote} onChange={setBareNote} accessibilityLabel="Note" placeholder="Note" />
+      <Text className="font-manrope-medium text-caption text-on-surface-variant">
+        Lines: 2 tall when empty, grows to 4 then scrolls inside. Add line breaks to check.
+      </Text>
+      <TextareaInput
+        value={bareNote2}
+        onChange={setBareNote2}
+        accessibilityLabel="Short note"
+        placeholder="Short note"
+        lines={2}
+        maxLines={4}
+      />
     </View>
   );
 }
@@ -169,7 +274,8 @@ export default function ComponentTestPage() {
             <Switch value={checkTargets} onValueChange={setCheckTargets} />
           </View>
         </View>
-        <ScrollView contentContainerClassName="gap-6 px-4 py-6">
+        <KeyboardAvoidingView behavior="padding" className="flex-1">
+        <ScrollView contentContainerClassName="gap-6 px-4 py-6" keyboardShouldPersistTaps="handled">
           <View className="gap-3">
             <Text className="font-manrope-bold text-label text-foreground">
               Touch target check (demo)
@@ -405,6 +511,7 @@ export default function ComponentTestPage() {
             Sections are added by the later Phase 2 steps.
           </Text>
         </ScrollView>
+        </KeyboardAvoidingView>
       </View>
     </TouchTargetCheckProvider>
   );

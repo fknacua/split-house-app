@@ -2,11 +2,7 @@
 import React from 'react';
 import { createTextarea } from '@gluestack-ui/core/textarea/creator';
 import { View, TextInput } from 'react-native';
-import { tva } from '@gluestack-ui/utils/nativewind-utils';
-import {
-  withStyleContext,
-  useStyleContext,
-} from '@gluestack-ui/utils/nativewind-utils';
+import { tva, withStyleContext } from '@gluestack-ui/utils/nativewind-utils';
 import type { VariantProps } from '@gluestack-ui/utils/nativewind-utils';
 
 const SCOPE = 'TEXTAREA';
@@ -16,12 +12,11 @@ const UITextarea = createTextarea({
 });
 
 const textareaStyle = tva({
-  base: 'w-full h-[100px] border border-border  dark:bg-input/30 rounded data-[hover=true]:border-border/80 data-[focus=true]:border-primary/80 data-[focus=true]:data-[hover=true]:border-primary/80 data-[disabled=true]:opacity-40 data-[disabled=true]:bg-background/90 data-[disabled=true]:data-[hover=true]:border-border/80',
+  base: 'w-full rounded-field border border-outline bg-surface px-3.5 py-3 data-[focus=true]:border-2 data-[focus=true]:border-primary data-[focus=true]:px-[13px] data-[focus=true]:py-[11px] data-[invalid=true]:border-2 data-[invalid=true]:border-danger data-[invalid=true]:px-[13px] data-[invalid=true]:py-[11px] data-[disabled=true]:border-outline-variant data-[disabled=true]:bg-disabled',
 
   variants: {
     variant: {
-      default:
-        'data-[focus=true]:border-primary/80 data-[focus=true]:web:ring-1 data-[focus=true]:web:ring-inset data-[focus=true]:web:ring-indicator-primary data-[invalid=true]:border-destructive data-[invalid=true]:web:ring-1 data-[invalid=true]:web:ring-inset data-[invalid=true]:web:ring-indicator-error data-[invalid=true]:data-[hover=true]:border-destructive data-[invalid=true]:data-[focus=true]:data-[hover=true]:border-primary/80 data-[invalid=true]:data-[focus=true]:data-[hover=true]:web:ring-1 data-[invalid=true]:data-[focus=true]:data-[hover=true]:web:ring-inset data-[invalid=true]:data-[focus=true]:data-[hover=true]:web:ring-indicator-primary data-[invalid=true]:data-[disabled=true]:data-[hover=true]:border-destructive data-[invalid=true]:data-[disabled=true]:data-[hover=true]:web:ring-1 data-[invalid=true]:data-[disabled=true]:data-[hover=true]:web:ring-inset data-[invalid=true]:data-[disabled=true]:data-[hover=true]:web:ring-indicator-error ',
+      default: '',
     },
     size: {
       sm: '',
@@ -33,15 +28,7 @@ const textareaStyle = tva({
 });
 
 const textareaInputStyle = tva({
-  base: 'p-2 web:outline-0 web:outline-none flex-1 text-foreground placeholder:text-foreground/60 web:cursor-text web:data-[disabled=true]:cursor-not-allowed',
-  parentVariants: {
-    size: {
-      sm: 'text-sm',
-      md: 'text-base',
-      lg: 'text-lg',
-      xl: 'text-xl',
-    },
-  },
+  base: 'flex-1 p-0 text-field font-manrope-medium text-on-surface placeholder:text-on-surface-variant web:outline-0 web:outline-none',
 });
 
 type ITextareaProps = React.ComponentProps<typeof UITextarea> &
@@ -71,19 +58,12 @@ const TextareaInput = React.forwardRef<
   React.ComponentRef<typeof UITextarea.Input>,
   ITextareaInputProps
 >(function TextareaInput({ className, ...props }, ref) {
-  const { size: parentSize } = useStyleContext(SCOPE);
-
   return (
     <UITextarea.Input
       ref={ref}
       {...props}
       textAlignVertical="top"
-      className={textareaInputStyle({
-        parentVariants: {
-          size: parentSize,
-        },
-        class: className,
-      })}
+      className={textareaInputStyle({ class: className })}
     />
   );
 });
