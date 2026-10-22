@@ -34,7 +34,22 @@ The canvas boards are the same component with different props. The tables below 
 - Success alert (gluestack `Alert`, success variant): only on Mark bill paid, fully collected ("All $412.30 is collected..."). Tinted background (`success-tint`), `success-line` border, `success` check icon, `on-success-container` text. Alert text is tinted per variant (info, warning, success, error), not neutral. The partial-collected note stays a warning alert. Status chips such as Paid are unchanged.
 - Overdue is an error badge: `danger-container` background with `on-danger-container` text, on Home, Recipient and the Can't reach the server backdrop. Recipient's "Rent overdue since..." status line is `danger`. The overdue row's background tint on Home stays the warning tint. Due today and Due tomorrow stay info.
 - The big day number in every Home charge row uses `on-surface`, whatever the status.
-- gluestack v5 has no segmented control, chip or bottom navigation. These are custom pieces: the bottom navigation bar, the segmented controls, the chips, and the Google sign-in button.
+- gluestack v5 has no connected button group, chip or bottom navigation. These are custom pieces: the bottom navigation bar, the connected button groups, the single-select chips, and the Google sign-in button. The older "segmented control" is replaced by the connected button group everywhere. Specs follow.
+- Connected button group (choose one of two to four short options, all visible). Used for Add charge Shared / Personal, Settings Theme (Light / Dark / System), Settings > Message template preview sample, and Household payment route (Directly / Via someone, in edit person and add person).
+  - Row of buttons with a 2px gap, no outer border, no dividers. Equal widths (`flex: 1`) in full-width groups. The Message template preview group is compact: min width 72, horizontal padding 14, natural width.
+  - Height 48 full-width, 44 compact. Text 14/20, weight 700, centred, in every state. No icon or check mark.
+  - Unselected: `selected` background, `on-surface` text. Outer corners 24, inner corners 8 (two buttons: left is 24 left / 8 right, right is the reverse; middle buttons are 8 on all corners).
+  - Selected: `primary` background, `on-primary` text, radius 24 on all corners (a pill). The corner change is the only shape change.
+  - 150 ms transition on corner radius, background and text colour. Nothing else moves.
+  - Disabled while saving: selected `track`, unselected `disabled`, all text `on-disabled`. Taps ignored. (The handoff calls these `disabled-bg` and `disabled-fg`; in the theme they are `disabled` and `on-disabled`.)
+  - Accessibility: group role with a label, each button exposes its selected state.
+- Single-select chips (choose one of three or more options that wrap). Used for Add charge Split method (Per share, Per unit, Custom) and Who.
+  - Height 44, horizontal padding 16, radius 22, text 14/20 weight 700, no wrap, 8px gap. No check mark or icon.
+  - Border is always 1px, so it never changes layout width.
+  - Unselected: transparent background, `outline` border, `on-surface` text. Selected: `primary` background, border the same colour, `on-primary` text.
+  - Disabled while saving: selected background and border `track`, unselected border `outline-variant`, all text `on-disabled`. Taps ignored. 150 ms colour transition only.
+  - Not these controls: the "Insert" placeholder chips in the message template editor (they add text), and the radio cards in Mark paid > shortfall and Share bill.
+  - The selected fill matches the primary action button (e.g. Add charge below the sheet). Approved by the owner. Fallback if it reads as confusing: the grey `selected` token as the fill.
 - Every field is a `FormControl` with the label above the field and helper or error text below. No floating labels. See the Form controls row.
 - Month-only fields (bill month, Starts from) are Select-style lists. The date picker has no month-only mode. Date fields use the native picker.
 - Amounts are integer cents, SGD only. See the Data Model doc for rounding.

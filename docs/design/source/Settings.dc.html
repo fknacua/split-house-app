@@ -44,13 +44,10 @@ body{margin:0}
 <span style="font-size: 14px; line-height: 20px; font-weight: 700">Theme</span>
 <span style="font-size: 12px; line-height: 16px; font-weight: 600; color: {{c.onSurfaceVariant}}">{{themeNote}}</span>
 </div>
-<!-- CUSTOM: Segmented control (joined group, one selected value) -->
-<div role="group" aria-label="Theme" style="display: flex; border: 1px solid {{c.outline}}; border-radius: 22px; overflow: hidden">
+<!-- CUSTOM: Connected button group (M3 Expressive). Selected button becomes a full pill and fills; sizes never change -->
+<div role="group" aria-label="Theme" style="display: flex; gap: 2px">
 <sc-for list="{{themes}}" as="t" hint-placeholder-count="3">
-<button aria-pressed="{{t.pressed}}" onClick="{{t.pick}}" style="flex: 1 1 0; min-width: 0; height: 44px; border: 0; border-left: 1px solid {{t.divider}}; background: {{t.bg}}; color: {{t.fg}}; font-family: inherit; font-size: 14px; line-height: 20px; font-weight: 700; display: flex; align-items: center; justify-content: center; gap: 6px">
-<sc-if value="{{t.on}}" hint-placeholder-val="{{false}}"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 6 9 17l-5-5"></path></svg></sc-if>
-{{t.label}}
-</button>
+<button aria-pressed="{{t.pressed}}" onClick="{{t.pick}}" style="flex: 1 1 0; min-width: 0; height: 48px; padding: 0; box-sizing: border-box; border: 0; border-radius: {{t.radius}}; background: {{t.bg}}; color: {{t.fg}}; font-family: inherit; font-size: 14px; line-height: 20px; font-weight: 700; display: flex; align-items: center; justify-content: center; transition: border-radius 0.15s ease, background-color 0.15s ease, color 0.15s ease">{{t.label}}</button>
 </sc-for>
 </div>
 </div>
@@ -242,13 +239,10 @@ Open system settings
 <div style="display: flex; flex-direction: column; gap: 8px">
 <div style="display: flex; justify-content: space-between; align-items: center; padding: 0 4px">
 <h2 style="margin: 0; font-size: 14px; line-height: 20px; font-weight: 700">Preview</h2>
-<!-- CUSTOM: Segmented control (preview sample) -->
-<div role="group" aria-label="Preview sample" style="display: flex; border: 1px solid {{c.outline}}; border-radius: 22px; overflow: hidden">
+<!-- CUSTOM: Connected button group (preview sample) -->
+<div role="group" aria-label="Preview sample" style="display: flex; gap: 2px">
 <sc-for list="{{samples}}" as="sm" hint-placeholder-count="2">
-<button aria-pressed="{{sm.pressed}}" onClick="{{sm.pick}}" style="min-width: 72px; height: 44px; padding: 0 14px; border: 0; border-left: 1px solid {{sm.divider}}; background: {{sm.bg}}; color: {{sm.fg}}; font-family: inherit; font-size: 14px; line-height: 20px; font-weight: 700; display: flex; align-items: center; justify-content: center; gap: 6px">
-<sc-if value="{{sm.on}}" hint-placeholder-val="{{false}}"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 6 9 17l-5-5"></path></svg></sc-if>
-{{sm.label}}
-</button>
+<button aria-pressed="{{sm.pressed}}" onClick="{{sm.pick}}" style="min-width: 72px; height: 44px; padding: 0 14px; box-sizing: border-box; border: 0; border-radius: {{sm.radius}}; background: {{sm.bg}}; color: {{sm.fg}}; font-family: inherit; font-size: 14px; line-height: 20px; font-weight: 700; display: flex; align-items: center; justify-content: center; transition: border-radius 0.15s ease, background-color 0.15s ease, color 0.15s ease">{{sm.label}}</button>
 </sc-for>
 </div>
 </div>
@@ -346,10 +340,11 @@ class Component extends DCLogic {
       isBreakdown: st === 'template' || st === 'override', isNudge: st === 'nudge'
     };
     var themeSel = (this.state && this.state.themeSel) || 'System';
-    v.themes = ['Light', 'Dark', 'System'].map(function (l, i) {
+    v.themes = ['Light', 'Dark', 'System'].map(function (l, i, arr) {
       var on = l === themeSel;
-      return { label: l, on: on, pressed: on ? 'true' : 'false', bg: on ? c.selected : 'transparent', fg: on ? c.onSelected : c.onSurface,
-        divider: i === 0 ? 'transparent' : c.outline,
+        var first = i === 0, last = i === arr.length - 1;
+        var radius = on ? '24px' : ((first ? '24px' : '8px') + ' ' + (last ? '24px' : '8px') + ' ' + (last ? '24px' : '8px') + ' ' + (first ? '24px' : '8px'));
+      return { label: l, on: on, pressed: on ? 'true' : 'false', bg: on ? c.primary : c.selected, fg: on ? c.onPrimary : c.onSurface, radius: radius,
         pick: function () { self.setState({ themeSel: l }); } };
     });
     v.themeNote = themeSel === 'System' ? 'Follows your phone’s light or dark setting' : (themeSel === 'Light' ? 'Always light' : 'Always dark');
@@ -402,10 +397,11 @@ class Component extends DCLogic {
         'Tenant 2': { text: 'Hi Jordan! Paalala lang, yung rent for Nov 2026 ($950.00) ay due nung 1 Nov. Salamat! 🙏', meta: 'Tenant 2 · rent overdue since 1 Nov' },
         'Primary Tenant': { text: 'Hi Alex! Paalala lang, yung kuryente at tubig for Nov 2026 ($123.69) ay due nung 7 Nov. Salamat! 🙏', meta: 'Primary Tenant · utilities share, sample' }
       };
-      v.samples = ['Tenant 2', 'Primary Tenant'].map(function (l, i) {
+      v.samples = ['Tenant 2', 'Primary Tenant'].map(function (l, i, arr) {
         var on = l === sample;
-        return { label: l, on: on, pressed: on ? 'true' : 'false', bg: on ? c.selected : 'transparent', fg: on ? c.onSelected : c.onSurface,
-          divider: i === 0 ? 'transparent' : c.outline,
+        var first = i === 0, last = i === arr.length - 1;
+        var radius = on ? '24px' : ((first ? '24px' : '8px') + ' ' + (last ? '24px' : '8px') + ' ' + (last ? '24px' : '8px') + ' ' + (first ? '24px' : '8px'));
+        return { label: l, on: on, pressed: on ? 'true' : 'false', bg: on ? c.primary : c.selected, fg: on ? c.onPrimary : c.onSurface, radius: radius,
           pick: function () { self.setState({ sample: l }); } };
       });
       v.nudgeText = data[sample].text; v.nudgeMeta = data[sample].meta;

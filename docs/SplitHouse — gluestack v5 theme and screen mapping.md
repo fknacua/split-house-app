@@ -27,7 +27,7 @@ The handover's twelve semantic names are the tokens, plus four added in the Octo
 | outline-variant | border | #E6E7EA | #2E3134 | Dividers, card edges |
 | primary | primary | #2B2F33 | #E2E2E6 | Solid buttons, focus border |
 | on-primary | primary-foreground | #FFFFFF | #1A1C1E | Text on primary |
-| selected | accent | #E6E7EA | #2C2F33 | Selected chip, segment, row |
+| selected | accent | #E6E7EA | #2C2F33 | Unselected button in a connected button group, selected row |
 | on-selected | accent-foreground | #1A1C1E | #E3E3E6 | Text on selected |
 | disabled / on-disabled | custom | #E9EAED / #9A9DA2 | #222427 / #5C5F64 | Disabled fill / disabled text |
 | track | custom | #D3D5D9 | #3A3E43 | Progress tracks, sheet grabber |
@@ -66,7 +66,9 @@ Manrope throughout, loaded with weights 400 to 800. Amounts use tabular numerals
 | Shape | Radius |
 | --- | --- |
 | Field (Input, Select, Textarea) | 12 |
-| Button, Badge, chip, segmented control | full (pill) |
+| Button, Badge | full (pill) |
+| Single-select chip | 22 (44px high) |
+| Connected button group | 24 outer corners, 8 inner corners; the selected button is a full pill (24 on all corners) |
 | Card | 20 |
 | Alert | 16 |
 | Bottom sheet | 28 top corners |
@@ -129,20 +131,20 @@ Not yet verified, as the handover warned: the file layout above follows gluestac
 
 ## Screen-to-component mapping (corrected)
 
-Checked against gluestack v5's component list. Custom pieces are marked **custom**; v5 has no segmented control, chip or bottom navigation bar.
+Checked against gluestack v5's component list. Custom pieces are marked **custom**; v5 has no connected button group, chip or bottom navigation bar. The button group and chips are built from pressable buttons with existing tokens only (no new tokens in round 2; the handoff's disabled-bg and disabled-fg are `disabled` and `on-disabled`).
 
 | Screen | gluestack components | Custom pieces | What changed from the draft |
 | --- | --- | --- | --- |
 | Home | Card, Pressable, Badge, Progress, Button, Accordion, Alert, Skeleton | Bottom navigation bar (**custom**, built on a restyled Tabs) | FAB removed: the canvas has none. Alert added for the leftover draft |
 | Bill upload | FormControl, Input, Select (Bill month, as a month list), DateTimePicker (Due date, Billing period), Button, Spinner, Alert, AlertDialog (Discard, Save with warnings) | File picker, number pad (**custom**; the number pad only mocks Android's decimal keyboard and is not built) | "Is this the right bill?" is a screen of Card, Alert and Buttons, not an AlertDialog |
 | Recipient | Card, Divider, Badge, Button | Message preview formatting (**custom**) | None |
-| Add charge | BottomSheet, FormControl, Input, Switch, Select (Month being fixed, as a month list), Alert, Button, Spinner | Segmented control: Shared or Personal (**custom**); single-select chips: split method, Who (**custom**) | Alert added for the custom split that doesn't add up. Saving and failed-save states |
+| Add charge | BottomSheet, FormControl, Input, Switch, Select (Month being fixed, as a month list), Alert, Button, Spinner | Connected button group: Shared or Personal (**custom**); single-select chips: split method, Who (**custom**) | Alert added for the custom split that doesn't add up. Saving and failed-save states |
 | Mark paid, Record payment, Mark bill paid | BottomSheet, FormControl, Input, Select (From, For), DateTimePicker (Received on, Paid on), Radio (carry or let go), Alert, Button, Spinner | None | Saving and failed-save states |
 | Share bill | BottomSheet, Radio, Switch, Button | None. The system share sheet is Android's | None |
 | View bill | Card, Badge, Progress, Button, Skeleton | PDF viewer (**custom**, opened from the Open row) | Loading state |
-| Household | Card, FormControl, Input, Select (Applies to), Select (Starts from, as a month list), Switch, Alert, Progress, Skeleton | Segmented control: Directly or Via someone (**custom**); country-code prefix inside the WhatsApp field (**custom**); the two-segment 50/50 split bar (**custom** Progress) | Loading state. Required markers added |
+| Household | Card, FormControl, Input, Select (Applies to), Select (Starts from, as a month list), Switch, Alert, Progress, Skeleton | Connected button group: Directly or Via someone (**custom**); country-code prefix inside the WhatsApp field (**custom**); the two-segment 50/50 split bar (**custom** Progress) | Loading state. Required markers added |
 | History | Card, Badge, Alert (month banner), Skeleton | Bottom navigation bar (**custom**) | Loading state |
-| Settings | Card, Switch, FormControl, Textarea (templates), Select (Applies to), Badge, Alert, Button | Segmented controls: theme, preview sample (**custom**); message preview card (**custom**) | Account card with Sign out. Notifications-blocked state |
+| Settings | Card, Switch, FormControl, Textarea (templates), Select (Applies to), Badge, Alert, Button | Connected button groups: theme, preview sample (**custom**, the preview sample group is compact); message preview card (**custom**) | Account card with Sign out. Notifications-blocked state |
 | First-run setup | Card, Progress, Button | Four-segment step indicator (**custom** Progress) | New step: Turn on reminders |
 | Sign in | Alert, Spinner | Sign in with Google button in Google's own styling (**custom**) | New |
 | Can't reach the server | AlertDialog, Button, Spinner | None | New |

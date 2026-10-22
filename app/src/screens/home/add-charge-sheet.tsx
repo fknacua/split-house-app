@@ -46,7 +46,7 @@ import {
   SelectPortal,
   SelectTrigger,
 } from '@/components/ui/select';
-import { SegmentedControl } from '@/components/segmented-control';
+import { ConnectedButtonGroup } from '@/components/connected-button-group';
 // eslint-disable-next-line no-restricted-imports -- TODO: replace with a wrapper from src/components
 import { Switch } from '@/components/ui/switch';
 // eslint-disable-next-line no-restricted-imports -- TODO: replace with a wrapper from src/components
@@ -100,7 +100,7 @@ export function AddChargeSheet() {
               Add charge
             </Text>
 
-            <SegmentedControl
+            <ConnectedButtonGroup
               value={scope}
               onChange={setScope}
               options={[
