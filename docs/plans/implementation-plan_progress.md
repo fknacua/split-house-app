@@ -329,3 +329,11 @@ Francis verified the blocking prompt on a real API call: offline shows it after 
 ## 2026-10-23: 3.7 ✅
 
 Marked done at Francis's word that the device checks were already done while testing 3.2 and 3.6. I did not re-run them and the log does not list which cases were covered.
+
+## 2026-10-23: Plan reorder, Phase 4 onwards
+
+Reordered the plan after a discussion with Francis. New order: Phase 4 History, 5 Home, 6 Bill (without Share), 7 Payments then Recipient and Share, 8 Household with Confirmations and the shared schemas package, 9 Settings then Notifications, 10 First run, 11 Add charge, 12 Hardening and release (still last, only 12.5e left it). Reasons: the dev database seed already covers History and the Home states, so they can be built before any data-entry flow; First run only launches other screens, so it follows them; Add charge is a nice to have because a wrong bill is rare. Home gets a new step 5.0 with seed scenarios (`upload`, `draft`, `unsent`, `collecting`, `dueToday`, `settled`, `aircon-due`). Phases 0 to 3 are untouched.
+
+The plan has a "Build order from Phase 4" section with the old-to-new step map; entries above this one use the old numbers (for example 9A.2 is now 11.2, 12.5e is now 8.0). `backend/README.md` endpoint table updated to the new IDs. CLAUDE.md "Phase 0 to Phase 12" still holds.
+
+Open point for Phase 4: `History.dc.html` has to say what opening a charge opens (4.3); not checked yet.
