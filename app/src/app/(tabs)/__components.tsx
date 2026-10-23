@@ -1,4 +1,4 @@
-import { Redirect } from 'expo-router';
+import { Redirect, useRouter } from 'expo-router';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useRef, useState } from 'react';
 import { type Control, useForm, useWatch } from 'react-hook-form';
@@ -923,6 +923,7 @@ function DialogsDemo() {
  * Absent from release builds: redirects home when `__DEV__` is false.
  */
 export default function ComponentTestPage() {
+  const router = useRouter();
   const { preference, setPreference } = useThemePreference();
   const [checkTargets, setCheckTargets] = useState(false);
   const [showSkeletons, setShowSkeletons] = useState(false);
@@ -964,6 +965,11 @@ export default function ComponentTestPage() {
               accessibilityLabel="Outline targets under 44px"
             />
           </View>
+          <Button
+            label="Open screen state gallery"
+            variant="outline"
+            onPress={() => router.push('/__gallery')}
+          />
           <View className="min-h-11 flex-row items-center justify-between">
             <Text className="font-manrope-medium text-body text-foreground">
               Show skeletons (pulsing, costs frames)

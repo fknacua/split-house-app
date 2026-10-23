@@ -1,43 +1,43 @@
 import { useState } from 'react';
-import { Text, View } from 'react-native';
 import {
   GoogleSignin,
-  GoogleSigninButton,
   isErrorWithCode,
   isSuccessResponse,
   statusCodes,
 } from '@react-native-google-signin/google-signin';
 
 import { authClient } from '@/lib/auth-client';
-// eslint-disable-next-line no-restricted-imports -- TODO: replace with a wrapper from src/components
-import { Spinner } from '@/components/ui/spinner';
+import { SignInView, type SignInState } from './sign-in-view';
 
-// Needs a real Android OAuth client (package + signing-key SHA-1) to do
-// anything on device — blocked until the EAS dev build exists (Account
-// Setup Guide Phase B, steps 6-7). Not runtime-verified in this spike.
+export type { SignInState } from './sign-in-view';
+
 GoogleSignin.configure({
   webClientId: process.env.EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID,
 });
 
-type SignInState = 'idle' | 'signing-in' | 'error' | 'not-allowed';
-
-export function SignIn() {
-  const [state, setState] = useState<SignInState>('idle');
+/**
+ * Sign in screen with the Google and Better Auth calls wired up.
+ *
+ * @param sessionEnded - Start in the `ended` state ("Your session ended"), set by the session
+ *   gate when a 401 arrives while signed in (step 3.2).
+ */
+export function SignIn({ sessionEnded = false }: { sessionEnded?: boolean }) {
+  const [state, setState] = useState<SignInState>(sessionEnded ? 'ended' : 'out');
 
   const handleSignIn = async () => {
-    setState('signing-in');
+    setState('signing');
     try {
       await GoogleSignin.hasPlayServices();
       // Clear any remembered Google account so the picker always shows.
       await GoogleSignin.signOut().catch(() => {});
       const response = await GoogleSignin.signIn();
       if (!isSuccessResponse(response)) {
-        setState('idle'); // cancelled
+        setState('out'); // cancelled
         return;
       }
       const idToken = response.data.idToken;
       if (!idToken) {
-        setState('error');
+        setState('failed');
         return;
       }
       const { error } = await authClient.signIn.social({
@@ -48,46 +48,18 @@ export function SignIn() {
         // Forget the Google account so the picker shows again on the next try.
         await GoogleSignin.signOut().catch(() => {});
         // The backend's databaseHooks reject any email but ALLOWED_EMAIL.
-        setState(error.status === 403 ? 'not-allowed' : 'error');
+        setState(error.status === 403 ? 'notAllowed' : 'failed');
         return;
       }
-      setState('idle');
+      setState('out');
     } catch (err) {
       if (isErrorWithCode(err) && err.code === statusCodes.SIGN_IN_CANCELLED) {
-        setState('idle');
+        setState('out');
         return;
       }
-      setState('error');
+      setState('failed');
     }
   };
 
-  return (
-    <View className="flex-1 items-center justify-center gap-4 bg-background px-6">
-      <Text className="font-manrope-extrabold text-title text-foreground">
-        SplitHouse
-      </Text>
-
-      {state === 'signing-in' ? (
-        <Spinner />
-      ) : (
-        <GoogleSigninButton
-          size={GoogleSigninButton.Size.Wide}
-          color={GoogleSigninButton.Color.Dark}
-          onPress={handleSignIn}
-        />
-      )}
-
-      {state === 'error' ? (
-        <Text className="font-manrope-medium text-body text-danger">
-          Sign-in failed. Try again.
-        </Text>
-      ) : null}
-
-      {state === 'not-allowed' ? (
-        <Text className="font-manrope-medium text-body text-danger">
-          This account isn&apos;t allowed to sign in.
-        </Text>
-      ) : null}
-    </View>
-  );
+  return <SignInView state={state} onSignIn={handleSignIn} />;
 }
