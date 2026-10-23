@@ -40,15 +40,18 @@ export function SignIn({ sessionEnded = false }: { sessionEnded?: boolean }) {
         setState('failed');
         return;
       }
-      const { error } = await authClient.signIn.social({
+      const { data, error } = await authClient.signIn.social({
         provider: 'google',
         idToken: { token: idToken },
       });
-      if (error) {
+      // A real sign-in returns the user; anything else (for example an error page that a
+      // redirect led to) is a failure even though the request itself did not error.
+      const signedIn = typeof data === 'object' && data !== null && 'user' in data;
+      if (error || !signedIn) {
         // Forget the Google account so the picker shows again on the next try.
         await GoogleSignin.signOut().catch(() => {});
         // The backend's databaseHooks reject any email but ALLOWED_EMAIL.
-        setState(error.status === 403 ? 'notAllowed' : 'failed');
+        setState(error?.status === 403 ? 'notAllowed' : 'failed');
         return;
       }
       setState('out');

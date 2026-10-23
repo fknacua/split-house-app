@@ -45,7 +45,8 @@ export interface ApiFetchOptions {
  *
  * @param path Path starting with `/api/`.
  * @returns The parsed JSON body.
- * @throws {ServerUnreachableError} On network failure, timeout or a 502/503/504.
+ * @throws {ServerUnreachableError} On network failure, timeout, a 502/503/504, or a success
+ *   response whose body is not JSON. An empty body (for example a 204) is fine.
  * @throws {ApiRequestError} When the backend returns its error shape (a 401 means the session ended).
  */
 export async function apiFetch<T>(path: string, options: ApiFetchOptions = {}): Promise<T> {
@@ -74,7 +75,17 @@ export async function apiFetch<T>(path: string, options: ApiFetchOptions = {}): 
 
     if (UNREACHABLE_STATUSES.includes(response.status)) throw new ServerUnreachableError();
 
-    const json: unknown = await response.json().catch(() => null);
+    const text = await response.text();
+    const isJson = (response.headers.get('content-type') ?? '').includes('json');
+    // A success that carries a body but is not JSON did not come from our API (a captive
+    // portal, a gateway page, a followed redirect), so it must not pass as data.
+    if (response.ok && text && !isJson) throw new ServerUnreachableError();
+    let json: unknown = null;
+    try {
+      json = text ? JSON.parse(text) : null;
+    } catch {
+      json = null;
+    }
     if (!response.ok) {
       const error = (json as Partial<ApiErrorBody> | null)?.error;
       throw new ApiRequestError(

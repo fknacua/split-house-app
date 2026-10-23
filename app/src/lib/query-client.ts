@@ -1,6 +1,12 @@
-import { QueryClient } from '@tanstack/react-query';
+import { MutationCache, QueryCache, QueryClient } from '@tanstack/react-query';
 
-import { ServerUnreachableError } from '@/lib/api';
+import { ApiRequestError, ServerUnreachableError } from '@/lib/api';
+import { endSession } from '@/lib/session';
+
+/** A 401 from the backend means the session ended; send the user back to Sign in. */
+function handleError(error: Error) {
+  if (error instanceof ApiRequestError && error.status === 401) void endSession();
+}
 
 /** Extra attempts after a read fails with {@link ServerUnreachableError} (3 attempts in all). */
 const READ_RETRIES = 2;
@@ -30,6 +36,8 @@ export function readRetryDelay(attemptIndex: number): number {
  * mutations never retry, so the user re-taps after a failure.
  */
 export const queryClient = new QueryClient({
+  queryCache: new QueryCache({ onError: handleError }),
+  mutationCache: new MutationCache({ onError: handleError }),
   defaultOptions: {
     queries: {
       retry: shouldRetryRead,

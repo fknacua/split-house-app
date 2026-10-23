@@ -10,6 +10,7 @@ import { AppProvider } from '@/components';
 import { useAppFonts } from '@/hooks';
 import { useAppStateFocus } from '@/lib/focus-manager';
 import { queryClient } from '@/lib/query-client';
+import { useSession } from '@/lib/session';
 import { ThemePreferenceProvider, useThemePreference } from '@/lib/theme-preference';
 import '@/global.css';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
@@ -21,6 +22,24 @@ export default function RootLayout() {
     <ThemePreferenceProvider>
       <RootShell />
     </ThemePreferenceProvider>
+  );
+}
+
+/** The session gate: Sign in without a session, the app with one. */
+function SessionStack() {
+  const { pending, signedIn } = useSession();
+  if (pending) return null;
+
+  return (
+    <Stack screenOptions={{ headerShown: false }}>
+      <Stack.Protected guard={!signedIn}>
+        <Stack.Screen name="sign-in" />
+      </Stack.Protected>
+      <Stack.Protected guard={signedIn}>
+        <Stack.Screen name="(tabs)" />
+        <Stack.Screen name="__gallery" />
+      </Stack.Protected>
+    </Stack>
   );
 }
 
@@ -46,8 +65,7 @@ function RootShell() {
         <QueryClientProvider client={queryClient}>
           <BottomSheetModalProvider>
             <View className="flex-1 bg-background">
-              {/* Phase 3 (3.2): session gate wraps the Stack here */}
-              <Stack screenOptions={{ headerShown: false }} />
+              <SessionStack />
             </View>
           </BottomSheetModalProvider>
         </QueryClientProvider>
