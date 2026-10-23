@@ -4,7 +4,14 @@ import { z } from "zod";
 const getSession = vi.fn();
 vi.mock("@/lib/auth", () => ({ auth: { api: { getSession } } }));
 
-import { ApiError, parseBody, parseQuery, requireSession, route } from "./api";
+import {
+  ApiError,
+  parseBody,
+  parseQuery,
+  redirectToJsonError,
+  requireSession,
+  route,
+} from "./api";
 
 const post = (body: string) =>
   new Request("http://x/api", { method: "POST", body });
@@ -75,5 +82,36 @@ describe("route", () => {
     })(new Request("http://x"), {});
     expect(res.status).toBe(500);
     expect(JSON.stringify(await res.json())).not.toContain("leaked");
+  });
+});
+
+describe("redirectToJsonError", () => {
+  const redirect = (location: string, status = 302) =>
+    new Response(null, { status, headers: { location } });
+
+  it("passes non-redirect responses through untouched", () => {
+    const ok = Response.json({ user: { id: "u1" } });
+    expect(redirectToJsonError(ok)).toBe(ok);
+    const serverError = Response.json({ message: "x" }, { status: 500 });
+    expect(redirectToJsonError(serverError)).toBe(serverError);
+  });
+
+  it("passes a redirect without an error through untouched", () => {
+    const res = redirect("https://x.test/welcome");
+    expect(redirectToJsonError(res)).toBe(res);
+  });
+
+  it("turns an internal_server_error redirect into a 500 with the standard shape", async () => {
+    const res = redirectToJsonError(redirect("/api/auth/error?error=internal_server_error"));
+    expect(res.status).toBe(500);
+    expect(await res.json()).toEqual({
+      error: { code: "internal_server_error", message: "Authentication failed." },
+    });
+  });
+
+  it("uses a 400 and the code for other error redirects", async () => {
+    const res = redirectToJsonError(redirect("https://x.test/?error=access_denied", 303));
+    expect(res.status).toBe(400);
+    expect((await res.json()).error.code).toBe("access_denied");
   });
 });
