@@ -18,10 +18,10 @@ Decisions taken in this planning session:
 Repeat for each screen in a phase; stop for Francis's review after each (CLAUDE.md: don't commit unless asked).
 1. Read `docs/design/source/<X>.dc.html` fully: the `c` token set in the script block, spacing, copy, every state value in `data-props`.
 2. Read its row in the mapping doc for the gluestack components and custom pieces.
-3. Build the screen under `app/src/screens/<name>/`, a route in `app/src/app/`, token classes only (no hex; grep before review: `#[0-9a-fA-F]{3,8}` in `app/src` excluding `config.ts`).
+3. Build the screen under `app/src/screens/<name>/`, a route in `app/src/app/`, token classes only (no hex; grep before review: `#[0-9a-fA-F]{3,8}` in `app/src` excluding `config.ts`). The route file stays a thin wrapper that renders the screen, and the screen's root is the shared `Screen` component (2.13a), so the background and the top safe-area inset come from one place and are never re-added per screen.
 4. Implement every state in the DESIGN.md table for that screen: loading skeleton, saving, failed (sheet stays open, input kept, Retry), empty, error.
 5. Wire to the real API when its backend phase is done. Until then, the screen takes props from a typed fixture file under `app/src/fixtures/` (fictional names Priya/Sam/Jordan, Nov 2026 cents) and is reachable from a dev-only `__gallery` route that lists every screen x state x theme.
-6. Verify: `npx tsc --noEmit` (ignore the 21 known errors inside `components/ui/*`), `npm run lint`, then on device in light and dark, and compare to the source markup (and a canvas screenshot from Francis where the markup is ambiguous). Check 44px touch targets, label-above FormControl, Lucide icons only, Manrope weights.
+6. Verify: VS Code diagnostics on each changed file for type errors (the full `npx tsc --noEmit` runs at the end of the phase, ignoring the known errors inside `components/ui/*`), `npm run lint`, then on device in light and dark, and compare to the source markup (and a canvas screenshot from Francis where the markup is ambiguous). Check 44px touch targets, label-above FormControl, Lucide icons only, Manrope weights.
 7. Anything the design doesn't show: stop and ask. Do not invent copy or states.
 
 ---
@@ -72,17 +72,19 @@ Exit: engine tests green; seeded dev DB; `GET /api/health` and an authenticated 
 
 ---
 
-## 🔄 Phase 2: Theme, provider and shared pieces ("Suggested build order" step 1)
+## ✅ Phase 2: Theme, provider and shared pieces ("Suggested build order" step 1)
 
 Shared pieces go under `app/src/components/`.
 
 **Working rule for this phase:** the provider shell is built first (2.2), then the test page shell (2.3). Every later step that builds a component also adds its section to the test page in that same step, fully working and in every state, and is not done until it shows there.
 
+**Test page rule (Francis, 2026-10-23): storybook-like, with mock data.** The test page shows each shared component on its own, the way Storybook does. It does not depend on the app's real content (real tabs, routes, people, amounts or screens). Each section passes its own mock props and holds its own state. So a shared component takes its content as props and never reads app content as a default; the real app passes the real content at its call site.
+
 **Wrapper rule for every shared component (set by the Button, 2.5):** do not build a new component when gluestack has a native one.
 - **Native (`components/ui/<name>`):** holds the looks: variants, sizes, colours, shapes, and the disabled and pressed states. Customise the copied file in place.
 - **Wrapper (`components/<name>.tsx`):** our own props, designed from the native ones, translated to what the native component needs. It adds only behaviour the native one lacks (for Button: `loading`, the label and icon composition) and exposes no gluestack types. Screens import only the wrapper, so swapping the library means rewriting the wrappers (ESLint `no-restricted-imports` enforces this; direct `components/ui` imports need a disable comment with a reason).
 - **Form inputs (set by 2.9):** every input is a bare wrapper that works standalone and, with the optional `fieldControlProps`, is form-controlled (`withFormControlledField` in `components/form-field/`). Later fields (MoneyField, SelectField, DateField, ...) follow the same pattern, so the Controller and `FormField` wiring is written once.
-- **Before writing a wrapper:** fix every type check error and lint error or warning in the native component it wraps (for example the known ones in `ui/alert-dialog`, `ui/popover`, `ui/calendar`, `ui/date-time-picker`), so the wrapper sits on a clean base. Report anything you cannot fix without changing behaviour instead of suppressing it.
+- **Before writing a wrapper:** read the VS Code diagnostics for the native component it wraps (not a full `tsc`) and fix every type error, lint error and warning in it (for example the known ones in `ui/alert-dialog`, `ui/popover`, `ui/calendar`, `ui/date-time-picker`), so the wrapper sits on a clean base. Report anything you cannot fix without changing behaviour instead of suppressing it.
 - **Custom pieces with no gluestack native** (connected button group, single-select chips, bottom navigation) stay custom, as the mapping doc says.
 
 - ✅ **2.1a** **Theme preference (real, not a stub)**
@@ -154,14 +156,19 @@ Shared pieces go under `app/src/components/`.
   - **Test page:** add both to the **Pickers** section (DateField opens the native Android dialog).
   - **Note (Francis, 2026-10-23):** `ui/date-time-picker` and `ui/calendar` are already deleted (the app is Android only, so `DateField` is a custom field that opens the system dialog directly). Where this plan lists them as known errors or unused code (Phase 2 wrapper rule, 12.4a), they no longer exist.
 
-- **2.13** **Bottom navigation** (`bottom-nav.tsx` exists)
+- ✅ **2.13** **Bottom navigation** (`bottom-nav.tsx` exists)
   - **Build:** switch from local state to an expo-router `Tabs` layout (`app/src/app/(tabs)/_layout.tsx` with `tabBar={props => <BottomNav .../>}`): Home, History, Household, Settings.
   - **Style:** top shadow per elevation table (`0 -6px 14px rgba(0,0,0,.14)` light, `0 -8px 16px rgba(0,0,0,.45)` dark via `elevation`/shadow style); bottom inset via `useSafeAreaInsets`; 44px targets; selected pill uses `selected`/`on-selected`.
   - Hidden on stack screens (Bill upload, Recipient, etc).
   - **Test item:** add the dev-only fifth item (Lucide `flask-conical`, label "Test", shown only when `__DEV__` is true) that opens the test page, and remove the temporary Home link from 2.3.
-  - **Test page:** add the **Bottom navigation** section, rendered at the bottom of the page with working tab highlight.
+  - **Test page:** add the **Bottom navigation** section with working tab highlight, using mock items (see the test page rule above).
 
-- **2.14** **Sheet scaffold** (`components/app-sheet.tsx`)
+- ✅ **2.13a** **Screen wrapper** (`components/screen.tsx`, added during 2.13 at Francis's request, 2026-10-23)
+  - **Build:** `Screen`, a `PropsWithChildren` wrapper every screen route renders inside, so page-level chrome changes in one place. It owns `flex-1 bg-background` and the top safe-area inset; scrolling and the bottom inset stay with the screen and the bottom nav. Optional `className`.
+  - **Used by:** the tab routes (Home, History, Household, Settings) and the test page. Screens built later render inside it.
+  - **Test page:** the test page itself is built on `Screen`, which is its demo (the status-bar inset replaces the old `pt-12`).
+
+- ✅ **2.14** **Sheet scaffold** (`components/app-sheet.tsx`)
   - **Build:** wraps the gluestack bottom sheet: grabber, title 20/28, close `x`, scroll body, sticky footer with Save/Cancel.
   - **Props:** `saving` (inputs disabled, button spinner) and `failed` (danger Alert above footer, "Try again" button, input values preserved).
   - **Used by:** Add charge, Mark paid, Record payment, Mark bill paid, Share bill.
@@ -170,20 +177,20 @@ Shared pieces go under `app/src/components/`.
     - Keyboard behaviour with a field inside; Android back gesture closes it.
     - A "Fake save" button runs idle -> saving -> failed -> retry -> success.
 
-- **2.15** **Dialog scaffold** (`components/confirm-dialog.tsx`)
+- ✅ **2.15** **Dialog scaffold** (`components/confirm-dialog.tsx`)
   - **Build:** on `AlertDialog`: radius 24, filled Cancel, red-outline action.
   - **Used by:** Confirm boards and Discard draft; Save with warnings (neutral outline "Save anyway", filled "Go back and fix").
   - **Test page:** add the **Dialogs** section: Confirm, and Save with warnings.
 
-- **2.16** **Skeleton helpers** (`components/skeletons.tsx`)
+- ✅ **2.16** **Skeleton helpers** (`components/skeletons.tsx`)
   - **Build:** skeletons for card rows and lists.
   - **Test page:** add the **Skeleton** blocks.
 
-- **2.17** **Screen header** (`components/screen-header.tsx`)
+- ✅ **2.17** **Screen header** (`components/screen-header.tsx`)
   - **Build:** page title 24/32 (tab screens) and back-arrow header with sheet-title 20/28 (stack screens); Android back gesture via router.
   - **Test page:** add the **Screen headers** section: tab-style title and back-arrow style.
 
-- **2.18** **Final pass over the test page**
+- ✅ **2.18** **Final pass over the test page**
   - Compare it with `FormControls.dc.html` (both views) and the mapping doc; fix differences.
   - Add any section still missing: Cards, Progress, Accordion (with 3 sample rows), Spinner, if no earlier step added them.
   - Run the hex grep over the page and kit (none allowed).
