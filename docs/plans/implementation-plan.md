@@ -10,7 +10,7 @@ Current repo state (from git and the spike findings):
 
 Decisions taken in this planning session:
 - **Stay on gluestack v5 + NativeWind v5.** The Accordion works on device, so that spike concern is closed.
-- **No carry-over.** The Data Model (Oct 15) wins over the design: the Mark paid carry/let-go Radio is not built (the sheet shows the shortfall as information). **Deferred to a future fix (rare case, Francis's call):** the History board "Dec 2026, unpaid carried" (`monthCarried`) and its "carried to January" banner/chip copy are NOT built in v1. Phase 9B skips that state.
+- **No carry-over.** The Data Model (Oct 15) wins over the design: the Mark paid carry/let-go Radio is not built (the sheet shows the shortfall as information). **Deferred to a future fix (rare case, Francis's call):** the History board "Dec 2026, unpaid carried" (`monthCarried`) and its "carried to January" banner/chip copy are NOT built in v1. Phase 4 skips that state.
 - **Doc conflict to note, not blocking:** DESIGN.md refers to `design/config.ts` and `design/source/`; the files live in `docs/design/`. Mapping doc is still titled "Rent & Utils". The Brief's old "Review messages" boards were never redrawn and are out of scope.
 
 ## Working rules for every screen phase (the loop)
@@ -63,10 +63,10 @@ Backend work, in `backend/`, follows the Data Model doc and CLAUDE.md. Check cur
 - ✅ **1.5** **API conventions** (`backend/src/lib/api.ts`; stays on Next.js route handlers as decided; route files are thin wrappers of about 10 lines and all logic lives in plain functions under `backend/src/lib/`): `requireSession()` using `auth.api.getSession`, 401 JSON on none; zod request validation; error shape `{ error: { code, message } }`; Asia/Singapore `currentMonth()`; all route handlers `dynamic = 'force-dynamic'`. Health route `GET /api/health` (used by the app to detect cold start / unreachable).
 - ✅ **1.6** **Lazy month open** (`openMonthIfNeeded()`): on first request on/after the 1st, create `Month`, pin current `HouseholdVersion`, create rent and recurring charges in one transaction; idempotent.
 - ✅ **1.7** **Endpoints (v1 contract)** written as each screen needs them, listed per phase below. Keep the list in `backend/README.md`.
-- ✅ **1.8** **Typed client**: shared TS types for responses. Simplest: `app/src/lib/api-types.ts` hand-synced from backend zod schemas (monorepo has no shared package for now; a shared schemas package is required before go-live, see 12.5e). `app/src/lib/api.ts` fetch wrapper adding the Better Auth session token (from `authClient`), 20s timeout, maps network failure/timeout/5xx-cold-start to a `ServerUnreachableError`.
+- ✅ **1.8** **Typed client**: shared TS types for responses. Simplest: `app/src/lib/api-types.ts` hand-synced from backend zod schemas (monorepo has no shared package for now; a shared schemas package is required before go-live, see 8.0). `app/src/lib/api.ts` fetch wrapper adding the Better Auth session token (from `authClient`), 20s timeout, maps network failure/timeout/5xx-cold-start to a `ServerUnreachableError`.
 - ✅ **1.9** **Data hooks**: add TanStack Query (check current docs) in `app/`: `QueryClientProvider`, `useMonthSummary`, etc. Mutations invalidate affected keys. Retry policy: auto-retry reads twice with backoff (covers Neon cold start) before surfacing the blocking prompt.
 - ✅ **1.10** **State management decision**: no global state library (no Redux/Zustand). Server data lives in TanStack Query; theme preference in one Context (2.1a); session in Better Auth's `useSession()`; sheet open/closed and selected month in local state or route params.
-- ✅ **1.11** **Forms**: add `react-hook-form` and `zod` (with `@hookform/resolvers`; check current docs) to `app/`. Shared form schemas live in `app/src/lib/schemas/` (money as integer cents, month keys, E.164 phone), mirroring the backend's zod request schemas by hand for now (replaced by a shared package before go-live, see 12.5e). The Phase 2 field components (2.8 to 2.12) take a `control`/`name` so label, helper and error text come from the form state; `formState.isDirty` drives the "Discard unsaved changes" dialog; submit state drives the sheet scaffold's saving/failed states. Server validation errors map back onto fields.
+- ✅ **1.11** **Forms**: add `react-hook-form` and `zod` (with `@hookform/resolvers`; check current docs) to `app/`. Shared form schemas live in `app/src/lib/schemas/` (money as integer cents, month keys, E.164 phone), mirroring the backend's zod request schemas by hand for now (replaced by a shared package before go-live, see 8.0). The Phase 2 field components (2.8 to 2.12) take a `control`/`name` so label, helper and error text come from the form state; `formState.isDirty` drives the "Discard unsaved changes" dialog; submit state drives the sheet scaffold's saving/failed states. Server validation errors map back onto fields.
 
 Exit: engine tests green; seeded dev DB; `GET /api/health` and an authenticated `GET /api/me` work from the device.
 
@@ -91,7 +91,7 @@ Shared pieces go under `app/src/components/`.
   - **Build:** `app/src/lib/theme-preference.tsx` with `ThemePreferenceProvider` and `useThemePreference()` returning `{ preference: 'light' | 'dark' | 'system', resolved: 'light' | 'dark', setPreference }`.
   - Persists the choice on the device with `expo-secure-store` or AsyncStorage (wrapped in try/catch; defaults to `system`).
   - Resolves `system` from `useColorScheme()`; feeds `GluestackUIProvider mode` and the status bar style in `_layout.tsx`.
-  - **Reuse:** the test page toggle (2.3) uses it, and Settings (Phase 10, step 10A.2) later reuses the same hook for its Appearance control with no new theme code.
+  - **Reuse:** the test page toggle (2.3) uses it, and Settings (Phase 9, step 9A.2) later reuses the same hook for its Appearance control with no new theme code.
 
 - ✅ **2.2** **Provider/app shell** (`app/src/app/_layout.tsx`)
   - **Build:** `GestureHandlerRootView` > `GluestackUIProvider` > `BottomSheetModalProvider` > session gate (Phase 3).
@@ -194,7 +194,7 @@ Shared pieces go under `app/src/components/`.
   - Compare it with `FormControls.dc.html` (both views) and the mapping doc; fix differences.
   - Add any section still missing: Cards, Progress, Accordion (with 3 sample rows), Spinner, if no earlier step added them.
   - Run the hex grep over the page and kit (none allowed).
-  - **Clear the TODO lint disables:** list them with `grep -rn "TODO: replace with a wrapper" app/src`. Replace each one in code that stays (the provider import in `_layout.tsx`, `__verify.tsx`, `__components.tsx`) by importing the wrapper from `src/components`, adding the missing wrapper first where there isn't one. The spike screens (`screens/home`, `screens/sign-in`) are rebuilt in Phases 3, 5 and 9, so their disables go away when each screen is rewritten with wrappers; list what is left at the end of Phase 2. No new disables without a reason that names a plan step.
+  - **Clear the TODO lint disables:** list them with `grep -rn "TODO: replace with a wrapper" app/src`. Replace each one in code that stays (the provider import in `_layout.tsx`, `__verify.tsx`, `__components.tsx`) by importing the wrapper from `src/components`, adding the missing wrapper first where there isn't one. The spike screens (`screens/home`, `screens/sign-in`) are rebuilt in Phases 3, 5 and 11, so their disables go away when each screen is rewritten with wrappers; list what is left at the end of Phase 2. No new disables without a reason that names a plan step.
   - Francis runs the page on device in both themes and signs off before Phase 3.
   - The page stays in the app (dev only) and gains new shared pieces over time; later screen phases use its `__gallery` states for per-screen state review.
 
@@ -209,50 +209,75 @@ Source: `SignIn.dc.html`, `Returning.dc.html`, `ServerError.dc.html`. Replaces s
 - ✅ **3.1** **Sign in screen**, 5 states by `state` prop: `out` (title, tagline, Google button), `signing` (button replaced/disabled with Spinner), `failed` (danger Alert "Sign-in failed" + button re-enabled), `notAllowed` (danger Alert for non-allowed account; map the 403 from the `databaseHooks` check; also call `GoogleSignin.signOut()` so the account picker reappears), `ended` (info/warning Alert "Your session ended, sign in again" shown when a 401 arrives while signed in). Google button follows Google branding (custom piece, per mapping). Copy exactly from the source.
 - ✅ **3.2** **Session gate** (`app/src/lib/session.tsx`): `useSession()` from `authClient`; routes: no session -> `/sign-in`; session -> bootstrap. Any API 401 clears the session, routes to sign-in with `state=ended`.
 - ✅ **3.3** **New-phone behaviour**: after sign-in call `revokeOtherSessions` (Tech Stack). Verify the old session dies immediately.
-- ✅ **3.4** **Returning user screen** (`Returning`): shown after sign-in when household data exists; Card + Spinner while fetching `/api/bootstrap` and rebuilding reminders (Phase 12 hook; stub now). If bootstrap says no household -> First run (Phase 4).
+- ✅ **3.4** **Returning user screen** (`Returning`): shown after sign-in when household data exists; Card + Spinner while fetching `/api/bootstrap` and rebuilding reminders (Phase 9B hook; stub now). If bootstrap says no household -> First run (Phase 10).
 - ✅ **3.5** **Backend**: `GET /api/bootstrap` -> `{ hasHousehold, currentMonth, setupProgress, settings }`.
 - ✅ **3.6** **Server error prompt** (`ServerError`): global `ServerUnreachableProvider`: renders a blocking `AlertDialog`-style full screen when any query/mutation throws `ServerUnreachableError`; `idle` state shows cloud-off icon, copy, Retry; `retrying` shows Spinner and disabled button. Retry re-runs `queryClient.refetchQueries` for failed queries / `GET /api/health` first. Pending mutations are not auto-replayed (user re-taps).
 - ✅ **3.7** Verify on device: airplane mode; Neon cold start (wait 6 minutes, launch); expired session; wrong Google account; light + dark.
 
 ---
 
-## Phase 4: First run, then Household
+## Build order from Phase 4 (set 2026-10-23)
 
-### 4A. First run ("Welcome", 3 states)
-- **4A.1** `Welcome` `state=empty`, `progress`, `notifications`: Card with 4-segment step indicator (custom Progress), "2 of 4 steps done", rows: household/people, rent & shares, recurring charges, reminders (optional). Row detail copy from source.
-- **4A.2** Each step opens the matching Household editor screen (Phase 4B) in a "first setup" mode where the first version may start at the go-live month (Nov 2026), the only allowed exception.
-- **4A.3** **Reminders step**: explainer then `Notifications.requestPermissionsAsync()`; on grant mark step done; on denial show the blocked state and continue (optional step). Android 13+ runtime permission.
-- **4A.4** Backend: `GET /api/setup/progress`, derived from household version + settings; `POST /api/setup/complete` not needed (derived). Home is reachable once steps 1-3 are done.
+Phases 0 to 3 are done and keep their numbers. From Phase 4 the phases run in the order below, so every screen is built and checked against the seeded dev database before the screens that exist to enter real data. First run is a launcher over other screens, so it comes after them. Add charge is a nice to have (a wrong bill is rare, and a correction charge is its only must-have use), so it comes after First run. Phase 12 stays last as the final cleanup and release.
 
-### 4B. Household (8 states)
-Source `Household.dc.html` (largest file, 48KB; read in full).
-- **4B.1** Backend: `GET /api/household` (current version, upcoming version if any, people, per-version history), `POST /api/household/preview` (config draft + starts-from -> per-person amounts via split engine; this is what the edit preview card shows; **the app never calculates**), `POST /api/household/versions` (validates: starts-from must be after current month, except first version; shares add to 100%/totals; creates a new immutable version), `POST /api/people` / person updates go through versions (name and WhatsApp live on `Person`; everything else in config), `DELETE` of a person = a new version excluding them (never hard-delete), plus `removeVersion` for a not-yet-started future version only.
-- **4B.2** `view` overview: Cards for each person (route chip Directly/Via someone, rent, shares), landlord rent summary, 50/50 split bars (custom two-segment Progress), version/"starts from" badges, Add person button. `loading` skeleton.
-- **4B.3** Edit screens/sheets by state: `editPerson` (Tenant 2 from Jan 2027 with preview), `editPrimary` (rename, rename applies immediately on Person), `editTenant1` (ConnectedButtonGroup Directly/Via someone per charge type, Applies-to Select), `editHome` (landlord rent from Jan 2027), `addPerson` (empty form, ConnectedButtonGroup for the payment route, PhoneField starting with +65), `splitError` (shares not adding to 100% -> danger Alert + disabled Save).
-- **4B.4** "Starts from" MonthSelectField lists only months after the current month (first setup: current month allowed). Live preview via debounced call to `/api/household/preview`; show Spinner in the preview card while fetching.
-- **4B.5** Confirmations (Phase 10): removePerson, removeVersion, discard unsaved changes (back with dirty form).
-- **4B.6** Required markers and label-above on every field; verify against FormControls.
+| Phase | Screens | Was |
+|---|---|---|
+| 4 | History | 9B |
+| 5 | Home | 5 |
+| 6 | Bill upload, View bill, Mark bill paid | 6, without Share |
+| 7 | Payments (7A), then Recipient and Share (7B) | 8, 7 and 6C.3 |
+| 8 | Household, Confirmations, shared schemas package | 4B, 10B and 12.5e |
+| 9 | Settings (9A), Notifications (9B) | 10A and 11 |
+| 10 | First run | 4A |
+| 11 | Add charge | 9A |
+| 12 | Hardening and release | 12, without 12.5e |
 
-Exit: a household can be created from scratch and edited; a version cannot start in the current/past month (API test + UI disables).
+Old step IDs map to new ones as follows. Older entries in `docs/plans/implementation-plan_progress.md` use the old numbers.
+- 9B.1 to 9B.3 are now 4.1 to 4.3. Phase 5 and Phase 6 steps keep their IDs, except 6C.3, which is now 7B.6.
+- 8.1 to 8.5 are now 7A.1 to 7A.5. 7.1 to 7.5 are now 7B.1 to 7B.5.
+- 4B.1 to 4B.6 are now 8.1 to 8.6 (10B is folded into 8.5). 12.5e is now 8.0.
+- 10A.1 to 10A.5 are now 9A.1 to 9A.5. 11.1 to 11.6 are now 9B.1 to 9B.6.
+- 4A.1 to 4A.4 are now 10.1 to 10.4. 9A.1 and 9A.2 are now 11.1 and 11.2.
+
+---
+
+## Phase 4: History (4 states)
+
+Source `History.dc.html`. Built first as a quick win: it is read-only and the Aug to Oct 2026 seed covers it, so it proves the whole path (endpoint, query hook, skeleton, both themes, on device) before Home.
+
+- **4.1** (was 9B.1) Backend: `GET /api/history` (months list: bill total, paid count, chips), `GET /api/history/:month` (charges with paid state, corrections, banner flags). Derived, no new tables.
+- **4.2** (was 9B.2) States: `list`, `loading`, `monthCorrected` (info Alert "corrected later" linking to the correction charges). Here it renders from the seeded Sep correction; the link to the correction charge stays a stub until Add charge (Phase 11). `monthCarried` is **deferred to a future fix**: a month with an unpaid charge just shows the normal Unpaid chip on that row, with no carry banner or "carried to Jan" copy.
+- **4.3** (was 9B.3) Read-only except opening a charge. Read `History.dc.html` for what opening a charge opens; if the source doesn't show it, stop and ask. Until that target exists, the row does nothing.
+- **4.4** Check against the seed: Aug (fully paid), Sep (corrected later), Oct (one charge short-paid, one unpaid).
 
 ---
 
 ## Phase 5: Home ("Main", 7 states)
 
-Source `Main.dc.html` (40KB). Replaces spike `screens/home`.
+Source `Main.dc.html` (40KB). Replaces spike `screens/home`. Home renders from the database: no state needs a flow (bill upload, payments) to be reached.
 
+- **5.0** **Seed scenarios** (extends 1.4): `npm run seed:reset -- --scenario <name>` reseeds the same Aug to Oct history and household versions, then sets up Nov 2026 as the scenario says, built through the engine and the shared fixtures. Scenarios:
+  - `upload` (the default, as seeded today): rent and recurring charges only, no bill.
+  - `draft`: a `BillDraft` row with synthetic parsed fields and a placeholder PDF.
+  - `unsent`: bill and utilities charges saved, no `MessageEvent` rows.
+  - `collecting`: messages sent, some charges paid, Tenant 2's rent overdue and nudged.
+  - `dueToday`: as `collecting`; the script prints the `DEV_NOW` that makes a charge due today.
+  - `settled`: everything paid.
+  - `aircon-due`: the aircon alert state.
+  - Not seeded: an unusual bill and short payments. `loading` is a `__gallery` state.
 - **5.1** Backend `GET /api/months/:month/summary`: calls `openMonthIfNeeded`, returns derived status (`bill_missing | draft | unsent | collecting | settled`), hero totals (collected of total, using paid cents), per-person rows with line items and paid/overdue/due-today/nudged flags, alerts (aircon due, unusual bill), draft info. Status derivation lives in one backend function (`deriveMonthStatus`) with unit tests for each Home state.
-- **5.2** UI states: `loading` (skeleton hero + rows), `upload` (bill not uploaded: Upload bill primary CTA), `unsent` (bill in, messages not sent: "Review messages" per-person list), `collecting` (Tenant 2 rent overdue, nudged), `dueToday` (info chip), `settled` (all paid, success treatment), `draft` (leftover draft Alert with Continue / Discard).
-- **5.3** Hero card: amount 34/40 800, "of $X collected", Progress. Person rows use the Accordion with line items; rows show Paid/Due/Overdue/Due today badges; tapping a row's action opens Recipient (Phase 7) or Mark paid (Phase 8).
-- **5.4** Add charge entry: a text button/row opening Add charge sheet (Phase 9) (no FAB, per mapping).
-- **5.5** Mark bill paid entry from the bill card (Phase 6).
+- **5.2** UI states: `loading` (skeleton hero + rows), `upload` (bill not uploaded: Upload bill primary CTA), `unsent` (bill in, messages not sent: "Review messages" per-person list), `collecting` (Tenant 2 rent overdue, nudged), `dueToday` (info chip), `settled` (all paid, success treatment), `draft` (leftover draft Alert with Continue / Discard). Each state is checked on device by reseeding its scenario (5.0).
+- **5.3** Hero card: amount 34/40 800, "of $X collected", Progress. Person rows use the Accordion with line items; rows show Paid/Due/Overdue/Due today badges. A row's action opens Recipient (Phase 7B) or Mark paid (Phase 7A); until those phases land the actions are stubs.
+- **5.4** Add charge entry: a text button/row opening the Add charge sheet (Phase 11) (no FAB, per mapping). Hidden until Phase 11.
+- **5.5** Mark bill paid entry from the bill card (wired in Phase 6).
 - **5.6** Month switching not on Home (History handles past months).
 
 ---
 
-## Phase 6: Bill upload, View bill, Share, Mark bill paid
+## Phase 6: Bill upload, View bill, Mark bill paid
 
 ### 6A. Backend bill pipeline
+Start with 6A.1: the parser depends on the real bill's layout and is the riskiest unknown, so find problems before the UI is built on it.
 - **6A.1** `POST /api/months/:month/bill-draft` (multipart PDF): check PDF magic bytes + size limit (single constant `MAX_BILL_PDF_BYTES`, starts at 5 MB; Francis checks his real bill size and we adjust), store in `BillDraft` (one per month, replaces prior, lazy purge), parse with `unpdf` -> provider-neutral `BillParser` interface -> `SpGroupParser`; return `{ parseOk, fields, lines, warnings }`. Develop parser against the real bill in `assets-old/` locally only; **never print contents or copy the file**; unit tests use synthetic text fixtures only.
 - **6A.2** Validations: current charges required; billing period vs month -> `period` warning; lines vs current charges -> `sum` warning only; unusual vs recent months -> warning.
 - **6A.3** `POST /api/months/:month/bill` (save): one transaction moves draft to `Bill` + `BillFile` and creates utilities charges via the engine; Rejects a save when the month already has a bill (no Replace path in v1). `POST .../bill-draft/discard`, `GET .../bill/file` (stream PDF), `POST .../bill/paid` (Mark bill paid: amount, date, note).
@@ -265,79 +290,97 @@ Source `BillUpload.dc.html`. Steps: `pick`, `reading`, `review`, `discard`, `per
 - **6B.3** `review`: FormControls Bill month (MonthSelect), Current Charges (MoneyField, required, helper "Required. The split uses this number."), Billing period (two DateFields), Due date, lines list with editable amounts, Choose another file link. Nothing saved until Save.
 - **6B.4** Warning Alerts for `period`, `sum`, `partial`, `noLines`, `unread`; `confirm` = AlertDialog "Save with warnings?" (Go back and fix filled / Save anyway neutral outline); `discard` = AlertDialog; `addLine` = sheet with label + amount.
 - **6B.5** `failed` screen "Is this the right bill?": Card + Alert + Yes (keep file, NOT_PARSED, type amounts) / No (discard, pick again). Manual entry with no file also supported.
-- **6B.6** **Replace bill is out of scope for v1 (Francis's decision).** It stays in the design and Data Model but is not built: no Replace button on View bill, no replace endpoint, no per-person difference dialog. Bill upload is offered only when the month has no saved bill. A wrong bill is fixed with a correction charge (Phase 9A).
+- **6B.6** **Replace bill is out of scope for v1 (Francis's decision).** It stays in the design and Data Model but is not built: no Replace button on View bill, no replace endpoint, no per-person difference dialog. Bill upload is offered only when the month has no saved bill. A wrong bill is fixed with a correction charge (Add charge, Phase 11).
 
-### 6C. View bill, Mark bill paid, Share
+### 6C. View bill and Mark bill paid
 - **6C.1** `Bill` (`loading`, `collecting`, `paid`): Card with period/due/total, lines, Open PDF row (**decided: external viewer, no in-app PDF library**: the Open button downloads `GET /api/months/:month/bill/file` to the cache folder, then fires Android's open-file intent (e.g. `expo-sharing` or `expo-intent-launcher` with a `FileProvider` content URI; check current Expo docs), so Android shows its "open with" app chooser; the Bill screen's custom "PDF viewer" piece is just this handoff; show a Spinner on the row while downloading and a danger Alert if it fails or no PDF app exists), Progress for collected vs bill, Mark paid button (hidden when paid). No Replace bill button in v1.
 - **6C.2** `PayBill` sheet: `collected=partial|full`, amount, Paid on DateField, note; partial shows info Alert of difference; no carry Radio. States idle/saving/failed.
-- **6C.3** `Share` sheet (3 boards: `pdf`, `summary`, `system`): Radio PDF vs Summary, Switch options, Share button -> `expo-sharing`/`Share.share` system sheet with the stored PDF (cache file) or summary text. Reached from Recipient.
+- **6C.3** The Share sheet moved to Recipient, its only entry point: see 7B.6.
 
 ---
 
-## Phase 7: Recipient and messages
+## Phase 7: Payments and Recipient
 
-Source `Recipient.dc.html` (5 states: `notSent`, `sent`, `paid`, `paidDifferent`, `nudged`).
+Payments first, because Recipient has the Mark paid button and the `paid` and `paidDifferent` states.
 
-- **7.1** Backend: `GET /api/months/:month/recipients/:personId` -> breakdown lines, rendered monthly message from the template (placeholders `{name}`, `{amount}`, `{month}`, `{charge}`, `{dueDate}`, etc.; render function in backend `lib/messages/render.ts` with unit tests incl. Tagalog default text in the Brief), unpaid corrections from earlier months, history of `MessageEvent`s. `POST .../message-events` (kind MONTHLY|NUDGE, stores `renderedText`, `openedAt`).
-- **7.2** UI: Card with breakdown (rows, Divider, total), message preview card (custom formatting preserving line breaks, emoji), buttons: "Send on WhatsApp" (`Linking.openURL('https://wa.me/<E164 digits>?text=<encodeURIComponent>')`), "Send again", "Nudge again", Share bill button (opens Phase 6C Share), Mark paid.
-- **7.3** Record the event **after** the intent opens (and on failure to open WhatsApp show an Alert, no event). Never auto-send, no send-all. One person at a time.
-- **7.4** States: show Sent/Nudged timestamps (Asia/Singapore), Paid badge, `paidDifferent` info (paid amount vs expected).
-- **7.5** Entry from Home rows and notification taps.
-
----
-
-## Phase 8: Payments (Mark paid and Record payment)
-
+### 7A. Payments (Mark paid and Record payment)
 Source `MarkPaid.dc.html` (`full`, `different`, `record`, `recordOpen`, `recordForOpen` + `save`).
 
-- **8.1** Backend: `POST /api/charges/:id/payment` (paidCents, paidOn, paidByPersonId), `POST /api/payments` (Record payment: from person, for charge(s)/person, amount, date; marks matching charges paid and who paid), `DELETE`/undo not in design (don't add). Marking Tenant 2's rent received creates the `Task` (SAVINGS_TRANSFER). Short payment: store what was received; difference is history only (no carry).
-- **8.2** `MarkPaid` sheet: expected vs received, "Full amount" default, "Different amount" reveals MoneyField, Received on DateField, shortfall/overpayment as info Alert (**no carry/let-go Radio**, per Data Model).
-- **8.3** `Record payment`: From and For SelectFields (open states are just the Select open), prefilled when launched from a row or notification Paid action.
-- **8.4** Saving/failed states via the Phase 2 sheet scaffold.
-- **8.5** After success invalidate month summary, Recipient, History; reschedule dependent notifications (Phase 12).
+- **7A.1** (was 8.1) Backend: `POST /api/charges/:id/payment` (paidCents, paidOn, paidByPersonId), `POST /api/payments` (Record payment: from person, for charge(s)/person, amount, date; marks matching charges paid and who paid), `DELETE`/undo not in design (don't add). Marking Tenant 2's rent received creates the `Task` (SAVINGS_TRANSFER). Short payment: store what was received; difference is history only (no carry).
+- **7A.2** (was 8.2) `MarkPaid` sheet: expected vs received, "Full amount" default, "Different amount" reveals MoneyField, Received on DateField, shortfall/overpayment as info Alert (**no carry/let-go Radio**, per Data Model).
+- **7A.3** (was 8.3) `Record payment`: From and For SelectFields (open states are just the Select open), prefilled when launched from a row or notification Paid action.
+- **7A.4** (was 8.4) Saving/failed states via the Phase 2 sheet scaffold.
+- **7A.5** (was 8.5) After success invalidate month summary, Recipient, History; reschedule dependent notifications (Phase 9B, stubbed until then). Wire the Home row actions (5.3) to the Mark paid sheet.
+
+### 7B. Recipient and messages
+Source `Recipient.dc.html` (5 states: `notSent`, `sent`, `paid`, `paidDifferent`, `nudged`).
+
+- **7B.1** (was 7.1) Backend: `GET /api/months/:month/recipients/:personId` -> breakdown lines, rendered monthly message from the template (placeholders `{name}`, `{amount}`, `{month}`, `{charge}`, `{dueDate}`, etc.; render function in backend `lib/messages/render.ts` with unit tests incl. Tagalog default text in the Brief), unpaid corrections from earlier months, history of `MessageEvent`s. `POST .../message-events` (kind MONTHLY|NUDGE, stores `renderedText`, `openedAt`). The templates come from the household config, so the seeded versions are enough until the editors exist (Phase 8, Phase 9A).
+- **7B.2** (was 7.2) UI: Card with breakdown (rows, Divider, total), message preview card (custom formatting preserving line breaks, emoji), buttons: "Send on WhatsApp" (`Linking.openURL('https://wa.me/<E164 digits>?text=<encodeURIComponent>')`), "Send again", "Nudge again", Share bill button (opens the Share sheet, 7B.6), Mark paid (opens the 7A.2 sheet).
+- **7B.3** (was 7.3) Record the event **after** the intent opens (and on failure to open WhatsApp show an Alert, no event). Never auto-send, no send-all. One person at a time.
+- **7B.4** (was 7.4) States: show Sent/Nudged timestamps (Asia/Singapore), Paid badge, `paidDifferent` info (paid amount vs expected).
+- **7B.5** (was 7.5) Entry from Home rows (wire the Home row actions, 5.3) and notification taps (Phase 9B).
+- **7B.6** (was 6C.3) `Share` sheet (3 boards: `pdf`, `summary`, `system`): Radio PDF vs Summary, Switch options, Share button -> `expo-sharing`/`Share.share` system sheet with the stored PDF (cache file, from the Phase 6 bill file endpoint) or summary text. Reached only from Recipient's Share bill button.
 
 ---
 
-## Phase 9: Add charge and History
+## Phase 8: Household, Confirmations and the shared schemas package
 
-### 9A. Add charge (5 states)
-Source `AddCharge.dc.html`.
-- **9A.1** Backend: `POST /api/charges/preview` (mode, split method, total, who, custom amounts, month) -> per-person cents via engine; `POST /api/charges` creates `ChargeGroup` + charges in one transaction (amounts stored, never recalculated). `Correction` = personal charge with `correctsMonth`, signed amount.
-- **9A.2** UI sheet: ConnectedButtonGroup Shared / Personal (Add charge is not final), single-select chips for split method (Per share, Per unit, Custom) and Who, Label, Amount (MoneyField), Month being fixed (MonthSelect, corrections), Due date, Note. Live preview card from the preview endpoint (debounced, Spinner while loading); `error` state (custom split doesn't add up) = danger Alert + Save disabled; Saving/Failed via scaffold. Replaces spike `add-charge-sheet.tsx`.
+Source `Household.dc.html` (largest file, 48KB; read in full) and `Confirm.dc.html`.
 
-### 9B. History (4 states)
-Source `History.dc.html`.
-- **9B.1** Backend: `GET /api/history` (months list: bill total, paid count, chips), `GET /api/history/:month` (charges with paid state, corrections, banner flags). Derived, no new tables.
-- **9B.2** `list`, `loading`, `monthCorrected` (info Alert "corrected later" linking to the correction charges), `monthCarried` is **deferred to a future fix**: a month with an unpaid charge just shows the normal Unpaid chip on that row, with no carry banner or "carried to Jan" copy.
-- **9B.3** Read-only except opening a charge.
+- **8.0** (was 12.5e) **Shared schemas package (required before go-live; done here, before the Household forms)**: replace the hand-mirrored zod schemas in `app/src/lib/schemas/` (and the hand-synced `app/src/lib/api-types.ts`) with one shared package that both `backend/` and `app/` import, so the two sides cannot drift. Household has the largest zod config (1.2), so doing it first avoids mirroring that schema by hand and migrating it later. Start with a short spike: npm workspaces with a `shared/` package that depends only on `zod`, then confirm the backend build and Vercel (root directory), the Expo/Metro bundle and EAS builds all resolve it. Form-only schemas stay app-side, built from the shared pieces. **Candidate: `app/src/lib/month.ts`** (added in 2.11): pure month-key helpers on `date-fns` and `@date-fns/tz`. The backend has its own `backend/src/lib/month.ts` (Intl-based `monthKeyOf`/`currentMonth`), so move the shared logic into the package so both sides use one implementation and cannot drift on the Singapore month; the backend's `DEV_NOW` clock stays backend-side. This reverses the 1.8 and 1.11 "do not add a shared package in v1" decision (Francis, 2026-10-21).
+- **8.1** (was 4B.1) Backend: `GET /api/household` (current version, upcoming version if any, people, per-version history), `POST /api/household/preview` (config draft + starts-from -> per-person amounts via split engine; this is what the edit preview card shows; **the app never calculates**), `POST /api/household/versions` (validates: starts-from must be after current month, except first version; shares add to 100%/totals; creates a new immutable version), `POST /api/people` / person updates go through versions (name and WhatsApp live on `Person`; everything else in config), `DELETE` of a person = a new version excluding them (never hard-delete), plus `removeVersion` for a not-yet-started future version only. The first version's config includes the default message templates from the Brief.
+- **8.2** (was 4B.2) `view` overview: Cards for each person (route chip Directly/Via someone, rent, shares), landlord rent summary, 50/50 split bars (custom two-segment Progress), version/"starts from" badges, Add person button. `loading` skeleton.
+- **8.3** (was 4B.3) Edit screens/sheets by state: `editPerson` (Tenant 2 from Jan 2027 with preview), `editPrimary` (rename, rename applies immediately on Person), `editTenant1` (ConnectedButtonGroup Directly/Via someone per charge type, Applies-to Select), `editHome` (landlord rent from Jan 2027), `addPerson` (empty form, ConnectedButtonGroup for the payment route, PhoneField starting with +65), `splitError` (shares not adding to 100% -> danger Alert + disabled Save).
+- **8.4** (was 4B.4) "Starts from" MonthSelectField lists only months after the current month (first setup: current month allowed). Live preview via debounced call to `/api/household/preview`; show Spinner in the preview card while fetching. **First-setup mode:** the editors take a first-setup flag from the route, so the first version may start at the go-live month (Nov 2026), the only allowed exception. First run (Phase 10) launches the editors in this mode.
+- **8.5** (was 4B.5 and 10B) **Confirmations** (`Confirm.dc.html`): `removePerson`, `removeVersion`, `discard` (back/close with a dirty form). Wire to Household and, later, to every dirty sheet. Filled Cancel, red-outline action, on the Phase 2 `ConfirmDialog`.
+- **8.6** (was 4B.6) Required markers and label-above on every field; verify against FormControls.
+
+Exit: a household can be created from scratch and edited; a version cannot start in the current/past month (API test + UI disables); the backend and app both import the shared schemas.
 
 ---
 
-## Phase 10: Settings, Notifications UI and Confirmations
+## Phase 9: Settings and Notifications
 
-### 10A. Settings (5 states)
+### 9A. Settings (5 states)
 Source `Settings.dc.html` (33KB).
-- **10A.1** Backend: `GET/PUT /api/settings` (notification toggles per channel/type); message templates are part of the versioned household config, so template edits go through `POST /api/household/versions` with "starts from" (Settings "Applies to" Select: everyone / a person).
-- **10A.2** `view`: Account Card (signed-in email, Sign out, no confirmation dialog per mapping), Appearance (ConnectedButtonGroup Light/Dark/System bound to the existing `useThemePreference()` from step 2.1a; no new theme logic), Messages (links to template editors), Notifications (Switches per channel/type).
-- **10A.3** `template` / `override` / `nudge`: Textarea editors (label above), placeholder chips to insert, preview card with compact ConnectedButtonGroup sample selector (custom), per-person override via Applies-to Select; Save creates a version (starts-from rule applies).
-- **10A.4** `blocked`: when notification permission is denied, warning Alert + "Open system settings" (`Linking.openSettings()`, external-link icon); re-check on app foreground.
-- **10A.5** Sign out: `authClient.signOut()`, clear query cache, `GoogleSignin.signOut()`, cancel scheduled notifications.
+- **9A.1** (was 10A.1) Backend: `GET/PUT /api/settings` (notification toggles per channel/type); message templates are part of the versioned household config, so template edits go through `POST /api/household/versions` (8.1) with "starts from" (Settings "Applies to" Select: everyone / a person).
+- **9A.2** (was 10A.2) `view`: Account Card (signed-in email, Sign out, no confirmation dialog per mapping), Appearance (ConnectedButtonGroup Light/Dark/System bound to the existing `useThemePreference()` from step 2.1a; no new theme logic), Messages (links to template editors), Notifications (Switches per channel/type; they do nothing until 9B lands).
+- **9A.3** (was 10A.3) `template` / `override` / `nudge`: Textarea editors (label above), placeholder chips to insert, preview card with compact ConnectedButtonGroup sample selector (custom), per-person override via Applies-to Select; Save creates a version (starts-from rule applies).
+- **9A.4** (was 10A.4) `blocked`: when notification permission is denied, warning Alert + "Open system settings" (`Linking.openSettings()`, external-link icon); re-check on app foreground.
+- **9A.5** (was 10A.5) Sign out: `authClient.signOut()`, clear query cache, `GoogleSignin.signOut()`, cancel scheduled notifications (9B).
 
-### 10B. Confirmations
-Source `Confirm.dc.html`: `removePerson`, `removeVersion`, `discard`. Wire to Household (4B) and every dirty sheet (back/close with changes). Filled Cancel, red-outline action.
-
----
-
-## Phase 11: Notifications ("Notifications" boards are a copy reference, not screens)
-
+### 9B. Notifications ("Notifications" boards are a copy reference, not screens)
 Source `Notifications.dc.html` (`headsUp`, `shade`) for copy, channel names, action labels, small icon. Tech Stack table defines triggers.
 
-- **11.1** `expo-notifications` channels: Action needed (high, heads-up), Payment checks, FYI (low/silent); create on launch.
-- **11.2** Action buttons: Paid -> opens Record payment sheet via deep link `splithouse://payments/new?charge=<id>`; Nudge -> opens WhatsApp nudge via Recipient with nudge intent (needs foreground). Register categories with `setNotificationCategoryAsync`.
-- **11.3** Scheduler `app/src/lib/notifications/schedule.ts`: input = month summary + settings; cancels all and reschedules (idempotent) on sign-in, launch, and after every mutation (new bill, payment, due-date edit, setting toggle). Date-based: upload bill (about the 2nd, daily until done), collect Tenant 1's rent (last working day before the 1st), Pay utilities bill with live "collected $X of $Y", per-charge "Did {name} pay {charge}?". Event-based immediate: Transfer $950 to savings (when Tenant 2 rent marked received), month settled, unusual bill, aircon due.
-- **11.4** Backend `GET /api/notifications/plan` returns computed trigger list so scheduling logic stays server-side/testable (preferred, mirrors "split engine only in backend"); app only schedules.
-- **11.5** Tap routing with `expo-router` + `Notifications.useLastNotificationResponse`.
-- **11.6** Test on device overnight for delivery delay (Tech Stack "Reminder delay"), no exact-alarm permission.
+- **9B.1** (was 11.1) `expo-notifications` channels: Action needed (high, heads-up), Payment checks, FYI (low/silent); create on launch.
+- **9B.2** (was 11.2) Action buttons: Paid -> opens Record payment sheet via deep link `splithouse://payments/new?charge=<id>`; Nudge -> opens WhatsApp nudge via Recipient with nudge intent (needs foreground). Register categories with `setNotificationCategoryAsync`.
+- **9B.3** (was 11.3) Scheduler `app/src/lib/notifications/schedule.ts`: input = month summary + settings; cancels all and reschedules (idempotent) on sign-in, launch, and after every mutation (new bill, payment, due-date edit, setting toggle). Date-based: upload bill (about the 2nd, daily until done), collect Tenant 1's rent (last working day before the 1st), Pay utilities bill with live "collected $X of $Y", per-charge "Did {name} pay {charge}?". Event-based immediate: Transfer $950 to savings (when Tenant 2 rent marked received), month settled, unusual bill, aircon due.
+- **9B.4** (was 11.4) Backend `GET /api/notifications/plan` returns computed trigger list so scheduling logic stays server-side/testable (preferred, mirrors "split engine only in backend"); app only schedules.
+- **9B.5** (was 11.5) Tap routing with `expo-router` + `Notifications.useLastNotificationResponse`.
+- **9B.6** (was 11.6) Test on device overnight for delivery delay (Tech Stack "Reminder delay"), no exact-alarm permission.
+
+---
+
+## Phase 10: First run ("Welcome", 3 states)
+
+A launcher over screens built earlier (Household editors, Confirmations, Settings), so it comes after them. The empty-database path is tested by clearing the dev DB with the `seed:reset` wipe, so no extra seed scenario is needed.
+
+- **10.1** (was 4A.1) `Welcome` `state=empty`, `progress`, `notifications`: Card with 4-segment step indicator (custom Progress), "2 of 4 steps done", rows: household/people, rent & shares, recurring charges, reminders (optional). Row detail copy from source.
+- **10.2** (was 4A.2) Each step opens the matching Household editor (Phase 8) in first-setup mode (8.4).
+- **10.3** (was 4A.3) **Reminders step**: explainer then `Notifications.requestPermissionsAsync()`; on grant mark step done; on denial show the blocked state (9A.4) and continue (optional step). Android 13+ runtime permission.
+- **10.4** (was 4A.4) Backend: `GET /api/setup/progress`, derived from household version + settings; `POST /api/setup/complete` not needed (derived). Home is reachable once steps 1-3 are done.
+
+Exit: from an empty dev database, First run takes a household from nothing to Home.
+
+---
+
+## Phase 11: Add charge (5 states)
+
+Source `AddCharge.dc.html`. Last of the feature screens because it is a nice to have: a wrong bill is rare, and a correction charge is its only must-have use (6B.6).
+
+- **11.1** (was 9A.1) Backend: `POST /api/charges/preview` (mode, split method, total, who, custom amounts, month) -> per-person cents via engine; `POST /api/charges` creates `ChargeGroup` + charges in one transaction (amounts stored, never recalculated). `Correction` = personal charge with `correctsMonth`, signed amount.
+- **11.2** (was 9A.2) UI sheet: ConnectedButtonGroup Shared / Personal (Add charge is not final), single-select chips for split method (Per share, Per unit, Custom) and Who, Label, Amount (MoneyField), Month being fixed (MonthSelect, corrections), Due date, Note. Live preview card from the preview endpoint (debounced, Spinner while loading); `error` state (custom split doesn't add up) = danger Alert + Save disabled; Saving/Failed via scaffold. Replaces spike `add-charge-sheet.tsx`. Switch on the Home Add charge entry (5.4) and the History link to correction charges (4.2).
 
 ---
 
@@ -352,7 +395,7 @@ Source `Notifications.dc.html` (`headsUp`, `shade`) for copy, channel names, act
 - **12.5b** **GitHub secrets (Francis, in the repo's Settings > Secrets and variables > Actions)**: `NEON_DIRECT_URL` (direct, not pooled, read-only role if Neon allows), `BACKUP_PASSPHRASE` (also saved in the password manager; without it backups can't be restored), `BACKUP_BUCKET`, `BACKUP_ENDPOINT`, `BACKUP_ACCESS_KEY_ID`, `BACKUP_SECRET_ACCESS_KEY`. Add the names (no values) to `.env.example` or the setup guide.
 - **12.5c** **Workflow** `.github/workflows/backup.yml`: weekly cron plus manual `workflow_dispatch`; steps: install the Postgres client matching Neon's major version, `pg_dump --format=custom`, encrypt with `age`/`gpg` using the passphrase, upload to the bucket with an S3-compatible CLI, prune older than the last 8, fail the job (GitHub emails Francis) on any error. No dump or secret is ever printed to logs or kept as a public artifact.
 - **12.5d** **Restore test, once before go-live**: download the latest object, decrypt, `pg_restore` into a scratch Neon branch, check row counts for `Charge`, `Bill`, `BillFile` and that a bill PDF opens; delete the scratch branch. Write the restore steps in `backend/README.md` (no secrets).
-- **12.5e** **Shared schemas package (required before go-live)**: replace the hand-mirrored zod schemas in `app/src/lib/schemas/` (and the hand-synced `app/src/lib/api-types.ts`) with one shared package that both `backend/` and `app/` import, so the two sides cannot drift. Do it once the backend and app tests are in place, so regressions show up. Start with a short spike: npm workspaces with a `shared/` package that depends only on `zod`, then confirm the backend build and Vercel (root directory), the Expo/Metro bundle and EAS builds all resolve it. Form-only schemas stay app-side, built from the shared pieces. **Candidate: `app/src/lib/month.ts`** (added in 2.11): pure month-key helpers on `date-fns` and `@date-fns/tz`. The backend has its own `backend/src/lib/month.ts` (Intl-based `monthKeyOf`/`currentMonth`), so move the shared logic into the package so both sides use one implementation and cannot drift on the Singapore month; the backend's `DEV_NOW` clock stays backend-side. This reverses the 1.8 and 1.11 "do not add a shared package in v1" decision (Francis, 2026-10-21).
+- **12.5e** Moved to 8.0 (shared schemas package), done before the Household forms are written.
 - **12.6** Production: Vercel project `split-house-api`, env vars, Neon prod branch migration (`prisma migrate deploy`), seed *real* household through the app's First run (not through code), EAS production-profile APK, new-phone test (install, sign in, old session revoked, reminders rebuilt).
 - **12.7** Go-live check for the Nov 2026 cycle: end-to-end dry run on the dev branch with fixtures: set up household, open month, upload (test) bill, preview messages, WhatsApp open, record payments, corrections, settle.
 
