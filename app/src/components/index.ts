@@ -15,6 +15,8 @@ export * from './connected-button-group';
 export * from './date-field';
 export * from './external-link';
 export * from './form-field';
+export * from './google-button';
+export * from './icon';
 export * from './money-input';
 export * from './month-select-field';
 export * from './phone-input';

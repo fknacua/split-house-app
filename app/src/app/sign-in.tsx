@@ -1,5 +1,8 @@
+import { useLocalSearchParams } from 'expo-router';
+
 import { SignIn } from '@/screens/sign-in';
 
 export default function SignInScreen() {
-  return <SignIn />;
+  const { reason } = useLocalSearchParams<{ reason?: string }>();
+  return <SignIn sessionEnded={reason === 'ended'} />;
 }
