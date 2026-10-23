@@ -75,3 +75,25 @@ export function route<C = unknown>(handler: Handler<C>): Handler<C> {
     }
   };
 }
+
+/**
+ * Turns a Better Auth error redirect into the standard JSON error.
+ * Better Auth was built for browsers, so some failures (a database error while
+ * signing in, for example) answer with a redirect such as `302 -> /error?error=...`.
+ * The app's `fetch` follows redirects and would read the error page as a successful
+ * reply. Only a 3xx whose `Location` carries an `error` value is converted; every
+ * other response, redirects without an error included, passes through untouched.
+ *
+ * @param response What the Better Auth handler returned.
+ * @returns The same response, or for an error redirect a `{ error: { code, message } }`
+ *   response: 500 for `internal_server_error`, 400 for any other error code.
+ */
+export function redirectToJsonError(response: Response): Response {
+  if (response.status < 300 || response.status >= 400) return response;
+  const location = response.headers.get("location") ?? "";
+  const code = new URLSearchParams(location.split("?")[1] ?? "").get("error");
+  if (!code) return response;
+  console.error("[auth] error redirect turned into a JSON error", { code });
+  const status = code === "internal_server_error" ? 500 : 400;
+  return errorResponse(status, code, "Authentication failed.");
+}
