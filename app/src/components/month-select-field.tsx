@@ -1,6 +1,6 @@
 import { type ComponentRef, forwardRef } from 'react';
 
-import { formatMonthLabel } from '@/lib/month';
+import { formatMonthLabel } from '@/lib';
 import { withFormControlledField, BareInputProps } from './form-field/';
 import { BareSelectField } from './select-field';
 

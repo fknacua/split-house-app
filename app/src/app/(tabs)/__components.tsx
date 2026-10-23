@@ -22,36 +22,56 @@ import {
   Users,
 } from 'lucide-react-native';
 
-import { Alert } from '@/components/alert';
-import { AppSheet, type AppSheetRef } from '@/components/app-sheet';
-import { Badge } from '@/components/badge';
-import { BottomNavBar, type NavItem } from '@/components/bottom-nav';
-import { Button, type ButtonVariant } from '@/components/button';
-import { ChipGroup } from '@/components/chip';
-import { FieldControl, FieldControlProps } from '@/components/form-field/';
-import { ConfirmDialog } from '@/components/confirm-dialog';
-import { ConnectedButtonGroup } from '@/components/connected-button-group';
-import { DateField } from '@/components/date-field';
-import { MoneyInput } from '@/components/money-input';
-import { MonthSelectField } from '@/components/month-select-field';
-import { PhoneInput } from '@/components/phone-input';
-import { SelectField } from '@/components/select-field';
-import { Screen } from '@/components/screen';
-import { SubpageHeader, PageHeader } from '@/components/screen-header/';
 import {
+  Accordion,
+  Alert,
+  AppSheet,
+  type AppSheetRef,
+  Badge,
+  BottomNavBar,
+  Button,
+  type ButtonVariant,
+  Card,
+  ChipGroup,
+  ConfirmDialog,
+  ConnectedButtonGroup,
+  DateField,
+  FieldControl,
+  FieldControlProps,
+  MoneyInput,
+  MonthSelectField,
+  type NavItem,
+  PageHeader,
+  PhoneInput,
+  Progress,
+  Screen,
+  SegmentedProgress,
+  SelectField,
   SkeletonBlock,
   SkeletonCard,
   SkeletonPersonCards,
   SkeletonRowList,
-} from '@/components/skeletons';
-import { TextareaInput } from '@/components/textarea-input';
-import { TextInput } from '@/components/text-input';
-import { TouchTargetCheck, TouchTargetCheckProvider } from '@/components/touch-target-check';
-import { Switch, SwitchRow } from '@/components/switch';
-import { todayKey } from '@/lib/date';
-import { currentMonth, addMonths, monthRange } from '@/lib/month';
-import { formatCents } from '@/lib/money';
-import { cents, e164Phone, positiveCents, requiredText } from '@/lib/schemas/common';
+  Spinner,
+  SplitProgress,
+  SubpageHeader,
+  Switch,
+  SwitchRow,
+  TextareaInput,
+  TextInput,
+  TouchTargetCheck,
+  TouchTargetCheckProvider,
+} from '@/components';
+import {
+  addMonths,
+  cents,
+  currentMonth,
+  e164Phone,
+  formatCents,
+  monthRange,
+  positiveCents,
+  requiredText,
+  todayKey,
+} from '@/lib';
 import { type ThemePreference, useThemePreference } from '@/lib/theme-preference';
 
 const SCOPE_OPTIONS = [
@@ -671,6 +691,112 @@ function SkeletonDemo() {
   );
 }
 
+const MOCK_ACCORDION_ROWS = [
+  { value: 'priya', name: 'Priya', total: 123_69, lines: [['Rent', 123_69]] },
+  { value: 'sam', name: 'Sam', total: 82_46, lines: [['Rent', 82_46]] },
+  { value: 'jordan', name: 'Jordan', total: 122_69, lines: [['Rent', 82_46], ['Utilities', 40_23]] },
+] as const;
+
+/** Cards, progress, accordion and spinner section (plan 2.18), with mock content. */
+function SurfacesDemo() {
+  const [coverage, setCoverage] = useState(60);
+  const [stepsDone, setStepsDone] = useState(2);
+  return (
+    <View className="gap-3">
+      <Text className="font-manrope-bold text-sheet-title text-on-surface">Cards</Text>
+      <Card>
+        <Text className="font-manrope-bold text-label text-on-surface">Padded card</Text>
+        <Text className="font-manrope-medium text-body text-on-surface-variant">
+          Free-form content with 16px padding and a 12px gap. Flat, no border.
+        </Text>
+      </Card>
+      <Card padded={false}>
+        <View className="min-h-12 justify-center px-4">
+          <Text className="font-manrope-medium text-body text-on-surface">Unpadded card, row 1</Text>
+        </View>
+        <View className="min-h-12 justify-center border-t border-outline-variant px-4">
+          <Text className="font-manrope-medium text-body text-on-surface">Row 2</Text>
+        </View>
+      </Card>
+
+      <Text className="font-manrope-bold text-sheet-title text-on-surface">Progress</Text>
+      <Progress value={coverage} accessibilityLabel="Bill collected" />
+      <Text className="font-manrope-medium text-caption text-on-surface-variant">
+        {coverage}% collected
+      </Text>
+      <ConnectedButtonGroup
+        fit
+        label="Collected"
+        value={String(coverage)}
+        onChange={(v) => setCoverage(Number(v))}
+        options={[
+          { label: '0%', value: '0' },
+          { label: '60%', value: '60' },
+          { label: '100%', value: '100' },
+        ]}
+      />
+      <Text className="font-manrope-bold text-label text-on-surface-variant">Setup steps</Text>
+      <SegmentedProgress total={4} done={stepsDone} accessibilityLabel="Setup steps" />
+      <ConnectedButtonGroup
+        fit
+        label="Steps done"
+        value={String(stepsDone)}
+        onChange={(v) => setStepsDone(Number(v))}
+        options={[
+          { label: '0', value: '0' },
+          { label: '2', value: '2' },
+          { label: '4', value: '4' },
+        ]}
+      />
+      <Text className="font-manrope-bold text-label text-on-surface-variant">Split bar</Text>
+      <SplitProgress percent={50} accessibilityLabel="Your share 50 percent" />
+      <SplitProgress percent={70} accessibilityLabel="Your share 70 percent" />
+
+      <Text className="font-manrope-bold text-sheet-title text-on-surface">Accordion</Text>
+      <Card padded={false}>
+        <Accordion
+          defaultOpen={['priya']}
+          rows={MOCK_ACCORDION_ROWS.map((row) => ({
+            value: row.value,
+            accessibilityLabel: `${row.name}, ${formatCents(row.total)}`,
+            header: (
+              <View className="flex-1 flex-row items-center justify-between">
+                <Text className="font-manrope-bold text-body text-on-surface">{row.name}</Text>
+                <Text className="font-manrope-extrabold text-body text-on-surface">
+                  {formatCents(row.total)}
+                </Text>
+              </View>
+            ),
+            content: (
+              <View className="gap-1">
+                {row.lines.map(([label, amount]) => (
+                  <View key={label} className="flex-row justify-between">
+                    <Text className="font-manrope-medium text-body text-on-surface-variant">
+                      {label}
+                    </Text>
+                    <Text className="font-manrope-medium text-body text-on-surface-variant">
+                      {formatCents(amount)}
+                    </Text>
+                  </View>
+                ))}
+              </View>
+            ),
+          }))}
+        />
+      </Card>
+
+      <Text className="font-manrope-bold text-sheet-title text-on-surface">Spinner</Text>
+      <View className="flex-row items-center gap-4">
+        <Spinner />
+        <Spinner size="large" />
+        <Text className="font-manrope-medium text-caption text-on-surface-variant">
+          Small and large
+        </Text>
+      </View>
+    </View>
+  );
+}
+
 /** Screen header section (plan 2.17): tab-style title and back-arrow style, with mock content. */
 function HeadersDemo() {
   const [backCount, setBackCount] = useState(0);
@@ -799,6 +925,7 @@ function DialogsDemo() {
 export default function ComponentTestPage() {
   const { preference, setPreference } = useThemePreference();
   const [checkTargets, setCheckTargets] = useState(false);
+  const [showSkeletons, setShowSkeletons] = useState(false);
   const [scope, setScope] = useState('shared');
   const [sample, setSample] = useState('priya');
   const [method, setMethod] = useState('unit');
@@ -835,6 +962,16 @@ export default function ComponentTestPage() {
               value={checkTargets}
               onChange={setCheckTargets}
               accessibilityLabel="Outline targets under 44px"
+            />
+          </View>
+          <View className="min-h-11 flex-row items-center justify-between">
+            <Text className="font-manrope-medium text-body text-foreground">
+              Show skeletons (pulsing, costs frames)
+            </Text>
+            <Switch
+              value={showSkeletons}
+              onChange={setShowSkeletons}
+              accessibilityLabel="Show skeletons"
             />
           </View>
         </View>
@@ -1084,11 +1221,9 @@ export default function ComponentTestPage() {
           </View>
           <SheetDemo />
           <DialogsDemo />
-          <SkeletonDemo />
+          {showSkeletons ? <SkeletonDemo /> : null}
+          <SurfacesDemo />
           <HeadersDemo />
-          <Text className="font-manrope-medium text-body text-on-surface-variant">
-            Sections are added by the later Phase 2 steps.
-          </Text>
         </ScrollView>
         </KeyboardAvoidingView>
       </Screen>

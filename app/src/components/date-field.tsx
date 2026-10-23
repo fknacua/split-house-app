@@ -5,7 +5,7 @@ import { Pressable, View } from 'react-native';
 
 import { type BareInputProps, withFormControlledField } from '@/components/form-field/';
 import { Input, InputField, InputIcon, InputSlot } from '@/components/ui/input';
-import { dateKeyOf, dateKeyToValue, formatDateLabel, todayKey } from '@/lib/date';
+import { dateKeyOf, dateKeyToValue, formatDateLabel, todayKey } from '@/lib';
 
 /** The props only the date field has, on top of the shared input props. */
 export interface DateFieldOwnProps {

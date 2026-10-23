@@ -1,7 +1,7 @@
 import { Link } from 'expo-router';
 import { Text, View } from 'react-native';
 
-import { Screen } from '@/components/screen';
+import { Screen } from '@/components';
 import { Home } from '@/screens/home';
 
 export default function HomeScreen() {

@@ -15,7 +15,7 @@ import {
 } from '@/components/ui/bottomsheet';
 // eslint-disable-next-line no-restricted-imports -- TODO: replace with a wrapper from src/components
 import { Button, ButtonSpinner, ButtonText } from '@/components/ui/button';
-import { ChipGroup } from '@/components/chip';
+import { ChipGroup, ConnectedButtonGroup } from '@/components';
 
 // eslint-disable-next-line no-restricted-imports -- TODO: replace with a wrapper from src/components
 import {
@@ -40,7 +40,6 @@ import {
   SelectPortal,
   SelectTrigger,
 } from '@/components/ui/select';
-import { ConnectedButtonGroup } from '@/components/connected-button-group';
 // eslint-disable-next-line no-restricted-imports -- TODO: replace with a wrapper from src/components
 import { Switch } from '@/components/ui/switch';
 // eslint-disable-next-line no-restricted-imports -- TODO: replace with a wrapper from src/components
