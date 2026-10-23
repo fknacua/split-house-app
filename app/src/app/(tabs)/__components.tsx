@@ -15,7 +15,10 @@ import {
   House,
   Send,
   Settings,
+  Trash2,
   TriangleAlert,
+  Undo2,
+  UserMinus,
   Users,
 } from 'lucide-react-native';
 
@@ -26,6 +29,7 @@ import { BottomNavBar, type NavItem } from '@/components/bottom-nav';
 import { Button, type ButtonVariant } from '@/components/button';
 import { ChipGroup } from '@/components/chip';
 import { FieldControl, FieldControlProps } from '@/components/form-field/';
+import { ConfirmDialog } from '@/components/confirm-dialog';
 import { ConnectedButtonGroup } from '@/components/connected-button-group';
 import { DateField } from '@/components/date-field';
 import { MoneyInput } from '@/components/money-input';
@@ -632,6 +636,81 @@ function SheetDemo() {
   );
 }
 
+type DialogKind = 'removePerson' | 'removeVersion' | 'discard' | 'warnings';
+
+/** Dialog scaffold section (plan 2.15): the three Confirm boards and Save with warnings. */
+function DialogsDemo() {
+  const [kind, setKind] = useState<DialogKind | null>(null);
+  const [result, setResult] = useState('Nothing chosen yet');
+
+  const close = (outcome: string) => {
+    setResult(outcome);
+    setKind(null);
+  };
+
+  return (
+    <View className="gap-3">
+      <Text className="font-manrope-bold text-sheet-title text-on-surface">Dialogs</Text>
+      <Text className="font-manrope-medium text-caption text-on-surface-variant">
+        Tapping the scrim does nothing; the Android back gesture counts as the first button.
+        Last choice: {result}.
+      </Text>
+      <Button label="Remove person" variant="outline" onPress={() => setKind('removePerson')} />
+      <Button label="Remove version" variant="outline" onPress={() => setKind('removeVersion')} />
+      <Button label="Discard changes" variant="outline" onPress={() => setKind('discard')} />
+      <Button label="Save with warnings" variant="outline" onPress={() => setKind('warnings')} />
+      <ConfirmDialog
+        open={kind === 'removePerson'}
+        icon={UserMinus}
+        title="Remove Tenant 2 from household?"
+        body="From January 2027 they won’t get any charges or messages, and the utility shares will be split between everyone else."
+        items={[
+          'Past months and History stay as they are',
+          'Their $950.00 deposit stays recorded until you return it',
+        ]}
+        onCancel={() => close('Cancel (remove person)')}
+        confirmLabel="Remove from household"
+        onConfirm={() => close('Remove from household')}
+      />
+      <ConfirmDialog
+        open={kind === 'removeVersion'}
+        icon={Trash2}
+        title="Remove this version?"
+        body="Tenant 2 will get the Everyone template from January 2027. Messages already sent won’t change."
+        onCancel={() => close('Cancel (remove version)')}
+        confirmLabel="Remove version"
+        onConfirm={() => close('Remove version')}
+      />
+      <ConfirmDialog
+        open={kind === 'discard'}
+        icon={Undo2}
+        title="Discard changes?"
+        body="Your edits to Tenant 2 haven’t been saved. If you leave now, they’ll be lost."
+        cancelLabel="Keep editing"
+        onCancel={() => close('Keep editing')}
+        confirmLabel="Discard"
+        onConfirm={() => close('Discard')}
+      />
+      <ConfirmDialog
+        open={kind === 'warnings'}
+        tone="warning"
+        icon={TriangleAlert}
+        title="Save with warnings?"
+        body="Check these before you continue:"
+        items={[
+          'The billing period is not in November 2026',
+          'The lines add up to $1,850.00, not $1,862.86',
+        ]}
+        itemStyle="bullet"
+        cancelLabel="Go back and fix"
+        onCancel={() => close('Go back and fix')}
+        confirmLabel="Save anyway"
+        onConfirm={() => close('Save anyway')}
+      />
+    </View>
+  );
+}
+
 /**
  * Dev-only component test page (plan 2.3). Every shared component gets a section here.
  * Absent from release builds: redirects home when `__DEV__` is false.
@@ -923,6 +1002,7 @@ export default function ComponentTestPage() {
             </View>
           </View>
           <SheetDemo />
+          <DialogsDemo />
           <Text className="font-manrope-medium text-body text-on-surface-variant">
             Sections are added by the later Phase 2 steps.
           </Text>
