@@ -5,10 +5,23 @@ import { type Control, useForm, useWatch } from 'react-hook-form';
 import { z } from 'zod';
 import { KeyboardAvoidingView, ScrollView, Text, View } from 'react-native';
 
-import { Bell, Check, CircleAlert, CircleCheck, Clock, Send, TriangleAlert } from 'lucide-react-native';
+import {
+  Bell,
+  Check,
+  CircleAlert,
+  CircleCheck,
+  Clock,
+  History,
+  House,
+  Send,
+  Settings,
+  TriangleAlert,
+  Users,
+} from 'lucide-react-native';
 
 import { Alert } from '@/components/alert';
 import { Badge } from '@/components/badge';
+import { BottomNavBar, type NavItem } from '@/components/bottom-nav';
 import { Button, type ButtonVariant } from '@/components/button';
 import { ChipGroup } from '@/components/chip';
 import { FieldControl, FieldControlProps } from '@/components/form-field/';
@@ -18,6 +31,7 @@ import { MoneyInput } from '@/components/money-input';
 import { MonthSelectField } from '@/components/month-select-field';
 import { PhoneInput } from '@/components/phone-input';
 import { SelectField } from '@/components/select-field';
+import { Screen } from '@/components/screen';
 import { TextareaInput } from '@/components/textarea-input';
 import { TextInput } from '@/components/text-input';
 import { TouchTargetCheck, TouchTargetCheckProvider } from '@/components/touch-target-check';
@@ -43,6 +57,13 @@ const METHOD_OPTIONS = [
   { label: 'Custom', value: 'custom' },
 ] as const;
 const WHO_OPTIONS = SAMPLE_OPTIONS;
+// Mock items: the test page doesn't depend on the app's real tabs.
+const MOCK_NAV_ITEMS: NavItem[] = [
+  { key: 'one', label: 'One', icon: House },
+  { key: 'two', label: 'Two', icon: History },
+  { key: 'three', label: 'Three', icon: Users },
+  { key: 'four', label: 'Four', icon: Settings },
+];
 const BUTTON_VARIANTS: ButtonVariant[] = [
   'primary',
   'outline',
@@ -529,13 +550,14 @@ export default function ComponentTestPage() {
   const [measured48, setMeasured48] = useState('?');
   const [taps, setTaps] = useState(0);
   const [buttonState, setButtonState] = useState<string>('default');
+  const [navActive, setNavActive] = useState('one');
 
   if (!__DEV__) return <Redirect href="/" />;
 
   return (
     <TouchTargetCheckProvider enabled={checkTargets}>
-      <View className="flex-1 bg-background">
-        <View className="gap-3 border-b border-outline-variant bg-background px-4 pb-3 pt-12">
+      <Screen>
+        <View className="gap-3 border-b border-outline-variant bg-background px-4 pb-3 pt-3">
           <Text className="font-manrope-bold text-title text-foreground">Component test page</Text>
           <TouchTargetCheck>
             <ConnectedButtonGroup<ThemePreference>
@@ -793,12 +815,22 @@ export default function ComponentTestPage() {
           </View>
           <FormFieldsDemo />
           <PickersDemo />
+          <View className="gap-3">
+            <Text className="font-manrope-bold text-label text-foreground">Bottom navigation</Text>
+            <Text className="font-manrope-medium text-caption text-on-surface-variant">
+              Demo bar with its own selection (the real bar is at the bottom of the screen).
+              Selected: {navActive}
+            </Text>
+            <View className="overflow-hidden rounded-card">
+              <BottomNavBar items={MOCK_NAV_ITEMS} active={navActive} onItemPress={setNavActive} />
+            </View>
+          </View>
           <Text className="font-manrope-medium text-body text-on-surface-variant">
             Sections are added by the later Phase 2 steps.
           </Text>
         </ScrollView>
         </KeyboardAvoidingView>
-      </View>
+      </Screen>
     </TouchTargetCheckProvider>
   );
 }

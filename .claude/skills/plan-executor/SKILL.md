@@ -54,6 +54,8 @@ Ask the user to confirm you should proceed. Do not proceed until they confirm.
 - Project instructions (CLAUDE.md and the docs it names) apply on top of the plan. If two documents disagree, or the plan disagrees with a document, stop and ask; don't pick one.
 - If the plan doesn't say how to do something that matters (copy, a design, an interface, a choice between approaches), stop and ask. Don't invent it.
 - Check current library docs before using APIs you aren't sure of; don't rely on memory for setup steps.
+- **Type checks during a step: use the editor's diagnostics.** The full type check (`tsc`) is too slow to run after every step. While working, read type errors and warnings per changed file with the VS Code diagnostics tool (`mcp__claude-vscode__getDiagnostics`, passing the file's `file:///` uri; with no uri it returns the whole workspace, which is too large). Run the full type check at the end of a phase, as that phase's exit check, unless the plan or the user asks for one sooner. Diagnostics only cover files you ask about, so say in the log entry that the type check was diagnostics only, and let the phase-end run catch what they miss. This overrides a plan step that says to run the full type check after every step.
+- **Lint and tests stay per step.** Run the lint and the tests that cover the step's changes as the plan says, and report the real output.
 - Don't commit or push unless the user asks. Keep secrets, credentials and personal data out of code and the log.
 
 ## When blocked
@@ -72,7 +74,7 @@ Append-only, newest entry at the bottom, one entry per run:
 ```markdown
 ## 2026-10-18: 1.3 ✅
 
-Added the split function with unit tests. Tests, type check and lint pass.
+Added the split function with unit tests. Tests and lint pass; editor diagnostics are clean (the full type check runs at the end of the phase).
 ```
 
 - Heading: ISO date, step ids, and the resulting marker (✅, 🔄 or 🚫).
