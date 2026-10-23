@@ -1,6 +1,6 @@
 import { Redirect } from 'expo-router';
 import { zodResolver } from '@hookform/resolvers/zod';
-import { useState } from 'react';
+import { useRef, useState } from 'react';
 import { type Control, useForm, useWatch } from 'react-hook-form';
 import { z } from 'zod';
 import { KeyboardAvoidingView, ScrollView, Text, View } from 'react-native';
@@ -20,6 +20,7 @@ import {
 } from 'lucide-react-native';
 
 import { Alert } from '@/components/alert';
+import { AppSheet, type AppSheetRef } from '@/components/app-sheet';
 import { Badge } from '@/components/badge';
 import { BottomNavBar, type NavItem } from '@/components/bottom-nav';
 import { Button, type ButtonVariant } from '@/components/button';
@@ -535,6 +536,102 @@ function PickersDemo() {
   );
 }
 
+type SheetMode = 'idle' | 'saving' | 'failed';
+
+/** Bottom sheet scaffold section (plan 2.14): the three fixed states and a fake save flow. */
+function SheetDemo() {
+  const sheetRef = useRef<AppSheetRef>(null);
+  const attempts = useRef(0);
+  const [mode, setMode] = useState<SheetMode>('idle');
+  const [note, setNote] = useState('Aircon servicing');
+  const [amount, setAmount] = useState('');
+  const [result, setResult] = useState('Nothing saved yet');
+
+  const openIn = (next: SheetMode) => {
+    attempts.current = 0;
+    setMode(next);
+    sheetRef.current?.open();
+  };
+
+  // Fake save: the first try fails, the retry succeeds and closes the sheet.
+  const fakeSave = () => {
+    setMode('saving');
+    attempts.current += 1;
+    setTimeout(() => {
+      if (attempts.current < 2) {
+        setMode('failed');
+        return;
+      }
+      setResult(`Saved "${note}" after ${attempts.current} tries`);
+      setMode('idle');
+      sheetRef.current?.close();
+    }, 1200);
+  };
+
+  return (
+    <View className="gap-3">
+      <Text className="font-manrope-bold text-sheet-title text-on-surface">
+        Bottom sheet scaffold
+      </Text>
+      <Text className="font-manrope-medium text-caption text-on-surface-variant">
+        Fake save: the first save fails, Retry succeeds. While saving, Cancel, swipe-down and the
+        scrim are locked on purpose. The “Open (saving)” demo never finishes, so leave it with the
+        Android back gesture (back is not locked yet). {result}.
+      </Text>
+      <Button label="Open sheet (idle, fake save)" onPress={() => openIn('idle')} />
+      <View className="flex-row gap-2">
+        <Button
+          size="small"
+          variant="outline"
+          label="Open (saving)"
+          className="flex-1"
+          onPress={() => openIn('saving')}
+        />
+        <Button
+          size="small"
+          variant="outline"
+          label="Open (failed)"
+          className="flex-1"
+          onPress={() => openIn('failed')}
+        />
+      </View>
+      <AppSheet
+        ref={sheetRef}
+        title="Record payment"
+        subtitle="Money you received for November"
+        actionLabel="Record payment"
+        saving={mode === 'saving'}
+        failed={mode === 'failed'}
+        onAction={fakeSave}
+        disabled={note.trim() === ''}
+      >
+        <TextInput
+          value={note}
+          onChange={setNote}
+          disabled={mode === 'saving'}
+          placeholder="What’s it for"
+          accessibilityLabel="What’s it for"
+        />
+        <TextInput
+          value={amount}
+          onChange={setAmount}
+          disabled={mode === 'saving'}
+          keyboardType="decimal-pad"
+          placeholder="Amount"
+          accessibilityLabel="Amount"
+        />
+        {Array.from({ length: 8 }, (_, i) => (
+          <View key={i} className="h-14 justify-center rounded-field bg-container px-4">
+            <Text className="font-manrope-medium text-body text-foreground">
+              Filler row {i + 1}, to make the body scroll
+            </Text>
+          </View>
+        ))}
+      </AppSheet>
+    </View>
+  );
+}
+
 /**
  * Dev-only component test page (plan 2.3). Every shared component gets a section here.
  * Absent from release builds: redirects home when `__DEV__` is false.
@@ -825,6 +922,7 @@ export default function ComponentTestPage() {
               <BottomNavBar items={MOCK_NAV_ITEMS} active={navActive} onItemPress={setNavActive} />
             </View>
           </View>
+          <SheetDemo />
           <Text className="font-manrope-medium text-body text-on-surface-variant">
             Sections are added by the later Phase 2 steps.
           </Text>

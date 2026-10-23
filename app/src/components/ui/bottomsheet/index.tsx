@@ -30,7 +30,7 @@ import { BackHandler, Keyboard, Platform, Text, View , Pressable as RNPressable 
 import { Pressable as GGHPressable } from 'react-native-gesture-handler';
 
 const bottomSheetBackdropStyle = tva({
-  base: 'absolute inset-0 bg-black opacity-50',
+  base: 'absolute inset-0 bg-scrim opacity-50',
 });
 
 const bottomSheetContentStyle = tva({
@@ -251,9 +251,9 @@ export const BottomSheetPortal = ({
         // @ts-ignore
         className={className}
         // @ts-ignore
-        backgroundClassName={`${backgroundClassName} bg-background border border-border/90 rounded-xl`}
+        backgroundClassName={`${backgroundClassName ?? ''} bg-sheet rounded-sheet`}
         // @ts-ignore
-        handleIndicatorClassName={`${handleIndicatorClassName} bg-primary`}
+        handleIndicatorClassName={`${handleIndicatorClassName ?? ''} bg-track`}
         {...props}
       >
         {props.children}
