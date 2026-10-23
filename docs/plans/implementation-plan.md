@@ -202,17 +202,17 @@ Exit: Francis can open the single test page on the phone, exercise every shared 
 
 ---
 
-## Phase 3: Sign in and session ("Sign in & session")
+## ✅ Phase 3: Sign in and session ("Sign in & session")
 
 Source: `SignIn.dc.html`, `Returning.dc.html`, `ServerError.dc.html`. Replaces spike `screens/sign-in`.
 
-- **3.1** **Sign in screen**, 5 states by `state` prop: `out` (title, tagline, Google button), `signing` (button replaced/disabled with Spinner), `failed` (danger Alert "Sign-in failed" + button re-enabled), `notAllowed` (danger Alert for non-allowed account; map the 403 from the `databaseHooks` check; also call `GoogleSignin.signOut()` so the account picker reappears), `ended` (info/warning Alert "Your session ended, sign in again" shown when a 401 arrives while signed in). Google button follows Google branding (custom piece, per mapping). Copy exactly from the source.
-- **3.2** **Session gate** (`app/src/lib/session.tsx`): `useSession()` from `authClient`; routes: no session -> `/sign-in`; session -> bootstrap. Any API 401 clears the session, routes to sign-in with `state=ended`.
-- **3.3** **New-phone behaviour**: after sign-in call `revokeOtherSessions` (Tech Stack). Verify the old session dies immediately.
-- **3.4** **Returning user screen** (`Returning`): shown after sign-in when household data exists; Card + Spinner while fetching `/api/bootstrap` and rebuilding reminders (Phase 12 hook; stub now). If bootstrap says no household -> First run (Phase 4).
-- **3.5** **Backend**: `GET /api/bootstrap` -> `{ hasHousehold, currentMonth, setupProgress, settings }`.
-- **3.6** **Server error prompt** (`ServerError`): global `ServerUnreachableProvider`: renders a blocking `AlertDialog`-style full screen when any query/mutation throws `ServerUnreachableError`; `idle` state shows cloud-off icon, copy, Retry; `retrying` shows Spinner and disabled button. Retry re-runs `queryClient.refetchQueries` for failed queries / `GET /api/health` first. Pending mutations are not auto-replayed (user re-taps).
-- **3.7** Verify on device: airplane mode; Neon cold start (wait 6 minutes, launch); expired session; wrong Google account; light + dark.
+- ✅ **3.1** **Sign in screen**, 5 states by `state` prop: `out` (title, tagline, Google button), `signing` (button replaced/disabled with Spinner), `failed` (danger Alert "Sign-in failed" + button re-enabled), `notAllowed` (danger Alert for non-allowed account; map the 403 from the `databaseHooks` check; also call `GoogleSignin.signOut()` so the account picker reappears), `ended` (info/warning Alert "Your session ended, sign in again" shown when a 401 arrives while signed in). Google button follows Google branding (custom piece, per mapping). Copy exactly from the source.
+- ✅ **3.2** **Session gate** (`app/src/lib/session.tsx`): `useSession()` from `authClient`; routes: no session -> `/sign-in`; session -> bootstrap. Any API 401 clears the session, routes to sign-in with `state=ended`.
+- ✅ **3.3** **New-phone behaviour**: after sign-in call `revokeOtherSessions` (Tech Stack). Verify the old session dies immediately.
+- ✅ **3.4** **Returning user screen** (`Returning`): shown after sign-in when household data exists; Card + Spinner while fetching `/api/bootstrap` and rebuilding reminders (Phase 12 hook; stub now). If bootstrap says no household -> First run (Phase 4).
+- ✅ **3.5** **Backend**: `GET /api/bootstrap` -> `{ hasHousehold, currentMonth, setupProgress, settings }`.
+- ✅ **3.6** **Server error prompt** (`ServerError`): global `ServerUnreachableProvider`: renders a blocking `AlertDialog`-style full screen when any query/mutation throws `ServerUnreachableError`; `idle` state shows cloud-off icon, copy, Retry; `retrying` shows Spinner and disabled button. Retry re-runs `queryClient.refetchQueries` for failed queries / `GET /api/health` first. Pending mutations are not auto-replayed (user re-taps).
+- ✅ **3.7** Verify on device: airplane mode; Neon cold start (wait 6 minutes, launch); expired session; wrong Google account; light + dark.
 
 ---
 

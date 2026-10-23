@@ -1,11 +1,16 @@
 import { MutationCache, QueryCache, QueryClient } from '@tanstack/react-query';
 
 import { ApiRequestError, ServerUnreachableError } from '@/lib/api';
+import { reportServerUnreachable } from '@/lib/server-unreachable';
 import { endSession } from '@/lib/session';
 
-/** A 401 from the backend means the session ended; send the user back to Sign in. */
+/**
+ * A 401 from the backend means the session ended: send the user back to Sign in. An unreachable
+ * server raises the blocking "Can't reach the server" prompt.
+ */
 function handleError(error: Error) {
   if (error instanceof ApiRequestError && error.status === 401) void endSession();
+  if (error instanceof ServerUnreachableError) reportServerUnreachable();
 }
 
 /** Extra attempts after a read fails with {@link ServerUnreachableError} (3 attempts in all). */

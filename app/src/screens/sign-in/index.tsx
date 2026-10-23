@@ -54,6 +54,16 @@ export function SignIn({ sessionEnded = false }: { sessionEnded?: boolean }) {
         setState(error?.status === 403 ? 'notAllowed' : 'failed');
         return;
       }
+      // New phone: end every other session so the old phone stops working (Tech Stack,
+      // "Revocation, v1"). If this fails, sign the new session out too rather than leave an
+      // old session alive without saying so.
+      const { error: revokeError } = await authClient.revokeOtherSessions();
+      if (revokeError) {
+        await authClient.signOut().catch(() => {});
+        await GoogleSignin.signOut().catch(() => {});
+        setState('failed');
+        return;
+      }
       setState('out');
     } catch (err) {
       if (isErrorWithCode(err) && err.code === statusCodes.SIGN_IN_CANCELLED) {

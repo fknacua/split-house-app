@@ -54,7 +54,7 @@ Written as each screen needs them. Update the status here when an endpoint is bu
 |---|---|---|---|
 | `GET /api/auth/*` | Better Auth (Google sign-in, sessions) | 0 | built |
 | `GET /api/me` | Signed-in email; checks a session end to end | 1.7 | built |
-| `GET /api/bootstrap` | `hasHousehold`, `currentMonth`, `setupProgress`, `settings` | 3.5 | planned |
+| `GET /api/bootstrap` | `hasHousehold`, `currentMonth`, `setupProgress` (the five first-run steps), `settings.notifications` | 3.5 | built |
 | `GET /api/setup/progress` | First-run steps, derived from the household version and settings | 4A.4 | planned |
 | `GET /api/household` | Current and upcoming version, people, version history | 4B.1 | planned |
 | `POST /api/household/preview` | Per-person amounts for a draft config and starts-from month | 4B.1 | planned |
