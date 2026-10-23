@@ -37,6 +37,7 @@ import { MonthSelectField } from '@/components/month-select-field';
 import { PhoneInput } from '@/components/phone-input';
 import { SelectField } from '@/components/select-field';
 import { Screen } from '@/components/screen';
+import { SubpageHeader, PageHeader } from '@/components/screen-header/';
 import {
   SkeletonBlock,
   SkeletonCard,
@@ -670,6 +671,55 @@ function SkeletonDemo() {
   );
 }
 
+/** Screen header section (plan 2.17): tab-style title and back-arrow style, with mock content. */
+function HeadersDemo() {
+  const [backCount, setBackCount] = useState(0);
+  const onBack = () => setBackCount((n) => n + 1);
+
+  return (
+    <View className="gap-3">
+      <Text className="font-manrope-bold text-sheet-title text-on-surface">Screen headers</Text>
+      <Text className="font-manrope-medium text-caption text-on-surface-variant">
+        Back presses here are counted instead of leaving the page: {backCount}. On a real screen
+        back uses the router.
+      </Text>
+      <Text className="font-manrope-bold text-label text-on-surface-variant">Tab title</Text>
+      <View className="rounded-card bg-surface">
+        <PageHeader title="History" />
+      </View>
+      <Text className="font-manrope-bold text-label text-on-surface-variant">
+        Tab title with an action
+      </Text>
+      <View className="rounded-card bg-surface">
+        <PageHeader
+          title="Household"
+          trailing={<Button label="Add person" variant="outline" size="small" />}
+        />
+      </View>
+      <Text className="font-manrope-bold text-label text-on-surface-variant">Back arrow</Text>
+      <View className="rounded-card bg-surface">
+        <SubpageHeader title="Utilities bill" onBack={onBack} />
+      </View>
+      <Text className="font-manrope-bold text-label text-on-surface-variant">
+        Back arrow with subtitle
+      </Text>
+      <View className="rounded-card bg-surface">
+        <SubpageHeader title="Utilities bill" subtitle="November 2026" onBack={onBack} />
+      </View>
+      <Text className="font-manrope-bold text-label text-on-surface-variant">
+        Back arrow, long title
+      </Text>
+      <View className="rounded-card bg-surface">
+        <SubpageHeader
+          title="A very long screen title that has to be cut off"
+          subtitle="Read-only"
+          onBack={onBack}
+        />
+      </View>
+    </View>
+  );
+}
+
 function DialogsDemo() {
   const [kind, setKind] = useState<DialogKind | null>(null);
   const [result, setResult] = useState('Nothing chosen yet');
@@ -764,8 +814,8 @@ export default function ComponentTestPage() {
   return (
     <TouchTargetCheckProvider enabled={checkTargets}>
       <Screen>
-        <View className="gap-3 border-b border-outline-variant bg-background px-4 pb-3 pt-3">
-          <Text className="font-manrope-bold text-title text-foreground">Component test page</Text>
+        <PageHeader title="Component test page" />
+        <View className="gap-3 border-b border-outline-variant bg-background px-4 pb-3 pt-1">
           <TouchTargetCheck>
             <ConnectedButtonGroup<ThemePreference>
               value={preference}
@@ -1035,6 +1085,7 @@ export default function ComponentTestPage() {
           <SheetDemo />
           <DialogsDemo />
           <SkeletonDemo />
+          <HeadersDemo />
           <Text className="font-manrope-medium text-body text-on-surface-variant">
             Sections are added by the later Phase 2 steps.
           </Text>
