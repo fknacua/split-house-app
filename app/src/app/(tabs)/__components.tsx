@@ -37,6 +37,12 @@ import { MonthSelectField } from '@/components/month-select-field';
 import { PhoneInput } from '@/components/phone-input';
 import { SelectField } from '@/components/select-field';
 import { Screen } from '@/components/screen';
+import {
+  SkeletonBlock,
+  SkeletonCard,
+  SkeletonPersonCards,
+  SkeletonRowList,
+} from '@/components/skeletons';
 import { TextareaInput } from '@/components/textarea-input';
 import { TextInput } from '@/components/text-input';
 import { TouchTargetCheck, TouchTargetCheckProvider } from '@/components/touch-target-check';
@@ -639,6 +645,31 @@ function SheetDemo() {
 type DialogKind = 'removePerson' | 'removeVersion' | 'discard' | 'warnings';
 
 /** Dialog scaffold section (plan 2.15): the three Confirm boards and Save with warnings. */
+function SkeletonDemo() {
+  return (
+    <View className="gap-3">
+      <Text className="font-manrope-bold text-sheet-title text-on-surface">Skeleton</Text>
+      <Text className="font-manrope-medium text-caption text-on-surface-variant">
+        Placeholders for a loading screen. They pulse; the layout matches the loaded content.
+      </Text>
+      <Text className="font-manrope-bold text-label text-on-surface-variant">Card</Text>
+      <SkeletonCard />
+      <Text className="font-manrope-bold text-label text-on-surface-variant">Row list</Text>
+      <SkeletonRowList count={3} />
+      <Text className="font-manrope-bold text-label text-on-surface-variant">Person cards</Text>
+      <SkeletonPersonCards count={2} />
+      <Text className="font-manrope-bold text-label text-on-surface-variant">Blocks</Text>
+      <View className="flex-row items-center gap-3">
+        <SkeletonBlock className="h-10 w-10 rounded-full" />
+        <View className="flex-1 gap-1.5">
+          <SkeletonBlock className="h-3.5 w-24" />
+          <SkeletonBlock className="h-3 w-40" />
+        </View>
+      </View>
+    </View>
+  );
+}
+
 function DialogsDemo() {
   const [kind, setKind] = useState<DialogKind | null>(null);
   const [result, setResult] = useState('Nothing chosen yet');
@@ -1003,6 +1034,7 @@ export default function ComponentTestPage() {
           </View>
           <SheetDemo />
           <DialogsDemo />
+          <SkeletonDemo />
           <Text className="font-manrope-medium text-body text-on-surface-variant">
             Sections are added by the later Phase 2 steps.
           </Text>

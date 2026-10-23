@@ -54,7 +54,7 @@ const Switch = React.forwardRef<
       ? 'text-on-primary'
       : 'text-outline';
   const trackOnClassName = isDisabled ? 'text-on-disabled' : 'text-primary';
-  const trackOffClassName = isDisabled ? 'text-disabled' : 'text-container';
+  const trackOffClassName = isDisabled ? 'text-disabled' : 'text-track';
   return (
     <UISwitch
       ref={ref}
@@ -64,7 +64,7 @@ const Switch = React.forwardRef<
       thumbClassName={thumbClassName}
       trackOnClassName={trackOnClassName}
       trackOffClassName={trackOffClassName}
-      className={switchStyle({ size, class: className })}
+      className={switchStyle({ size, class: `${isDisabled ? 'opacity-60' : ''} ${className ?? ''}` })}
     />
   );
 });
