@@ -18,8 +18,8 @@ export interface NavItem {
 // Elevation table: footers and bottom nav above content.
 const SHADOW_LIGHT = '0 -6px 14px rgba(0,0,0,0.14)';
 const SHADOW_DARK = '0 -8px 16px rgba(0,0,0,0.45)';
-const TAB_VIEW_CLASSES = ['h-8', 'w-16', 'items-center', 'justify-center', 'rounded-2xl'];
-const TAB_TEXT_CLASSES = ['text-caption'];
+const TAB_VIEW_CLASSES = ['h-8', 'w-16', 'items-center', 'justify-center', 'rounded-2xl', 'transition-colors', 'duration-150'];
+const TAB_TEXT_CLASSES = ['text-caption', 'transition-colors', 'duration-150'];
 
 type TabViewEl = {
   view: string[];
@@ -86,7 +86,7 @@ export function BottomNavBar({ items, active, onItemPress }: BottomNavBarProps) 
                 <Icon
                   as={item.icon}
                   size="lg"
-                  className={cssClassNameMap.icon.join(' ')}
+                  className={['transition-colors', 'duration-150'].concat(cssClassNameMap.icon).join(' ')}
                 />
               </View>
               <Text

@@ -12,7 +12,7 @@ export const UIProgress = createProgress({
 });
 
 const progressStyle = tva({
-  base: 'bg-primary/20 relative h-2 w-full overflow-hidden rounded-full',
+  base: 'bg-track relative h-2 w-full overflow-hidden rounded-full',
   variants: {
     orientation: {
       horizontal: 'w-full h-2',

@@ -1,7 +1,6 @@
 import { useQuery } from '@tanstack/react-query';
 
-import type { MonthSummaryResponse } from '@/lib/api-types';
-import { queryKeys } from '@/lib/query-keys';
+import { type MonthSummaryResponse, queryKeys } from '@/lib';
 
 /**
  * Home's data for one month. MOCK until step 5.1 builds the endpoint: the

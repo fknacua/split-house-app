@@ -4,12 +4,7 @@ import { View } from 'react-native';
 import { Button } from '@/components/button';
 import { type BareInputProps, withFormControlledFieldOf } from '@/components/form-field/';
 import { Input as NativeInput, InputField as NativeInputField } from '@/components/ui/input';
-import {
-  centsToInputText,
-  formatCents,
-  parseMoneyToCents,
-  sanitizeMoneyInput,
-} from '@/lib/money';
+import { centsToInputText, formatCents, parseMoneyToCents, sanitizeMoneyInput } from '@/lib';
 
 /** The props only the money input has, on top of the shared input props. */
 export interface MoneyInputOwnProps {

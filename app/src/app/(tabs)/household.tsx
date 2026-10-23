@@ -1,6 +1,6 @@
 import { Text } from 'react-native';
 
-import { Screen } from '@/components/screen';
+import { Screen } from '@/components';
 
 /** Placeholder until the Household screen is built. */
 export default function HouseholdScreen() {

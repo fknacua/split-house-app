@@ -1,8 +1,7 @@
 import { useQuery } from '@tanstack/react-query';
 
 import { apiFetch } from '@/lib/api';
-import type { MeResponse } from '@/lib/api-types';
-import { queryKeys } from '@/lib/query-keys';
+import { type MeResponse, queryKeys } from '@/lib';
 
 /** The signed-in account (`GET /api/me`). */
 export function useMe() {

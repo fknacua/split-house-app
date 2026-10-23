@@ -1,7 +1,7 @@
 import { FlaskConical, History, House, Settings, Users } from 'lucide-react-native';
 import { Tabs } from 'expo-router/js-tabs';
 
-import { BottomNav, type NavItem } from '@/components/bottom-nav';
+import { BottomNav, type NavItem } from '@/components';
 
 // Keys are the route file names in this folder.
 const TAB_ITEMS: NavItem[] = [

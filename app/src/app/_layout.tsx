@@ -6,9 +6,8 @@ import { View } from 'react-native';
 import { BottomSheetModalProvider } from '@gorhom/bottom-sheet';
 import { QueryClientProvider } from '@tanstack/react-query';
 
-// eslint-disable-next-line no-restricted-imports -- TODO: replace with a wrapper from src/components
-import { GluestackUIProvider } from '@/components/ui/gluestack-ui-provider';
-import { useAppFonts } from '@/hooks/use-app-fonts';
+import { AppProvider } from '@/components';
+import { useAppFonts } from '@/hooks';
 import { useAppStateFocus } from '@/lib/focus-manager';
 import { queryClient } from '@/lib/query-client';
 import { ThemePreferenceProvider, useThemePreference } from '@/lib/theme-preference';
@@ -42,7 +41,7 @@ function RootShell() {
 
   return (
     <GestureHandlerRootView style={{ flex: 1 }}>
-      <GluestackUIProvider mode={preference}>
+      <AppProvider mode={preference}>
         <StatusBar style={resolved === 'dark' ? 'light' : 'dark'} />
         <QueryClientProvider client={queryClient}>
           <BottomSheetModalProvider>
@@ -52,7 +51,7 @@ function RootShell() {
             </View>
           </BottomSheetModalProvider>
         </QueryClientProvider>
-      </GluestackUIProvider>
+      </AppProvider>
     </GestureHandlerRootView>
   );
 }
