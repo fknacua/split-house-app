@@ -33,7 +33,7 @@ const UIAccessibleAlertDialog = createAlertDialog({
 });
 
 const alertDialogStyle = tva({
-  base: 'group/modal w-full h-full justify-center items-center web:pointer-events-none',
+  base: 'group/modal w-full h-full justify-center items-center px-6 web:pointer-events-none',
   parentVariants: {
     size: {
       xs: '',
@@ -46,12 +46,12 @@ const alertDialogStyle = tva({
 });
 
 const alertDialogContentStyle = tva({
-  base: 'bg-background rounded-lg overflow-hidden border border-border p-6',
+  base: 'bg-sheet rounded-dialog overflow-hidden p-6',
   parentVariants: {
     size: {
       xs: 'w-[60%] max-w-[360px]',
       sm: 'w-[70%] max-w-[420px]',
-      md: 'w-[80%] max-w-[510px]',
+      md: 'w-full max-w-[400px]',
       lg: 'w-[90%] max-w-[640px]',
       full: 'w-full',
     },
@@ -73,7 +73,7 @@ const alertDialogFooterStyle = tva({
 const alertDialogBodyStyle = tva({ base: '' });
 
 const alertDialogBackdropStyle = tva({
-  base: 'absolute left-0 top-0 right-0 bottom-0 bg-black/50 web:cursor-default',
+  base: 'absolute left-0 top-0 right-0 bottom-0 bg-scrim/50 web:cursor-default',
 });
 
 type IAlertDialogProps = React.ComponentPropsWithoutRef<
@@ -137,7 +137,6 @@ const AlertDialogContent = React.forwardRef<
       pointerEvents="auto"
       entering={ZoomIn.duration(200).withInitialValues({
         transform: [{ scale: 0.9 }],
-        opacity: 0,
       })}
       exiting={FadeOut.duration(200)}
       ref={ref}
