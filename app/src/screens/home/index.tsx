@@ -16,7 +16,6 @@ import {
 import { Alert, AlertIcon, AlertText } from '@/components/ui/alert';
 // eslint-disable-next-line no-restricted-imports -- TODO: replace with a wrapper from src/components
 import { Badge, BadgeText } from '@/components/ui/badge';
-import { BottomNav } from '@/components/bottom-nav';
 // eslint-disable-next-line no-restricted-imports -- TODO: replace with a wrapper from src/components
 import { Card } from '@/components/ui/card';
 // eslint-disable-next-line no-restricted-imports -- TODO: replace with a wrapper from src/components
@@ -74,7 +73,6 @@ function money(cents: number) {
 export function Home() {
   // Not real loading state — just enough to exercise Skeleton for the spike.
   const [loading, setLoading] = useState(true);
-  const [active, setActive] = useState<'home' | 'history' | 'household' | 'settings'>('home');
   useEffect(() => {
     const t = setTimeout(() => setLoading(false), 3000);
     return () => clearTimeout(t);
@@ -177,7 +175,6 @@ export function Home() {
 
         <AddChargeSheet />
       </ScrollView>
-      <BottomNav active={active} onItemPress={setActive} />
     </View>
   );
 }
