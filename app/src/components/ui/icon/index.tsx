@@ -32,9 +32,16 @@ const iconStyle = tva({
 
 const StyledUIIcon = styled(UIIcon, { className: "style" });
 
-type IIConProps = IPrimitiveIcon &
-  VariantProps<typeof iconStyle> &
-  React.ComponentPropsWithoutRef<typeof UIIcon>;
+// `size` is a named variant or a number of px; the intersection of the variant type and the
+// primitive's own `size` only allowed the variant names, although the code below handles numbers.
+type IIConProps = Omit<
+  IPrimitiveIcon & VariantProps<typeof iconStyle> & React.ComponentPropsWithoutRef<typeof UIIcon>,
+  'size'
+> & {
+  size?: VariantProps<typeof iconStyle>['size'] | number;
+  /** Line thickness, passed to the Lucide icon (its own default is 2). */
+  strokeWidth?: number;
+};
 
 const Icon = React.forwardRef<React.ComponentRef<typeof UIIcon>, IIConProps>(
   function Icon({ size = 'md', className, ...props }, ref) {

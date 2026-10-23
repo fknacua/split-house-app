@@ -8,6 +8,7 @@
  */
 export const queryKeys = {
   me: ['me'] as const,
+  bootstrap: ['bootstrap'] as const,
   /** @param month `YYYY-MM` key. */
   monthSummary: (month: string) => ['month-summary', month] as const,
 };

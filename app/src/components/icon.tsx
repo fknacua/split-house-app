@@ -9,15 +9,18 @@ import { Icon as NativeIcon } from '@/components/ui/icon';
  * @param as - The Lucide icon to draw.
  * @param size - Width and height in px. Defaults to 20.
  * @param className - A text colour token such as `text-on-primary`. Defaults to the foreground.
+ * @param strokeWidth - Line thickness. Defaults to the icon's own (2);
  */
 export function Icon({
   as,
   size = 20,
   className,
+  strokeWidth,
 }: {
   as: LucideIcon;
   size?: number;
   className?: string;
+  strokeWidth?: number;
 }) {
-  return <NativeIcon as={as} size={size} className={className} />;
+  return <NativeIcon as={as} size={size} className={className} strokeWidth={strokeWidth} />;
 }

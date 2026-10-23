@@ -269,3 +269,63 @@ Built the screen headers under `components/screen-header/`: `PageHeader` (24/32 
 ## 2026-10-23: 2.18 ✅
 
 Final pass. Francis checked the existing test-page components as we went, so the comparison against `FormControls.dc.html` was skipped at his request. Added the missing wrappers `Card`, `Spinner`, `Progress` (with `SegmentedProgress` and `SplitProgress`), `Accordion` and `AppProvider`, each with a test-page section (Cards, Progress, Accordion with 3 sample rows, Spinner), and restyled `ui/card`, `ui/progress` and `ui/accordion` to the design. `_layout.tsx` now uses `AppProvider`, which clears its lint disable; `__components.tsx` has none and `__verify.tsx` no longer exists. The bottom nav pill, icon and label now fade like the button group and chips. Deleted the unused `ui/popover`, which removes the three known type errors. Added `index.ts` barrels for `components`, `hooks` and a pure-helpers-only `lib`, and moved 13 call sites onto them (a `ui` barrel was tried and removed). Lint, the hex grep and the full type check pass. 15 `TODO: replace with a wrapper` disables remain in the spike screens (`screens/home`, `screens/sign-in`); they go away when Phases 3, 5 and 9 rebuild those screens. Francis reviewed the page on device and approved; Phase 2 is complete.
+
+## 2026-10-23: 3.1 🚫
+
+Read `SignIn.dc.html`, the spike sign-in screen and the shared components; no code written yet. Blocked on one conflict: the source draws the Google button with Google's own hex colours (button background, text, border in light and dark, and the four-colour logo), but CLAUDE.md says token classes only, never hex. Asked Francis whether to allow a single, commented hex exception confined to one Google button file, or use the native `GoogleSigninButton` instead.
+
+## 2026-10-23: 3.1 🔄
+
+Francis will supply the Google G logo as an image asset, so the button is built without it for now. The button uses the `surface`, `outline` and `on-surface` tokens (close to Google's own light and dark colours), so there is no hex. Rebuilt the Sign in screen as a pure `SignInView` (five states, copy from `SignIn.dc.html`) with a container that keeps the Google and Better Auth calls, cancel handling and `signOut()` on rejection. Added `GoogleButton` and `Icon` wrappers, a `reason=ended` route param for the session gate (3.2) and a dev-only `__gallery` route linked from the test page. The spike's lint disable on this screen is gone. Editor diagnostics and lint are clean (the full type check runs at the end of the phase); the one open diagnostic is the typed route `/__gallery`, which Expo regenerates when Metro restarts. Waiting for Francis's device review.
+
+## 2026-10-23: 3.1 ✅
+
+Francis checked the Sign in screen on device and approved. Changes since the 🔄 entry: the Google G logo is now the `assets/images/google.svg` asset in `GoogleButton`, and the house tile is replaced by the animated squircle app icon (`assets/images/app-icon/*-loop.webp`; the SVG loops don't animate on Android, so the WebP is used). The circle, square and squircle loops are added as SVG and WebP for later use, and matching the system icon shape is deferred; squircle for now. Editor diagnostics and lint were clean on the changed files (the full type check runs at the end of the phase).
+
+## 2026-10-23: 3.2 🔄
+
+Added `app/src/lib/session.tsx` (`useSession()`, `endSession()`, `useSessionEnded()`). The root layout now picks between Sign in and the app with `Stack.Protected`, and renders nothing while the first session lookup runs. A 401 from any query or mutation (`QueryCache`/`MutationCache` `onError` in `query-client.ts`) signs out locally, clears the query cache and shows Sign in in its `ended` state; the ended flag is a small store the route reads, and the `reason=ended` param still works. The spike's temporary Sign in link on Home is gone. Lint passes and a filtered type check shows no errors in the changed files. Not yet checked on device: first load signed out lands on Sign in (sessions were cleared in the dev database), sign-in lands on the tabs, a revoked session shows "Your session ended".
+
+## 2026-10-23: 3.2 🔄 (device checks mostly done)
+
+On device the gate works: signed out lands on Sign in, the wrong Google account shows the "can't use the app" alert, the allowed account signs in. Three problems came up along the way. Better Auth's `useSession()` was hitting the optional `expo-network` import when its store mounted, which logged "error during concurrent rendering"; `expo-network` is now installed (needs the new EAS dev build for the native part). The Sign in screen lost its state when Better Auth set `isPending` on refetch, so `useSession()` now latches `pending` to the first answer. Sign-in then failed with no error because the app was pointed at the production Vercel API, whose Neon production database had never been migrated (step 12.6 is the first planned production migration) and which had Vercel Authentication on; both were fixed by hand (`prisma migrate deploy` against the production direct URL, protection off). Temporary debug logs are removed. Not yet checked: the "Your session ended" path after a 401, since no screen calls the API yet.
+
+## 2026-10-23: 3.2 🔄 (auth error handling)
+
+Reproduced the silent sign-in failure locally with an empty scratch database: `POST /api/auth/sign-in/social` returns a 302 to `/api/auth/error?error=internal_server_error`, the phone follows it and sees a 200 page. `get-session` returns a real 500 on a database error, but the gate ignores Better Auth's `error` and treats it as signed out (to be handled with the server-error prompt in 3.6). Kept two guards: the Auth route converts a 3xx whose `Location` has an `error=` value into the standard JSON error (500 for `internal_server_error`, 400 for other codes), and the Sign in screen requires a `user` in the sign-in response, plus `apiFetch` rejects a non-JSON success body as unreachable. Better Auth stays (no match found in its docs or issues; it is documented behaviour for browser flows). Not yet verified: the converted 500 against the scratch database, and the "Your session ended" path.
+
+## 2026-10-23: 3.2 ✅
+
+Francis verified the session gate and the auth error handling on device and approved: signed out lands on Sign in, the wrong account shows the alert, the allowed account reaches the tabs, and a failed sign-in (empty scratch database) now returns a 500 from the backend and "Couldn't sign in" in the app. The "Your session ended" path was not exercised on device (nothing calls the API yet); the 401 handler is in place for Phase 5. The `get-session` 500 still reads as signed out until the server-error prompt in 3.6. App changes are committed on `phase-3`; the backend wrapper goes up as its own PR off `origin/main`.
+
+## 2026-10-23: 3.3 ✅
+
+The Sign in container now calls `authClient.revokeOtherSessions()` right after a successful sign-in; if the call fails, the new session is signed out too and the screen shows the failed state. Checked against the production backend and database: with a dummy extra session row in the `session` table, signing in on the phone left one new session and removed the dummy. A second real device being cut off is not tested, since nothing calls the API until Phase 5. Lint passes and editor diagnostics are clean on the changed file (the full type check runs at the end of the phase).
+
+## 2026-10-23: 3.4 ✅
+
+Built the Returning user screen as a pure `ReturningView` (`app/src/screens/returning/`): the title, intro and a three-step checklist Card with copy from `Returning.dc.html`, in two states (`loading`, as drawn, and `reminders`, the next step of the same checklist). It is reachable from the dev `__gallery` (new Screen switcher). Francis's device review found the check too thin, a ringed spinner, markers narrower than 28px and a marker that turned square when a step changed state; fixed with a `strokeWidth` prop on the Icon wrapper, a bare spinner, fixed 28px markers and a separate element per state. Also widened the native icon's props type to accept a numeric `size` and `strokeWidth` (an existing type error). Francis approved on device. Not done here: the container that fetches `/api/bootstrap` and routes to the tabs or First run is left for 3.5, because the endpoint and First run do not exist yet. Lint was clean on the Returning files; the last icon edits were checked with a filtered type check only (the full type check runs at the end of the phase).
+
+## 2026-10-23: 3.5 🚫
+
+No code written. Read the API conventions (`api.ts`, the `/api/me` route), the Data Model, the Settings schema and `Welcome.dc.html`. Blocked on a doc conflict: the plan (4A.1) lists the setup steps as household/people, rent and shares, recurring charges, reminders, but `Welcome.dc.html` has five rows (Rent & rooms, People, Your split, Messages optional, Reminders optional) and counts "of 4"; the Brief has a third list. Neither the Data Model nor the design says how each step is derived from a household version, and `Settings.notifications` is an untyped JSON column with no defined shape. Asked Francis which step list wins, and whether 3.5 should return only `hasHousehold` and `currentMonth` for now, leaving `setupProgress` and `settings` to 4A.4 and 10A.1.
+
+## 2026-10-23: 3.5 🚫 (skipped for now)
+
+3.5 stays blocked on the setup-steps question. Skipped at Francis's request; 3.6 goes first. The Returning screen's wiring waits on 3.5.
+
+## 2026-10-23: 3.6 🔄
+
+Built the blocking "Can't reach the server" prompt: `ServerErrorDialog` (from `ServerError.dc.html`, idle and retrying states, no way to dismiss it but Retry), a small store and Retry logic in `app/src/lib/server-unreachable.ts` with unit tests, and `ServerUnreachableProvider` mounted in the root layout. The query client now raises the prompt when any query or mutation fails with `ServerUnreachableError`; Retry refetches the queries that failed that way and closes the prompt if they all succeed (the health route was removed on 2026-10-21, so Retry does not call it). Added a "Server-unreachable prompt" section to the test page (a real failing query with a "server is down" switch) and a Server screen to the dev gallery. Lint passes, the 6 new tests pass, and editor diagnostics are clean (the full type check runs at the end of the phase). Left open at Francis's request until a real API call exists to test it on; sign-in and the session lookup still do not use it (they show Sign in's own failed state), a call Francis has not made yet.
+
+## 2026-10-23: 3.5 ✅
+
+Added `GET /api/bootstrap` (session required, read-only): `hasHousehold`, `currentMonth` (Singapore), `setupProgress` (the five Welcome rows with `optional` and `done`) and `settings.notifications` (the six Settings toggles, defaults from the design when no row exists). Francis chose the full version and the design's five steps. Done rules were my call and are noted for 4A: Rent & rooms (a rent is set), People (a tenant exists), Your split (a primary tenant exists); Messages and Reminders stay not done because nothing records them yet. Logic is in `backend/src/lib/` (`bootstrap`, `setup-progress`, `settings`) with 10 new tests; backend tests (57) and lint pass. Added `useBootstrap`, the `BootstrapResponse` types and the README row. Francis called it from the app against the local backend and got the response. Not done here: the Returning screen does not call it yet, so there is no routing to First run, and a temporary dev button on Home does the call until then.
+
+## 2026-10-23: 3.6 ✅
+
+Francis verified the blocking prompt on a real API call: offline shows it after the reads' retries, Retry shows the spinner, and once back online Retry closes it and the result fills in without a second tap. An earlier "Retry only dismisses" report was the dev button's query being disabled, which `refetchQueries` skips; the button now enables its query on the first tap. Sign-in and the session lookup still show Sign in's own failed state rather than this prompt. Lint, the new tests and editor diagnostics were clean (the full type check runs at the end of the phase).
+
+## 2026-10-23: 3.7 ✅
+
+Marked done at Francis's word that the device checks were already done while testing 3.2 and 3.6. I did not re-run them and the log does not list which cases were covered.

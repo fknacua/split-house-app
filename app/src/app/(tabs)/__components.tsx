@@ -1,4 +1,5 @@
 import { Redirect, useRouter } from 'expo-router';
+import { useQuery } from '@tanstack/react-query';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useRef, useState } from 'react';
 import { type Control, useForm, useWatch } from 'react-hook-form';
@@ -72,6 +73,7 @@ import {
   requiredText,
   todayKey,
 } from '@/lib';
+import { ServerUnreachableError } from '@/lib/api';
 import { type ThemePreference, useThemePreference } from '@/lib/theme-preference';
 
 const SCOPE_OPTIONS = [
@@ -918,6 +920,58 @@ function DialogsDemo() {
   );
 }
 
+// Read by the demo query below. Outside the component so the query function never closes over
+// render state, and the switch can change it while a Retry is running.
+let demoServerDown = true;
+
+/**
+ * The real path of the "Can't reach the server" prompt: a query that fails with
+ * `ServerUnreachableError` (after its two retries, about 3s) raises the global prompt, and Retry
+ * refetches it. With "Pretend the server is down" on, Retry fails again and the prompt stays;
+ * switch it off and Retry succeeds and closes the prompt.
+ */
+function ServerPromptDemo() {
+  const [down, setDown] = useState(demoServerDown);
+  const [started, setStarted] = useState(false);
+  const query = useQuery({
+    queryKey: ['demo-server-unreachable'],
+    enabled: started,
+    gcTime: Infinity,
+    queryFn: async () => {
+      if (demoServerDown) throw new ServerUnreachableError();
+      return 'Got a response';
+    },
+  });
+
+  const changeDown = (value: boolean) => {
+    demoServerDown = value;
+    setDown(value);
+  };
+
+  const trigger = () => {
+    if (started) void query.refetch();
+    else setStarted(true);
+  };
+
+  let status = 'Not started';
+  if (query.isFetching) status = 'Asking the server…';
+  else if (query.isSuccess) status = String(query.data);
+  else if (query.isError) status = 'Failed: can’t reach the server';
+
+  return (
+    <View className="gap-3">
+      <Text className="font-manrope-bold text-sheet-title text-on-surface">
+        Server-unreachable prompt
+      </Text>
+      <Text className="font-manrope-medium text-caption text-on-surface-variant">
+        Status: {status}. The prompt blocks the whole app; only Retry closes it.
+      </Text>
+      <SwitchRow label="Pretend the server is down" value={down} onChange={changeDown} />
+      <Button label="Ask the server" variant="outline" onPress={trigger} loading={query.isFetching} />
+    </View>
+  );
+}
+
 /**
  * Dev-only component test page (plan 2.3). Every shared component gets a section here.
  * Absent from release builds: redirects home when `__DEV__` is false.
@@ -1227,6 +1281,7 @@ export default function ComponentTestPage() {
           </View>
           <SheetDemo />
           <DialogsDemo />
+          <ServerPromptDemo />
           {showSkeletons ? <SkeletonDemo /> : null}
           <SurfacesDemo />
           <HeadersDemo />
