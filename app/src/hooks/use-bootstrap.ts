@@ -1,7 +1,8 @@
 import { useQuery } from '@tanstack/react-query';
 
 import { apiFetch } from '@/lib/api';
-import { type BootstrapResponse, queryKeys } from '@/lib';
+import type { BootstrapResponse } from '@splithouse/shared';
+import { queryKeys } from '@/lib';
 
 /**
  * What the app needs right after sign-in and on launch (`GET /api/bootstrap`).

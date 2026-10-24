@@ -12,6 +12,7 @@ If two docs disagree, stop and ask instead of choosing.
 ## Layout
 - backend/  Next.js route handlers on Vercel, Prisma, Better Auth. Neon Postgres.
 - app/      Expo (React Native) Android app, NativeWind, gluestack-ui v5.
+- shared/   @splithouse/shared, source-only TypeScript imported by both backend and app (npm workspaces; install once at the repo root). Holds the zod schemas (household config, settings, primitives), the API request/response schemas in `shared/src/api/` with types inferred from them, and the pure helpers (money, month, date). Only pure code: no React, Expo, Node or Prisma imports. Code goes here only if both sides need it or it defines the API contract; helpers that exist for one UI control (for example the money text input parsing in `app/src/lib/money-input.ts`) stay in app/. The split engine is not here: it stays in backend/ only.
 - docs/     Design and decision docs.
 - assets-old/  Local only, gitignored, never commit. Old spreadsheet, a real utilities bill PDF (sample for testing the bill parser) and the app icon pack. The bill holds personal data: never print its contents into logs, docs or commits, and never copy these files into tracked folders. Copy only the icon pack images you need into app/assets.
 
@@ -20,6 +21,7 @@ App SplitHouse, repo split-house-app, Android package com.splithouse.app, scheme
 
 ## Rules that must hold
 - Money is integer cents, SGD, shown with 2 decimals. Every person except Francis is rounded to the nearest cent; Francis gets the remainder.
+- Every endpoint's request and response schemas live in `shared/src/api/` and both sides import them. Never redefine an API type in backend/ or app/. Backend tests assert real responses parse with the shared schema.
 - One split engine: a pure function in backend/ only. The app never calculates splits; Add charge and Household previews call preview endpoints. Unit tests use the Nov 2026 fixtures in the Data Model doc.
 - Household settings are immutable versions with a starts-from month, and an edit must start after the current month (the first setup version is the exception). Charges are created with their amounts stored and are never recalculated. Fix history with correction charges.
 - Payments are paid fields on the Charge. No carry-over of short payments.

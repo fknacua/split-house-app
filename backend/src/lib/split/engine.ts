@@ -1,4 +1,4 @@
-import type { ChargeType, HouseholdConfig, PersonConfig } from "@/lib/household/config";
+import type { ChargeType, HouseholdConfig, PersonConfig } from "@splithouse/shared";
 
 // Pure split engine (see docs/SplitHouse — Data Model.md "Split engine" and
 // "Rounding rule"). No Prisma, no Date.now: every input is passed in.

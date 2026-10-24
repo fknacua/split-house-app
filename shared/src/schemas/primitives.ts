@@ -1,18 +1,16 @@
 import { z } from 'zod';
 
 /**
- * Shared building blocks for form schemas. Each mirrors, by hand, the matching
- * rule in the backend's zod request schemas (see `backend/src/lib/`), so the
- * form and the API reject the same input. Server errors still win: map them
- * back onto fields with `setError`.
+ * Building blocks for request, response and form schemas, used by both the
+ * backend and the app so the API and the forms reject the same input.
  */
 
-/** A month key, `YYYY-MM`. Mirrors `monthKey` in `backend/src/lib/household/config.ts`. */
+/** A month key, `YYYY-MM`. */
 export const monthKey = z.string().regex(/^\d{4}-(0[1-9]|1[0-2])$/, 'Use YYYY-MM');
 
 /**
  * Money as integer cents, SGD. Can be negative (correction charges). Form
- * fields hold cents, never floats; `MoneyField` converts to and from the
+ * fields hold cents, never floats; `MoneyInput` converts to and from the
  * typed text.
  */
 export const cents = z.number('Enter an amount').int('Enter a valid amount');
@@ -23,7 +21,7 @@ export const positiveCents = cents.positive('Enter an amount above $0.00');
 /**
  * A phone number in E.164 form, any country, e.g. `+6591234567`. Checks the
  * format only, not that the number exists; Francis opens each chat himself,
- * so a wrong number shows up before anything is sent. `PhoneField` starts
+ * so a wrong number shows up before anything is sent. `PhoneInput` starts
  * with an editable `+65`.
  */
 export const e164Phone = z.e164('Enter a valid phone number');

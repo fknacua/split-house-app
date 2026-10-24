@@ -1,0 +1,17 @@
+{
+  "name": "split-house",
+  "private": true,
+  "workspaces": [
+    "backend",
+    "app",
+    "shared"
+  ],
+  "scripts": {
+    "typecheck": "npm run typecheck --workspaces --if-present",
+    "test": "npm run test --workspaces --if-present",
+    "lint": "npm run lint --workspaces --if-present"
+  },
+  "overrides": {
+    "lightningcss": "1.30.1"
+  }
+}

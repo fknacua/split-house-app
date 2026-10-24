@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { HOUSEHOLD_SCHEMA_VERSION } from "@/lib/household/config";
+import { HOUSEHOLD_SCHEMA_VERSION } from "@splithouse/shared";
 import { NOV_2026_CONFIG, VERSION_A_CONFIG } from "@/lib/fixtures/household";
 import { buildMonthCharges } from "@/lib/split/engine";
 import { openMonthIfNeeded, type MonthOpenDb, type MonthOpenTx, type VersionRow } from "./month-open";

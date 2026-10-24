@@ -1,14 +1,20 @@
 import { z } from "zod";
+import { cents, monthKey } from "./primitives";
 
-// Shape of HouseholdVersion.config (see docs/SplitHouse — Data Model.md).
-// Money is integer cents, shares are thousandths (1.5 shares = 1500), splits are
-// basis points (5000 = 50%). Bump HOUSEHOLD_SCHEMA_VERSION when the shape changes.
+/**
+ * Version of the shape of `HouseholdVersion.config` (see docs/SplitHouse — Data Model.md).
+ * Money is integer cents, shares are thousandths (1.5 shares = 1500), splits are
+ * basis points (5000 = 50%). Bump it when the shape changes.
+ */
 export const HOUSEHOLD_SCHEMA_VERSION = 1;
 
+/** The charge types a person can have a route and due day for. */
 export const CHARGE_TYPES = ["RENT", "UTILITIES", "AIRCON", "RECURRING"] as const;
+
+/** One of {@link CHARGE_TYPES}. */
 export type ChargeType = (typeof CHARGE_TYPES)[number];
 
-// Placeholders a message template may use.
+/** Placeholders a message template may use. */
 export const TEMPLATE_PLACEHOLDERS = [
   "name",
   "month",
@@ -19,8 +25,6 @@ export const TEMPLATE_PLACEHOLDERS = [
   "amount",
 ] as const;
 
-const monthKey = z.string().regex(/^\d{4}-(0[1-9]|1[0-2])$/, "Use YYYY-MM");
-const cents = z.number().int();
 const nonNegativeInt = z.number().int().min(0);
 const dueDay = z.number().int().min(1).max(31);
 const basisPoints = z.number().int().min(0).max(10000);
@@ -95,6 +99,11 @@ const templates = z.object({
   lineLabels: chargeTypeRecord(z.string().trim().min(1)).default({}),
 });
 
+/**
+ * The household settings of one version: people, the rent, utilities and
+ * aircon categories, recurring charges and message templates. Rejects configs
+ * whose shares, percentages or references do not add up.
+ */
 export const householdConfigSchema = z
   .object({
     people: z.array(personConfig).min(1),
@@ -175,11 +184,24 @@ export const householdConfigSchema = z
     });
   });
 
+/** A parsed household config, with defaults filled in. */
 export type HouseholdConfig = z.infer<typeof householdConfigSchema>;
+
+/** A household config as typed or sent, before defaults are filled in. Forms use this. */
+export type HouseholdConfigInput = z.input<typeof householdConfigSchema>;
+
+/** One person's entry in a household config. */
 export type PersonConfig = HouseholdConfig["people"][number];
 
-// Parse the JSON stored on a HouseholdVersion. Throws on a schemaVersion this code
-// does not know, so an old row is never silently misread.
+/**
+ * Parses the JSON stored on a HouseholdVersion.
+ *
+ * @param schemaVersion The row's `schemaVersion`.
+ * @param json The row's `config`.
+ * @returns The parsed config.
+ * @throws {Error} When `schemaVersion` is one this code does not know, so an old row is never silently misread.
+ * @throws {ZodError} When `json` does not match the schema.
+ */
 export function parseHouseholdConfig(schemaVersion: number, json: unknown): HouseholdConfig {
   if (schemaVersion !== HOUSEHOLD_SCHEMA_VERSION) {
     throw new Error(`Unsupported household schemaVersion ${schemaVersion}`);

@@ -1,21 +1,4 @@
-import type { HouseholdConfig } from "@/lib/household/config";
-
-// The first-run checklist, in the order of Welcome.dc.html.
-export const SETUP_STEP_IDS = [
-  "rentAndRooms",
-  "people",
-  "yourSplit",
-  "messages",
-  "reminders",
-] as const;
-export type SetupStepId = (typeof SETUP_STEP_IDS)[number];
-
-export interface SetupStep {
-  id: SetupStepId;
-  /** Messages and Reminders can be skipped; the other three are needed before Home opens. */
-  optional: boolean;
-  done: boolean;
-}
+import { SETUP_STEP_IDS, type HouseholdConfig, type SetupStep, type SetupStepId } from "@splithouse/shared";
 
 const OPTIONAL: ReadonlySet<SetupStepId> = new Set(["messages", "reminders"]);
 

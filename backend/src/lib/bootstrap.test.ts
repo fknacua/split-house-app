@@ -1,8 +1,12 @@
 import { describe, expect, it } from "vitest";
-import { HOUSEHOLD_SCHEMA_VERSION, type HouseholdConfig } from "@/lib/household/config";
+import {
+  bootstrapResponseSchema,
+  DEFAULT_NOTIFICATIONS,
+  HOUSEHOLD_SCHEMA_VERSION,
+  type HouseholdConfig,
+} from "@splithouse/shared";
 import { NOV_2026_CONFIG } from "@/lib/fixtures/household";
 import { currentMonth } from "@/lib/month";
-import { DEFAULT_NOTIFICATIONS, parseNotificationSettings } from "@/lib/settings";
 import { deriveSetupProgress } from "@/lib/setup-progress";
 import { getBootstrap, type BootstrapDb } from "./bootstrap";
 
@@ -67,33 +71,6 @@ describe("deriveSetupProgress", () => {
   });
 });
 
-describe("parseNotificationSettings", () => {
-  it("uses the design defaults when there is no row", () => {
-    expect(parseNotificationSettings(undefined)).toEqual(DEFAULT_NOTIFICATIONS);
-    expect(DEFAULT_NOTIFICATIONS).toEqual({
-      upload: true,
-      tenant1: true,
-      savings: true,
-      paysp: true,
-      checks: true,
-      fyi: false,
-    });
-  });
-
-  it("keeps stored toggles and fills in the missing ones", () => {
-    expect(parseNotificationSettings({ upload: false, fyi: true })).toEqual({
-      ...DEFAULT_NOTIFICATIONS,
-      upload: false,
-      fyi: true,
-    });
-  });
-
-  it("falls back to the defaults for a value it cannot read", () => {
-    expect(parseNotificationSettings({ upload: "yes" })).toEqual(DEFAULT_NOTIFICATIONS);
-    expect(parseNotificationSettings("nope")).toEqual(DEFAULT_NOTIFICATIONS);
-  });
-});
-
 describe("getBootstrap", () => {
   it("says there is no household before first run, with the default settings", async () => {
     const result = await getBootstrap(fakeDb({}));
@@ -117,6 +94,14 @@ describe("getBootstrap", () => {
       "yourSplit",
     ]);
     expect(result.settings.notifications).toEqual({ ...DEFAULT_NOTIFICATIONS, checks: false });
+  });
+
+  it("matches the shared response schema the app reads", async () => {
+    const withHousehold = await getBootstrap(
+      fakeDb({ version: { schemaVersion: HOUSEHOLD_SCHEMA_VERSION, config: NOV_2026_CONFIG } }),
+    );
+    expect(bootstrapResponseSchema.safeParse(withHousehold).success).toBe(true);
+    expect(bootstrapResponseSchema.safeParse(await getBootstrap(fakeDb({}))).success).toBe(true);
   });
 
   it("throws for a version with an unknown schemaVersion instead of misreading it", async () => {

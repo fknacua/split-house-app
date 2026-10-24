@@ -1,29 +1,10 @@
 /**
- * Display and input helpers for money. Amounts are integer cents, SGD. These
- * only format and parse; the app never calculates splits (the backend engine
- * does).
+ * Helpers for the money text input: parsing what is typed, cleaning it, and
+ * rendering cents as editable text. Amounts are integer cents, SGD. Only the
+ * input control uses these; the backend takes cents, so they stay in the app.
  */
 
-/**
- * Formats integer cents as dollars with 2 decimals and thousands separators,
- * e.g. `186286` -> `$1,862.86`. Negative amounts (correction charges) show the
- * minus before the dollar sign, e.g. `-1500` -> `-$15.00`.
- *
- * @param amountCents Amount in integer cents. e.g 186286 for $1,862.86
- * @returns The formatted amount. e.g. `$1,862.86` or `-$1,862.86`.
- * @throws {RangeError} When `amountCents` is not an integer.
- */
-export function formatCents(amountCents: number): string {
-  if (!Number.isInteger(amountCents)) {
-    throw new RangeError(`formatCents expects integer cents, got ${amountCents}`);
-  }
-  const abs = Math.abs(amountCents);
-  const dollars = Math.floor(abs / 100)
-    .toString()
-    .replace(/\B(?=(\d{3})+(?!\d))/g, ',');
-  const rest = (abs % 100).toString().padStart(2, '0');
-  return `${amountCents < 0 ? '-' : ''}$${dollars}.${rest}`;
-}
+import { formatCents } from '@splithouse/shared';
 
 /**
  * Parses typed money text to integer cents, e.g. `1,862.86` -> `186286`.

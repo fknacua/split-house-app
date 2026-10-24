@@ -46,7 +46,7 @@ const BarePhoneInput = forwardRef<
 /**
  * WhatsApp number input: shows an editable `+65` while empty so other countries work (edit the
  * code or type over it). The value is `+` and digits, for example `+6591234567`; check it with
- * `e164Phone` from `lib/schemas/common`. Standalone, pass `value` and `onChange`; inside a form,
+ * `e164Phone` from `@splithouse/shared`. Standalone, pass `value` and `onChange`; inside a form,
  * pass `fieldControlProps` instead.
  *
  * @param value - Current number, or an empty string (standalone only).

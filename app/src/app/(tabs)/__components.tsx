@@ -72,7 +72,7 @@ import {
   positiveCents,
   requiredText,
   todayKey,
-} from '@/lib';
+} from '@splithouse/shared';
 import { ServerUnreachableError } from '@/lib/api';
 import { type ThemePreference, useThemePreference } from '@/lib/theme-preference';
 
