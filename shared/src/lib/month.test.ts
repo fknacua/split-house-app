@@ -1,6 +1,14 @@
 import { describe, expect, it } from 'vitest';
 
-import { addMonths, currentMonth, formatMonthLabel, isMonthKey, monthKeyOf, monthRange } from './month';
+import {
+  addMonths,
+  currentMonth,
+  formatMonthLabel,
+  formatMonthShort,
+  isMonthKey,
+  monthKeyOf,
+  monthRange,
+} from './month';
 
 describe('isMonthKey', () => {
   it.each([
@@ -50,6 +58,20 @@ describe('formatMonthLabel', () => {
 
   it('throws on a bad key', () => {
     expect(() => formatMonthLabel('2026-13')).toThrow(RangeError);
+  });
+});
+
+describe('formatMonthShort', () => {
+  it.each([
+    ['2026-01', 'Jan'],
+    ['2026-09', 'Sep'],
+    ['2026-12', 'Dec'],
+  ])('%s -> %s', (key, expected) => {
+    expect(formatMonthShort(key)).toBe(expected);
+  });
+
+  it('throws on a bad key', () => {
+    expect(() => formatMonthShort('2026-13')).toThrow(RangeError);
   });
 });
 

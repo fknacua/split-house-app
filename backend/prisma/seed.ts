@@ -55,6 +55,8 @@ type ChargeInsert = Omit<EngineCharge, "category"> & {
   householdVersionId: string;
   billId?: string;
   correctsMonth?: string;
+  correctsCategory?: EngineCharge["category"];
+  createdAt?: string;
   paidCents?: number;
   paidOn?: string;
   paidByPersonId?: string;
@@ -72,6 +74,8 @@ async function insertCharge(c: ChargeInsert) {
       dueDate: c.dueDate ? new Date(c.dueDate) : null,
       billId: c.billId ?? null,
       correctsMonth: c.correctsMonth ?? null,
+      correctsCategory: c.correctsCategory ?? null,
+      ...(c.createdAt ? { createdAt: new Date(c.createdAt) } : {}),
       householdVersionId: c.householdVersionId,
       paidCents: c.paidCents ?? null,
       paidOn: c.paidOn ? new Date(c.paidOn) : null,
@@ -138,6 +142,14 @@ async function markPaid(chargeId: string, personId: string, paidOn: string, amou
   });
 }
 
+async function markBillPaid(billId: string, paidOn: string) {
+  const bill = await prisma.bill.findUniqueOrThrow({ where: { id: billId } });
+  await prisma.bill.update({
+    where: { id: billId },
+    data: { paidCents: bill.currentChargesCents, paidOn: new Date(paidOn) },
+  });
+}
+
 async function seedMonthlyMessage(month: string, personId: string, chargeId: string, openedAt: string) {
   await prisma.messageEvent.create({
     data: {
@@ -173,6 +185,7 @@ async function main() {
   for (const charge of [...aug.rentAndRecurring, ...aug.utilities]) {
     await markPaid(charge.id, payerFor(charge), "2026-08-20");
   }
+  await markBillPaid(aug.billId, "2026-08-22");
   for (const personId of [PERSON_IDS.priya, PERSON_IDS.sam, PERSON_IDS.jordan]) {
     const charge = [...aug.rentAndRecurring, ...aug.utilities].find((c) => c.personId === personId);
     if (charge) await seedMonthlyMessage("2026-08", personId, charge.id, "2026-08-02T10:00:00+08:00");
@@ -189,6 +202,7 @@ async function main() {
   for (const charge of [...sep.rentAndRecurring, ...sep.utilities]) {
     await markPaid(charge.id, payerFor(charge), "2026-09-21");
   }
+  await markBillPaid(sep.billId, "2026-09-22");
   for (const personId of [PERSON_IDS.priya, PERSON_IDS.sam, PERSON_IDS.jordan]) {
     const charge = [...sep.rentAndRecurring, ...sep.utilities].find((c) => c.personId === personId);
     if (charge) await seedMonthlyMessage("2026-09", personId, charge.id, "2026-09-02T10:00:00+08:00");
@@ -234,8 +248,25 @@ async function main() {
     dueDate: null,
     month: "2026-10",
     correctsMonth: "2026-09",
+    correctsCategory: "UTILITIES",
+    createdAt: "2026-10-05T10:00:00+08:00",
     householdVersionId: versionA.id,
   });
+  // Sam overpaid September's utilities by $5.00: a credit, added on 2 Oct and paid out on 12 Oct.
+  const samCredit = await insertCharge({
+    personId: PERSON_IDS.sam,
+    category: "CORRECTION",
+    label: "Correction: September utilities",
+    amountCents: -500,
+    payViaPersonId: null,
+    dueDate: null,
+    month: "2026-10",
+    correctsMonth: "2026-09",
+    correctsCategory: "UTILITIES",
+    createdAt: "2026-10-02T10:00:00+08:00",
+    householdVersionId: versionA.id,
+  });
+  await markPaid(samCredit.id, PERSON_IDS.alex, "2026-10-12");
 
   // --- November 2026 (current/go-live): rent and recurring only, no bill yet. ---
   await prisma.month.create({ data: { month: "2026-11", householdVersionId: versionB.id, openedAt: new Date("2026-11-01T09:00:00+08:00") } });

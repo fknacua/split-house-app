@@ -83,3 +83,14 @@ export function dateKeyToValue(key: string): Date {
 export function formatDateLabel(key: string): string {
   return format(dateKeyToDate(key), 'EEE, d MMM yyyy');
 }
+
+/**
+ * Formats a date key as day and month, for small text.
+ *
+ * @param key A date key, e.g. `2026-11-03`.
+ * @returns e.g. `3 Nov`.
+ * @throws {RangeError} When `key` is not a valid date key.
+ */
+export function formatDateShort(key: string): string {
+  return format(dateKeyToDate(key), 'd MMM');
+}

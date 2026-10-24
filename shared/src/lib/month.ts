@@ -78,6 +78,17 @@ export function formatMonthLabel(key: string): string {
 }
 
 /**
+ * Formats a month key as its short name, for small text.
+ *
+ * @param key A month key, e.g. `2026-09`.
+ * @returns e.g. `Sep`.
+ * @throws {RangeError} When `key` is not a valid month key.
+ */
+export function formatMonthShort(key: string): string {
+  return format(monthKeyToDate(key), 'MMM');
+}
+
+/**
  * Moves a month key forward or back.
  *
  * @param key A month key, e.g. `2026-11`.
