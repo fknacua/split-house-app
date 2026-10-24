@@ -4,6 +4,8 @@ import { View, Text } from "react-native";
 import { SubpageHeaderProps } from "./types";
 import { Icon } from '@/components/ui/icon';
 import { Pressable } from '@/components/ui/pressable';
+import { Icon as AppIcon } from '../icon';
+import { SkeletonBlock } from '../skeletons';
 
 /**
  * Header of a subpage (a screen opened from a tab, with the bottom nav hidden): a 48px round back button and the title with an optional subtitle,
@@ -12,7 +14,9 @@ import { Pressable } from '@/components/ui/pressable';
  */
 export function SubpageHeader({
   title,
+  loading = false,
   subtitle,
+  subtitleIcon,
   trailing,
   backLabel = 'Back',
   onBack,
@@ -35,20 +39,31 @@ export function SubpageHeader({
         <Icon as={ArrowLeft} size="xl" className="text-on-surface" />
       </Pressable>
       <View className="min-w-0 flex-1">
-        <Text
-          accessibilityRole="header"
-          numberOfLines={1}
-          className="font-manrope-extrabold text-sheet-title text-on-surface"
-        >
-          {title}
-        </Text>
-        {subtitle ? (
+        {loading ? (
+          <View className="h-7 justify-center">
+            <SkeletonBlock className="h-5 w-36" />
+          </View>
+        ) : (
           <Text
+            accessibilityRole="header"
             numberOfLines={1}
-            className="font-manrope-semibold text-caption text-on-surface-variant"
+            className="font-manrope-extrabold text-sheet-title text-on-surface"
           >
-            {subtitle}
+            {title}
           </Text>
+        )}
+        {subtitle ? (
+          <View className="flex-row items-center gap-1">
+            {subtitleIcon ? (
+              <AppIcon as={subtitleIcon} size={13} className="text-on-surface-variant" />
+            ) : null}
+            <Text
+              numberOfLines={1}
+              className="shrink font-manrope-semibold text-caption text-on-surface-variant"
+            >
+              {subtitle}
+            </Text>
+          </View>
         ) : null}
       </View>
       {trailing}

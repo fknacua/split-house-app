@@ -11,4 +11,8 @@ export const queryKeys = {
   bootstrap: ['bootstrap'] as const,
   /** @param month `YYYY-MM` key. */
   monthSummary: (month: string) => ['month-summary', month] as const,
+  /** The History list. Also the prefix of every `historyMonth` key, so invalidating it refreshes both. */
+  history: ['history'] as const,
+  /** @param month `YYYY-MM` key. */
+  historyMonth: (month: string) => ['history', month] as const,
 };
