@@ -4,7 +4,8 @@ import { View } from 'react-native';
 import { Button } from '@/components/button';
 import { type BareInputProps, withFormControlledFieldOf } from '@/components/form-field/';
 import { Input as NativeInput, InputField as NativeInputField } from '@/components/ui/input';
-import { centsToInputText, formatCents, parseMoneyToCents, sanitizeMoneyInput } from '@/lib';
+import { formatCents } from '@splithouse/shared';
+import { centsToInputText, parseMoneyToCents, sanitizeMoneyInput } from '@/lib/money-input';
 
 /** The props only the money input has, on top of the shared input props. */
 export interface MoneyInputOwnProps {
@@ -76,7 +77,7 @@ const BareMoneyInput = forwardRef<
 /**
  * Money input: types dollars and cents, holds integer cents. Standalone, pass `value` (cents or
  * `null`) and `onChange`. Inside a form, pass `fieldControlProps` instead, and validate with
- * `cents` or `positiveCents` from `lib/schemas/common`. Money formatting and parsing live in
+ * `cents` or `positiveCents` from `@splithouse/shared`. Money formatting and parsing live in
  * `lib/money`.
  *
  * @param value - Amount in integer cents, or `null` when empty (standalone only).

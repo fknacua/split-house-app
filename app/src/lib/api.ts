@@ -1,5 +1,5 @@
 import { authClient, BACKEND_URL } from '@/lib/auth-client';
-import type { ApiErrorBody } from '@/lib/api-types';
+import type { ApiErrorBody } from '@splithouse/shared';
 
 /** Requests give up after this long (covers a Neon cold start). */
 export const REQUEST_TIMEOUT_MS = 20_000;

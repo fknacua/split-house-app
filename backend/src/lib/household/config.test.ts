@@ -4,7 +4,7 @@ import {
   HOUSEHOLD_SCHEMA_VERSION,
   householdConfigSchema,
   parseHouseholdConfig,
-} from "./config";
+} from "@splithouse/shared";
 
 const clone = () => structuredClone(NOV_2026_CONFIG);
 

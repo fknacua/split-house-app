@@ -48,7 +48,7 @@ npm run seed:reset   # wipe the domain tables and reseed (refuses in production)
 
 ## Endpoints (v1 contract)
 
-Written as each screen needs them. Update the status here when an endpoint is built, and add its response types to `app/src/lib/api-types.ts` in the same change.
+Written as each screen needs them. Update the status here when an endpoint is built, and add its request and response schemas to `shared/src/api/` in the same change. The app imports the types from `@splithouse/shared`, and a backend test checks the real response against the schema.
 
 | Endpoint | Purpose | Phase | Status |
 |---|---|---|---|

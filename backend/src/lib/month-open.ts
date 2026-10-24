@@ -1,5 +1,5 @@
 import { currentMonth } from "@/lib/month";
-import { parseHouseholdConfig } from "@/lib/household/config";
+import { parseHouseholdConfig } from "@splithouse/shared";
 import { buildMonthCharges } from "@/lib/split/engine";
 
 export interface VersionRow {

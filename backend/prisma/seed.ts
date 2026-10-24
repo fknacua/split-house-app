@@ -1,6 +1,6 @@
 import "dotenv/config";
 import { prisma } from "@/lib/prisma";
-import { HOUSEHOLD_SCHEMA_VERSION } from "@/lib/household/config";
+import { HOUSEHOLD_SCHEMA_VERSION } from "@splithouse/shared";
 import { NOV_2026_CONFIG, PERSON_IDS, VERSION_A_CONFIG } from "@/lib/fixtures/household";
 import { buildMonthCharges, buildUtilitiesCharges, type EngineCharge } from "@/lib/split/engine";
 

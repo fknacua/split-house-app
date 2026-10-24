@@ -5,7 +5,12 @@ A personal Android app to split rent and utils expenses for my household
 
 - [backend/](backend/README.md): Next.js route handlers on Vercel, Prisma, Better Auth, Neon Postgres.
 - [app/](app/README.md): Expo (React Native) Android app, NativeWind, gluestack-ui v5. Runs in a development build, never Expo Go.
+- shared/: `@splithouse/shared`, the zod schemas, API response types and pure helpers (money, month, date) used by both the backend and the app. Source-only TypeScript, no build step.
 - docs/: design and decision docs.
+
+## Installing
+
+The repo is an npm workspaces monorepo (`backend`, `app`, `shared`). Run `npm install` once at the repo root; there is a single `package-lock.json` there. Root scripts `npm run test`, `typecheck` and `lint` run in every workspace. Run EAS and Expo commands from `app/`.
 
 ## Running it
 

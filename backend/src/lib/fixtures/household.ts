@@ -1,4 +1,4 @@
-import type { HouseholdConfig } from "@/lib/household/config";
+import type { HouseholdConfig } from "@splithouse/shared";
 
 // Nov 2026 fixtures from the Data Model doc, with fictional names.
 // Alex = owner, Priya = primary tenant, Sam = Tenant 1, Jordan = Tenant 2.

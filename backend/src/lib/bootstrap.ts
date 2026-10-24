@@ -1,19 +1,10 @@
-import { parseHouseholdConfig } from "@/lib/household/config";
+import {
+  parseHouseholdConfig,
+  parseNotificationSettings,
+  type BootstrapResponse,
+} from "@splithouse/shared";
 import { currentMonth } from "@/lib/month";
-import { parseNotificationSettings, type NotificationSettings } from "@/lib/settings";
-import { deriveSetupProgress, type SetupStep } from "@/lib/setup-progress";
-
-/** Body of `GET /api/bootstrap`: what the app needs right after sign-in and on launch. */
-export interface BootstrapResponse {
-  /** A household version exists. False sends the app to first-run setup. */
-  hasHousehold: boolean;
-  /** Current billing month, `YYYY-MM`, in Asia/Singapore. */
-  currentMonth: string;
-  /** The first-run checklist, in display order. */
-  setupProgress: SetupStep[];
-  /** Notification toggles, used to rebuild the reminders on this phone. */
-  settings: { notifications: NotificationSettings };
-}
+import { deriveSetupProgress } from "@/lib/setup-progress";
 
 /** The slice of the Prisma client this module uses, so tests can pass an in-memory fake. */
 export interface BootstrapDb {
