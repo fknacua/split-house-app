@@ -14,6 +14,7 @@ import {
   Clock,
   History,
   House,
+  Lock,
   Send,
   Settings,
   Trash2,
@@ -843,6 +844,23 @@ function HeadersDemo() {
           subtitle="Read-only"
           onBack={onBack}
         />
+      </View>
+      <Text className="font-manrope-bold text-label text-on-surface-variant">
+        Back arrow, subtitle with icon
+      </Text>
+      <View className="rounded-card bg-surface">
+        <SubpageHeader
+          title="November 2026"
+          subtitle="Read-only"
+          subtitleIcon={Lock}
+          onBack={onBack}
+        />
+      </View>
+      <Text className="font-manrope-bold text-label text-on-surface-variant">
+        Back arrow, title loading
+      </Text>
+      <View className="rounded-card bg-surface">
+        <SubpageHeader loading subtitle="Read-only" subtitleIcon={Lock} onBack={onBack} />
       </View>
     </View>
   );

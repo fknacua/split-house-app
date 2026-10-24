@@ -37,6 +37,7 @@ function SessionStack() {
       </Stack.Protected>
       <Stack.Protected guard={signedIn}>
         <Stack.Screen name="(tabs)" />
+        <Stack.Screen name="history/[month]" />
         <Stack.Screen name="__gallery" />
       </Stack.Protected>
     </Stack>
