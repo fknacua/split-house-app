@@ -337,3 +337,22 @@ Reordered the plan after a discussion with Francis. New order: Phase 4 History, 
 The plan has a "Build order from Phase 4" section with the old-to-new step map; entries above this one use the old numbers (for example 9A.2 is now 11.2, 12.5e is now 8.0). `backend/README.md` endpoint table updated to the new IDs. CLAUDE.md "Phase 0 to Phase 12" still holds.
 
 Open point for Phase 4: `History.dc.html` has to say what opening a charge opens (4.3); not checked yet.
+
+## 2026-10-24: Shared package (Phase 3.5), done before Phase 4
+
+Francis asked to do the shared lib before History so response types are defined once. Pulled 8.0 forward as Phase 3.5. Discarded the unstarted History work (stashed as `stash@{0}`, drop when sure) and branched `shared-package` from `main`.
+
+- npm workspaces (`backend`, `app`, `shared`), one root `package-lock.json`, `overrides` moved to the root. Backend `react` and `react-dom` pinned to 19.2.3 to match the app (Next 16.4.1 accepts any 19.x; Expo says duplicate React breaks the app). `app/.npmrc` (`legacy-peer-deps`) is now ignored by npm; the install works without it.
+- The fresh install floated versions versus the old lockfiles (`@gluestack-ui/core` 5.0.0-alpha.0 to 5.0.15, `nativewind` preview.2 to rc.0, `expo` 57.0.30 to 57.0.31 and a few `expo-*` patches, `better-auth` 1.7.9/1.7.10 to 1.7.12). `expo install --check` and `expo-doctor` pass; Francis checked the UI on the device and it is fine, so the new lockfile is kept.
+- `shared/src`: `api/` (bootstrap, error, me), `schemas/` (primitives, household-config, settings, setup), `lib/` (date, money, month). Moved from the backend: household config and settings. Moved from the app: month, date, money, their tests, form primitives and the response types. Backend `month.ts` is now a thin `currentMonth()` over the backend `now()`. `app/src/lib/api-types.ts` keeps only the Phase 5 placeholder.
+- `config.test.ts` stays in the backend because it needs the backend Nov 2026 fixtures. The `parseNotificationSettings` tests moved to `shared`.
+- Tests: 149 before (61 backend, 86 app, 2 shared) and 149 after (58, 6, 85), all passing. Typecheck passes in all three workspaces, `next build` and the Metro export pass. Changing `hasHousehold` in the shared schema only makes the bootstrap contract test fail, as intended.
+- Docs updated: CLAUDE.md layout and a rule for API schemas, root README (install at the root), backend README endpoint note.
+- Not done yet: Vercel preview deploy and an EAS build (need a push / cloud build, so Francis decides). Nothing is committed.
+- Open: the message template renderer is undecided (backend or shared); revisit in Phase 9A. Switching the backend from Next.js to Hono was discussed and left for later.
+
+## 2026-10-24: Shared lib audit, money input helpers moved back
+
+Francis asked whether the money input helpers belong in the shared package. They do not: only `money-input.tsx` calls `parseMoneyToCents`, `centsToInputText` and `sanitizeMoneyInput`, and the backend takes cents. They moved to `app/src/lib/money-input.ts` with their tests; `formatCents` stays in `shared/src/lib/money.ts`. CLAUDE.md now says code goes in `shared/` only when both sides need it or it defines the API contract.
+
+Audit of the rest of what moved: the backend uses only `currentMonth` today. Kept in shared on purpose: the Singapore month and date key logic (`monthKeyOf`, `addMonths`, `dateKeyOf`, `todayKey`, `isDateKey`) and the display formatters (`formatMonthLabel`, `formatDateLabel`), because the server will need them for history, due dates and message text. Borderline, kept: `monthRange` (only the month Select uses it) and `dateKeyToValue` (only the date picker uses it); both are thin wrappers over key parsing. `isMonthKey` and `isDateKey` are not called anywhere yet; `isMonthKey` carries the existing "remove before go-live unless used" note. Tests after the move: 149 (58 backend, 38 app, 53 shared).
