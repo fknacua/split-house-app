@@ -60,7 +60,7 @@ Backend work, in `backend/`, follows the Data Model doc and CLAUDE.md. Check cur
   - **Dev clock:** the backend's `now()` helper (used by `currentMonth()` and lazy month open) honours an optional `DEV_NOW` env var (e.g. `2026-11-03T09:00:00+08:00`), ignored when `NODE_ENV === 'production'`, so the dev database can behave as if it is November before the real date arrives.
   - **Reset script:** `npm run seed:reset` wipes the domain tables (never the Better Auth tables) and reseeds, so test runs can start clean.
   - Fixture constants live in `backend/src/lib/fixtures/` and are shared by the seed and the unit tests, so the tests' Nov 2026 checks and the seeded data cannot drift apart.
-- ✅ **1.5** **API conventions** (`backend/src/lib/api.ts`; stays on Next.js route handlers as decided; route files are thin wrappers of about 10 lines and all logic lives in plain functions under `backend/src/lib/`): `requireSession()` using `auth.api.getSession`, 401 JSON on none; zod request validation; error shape `{ error: { code, message } }`; Asia/Singapore `currentMonth()`; all route handlers `dynamic = 'force-dynamic'`. Health route `GET /api/health` (used by the app to detect cold start / unreachable).
+- ✅ **1.5** **API conventions** (`backend/src/lib/api.ts`; stays on Next.js route handlers as decided; route files are thin wrappers of about 10 lines; **superseded for new code (2026-10-24, Phase 4): database reads live in `backend/src/services/`, `backend/src/lib/` stays pure, no repository layer**): `requireSession()` using `auth.api.getSession`, 401 JSON on none; zod request validation; error shape `{ error: { code, message } }`; Asia/Singapore `currentMonth()`; all route handlers `dynamic = 'force-dynamic'`. Health route `GET /api/health` (used by the app to detect cold start / unreachable).
 - ✅ **1.6** **Lazy month open** (`openMonthIfNeeded()`): on first request on/after the 1st, create `Month`, pin current `HouseholdVersion`, create rent and recurring charges in one transaction; idempotent.
 - ✅ **1.7** **Endpoints (v1 contract)** written as each screen needs them, listed per phase below. Keep the list in `backend/README.md`.
 - ✅ **1.8** **Typed client**: shared TS types for responses. Simplest: `app/src/lib/api-types.ts` hand-synced from backend zod schemas (monorepo has no shared package for now; a shared schemas package is required before go-live, see 8.0). **Superseded by Phase 3.5 (2026-10-24): response types now live in `shared/src/api/` and `api-types.ts` only holds the Phase 5 placeholder.**. `app/src/lib/api.ts` fetch wrapper adding the Better Auth session token (from `authClient`), 20s timeout, maps network failure/timeout/5xx-cold-start to a `ServerUnreachableError`.
@@ -252,14 +252,14 @@ Old step IDs map to new ones as follows. Older entries in `docs/plans/implementa
 
 ---
 
-## Phase 4: History (4 states)
+## ✅ Phase 4: History (4 states)
 
 Source `History.dc.html`. Built first as a quick win: it is read-only and the Aug to Oct 2026 seed covers it, so it proves the whole path (endpoint, query hook, skeleton, both themes, on device) before Home.
 
-- **4.1** (was 9B.1) Backend: `GET /api/history` (months list: bill total, paid count, chips), `GET /api/history/:month` (charges with paid state, corrections, banner flags). Derived, no new tables.
-- **4.2** (was 9B.2) States: `list`, `loading`, `monthCorrected` (info Alert "corrected later" linking to the correction charges). Here it renders from the seeded Sep correction; the link to the correction charge stays a stub until Add charge (Phase 11). `monthCarried` is **deferred to a future fix**: a month with an unpaid charge just shows the normal Unpaid chip on that row, with no carry banner or "carried to Jan" copy.
-- **4.3** (was 9B.3) Read-only except opening a charge. Read `History.dc.html` for what opening a charge opens; if the source doesn't show it, stop and ask. Until that target exists, the row does nothing.
-- **4.4** Check against the seed: Aug (fully paid), Sep (corrected later), Oct (one charge short-paid, one unpaid).
+- ✅ **4.1** (was 9B.1) Backend: `GET /api/history` (months list: bill total, paid count, chips), `GET /api/history/:month` (charges with paid state, corrections, banner flags). Derived, no new tables.
+- ✅ **4.2** (was 9B.2) States: `list`, `loading`, `monthCorrected` (info Alert "corrected later" linking to the correction charges). Here it renders from the seeded Sep correction; the link to the correction charge stays a stub until Add charge (Phase 11). `monthCarried` is **deferred to a future fix**: a month with an unpaid charge just shows the normal Unpaid chip on that row, with no carry banner or "carried to Jan" copy.
+- ✅ **4.3** (was 9B.3) Read-only except opening a charge. Read `History.dc.html` for what opening a charge opens; if the source doesn't show it, stop and ask. Until that target exists, the row does nothing.
+- ✅ **4.4** Check against the seed: Aug (fully paid), Sep (corrected later), Oct (one charge short-paid, one unpaid).
 
 ---
 

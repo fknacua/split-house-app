@@ -356,3 +356,27 @@ Francis asked to do the shared lib before History so response types are defined 
 Francis asked whether the money input helpers belong in the shared package. They do not: only `money-input.tsx` calls `parseMoneyToCents`, `centsToInputText` and `sanitizeMoneyInput`, and the backend takes cents. They moved to `app/src/lib/money-input.ts` with their tests; `formatCents` stays in `shared/src/lib/money.ts`. CLAUDE.md now says code goes in `shared/` only when both sides need it or it defines the API contract.
 
 Audit of the rest of what moved: the backend uses only `currentMonth` today. Kept in shared on purpose: the Singapore month and date key logic (`monthKeyOf`, `addMonths`, `dateKeyOf`, `todayKey`, `isDateKey`) and the display formatters (`formatMonthLabel`, `formatDateLabel`), because the server will need them for history, due dates and message text. Borderline, kept: `monthRange` (only the month Select uses it) and `dateKeyToValue` (only the date picker uses it); both are thin wrappers over key parsing. `isMonthKey` and `isDateKey` are not called anywhere yet; `isMonthKey` carries the existing "remove before go-live unless used" note. Tests after the move: 149 (58 backend, 38 app, 53 shared).
+
+## 2026-10-25: 4.1 ✅
+
+Built `GET /api/history` (past months with a saved bill, grouped by year, with a `Utilities bill $X` line and `Settled` or `N unpaid` plus `Corrected` chips) and `GET /api/history/:month` (bill card with its paid date, one row per charge titled `Label - Person`, unpaid first then newest payment first, and a banner per later correction). The API returns display-ready text so the app only renders it; the contract is in `shared/src/api/history.ts` and the date and month short formats were added to `shared` with date-fns. Backend structure is now route -> `services/history/` (database reads) -> pure builders in `lib/history/`; plan 1.5, `CLAUDE.md` and the backend README are updated for it. Added `Charge.correctsCategory` with a database CHECK constraint (migration `charge_corrects_category`, applied to dev) so a correction records what it fixes; the seed gained paid Aug and Sep bills and a paid credit correction, and dev was reseeded. Backend (80) and shared (59) tests and lint pass, and editor diagnostics are clean on the changed files (the full type check runs at the end of the phase). Both routes were checked through their services against the dev database, not over HTTP with a real session; short payments and the unpaid-bill state are not designed and not covered. Every difference from the design and the Data Model is logged in `docs/plans/design-deviations.md`. Dropped two old stashes at Francis's word.
+
+## 2026-10-25: 4.2 🔄
+
+Built the History UI to the API contract (backend-for-frontend: the app renders the response text and only navigates). The list (`screens/history/`) has the skeleton and year groups of month rows with chips; tapping a row opens the month detail (`screens/history-month/`, route `history/[month]`, outside the tabs) with banners, the bill card and the payment rows, plus a skeleton while loading. Added the `useHistory` and `useHistoryMonth` hooks and query keys. Decided with Francis: keep the corrected-month banner with no link and the default info icon, hide View bill until Phase 6, skeleton for the month detail, credits in the success colour via a sign check in the app, and no `__gallery` entries. All differences are logged as U1 to U10 in `design-deviations.md`. Lint passes, the hex grep finds nothing and editor diagnostics are clean on the changed files (the full type check runs at the end of the phase). Not yet checked on device.
+
+## 2026-10-25: 4.2 🔄 (header changes)
+
+At Francis's request `SubpageHeader` gained `subtitleIcon` (a Lucide icon before the subtitle) and `loading` (a skeleton in place of the title); the month detail uses a lock icon for "Read-only" and the title skeleton instead of the placeholder "History" title. Both are on the test page's Screen headers section. Lint passes and editor diagnostics are clean on the changed files. Still waiting for the device review.
+
+## 2026-10-25: 4.2 ✅
+
+Francis approved 4.2 after the header changes. The History list, the month detail (with the corrected-month banner, bill card and payments), their skeletons and the `SubpageHeader` icon and loading props stand as logged. Differences from the design are U1 to U10 in `design-deviations.md`. Lint and editor diagnostics were clean (the full type check runs at the end of the phase).
+
+## 2026-10-25: 4.3 ✅
+
+Skipped at Francis's request: not needed. `History.dc.html` shows no target for opening a charge, so the payment rows do nothing and no code was written.
+
+## 2026-10-25: 4.4, Phase 4 ✅
+
+Francis said 4.4 (check against the seeded Aug, Sep and Oct months) is essentially done, taken as approval; I did not re-run the device check. Phase 4 exit check: the full type check passes in `app`, `backend` and `shared`. Phase 4 is complete.
