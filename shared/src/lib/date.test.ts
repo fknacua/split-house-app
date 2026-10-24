@@ -1,6 +1,13 @@
 import { describe, expect, it } from 'vitest';
 
-import { dateKeyOf, dateKeyToValue, formatDateLabel, isDateKey, todayKey } from './date';
+import {
+  dateKeyOf,
+  dateKeyToValue,
+  formatDateLabel,
+  formatDateShort,
+  isDateKey,
+  todayKey,
+} from './date';
 
 describe('isDateKey', () => {
   it.each([
@@ -45,5 +52,16 @@ describe('formatDateLabel', () => {
   it('formats like the design', () => {
     expect(formatDateLabel('2026-11-02')).toBe('Mon, 2 Nov 2026');
     expect(formatDateLabel('2026-12-25')).toBe('Fri, 25 Dec 2026');
+  });
+});
+
+describe('formatDateShort', () => {
+  it('gives the day without a leading zero, then the short month', () => {
+    expect(formatDateShort('2026-11-03')).toBe('3 Nov');
+    expect(formatDateShort('2026-12-31')).toBe('31 Dec');
+  });
+
+  it('throws on a bad key', () => {
+    expect(() => formatDateShort('2026-02-30')).toThrow(RangeError);
   });
 });

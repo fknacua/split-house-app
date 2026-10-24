@@ -43,7 +43,7 @@ Stack it assumes: Postgres on Neon, Prisma, Next.js route handlers on Vercel, Be
 
 ### Charge
 One row per person per obligation.
-`id`, `month`, `personId` (who owes), `payViaPersonId` (route, nullable), `category` (`RENT`, `UTILITIES`, `AIRCON`, `RECURRING`, `ONE_OFF`, `CORRECTION`), `label`, `amountCents` (signed), `dueDate`, `billId` (nullable), `chargeGroupId` (nullable), `correctsMonth` (nullable), `householdVersionId` (the version used to compute it), `paidCents`, `paidOn`, `paidByPersonId`.
+`id`, `month`, `personId` (who owes), `payViaPersonId` (route, nullable), `category` (`RENT`, `UTILITIES`, `AIRCON`, `RECURRING`, `ONE_OFF`, `CORRECTION`), `label`, `amountCents` (signed), `dueDate`, `billId` (nullable), `chargeGroupId` (nullable), `correctsMonth` (nullable), `correctsCategory` (nullable; what a `CORRECTION` fixes, e.g. `UTILITIES`; required when `category` is `CORRECTION` and null otherwise, enforced by a database check), `householdVersionId` (the version used to compute it), `paidCents`, `paidOn`, `paidByPersonId`.
 Paid, unpaid, due today and overdue are derived from these fields.
 
 ### ChargeGroup

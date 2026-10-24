@@ -240,6 +240,9 @@ model Charge {
   billId             String?
   chargeGroupId      String?
   correctsMonth      String?
+  // What a CORRECTION fixes (RENT, UTILITIES, ...). Required when category is CORRECTION and
+  // null otherwise; a CHECK constraint in the charge_corrects_category migration enforces it.
+  correctsCategory   ChargeCategory?
   householdVersionId String
   paidCents          Int?
   paidOn             DateTime?      @db.Date

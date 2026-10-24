@@ -1,6 +1,6 @@
 # SplitHouse backend
 
-Next.js route handlers on Vercel, Prisma, Better Auth, Neon Postgres. Route files are thin wrappers (`route(...)` from `src/lib/api.ts`); the logic lives in plain functions under `src/lib/`.
+Next.js route handlers on Vercel, Prisma, Better Auth, Neon Postgres. Route files are thin wrappers (`route(...)` from `src/lib/api.ts`); the controller calls a service in `src/services/`, which reads the database and passes the result to pure functions in `src/lib/`. `src/lib/` holds pure code (the split engine, builders, helpers) plus shared plumbing such as `api.ts`, `auth.ts` and `prisma.ts`. There is no repository layer; add one when several services need the same query. Older files that query the database (`bootstrap`, `month-open`) still sit in `src/lib/` and move when touched.
 
 ## Environment
 
@@ -55,6 +55,8 @@ Written as each screen needs them. Update the status here when an endpoint is bu
 | `GET /api/auth/*` | Better Auth (Google sign-in, sessions) | 0 | built |
 | `GET /api/me` | Signed-in email; checks a session end to end | 1.7 | built |
 | `GET /api/bootstrap` | `hasHousehold`, `currentMonth`, `setupProgress` (the five first-run steps), `settings.notifications` | 3.5 | built |
+| `GET /api/history` | Past months with a saved bill, grouped by year, newest first: name, bill total line and status chips (Settled or N unpaid, Corrected). Display-ready text | 4.1 | built |
+| `GET /api/history/:month` | One past month: bill amount with Paid badge, one row per charge (`Rent - Name`, amount, Paid date or Unpaid), unpaid first then newest payment first, then a Correction row and an info banner for each correction made to the month later. User's own charges left out. 404 for the current or a later month, or no bill. Short payments and the unpaid-bill state are not designed yet | 4.1 | built |
 | `GET /api/setup/progress` | First-run steps, derived from the household version and settings | 10.4 | planned |
 | `GET /api/household` | Current and upcoming version, people, version history | 8.1 | planned |
 | `POST /api/household/preview` | Per-person amounts for a draft config and starts-from month | 8.1 | planned |
@@ -73,8 +75,6 @@ Written as each screen needs them. Update the status here when an endpoint is bu
 | `POST /api/payments` | Record payment for charge(s) or a person | 7A.1 | planned |
 | `POST /api/charges/preview` | Per-person cents for a new charge, via the engine | 11.1 | planned |
 | `POST /api/charges` | Create a charge group and its charges | 11.1 | planned |
-| `GET /api/history` | Months list: bill total, paid count, chips | 4.1 | planned |
-| `GET /api/history/:month` | A month's charges with paid state, corrections, banner flags | 4.1 | planned |
 | `GET /api/settings`, `PUT /api/settings` | Notification toggles | 9A.1 | planned |
 | `GET /api/notifications/plan` | Computed reminder triggers; the app only schedules them | 9B.4 | planned |
 

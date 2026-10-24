@@ -1,5 +1,6 @@
 export * from './api/bootstrap';
 export * from './api/error';
+export * from './api/history';
 export * from './api/me';
 export * from './lib/date';
 export * from './lib/money';
