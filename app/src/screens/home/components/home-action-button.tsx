@@ -1,4 +1,4 @@
-import { Check, type LucideIcon } from 'lucide-react-native';
+import { Bell, Check, type LucideIcon } from 'lucide-react-native';
 
 import { Button } from '@/components';
 import { openTarget } from '../open-target';
@@ -6,6 +6,7 @@ import type { HomeActionButtonProps } from '../types';
 
 const ICONS: Record<NonNullable<HomeActionButtonProps['action']['icon']>, LucideIcon> = {
   check: Check,
+  bell: Bell,
 };
 
 /** A button in an open row or the hero's notice. The server picks the label, look and target; a tap opens the target. */

@@ -3,7 +3,7 @@ import { dateKey, monthKey } from '../schemas/primitives';
 import { badgeSchema } from './history';
 
 /** Where the month is in its cycle. Picks the hero and the footer. */
-export const homeStatusSchema = z.enum(['bill_missing', 'draft', 'unsent']);
+export const homeStatusSchema = z.enum(['bill_missing', 'draft', 'unsent', 'collecting']);
 
 /** Where the month is in its cycle. Picks the hero and the footer. */
 export type HomeStatus = z.infer<typeof homeStatusSchema>;
@@ -16,6 +16,8 @@ export const homeTargetSchema = z.discriminatedUnion('kind', [
   z.object({ kind: z.literal('bill-draft-continue'), month: monthKey }),
   z.object({ kind: z.literal('bill-draft-discard'), month: monthKey }),
   z.object({ kind: z.literal('bill-view'), month: monthKey }),
+  z.object({ kind: z.literal('record-payment'), month: monthKey }),
+  z.object({ kind: z.literal('mark-bill-paid'), month: monthKey }),
 ]);
 
 /** Where a tap on a row link, a row action or the footer goes. Carries only the ids the target screen needs. */
@@ -54,6 +56,27 @@ export const homeHeroBodySchema = z.discriminatedUnion('kind', [
   z.object({ kind: z.literal('waiting'), ...homeHeroTilesBodyShape }),
   /** The bill is in and the messages are not sent: the second tile is the bill and its due date. */
   z.object({ kind: z.literal('unsent'), ...homeHeroTilesBodyShape }),
+  /** Messages are out and payments are coming in: what is fronted, and how much of the bill is covered. */
+  z.object({
+    kind: z.literal('collecting'),
+    fronting: z.object({
+      label: z.string(),
+      /** e.g. `$2,725.83`. */
+      value: z.string(),
+      /** e.g. `Rent, aircon and other charges paid for others · $0.00 back so far`. */
+      note: z.string(),
+    }),
+    coverage: z.object({
+      /** e.g. `Utilities bill covered`. */
+      label: z.string(),
+      /** e.g. `$123.69 of $412.30`. */
+      text: z.string(),
+      /** 0 to 100, for the progress bar. */
+      percent: z.number().int().min(0).max(100),
+      /** e.g. `Your share only so far · due 16 Nov`. */
+      note: z.string(),
+    }),
+  }),
 ]);
 
 /** The hero card's body. One member per kind of hero; later statuses add members. */
@@ -63,9 +86,10 @@ export type HomeHeroBody = z.infer<typeof homeHeroBodySchema>;
 export const homeActionSchema = z.object({
   /** e.g. `Mark paid`. */
   label: z.string(),
-  tone: z.enum(['primary', 'outline']),
+  /** `warning` is the orange Nudge button. */
+  tone: z.enum(['primary', 'outline', 'warning']),
   /** Null for a button with a label only, like Continue. */
-  icon: z.enum(['check']).nullable(),
+  icon: z.enum(['check', 'bell']).nullable(),
   target: homeTargetSchema,
 });
 
@@ -112,8 +136,8 @@ export const homeRowSchema = z.object({
   /** Small line under the title, e.g. `Pays via Primary tenant`. Null when there is nothing to add. */
   detail: z.string().nullable(),
   badge: badgeSchema,
-  /** How the row is shaded. `none` is the plain row. */
-  tint: z.enum(['none', 'info']),
+  /** How the row is shaded: `info` for due today, `warning` for overdue. `none` is the plain row. */
+  tint: z.enum(['none', 'info', 'warning']),
   /** Whether the row starts open. Rows that need attention start open. */
   expanded: z.boolean(),
   /** A line inside the open row, e.g. `Worked out once the utilities bill is uploaded.` */
@@ -135,7 +159,7 @@ export const homePrimaryActionSchema = z
   .object({
     /** e.g. `Upload utilities bill`. */
     label: z.string(),
-    icon: z.enum(['upload', 'file-pen']),
+    icon: z.enum(['upload', 'file-pen', 'banknote']),
     target: homeTargetSchema,
   })
   .nullable();

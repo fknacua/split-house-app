@@ -17,6 +17,7 @@ function toRows(charges: EngineCharge[]): HomeChargeRow[] {
     amountCents: c.amountCents,
     dueDate: c.dueDate ? new Date(c.dueDate) : null,
     paidCents: null,
+    paidOn: null,
   }));
 }
 
@@ -62,7 +63,15 @@ function fakeDb(open: boolean, { hasDraft = false, hasBill = false, messaged = [
         hasBill ? { currentChargesCents: 41230, dueDate: new Date("2026-11-16") } : null,
     },
     billDraft: { findUnique: async () => (hasDraft ? { id: "draft-1" } : null) },
-    messageEvent: { findMany: async () => messaged.map((personId) => ({ personId })) },
+    messageEvent: {
+      findMany: async () =>
+        messaged.map((personId) => ({
+          personId,
+          kind: "MONTHLY",
+          chargeId: null,
+          openedAt: new Date("2026-11-02T10:00:00+08:00"),
+        })),
+    },
   };
   return { ...tx, $transaction: async (fn: (t: typeof tx) => Promise<unknown>) => fn(tx) } as unknown as HomeDb;
 }
@@ -101,6 +110,16 @@ describe("getHome", () => {
     const home = await getHome(fakeDb(true, { hasBill: true, messaged: [PERSON_IDS.priya] }));
     expect(home.status).toBe("unsent");
     expect(home.hero.compactStatus).toBe("1 message to send");
+  });
+
+  it("returns the collecting status once every message is out, and it parses", async () => {
+    vi.stubEnv("DEV_NOW", "2026-11-03T09:00:00+08:00");
+    const home = await getHome(fakeDb(true, { hasBill: true, messaged: [PERSON_IDS.priya, PERSON_IDS.jordan] }));
+    expect(homeResponseSchema.safeParse(home).success).toBe(true);
+    expect(home.status).toBe("collecting");
+    expect(home.hero.dateLine).toBe("3 Nov · Collecting");
+    expect(home.primaryAction?.label).toBe("Record payment");
+    expect(home.rows.find((r) => r.title === "Rent · Jordan")?.badge.label).toBe("Overdue 2 days");
   });
 
   it("answers 409 when no month can be open because there is no household yet", async () => {

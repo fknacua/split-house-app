@@ -1,6 +1,7 @@
 import { Text, View } from 'react-native';
 
 import type { HomeHeroProps } from '../types';
+import { HomeCollectingBody } from './home-collecting-body';
 import { HomeNotice } from './home-notice';
 import { HomeSteps } from './home-steps';
 import { HomeTile } from './home-tile';
@@ -20,7 +21,9 @@ export function HomeHero({ hero }: HomeHeroProps) {
         </Text>
         <HomeSteps steps={hero.steps} />
       </View>
-      {body.kind === 'waiting' || body.kind === 'unsent' ? (
+      {body.kind === 'collecting' ? (
+        <HomeCollectingBody body={body} />
+      ) : (
         <>
           <View className="gap-1.5">
             <Text
@@ -39,7 +42,7 @@ export function HomeHero({ hero }: HomeHeroProps) {
             ))}
           </View>
         </>
-      ) : null}
+      )}
       {hero.notice ? <HomeNotice notice={hero.notice} /> : null}
     </View>
   );

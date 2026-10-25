@@ -25,6 +25,16 @@ export function messageRecipientIds(charges: MessageCharge[], ownerIds: Set<stri
 }
 
 /**
+ * Who has had their monthly message opened.
+ *
+ * @param messages - The month's message events, nudges included.
+ * @returns The ids of the people with a MONTHLY event, each once.
+ */
+export function monthlyMessagedIds(messages: { personId: string; kind: string }[]): string[] {
+  return [...new Set(messages.filter((m) => m.kind === "MONTHLY").map((m) => m.personId))];
+}
+
+/**
  * Who still has no monthly message.
  *
  * @param recipientIds - The people to message, from `messageRecipientIds`.

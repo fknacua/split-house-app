@@ -17,9 +17,9 @@ import {
   type HomeStatus,
   type HouseholdConfig,
 } from "@splithouse/shared";
-import type { ChargeCategory } from "@/generated/prisma/enums";
-import { billDueBadge, HOME_BADGES } from "./badges";
-import { messageRecipientIds, unsentRecipientIds } from "./message-recipients";
+import type { ChargeCategory, MessageKind } from "@/generated/prisma/enums";
+import { billDueBadge, chargeDueBadge, HOME_BADGES } from "./badges";
+import { messageRecipientIds, monthlyMessagedIds, unsentRecipientIds } from "./message-recipients";
 
 /** A person, as much of them as Home needs. */
 export interface HomePerson {
@@ -38,6 +38,16 @@ export interface HomeChargeRow {
   amountCents: number;
   dueDate: Date | null;
   paidCents: number | null;
+  paidOn: Date | null;
+}
+
+/** A WhatsApp chat opened for a person, as much of it as Home needs. */
+export interface HomeMessage {
+  personId: string;
+  kind: MessageKind;
+  /** The charge a nudge is about. Null for a monthly message. */
+  chargeId: string | null;
+  openedAt: Date;
 }
 
 /** The saved bill, as much of it as Home needs. */
@@ -58,8 +68,14 @@ export interface HomeInput {
   charges: HomeChargeRow[];
   /** The saved bill. Null until one is saved. */
   bill: HomeBill | null;
-  /** The people who have a MONTHLY message event for the month. */
-  messagedPersonIds: string[];
+  /** The month's message events, monthly messages and nudges. */
+  messages: HomeMessage[];
+}
+
+/** When each chat was opened, as date keys: a payer's monthly message, and the latest nudge per charge. */
+interface MessageDates {
+  sentOn: Map<string, string>;
+  nudgedOn: Map<string, string>;
 }
 
 // Rows due on the same day go: rent, recurring, utilities, then the bill.
@@ -71,23 +87,64 @@ interface RankedRow {
   rank: number;
 }
 
-function chargeBadge(
-  charge: HomeChargeRow,
-  dueDate: string | null,
-  today: string,
-  messageUnsent: boolean,
-): BadgeContent {
-  if (charge.paidCents !== null)
-    return HOME_BADGES.paid;
-  if (messageUnsent)
-    return HOME_BADGES.notSent;
-  if (dueDate !== null && daysUntil(dueDate, today) === 0)
-    return HOME_BADGES.dueToday;
-
-  return HOME_BADGES.upcoming;
+/** The date keys of when each chat was opened: the earliest monthly message per person, the latest nudge per charge. */
+function messageDates(messages: HomeMessage[]): MessageDates {
+  const sentOn = new Map<string, string>();
+  const nudgedOn = new Map<string, string>();
+  const byTime = [...messages].sort((a, b) => a.openedAt.getTime() - b.openedAt.getTime());
+  for (const m of byTime) {
+    const day = dateKeyOf(m.openedAt);
+    if (m.kind === "MONTHLY" && !sentOn.has(m.personId)) sentOn.set(m.personId, day);
+    if (m.kind === "NUDGE" && m.chargeId) nudgedOn.set(m.chargeId, day);
+  }
+  return { sentOn, nudgedOn };
 }
 
-/** The detail line: only a route via someone else is worth saying, paying direct is the default. */
+/**
+ * The chip for a charge, first match wins: Paid, Not sent, Overdue N days, Due today, Due tomorrow,
+ * Due in N days (up to three), Sent unpaid, Upcoming.
+ */
+function chargeBadge(flags: {
+  paid: boolean;
+  messageUnsent: boolean;
+  /** Whole days to the due date, negative once past. Null when no due day is known. */
+  days: number | null;
+  /** The payer's monthly message has been opened. */
+  sent: boolean;
+}): BadgeContent {
+  if (flags.paid) return HOME_BADGES.paid;
+  if (flags.messageUnsent) return HOME_BADGES.notSent;
+  const due = flags.days === null ? null : chargeDueBadge(flags.days);
+  if (due) return due;
+  return flags.sent ? HOME_BADGES.sentUnpaid : HOME_BADGES.upcoming;
+}
+
+/**
+ * The detail line: a route via someone else, then where the charge stands (`Paid 3 Nov`,
+ * `Nudged 2 Nov` or `Sent 2 Nov`). Paying direct is the default, so it is not said.
+ */
+function chargeDetail(
+  charge: HomeChargeRow,
+  names: Map<string, string>,
+  dates: MessageDates,
+  payerId: string,
+): string | null {
+  const parts = [routeDetail(charge.payViaPersonId, names), chargeState(charge, dates, payerId)].filter(
+    (p) => p !== null,
+  );
+  return parts.length > 0 ? parts.join(" · ") : null;
+}
+
+/** Where the charge stands: paid, else nudged, else sent. Null before the monthly message. */
+function chargeState(charge: HomeChargeRow, dates: MessageDates, payerId: string): string | null {
+  if (charge.paidCents !== null) return charge.paidOn ? `Paid ${formatDateShort(dateKeyOf(charge.paidOn))}` : null;
+  const nudged = dates.nudgedOn.get(charge.id);
+  if (nudged) return `Nudged ${formatDateShort(nudged)}`;
+  const sent = dates.sentOn.get(payerId);
+  return sent ? `Sent ${formatDateShort(sent)}` : null;
+}
+
+/** The route part of the detail line: only a route via someone else is worth saying. */
 function routeDetail(viaPersonId: string | null | undefined, names: Map<string, string>): string | null {
   return viaPersonId ? `Pays via ${names.get(viaPersonId)}` : null;
 }
@@ -108,13 +165,15 @@ function chargeDueDate(input: HomeInput, charge: HomeChargeRow): string | null {
  * One row per real charge. A utilities charge whose payer has no monthly message yet is `Not sent`
  * and has no Mark paid, since the message comes before any payment. When the person pays for
  * themselves the row starts open with a Review message link; a charge paid via someone else has
- * no message of its own, so it stays closed with the usual View details link.
+ * no message of its own, so it stays closed with the usual View details link. An unpaid charge
+ * past its due date is shaded, starts open and offers Nudge (or Nudge again) beside Mark paid.
  */
 function chargeRow(
   input: HomeInput,
   charge: HomeChargeRow,
   names: Map<string, string>,
   unsentIds: Set<string>,
+  dates: MessageDates,
 ): RankedRow {
   const dueDate = chargeDueDate(input, charge);
   const payerId = charge.payViaPersonId ?? charge.personId;
@@ -123,13 +182,25 @@ function chargeRow(
   // Someone paid via another person rides in that person's message, so only the payer's own rows
   // are reviewed. A via row stays Not sent until the payer's message goes out, but has no message.
   const ownMessage = messageUnsent && charge.payViaPersonId === null;
-  const badge = chargeBadge(charge, dueDate, input.today, messageUnsent);
+  const badge = chargeBadge({
+    paid: !unpaid,
+    messageUnsent,
+    days: dueDate === null ? null : daysUntil(dueDate, input.today),
+    sent: dates.sentOn.has(payerId),
+  });
   const dueToday = unpaid && badge === HOME_BADGES.dueToday;
+  const overdue = unpaid && badge.tone === "danger";
   const markPaid: HomeAction = {
     label: "Mark paid",
     tone: "outline",
     icon: "check",
     target: { kind: "mark-paid", chargeId: charge.id },
+  };
+  const nudge: HomeAction = {
+    label: dates.nudgedOn.has(charge.id) ? "Nudge again" : "Nudge",
+    tone: "warning",
+    icon: "bell",
+    target: { kind: "recipient", month: input.month, personId: payerId },
   };
   return {
     rank: CATEGORY_RANK[charge.category] ?? 0,
@@ -138,12 +209,12 @@ function chargeRow(
       dueDate,
       title: `${charge.label} · ${names.get(charge.personId)}`,
       amount: formatCents(charge.amountCents),
-      detail: routeDetail(charge.payViaPersonId, names),
+      detail: chargeDetail(charge, names, dates, payerId),
       badge,
-      tint: dueToday ? "info" : "none",
-      expanded: dueToday || ownMessage,
+      tint: dueToday ? "info" : overdue ? "warning" : "none",
+      expanded: dueToday || overdue || ownMessage,
       note: null,
-      actions: unpaid && !messageUnsent ? [markPaid] : [],
+      actions: unpaid && !messageUnsent ? (overdue ? [nudge, markPaid] : [markPaid]) : [],
       link: {
         label: ownMessage ? "Review message" : "View details",
         target: { kind: "recipient", month: input.month, personId: payerId },
@@ -209,7 +280,31 @@ function billDueDate(input: HomeInput): string | null {
     : dueDateKey(input.month, input.config.categories.utilities.billDueDay);
 }
 
-function billRow(input: HomeInput): RankedRow {
+/** How much of the bill the household has covered: Francis's own share plus what the others have paid. */
+interface BillCoverage {
+  coveredCents: number;
+  totalCents: number;
+  /** Utilities charges of people other than the owner, and how many of them are paid. */
+  othersTotal: number;
+  othersPaid: number;
+}
+
+function billCoverage(input: HomeInput, bill: HomeBill, ownerIds: Set<string>): BillCoverage {
+  const utilities = input.charges.filter((c) => c.category === "UTILITIES");
+  const own = utilities.filter((c) => ownerIds.has(c.personId));
+  const others = utilities.filter((c) => !ownerIds.has(c.personId));
+  // A payment over the amount covers no more than the charge.
+  const paid = others.reduce((sum, c) => sum + Math.min(c.paidCents ?? 0, c.amountCents), 0);
+  const coveredCents = own.reduce((sum, c) => sum + c.amountCents, 0) + paid;
+  return {
+    coveredCents: Math.min(coveredCents, bill.currentChargesCents),
+    totalCents: bill.currentChargesCents,
+    othersTotal: others.length,
+    othersPaid: others.filter((c) => c.paidCents !== null).length,
+  };
+}
+
+function billRow(input: HomeInput, ownerIds: Set<string>): RankedRow {
   const dueDate = billDueDate(input);
   if (!input.bill) {
     return {
@@ -229,6 +324,8 @@ function billRow(input: HomeInput): RankedRow {
       },
     };
   }
+  const collecting = input.status === "collecting";
+  const coverage = billCoverage(input, input.bill, ownerIds);
   return {
     rank: BILL_RANK,
     row: {
@@ -239,20 +336,39 @@ function billRow(input: HomeInput): RankedRow {
       detail: "You pay utilities",
       badge: dueDate === null ? HOME_BADGES.upcoming : billDueBadge(daysUntil(dueDate, input.today)),
       tint: "none",
-      expanded: false,
-      note: input.status === "unsent" ? "Nothing collected yet. Shares go out with the messages." : null,
-      actions: [],
+      // While collecting, the bill starts open so Mark bill paid is one tap away.
+      expanded: collecting,
+      note:
+        input.status === "unsent"
+          ? "Nothing collected yet. Shares go out with the messages."
+          : collecting
+            ? `${formatCents(coverage.coveredCents)} of ${formatCents(coverage.totalCents)} covered so far.`
+            : null,
+      actions: collecting
+        ? [
+            {
+              label: "Mark bill paid",
+              tone: "outline",
+              icon: "check",
+              target: { kind: "mark-bill-paid", month: input.month },
+            },
+          ]
+        : [],
       link: { label: "View bill", target: { kind: "bill-view", month: input.month } },
     },
   };
 }
 
-/** Non-owner charges other than utilities, minus what has been paid. Never below zero. */
-function frontingCents(charges: HomeChargeRow[], ownerIds: Set<string>): number {
+/**
+ * Non-owner charges other than utilities: what is still fronted (owed minus paid, never below
+ * zero) and what has come back so far.
+ */
+function frontingTotals(charges: HomeChargeRow[], ownerIds: Set<string>): { frontingCents: number; backCents: number } {
   const others = charges.filter((c) => !ownerIds.has(c.personId) && c.category !== "UTILITIES");
   const owed = others.reduce((sum, c) => sum + c.amountCents, 0);
   const paid = others.reduce((sum, c) => sum + (c.paidCents ?? 0), 0);
-  return Math.max(0, owed - paid);
+  const frontingCents = Math.max(0, owed - paid);
+  return { frontingCents, backCents: owed - frontingCents };
 }
 
 /** The `unsent` hero text, counting chats rather than rows: Sam's utilities ride in Priya's message. */
@@ -262,8 +378,46 @@ function unsentText(unsentCount: number): string {
     : `${unsentCount} messages are ready. Open each one to review it, then send it on WhatsApp yourself.`;
 }
 
-function buildHero(input: HomeInput, fronting: number, unsentCount: number): HomeHero {
+function buildHero(
+  input: HomeInput,
+  ownerIds: Set<string>,
+  { frontingCents: fronting, backCents }: ReturnType<typeof frontingTotals>,
+  unsentCount: number,
+): HomeHero {
   switch (input.status) {
+    case "collecting": {
+      if (!input.bill) throw new Error("The collecting status needs a saved bill");
+      const coverage = billCoverage(input, input.bill, ownerIds);
+      const dueDate = billDueDate(input);
+      const share =
+        coverage.othersPaid === 0
+          ? "Your share only so far"
+          : `Your share and ${coverage.othersPaid} of ${coverage.othersTotal} others paid`;
+      return {
+        dateLine: `${formatDateShort(input.today)} · Collecting`,
+        steps: [
+          { label: "Upload bill", state: "done" },
+          { label: "Send messages", state: "done" },
+          { label: "Settle up", state: "current" },
+        ],
+        compactStatus: `Collecting · ${formatCents(fronting)} fronted`,
+        body: {
+          kind: "collecting",
+          fronting: {
+            label: "You’re fronting",
+            value: formatCents(fronting),
+            note: `Rent, aircon and other charges paid for others · ${formatCents(backCents)} back so far`,
+          },
+          coverage: {
+            label: "Utilities bill covered",
+            text: `${formatCents(coverage.coveredCents)} of ${formatCents(coverage.totalCents)}`,
+            percent: coverage.totalCents === 0 ? 0 : Math.round((coverage.coveredCents / coverage.totalCents) * 100),
+            note: dueDate === null ? share : `${share} · due ${formatDateShort(dueDate)}`,
+          },
+        },
+        notice: null,
+      };
+    }
     case "unsent": {
       if (!input.bill) throw new Error("The unsent status needs a saved bill");
       const dueDate = billDueDate(input);
@@ -331,6 +485,8 @@ function buildPrimaryAction(input: HomeInput): HomePrimaryAction {
     case "unsent":
       // Each message is reviewed from its row, so there is no footer button.
       return null;
+    case "collecting":
+      return { label: "Record payment", icon: "banknote", target: { kind: "record-payment", month: input.month } };
   }
 }
 
@@ -344,16 +500,17 @@ function buildPrimaryAction(input: HomeInput): HomePrimaryAction {
 export function buildHome(input: HomeInput): HomeResponse {
   const names = new Map(input.people.map((p) => [p.id, p.name]));
   const ownerIds = new Set(input.people.filter((p) => p.isOwner).map((p) => p.id));
-  const unsentIds = unsentRecipientIds(messageRecipientIds(input.charges, ownerIds), input.messagedPersonIds);
+  const unsentIds = unsentRecipientIds(messageRecipientIds(input.charges, ownerIds), monthlyMessagedIds(input.messages));
   const unsentSet = new Set(unsentIds);
+  const dates = messageDates(input.messages);
 
   // The owner's own charges are not payments to anyone, so they get no row.
   const ranked: RankedRow[] = [
     ...input.charges
       .filter((c) => !ownerIds.has(c.personId))
-      .map((c) => chargeRow(input, c, names, unsentSet)),
+      .map((c) => chargeRow(input, c, names, unsentSet, dates)),
     ...(input.status === "bill_missing" || input.status === "draft" ? projectedUtilitiesRows(input, names) : []),
-    billRow(input),
+    billRow(input, ownerIds),
   ];
   ranked.sort(
     (a, b) =>
@@ -366,7 +523,7 @@ export function buildHome(input: HomeInput): HomeResponse {
     month: input.month,
     monthName: formatMonthLabel(input.month),
     status: input.status,
-    hero: buildHero(input, frontingCents(input.charges, ownerIds), unsentIds.length),
+    hero: buildHero(input, ownerIds, frontingTotals(input.charges, ownerIds), unsentIds.length),
     rows: ranked.map((r) => r.row),
     primaryAction: buildPrimaryAction(input),
   };

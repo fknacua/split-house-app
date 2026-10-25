@@ -13,6 +13,12 @@ export interface HomeHeroProps {
   hero: HomeHero;
 }
 
+/** Props for {@link HomeCollectingBody}. */
+export interface HomeCollectingBodyProps {
+  /** The fronting figure and the bill coverage. */
+  body: Extract<HomeHero['body'], { kind: 'collecting' }>;
+}
+
 /** Props for {@link HomeSteps}. */
 export interface HomeStepsProps {
   /** The three month steps. */
