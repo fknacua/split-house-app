@@ -1,7 +1,8 @@
 import { parseHouseholdConfig, todayKey, type HomeResponse } from "@splithouse/shared";
 import { ApiError } from "@/lib/api";
-import { buildHome, type HomeChargeRow, type HomePerson } from "@/lib/home/build-home";
+import { buildHome, type HomeBill, type HomeChargeRow, type HomePerson } from "@/lib/home/build-home";
 import { deriveMonthStatus } from "@/lib/home/derive-month-status";
+import { messageRecipientIds, unsentRecipientIds } from "@/lib/home/message-recipients";
 import { currentMonth } from "@/lib/month";
 import { openMonthIfNeeded, type MonthOpenDb } from "@/lib/month-open";
 import { now } from "@/lib/now";
@@ -16,6 +17,9 @@ const CHARGE_SELECT = {
   dueDate: true,
   paidCents: true,
 } as const;
+
+// The bill's PDF lives in `BillFile`, which is never read here.
+const BILL_SELECT = { currentChargesCents: true, dueDate: true } as const;
 
 /** The newest opened month with the household version it is pinned to. */
 interface OpenedMonthRow {
@@ -38,10 +42,16 @@ export type HomeDb = MonthOpenDb & {
     findMany(args: { where: { month: string }; select: typeof CHARGE_SELECT }): Promise<HomeChargeRow[]>;
   };
   bill: {
-    findUnique(args: { where: { month: string }; select: { id: true } }): Promise<{ id: string } | null>;
+    findUnique(args: { where: { month: string }; select: typeof BILL_SELECT }): Promise<HomeBill | null>;
   };
   billDraft: {
     findUnique(args: { where: { month: string }; select: { id: true } }): Promise<{ id: string } | null>;
+  };
+  messageEvent: {
+    findMany(args: {
+      where: { month: string; kind: "MONTHLY" };
+      select: { personId: true };
+    }): Promise<{ personId: string }[]>;
   };
 };
 
@@ -62,19 +72,26 @@ export async function getHome(db: HomeDb): Promise<HomeResponse> {
   if (!opened) throw new ApiError(409, "no_household", "Set up the household first.");
 
   // The draft is looked up by id only: its PDF bytes stay in the database.
-  const [people, charges, bill, draft] = await Promise.all([
+  const [people, charges, bill, draft, messages] = await Promise.all([
     db.person.findMany({ select: { id: true, name: true, isOwner: true } }),
     db.charge.findMany({ where: { month: opened.month }, select: CHARGE_SELECT }),
-    db.bill.findUnique({ where: { month: opened.month }, select: { id: true } }),
+    db.bill.findUnique({ where: { month: opened.month }, select: BILL_SELECT }),
     db.billDraft.findUnique({ where: { month: opened.month }, select: { id: true } }),
+    db.messageEvent.findMany({ where: { month: opened.month, kind: "MONTHLY" }, select: { personId: true } }),
   ]);
+
+  const ownerIds = new Set(people.filter((p) => p.isOwner).map((p) => p.id));
+  const messagedPersonIds = messages.map((m) => m.personId);
+  const unsentMessages = unsentRecipientIds(messageRecipientIds(charges, ownerIds), messagedPersonIds).length;
 
   return buildHome({
     month: opened.month,
     today: todayKey(now()),
-    status: deriveMonthStatus({ hasBill: bill !== null, hasDraft: draft !== null }),
+    status: deriveMonthStatus({ hasBill: bill !== null, hasDraft: draft !== null, unsentMessages }),
     config: parseHouseholdConfig(opened.householdVersion.schemaVersion, opened.householdVersion.config),
     people,
     charges,
+    bill,
+    messagedPersonIds,
   });
 }

@@ -20,7 +20,7 @@ export function HomeHero({ hero }: HomeHeroProps) {
         </Text>
         <HomeSteps steps={hero.steps} />
       </View>
-      {body.kind === 'waiting' ? (
+      {body.kind === 'waiting' || body.kind === 'unsent' ? (
         <>
           <View className="gap-1.5">
             <Text

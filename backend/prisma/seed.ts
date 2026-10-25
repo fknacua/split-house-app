@@ -1,6 +1,7 @@
 import "dotenv/config";
 import { parseArgs } from "node:util";
 import { prisma } from "@/lib/prisma";
+import { openMonthIfNeeded } from "@/lib/month-open";
 import { HOUSEHOLD_SCHEMA_VERSION } from "@splithouse/shared";
 import { NOV_2026_CONFIG, PERSON_IDS, VERSION_A_CONFIG } from "@/lib/fixtures/household";
 import { buildMonthCharges, buildUtilitiesCharges, type EngineCharge } from "@/lib/split/engine";
@@ -24,6 +25,8 @@ const SCENARIOS = {
   upload: { devNow: "2026-11-01T09:00:00+08:00" },
   // November is not created either; it has an unsaved bill draft waiting.
   draft: { devNow: "2026-11-01T09:00:00+08:00" },
+  // November is open with its bill saved and utilities charges built, and no message sent.
+  unsent: { devNow: "2026-11-01T09:00:00+08:00" },
 } as const;
 
 type ScenarioName = keyof typeof SCENARIOS;
@@ -314,6 +317,36 @@ async function main() {
         parseOk: true,
       },
     });
+  }
+
+  if (scenario === "unsent") {
+    // Opened through the same function Home uses, so November has version B's rent and recurring
+    // charges. The bill is synthetic, with the Nov 2026 fixture total; due 16 Nov.
+    const november = await openMonthIfNeeded(prisma, "2026-11");
+    if (!november) throw new Error("No household version covers 2026-11");
+    const bill = await prisma.bill.create({
+      data: {
+        month: "2026-11",
+        provider: "SP Group",
+        currentChargesCents: 41230,
+        billingPeriodStart: new Date("2026-10-01"),
+        billingPeriodEnd: new Date("2026-10-31"),
+        dueDate: new Date("2026-11-16"),
+        lines: [{ label: "Current Charges", cents: 41230 }],
+        parseStatus: "PARSED",
+        file: {
+          create: {
+            filename: "2026-11-sample-bill.pdf",
+            mimeType: "application/pdf",
+            sizeBytes: PLACEHOLDER_PDF.byteLength,
+            bytes: PLACEHOLDER_PDF,
+          },
+        },
+      },
+    });
+    for (const c of buildUtilitiesCharges(NOV_2026_CONFIG, { month: "2026-11", currentChargesCents: 41230 })) {
+      await insertCharge({ ...c, month: "2026-11", householdVersionId: november.householdVersionId, billId: bill.id });
+    }
   }
 
   console.log(`Seeded Aug-Oct 2026 (history), scenario "${scenario}".`);

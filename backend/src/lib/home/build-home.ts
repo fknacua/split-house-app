@@ -7,6 +7,7 @@ import {
   formatMonthLabel,
   formatMonthName,
   type BadgeContent,
+  type ChargeType,
   type HomeAction,
   type HomeHero,
   type HomeNotice,
@@ -17,7 +18,8 @@ import {
   type HouseholdConfig,
 } from "@splithouse/shared";
 import type { ChargeCategory } from "@/generated/prisma/enums";
-import { HOME_BADGES } from "./badges";
+import { billDueBadge, HOME_BADGES } from "./badges";
+import { messageRecipientIds, unsentRecipientIds } from "./message-recipients";
 
 /** A person, as much of them as Home needs. */
 export interface HomePerson {
@@ -38,6 +40,12 @@ export interface HomeChargeRow {
   paidCents: number | null;
 }
 
+/** The saved bill, as much of it as Home needs. */
+export interface HomeBill {
+  currentChargesCents: number;
+  dueDate: Date | null;
+}
+
 /** Everything `buildHome` works from. */
 export interface HomeInput {
   month: string;
@@ -48,6 +56,10 @@ export interface HomeInput {
   config: HouseholdConfig;
   people: HomePerson[];
   charges: HomeChargeRow[];
+  /** The saved bill. Null until one is saved. */
+  bill: HomeBill | null;
+  /** The people who have a MONTHLY message event for the month. */
+  messagedPersonIds: string[];
 }
 
 // Rows due on the same day go: rent, recurring, utilities, then the bill.
@@ -59,10 +71,17 @@ interface RankedRow {
   rank: number;
 }
 
-function chargeBadge(charge: HomeChargeRow, dueDate: string | null, today: string): BadgeContent {
-  if (charge.paidCents !== null) 
+function chargeBadge(
+  charge: HomeChargeRow,
+  dueDate: string | null,
+  today: string,
+  messageUnsent: boolean,
+): BadgeContent {
+  if (charge.paidCents !== null)
     return HOME_BADGES.paid;
-  if (dueDate !== null && daysUntil(dueDate, today) === 0) 
+  if (messageUnsent)
+    return HOME_BADGES.notSent;
+  if (dueDate !== null && daysUntil(dueDate, today) === 0)
     return HOME_BADGES.dueToday;
 
   return HOME_BADGES.upcoming;
@@ -73,12 +92,39 @@ function routeDetail(viaPersonId: string | null | undefined, names: Map<string, 
   return viaPersonId ? `Pays via ${names.get(viaPersonId)}` : null;
 }
 
-/** One row per real charge. */
-function chargeRow(input: HomeInput, charge: HomeChargeRow, names: Map<string, string>): RankedRow {
-  const dueDate = charge.dueDate ? dateKeyOf(charge.dueDate) : null;
-  const badge = chargeBadge(charge, dueDate, input.today);
+/**
+ * The date a charge's row shows. A charge stored with no due date that is paid via someone
+ * (Sam's utilities) uses that person's due day for the same charge type, as the projected
+ * row did before the bill was saved. The stored charge is not changed.
+ */
+function chargeDueDate(input: HomeInput, charge: HomeChargeRow): string | null {
+  if (charge.dueDate) return dateKeyOf(charge.dueDate);
+  if (!charge.payViaPersonId) return null;
+  const via = input.config.people.find((p) => p.personId === charge.payViaPersonId);
+  return dueDateKey(input.month, via?.dueDays[charge.category as ChargeType]);
+}
+
+/**
+ * One row per real charge. A utilities charge whose payer has no monthly message yet is `Not sent`
+ * and has no Mark paid, since the message comes before any payment. When the person pays for
+ * themselves the row starts open with a Review message link; a charge paid via someone else has
+ * no message of its own, so it stays closed with the usual View details link.
+ */
+function chargeRow(
+  input: HomeInput,
+  charge: HomeChargeRow,
+  names: Map<string, string>,
+  unsentIds: Set<string>,
+): RankedRow {
+  const dueDate = chargeDueDate(input, charge);
+  const payerId = charge.payViaPersonId ?? charge.personId;
   const unpaid = charge.paidCents === null;
-  const needsAttention = unpaid && badge === HOME_BADGES.dueToday;
+  const messageUnsent = unpaid && charge.category === "UTILITIES" && unsentIds.has(payerId);
+  // Someone paid via another person rides in that person's message, so only the payer's own rows
+  // are reviewed. A via row stays Not sent until the payer's message goes out, but has no message.
+  const ownMessage = messageUnsent && charge.payViaPersonId === null;
+  const badge = chargeBadge(charge, dueDate, input.today, messageUnsent);
+  const dueToday = unpaid && badge === HOME_BADGES.dueToday;
   const markPaid: HomeAction = {
     label: "Mark paid",
     tone: "outline",
@@ -94,17 +140,13 @@ function chargeRow(input: HomeInput, charge: HomeChargeRow, names: Map<string, s
       amount: formatCents(charge.amountCents),
       detail: routeDetail(charge.payViaPersonId, names),
       badge,
-      tint: needsAttention ? "info" : "none",
-      expanded: needsAttention,
+      tint: dueToday ? "info" : "none",
+      expanded: dueToday || ownMessage,
       note: null,
-      actions: unpaid ? [markPaid] : [],
+      actions: unpaid && !messageUnsent ? [markPaid] : [],
       link: {
-        label: "View details",
-        target: {
-          kind: "recipient",
-          month: input.month,
-          personId: charge.payViaPersonId ?? charge.personId,
-        },
+        label: ownMessage ? "Review message" : "View details",
+        target: { kind: "recipient", month: input.month, personId: payerId },
       },
     },
   };
@@ -160,21 +202,47 @@ function draftNotice(month: string): HomeNotice {
   };
 }
 
+/** The bill's due date: the saved bill's own date supersedes the day in the config. */
+function billDueDate(input: HomeInput): string | null {
+  return input.bill?.dueDate
+    ? dateKeyOf(input.bill.dueDate)
+    : dueDateKey(input.month, input.config.categories.utilities.billDueDay);
+}
+
 function billRow(input: HomeInput): RankedRow {
+  const dueDate = billDueDate(input);
+  if (!input.bill) {
+    return {
+      rank: BILL_RANK,
+      row: {
+        id: "bill",
+        dueDate,
+        title: "Utilities bill",
+        amount: "—",
+        detail: "You pay utilities",
+        badge: HOME_BADGES.billNotUploaded,
+        tint: "none",
+        expanded: false,
+        note: null,
+        actions: [],
+        link: { label: "Upload bill", target: { kind: "bill-upload", month: input.month } },
+      },
+    };
+  }
   return {
     rank: BILL_RANK,
     row: {
       id: "bill",
-      dueDate: dueDateKey(input.month, input.config.categories.utilities.billDueDay),
+      dueDate,
       title: "Utilities bill",
-      amount: "—",
+      amount: formatCents(input.bill.currentChargesCents),
       detail: "You pay utilities",
-      badge: HOME_BADGES.billNotUploaded,
+      badge: dueDate === null ? HOME_BADGES.upcoming : billDueBadge(daysUntil(dueDate, input.today)),
       tint: "none",
       expanded: false,
-      note: null,
+      note: input.status === "unsent" ? "Nothing collected yet. Shares go out with the messages." : null,
       actions: [],
-      link: { label: "Upload bill", target: { kind: "bill-upload", month: input.month } },
+      link: { label: "View bill", target: { kind: "bill-view", month: input.month } },
     },
   };
 }
@@ -187,8 +255,41 @@ function frontingCents(charges: HomeChargeRow[], ownerIds: Set<string>): number 
   return Math.max(0, owed - paid);
 }
 
-function buildHero(input: HomeInput, fronting: number): HomeHero {
+/** The `unsent` hero text, counting chats rather than rows: Sam's utilities ride in Priya's message. */
+function unsentText(unsentCount: number): string {
+  return unsentCount === 1
+    ? "1 message is ready. Open it to review it, then send it on WhatsApp yourself."
+    : `${unsentCount} messages are ready. Open each one to review it, then send it on WhatsApp yourself.`;
+}
+
+function buildHero(input: HomeInput, fronting: number, unsentCount: number): HomeHero {
   switch (input.status) {
+    case "unsent": {
+      if (!input.bill) throw new Error("The unsent status needs a saved bill");
+      const dueDate = billDueDate(input);
+      return {
+        dateLine: `${formatDateShort(input.today)} · Step 2 of 3`,
+        steps: [
+          { label: "Upload bill", state: "done" },
+          { label: "Send messages", state: "current" },
+          { label: "Settle up", state: "todo" },
+        ],
+        compactStatus: unsentCount === 1 ? "1 message to send" : `${unsentCount} messages to send`,
+        body: {
+          kind: "unsent",
+          title: "Bill’s in. Send the breakdowns",
+          text: unsentText(unsentCount),
+          tiles: [
+            { label: "You’re fronting", value: formatCents(fronting) },
+            {
+              label: dueDate === null ? "Utilities bill" : `Utilities bill · due ${formatDateShort(dueDate)}`,
+              value: formatCents(input.bill.currentChargesCents),
+            },
+          ],
+        },
+        notice: null,
+      };
+    }
     case "bill_missing":
     case "draft":
       return {
@@ -227,6 +328,9 @@ function buildPrimaryAction(input: HomeInput): HomePrimaryAction {
         icon: "file-pen",
         target: { kind: "bill-draft-continue", month: input.month },
       };
+    case "unsent":
+      // Each message is reviewed from its row, so there is no footer button.
+      return null;
   }
 }
 
@@ -240,10 +344,14 @@ function buildPrimaryAction(input: HomeInput): HomePrimaryAction {
 export function buildHome(input: HomeInput): HomeResponse {
   const names = new Map(input.people.map((p) => [p.id, p.name]));
   const ownerIds = new Set(input.people.filter((p) => p.isOwner).map((p) => p.id));
+  const unsentIds = unsentRecipientIds(messageRecipientIds(input.charges, ownerIds), input.messagedPersonIds);
+  const unsentSet = new Set(unsentIds);
 
   // The owner's own charges are not payments to anyone, so they get no row.
   const ranked: RankedRow[] = [
-    ...input.charges.filter((c) => !ownerIds.has(c.personId)).map((c) => chargeRow(input, c, names)),
+    ...input.charges
+      .filter((c) => !ownerIds.has(c.personId))
+      .map((c) => chargeRow(input, c, names, unsentSet)),
     ...(input.status === "bill_missing" || input.status === "draft" ? projectedUtilitiesRows(input, names) : []),
     billRow(input),
   ];
@@ -258,7 +366,7 @@ export function buildHome(input: HomeInput): HomeResponse {
     month: input.month,
     monthName: formatMonthLabel(input.month),
     status: input.status,
-    hero: buildHero(input, frontingCents(input.charges, ownerIds)),
+    hero: buildHero(input, frontingCents(input.charges, ownerIds), unsentIds.length),
     rows: ranked.map((r) => r.row),
     primaryAction: buildPrimaryAction(input),
   };
