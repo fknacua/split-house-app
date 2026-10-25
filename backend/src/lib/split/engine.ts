@@ -1,4 +1,4 @@
-import type { ChargeType, HouseholdConfig, PersonConfig } from "@splithouse/shared";
+import { dueDateKey, type ChargeType, type HouseholdConfig, type PersonConfig } from "@splithouse/shared";
 
 // Pure split engine (see docs/SplitHouse — Data Model.md "Split engine" and
 // "Rounding rule"). No Prisma, no Date.now: every input is passed in.
@@ -124,14 +124,6 @@ function routeFor(person: PersonConfig, type: ChargeType): string | null {
   return route?.kind === "VIA" ? route.viaPersonId : null;
 }
 
-function dueDateFor(month: string, dueDay: number | undefined): string | null {
-  if (!dueDay) return null;
-  const [year, monthNum] = month.split("-").map(Number);
-  const daysInMonth = new Date(Date.UTC(year, monthNum, 0)).getUTCDate();
-  const day = Math.min(dueDay, daysInMonth);
-  return `${month}-${String(day).padStart(2, "0")}`;
-}
-
 function personOrThrow(config: HouseholdConfig, personId: string): PersonConfig {
   const person = config.people.find((p) => p.personId === personId);
   if (!person) throw new SplitEngineError(`Unknown person ${personId}`);
@@ -155,7 +147,7 @@ export function buildMonthCharges(config: HouseholdConfig, month: string): Engin
         label: "Rent",
         amountCents: person.rentCents,
         payViaPersonId: routeFor(person, "RENT"),
-        dueDate: dueDateFor(month, person.dueDays.RENT),
+        dueDate: dueDateKey(month, person.dueDays.RENT),
       });
     }
   }
@@ -174,7 +166,7 @@ export function buildMonthCharges(config: HouseholdConfig, month: string): Engin
       label: "Rent",
       amountCents,
       payViaPersonId: routeFor(person, "RENT"),
-      dueDate: dueDateFor(month, person.dueDays.RENT),
+      dueDate: dueDateKey(month, person.dueDays.RENT),
     });
   }
 
@@ -187,7 +179,7 @@ export function buildMonthCharges(config: HouseholdConfig, month: string): Engin
       label: recurring.label,
       amountCents: recurring.amountCents,
       payViaPersonId: routeFor(person, "RECURRING"),
-      dueDate: dueDateFor(month, person.dueDays.RECURRING),
+      dueDate: dueDateKey(month, person.dueDays.RECURRING),
     });
   }
 
@@ -230,7 +222,7 @@ export function buildUtilitiesCharges(
       label,
       amountCents,
       payViaPersonId: routeFor(person, "UTILITIES"),
-      dueDate: dueDateFor(bill.month, person.dueDays.UTILITIES),
+      dueDate: dueDateKey(bill.month, person.dueDays.UTILITIES),
     };
   });
 }

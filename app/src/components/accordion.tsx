@@ -22,6 +22,8 @@ export interface AccordionRow {
   disabled?: boolean;
   /** Screen-reader name for the row's button. */
   accessibilityLabel?: string;
+  /** Extra classes for the whole row, such as a tint background. */
+  className?: string;
 }
 
 /**
@@ -59,7 +61,7 @@ export function Accordion({
           key={row.value}
           value={row.value}
           isDisabled={row.disabled}
-          className="border-t border-outline-variant first:border-t-0"
+          className={`border-t border-outline-variant first:border-t-0 ${row.className ?? ''}`}
         >
           <AccordionHeader>
             <AccordionTrigger accessibilityLabel={row.accessibilityLabel}>

@@ -73,6 +73,19 @@ describe("household config", () => {
     expect(messages(c)).toEqual(expect.arrayContaining(["Duplicate person", "Unknown person"]));
   });
 
+  it("treats the bill due day as optional and rejects a day outside 1 to 31", () => {
+    const c = clone();
+    expect(householdConfigSchema.parse(c).categories.utilities.billDueDay).toBe(16);
+
+    delete c.categories.utilities.billDueDay;
+    expect(householdConfigSchema.safeParse(c).success).toBe(true);
+
+    for (const day of [0, 32]) {
+      c.categories.utilities.billDueDay = day;
+      expect(householdConfigSchema.safeParse(c).success).toBe(false);
+    }
+  });
+
   it("rejects a bad end month", () => {
     const c = clone();
     c.recurring[0].endMonth = "2026-13";

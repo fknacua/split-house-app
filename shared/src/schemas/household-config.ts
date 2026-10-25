@@ -69,6 +69,9 @@ const rentCategory = remainderCategory.extend({
 
 const utilitiesCategory = remainderCategory.extend({
   totalShares: z.number().int().positive(),
+  // Day of the month the utilities bill is due. Home uses it before a bill exists;
+  // an uploaded bill's own due date supersedes it.
+  billDueDay: dueDay.optional(),
 });
 
 const airconCategory = remainderCategory.extend({

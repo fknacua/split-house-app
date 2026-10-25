@@ -5,7 +5,7 @@ import {
   currentMonth,
   formatMonthLabel,
   formatMonthShort,
-  isMonthKey,
+  isValidMonthKey,
   monthKeyOf,
   monthRange,
 } from './month';
@@ -22,7 +22,7 @@ describe('isMonthKey', () => {
     ['2026-11-01', false],
     ['', false],
   ])('%s -> %s', (value, expected) => {
-    expect(isMonthKey(value)).toBe(expected);
+    expect(isValidMonthKey(value)).toBe(expected);
   });
 });
 
@@ -43,7 +43,7 @@ describe('currentMonth', () => {
   });
 
   it('defaults to the device clock', () => {
-    expect(isMonthKey(currentMonth())).toBe(true);
+    expect(isValidMonthKey(currentMonth())).toBe(true);
   });
 });
 

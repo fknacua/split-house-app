@@ -37,7 +37,7 @@ function monthKeyToDate(key: string): TZDate {
  * @param value Any string.
  * @returns `true` for `YYYY-MM` with a month from 01 to 12.
  */
-export function isMonthKey(value: string): boolean {
+export function isValidMonthKey(value: string): boolean {
   try {
     monthKeyToDate(value);
     return true;

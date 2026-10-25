@@ -1,4 +1,5 @@
 import "dotenv/config";
+import { parseArgs } from "node:util";
 import { prisma } from "@/lib/prisma";
 import { HOUSEHOLD_SCHEMA_VERSION } from "@splithouse/shared";
 import { NOV_2026_CONFIG, PERSON_IDS, VERSION_A_CONFIG } from "@/lib/fixtures/household";
@@ -12,6 +13,30 @@ if (process.env.NODE_ENV === "production") {
   console.error("Refusing to seed: NODE_ENV is production.");
   process.exit(1);
 }
+
+/**
+ * The Home states the seed can set up for the current month. Aug to Oct 2026 are the
+ * same in every scenario. `devNow` is the `DEV_NOW` to use with it. Later Phase 5
+ * steps add their scenarios here.
+ */
+const SCENARIOS = {
+  // November is not created: Home's first request on 1 Nov opens it.
+  upload: { devNow: "2026-11-01T09:00:00+08:00" },
+} as const;
+
+type ScenarioName = keyof typeof SCENARIOS;
+
+function parseScenario(): ScenarioName {
+  const { values } = parseArgs({ options: { scenario: { type: "string", default: "upload" } } });
+  const name = values.scenario;
+  if (!name || !(name in SCENARIOS)) {
+    console.error(`Unknown scenario "${name}". Use one of: ${Object.keys(SCENARIOS).join(", ")}.`);
+    process.exit(1);
+  }
+  return name as ScenarioName;
+}
+
+const scenario = parseScenario();
 
 const PERSON_NAMES: Record<string, string> = {
   [PERSON_IDS.alex]: "Alex",
@@ -170,7 +195,7 @@ async function main() {
   const versionA = await prisma.householdVersion.create({
     data: { startsFromMonth: "2026-08", schemaVersion: HOUSEHOLD_SCHEMA_VERSION, config: VERSION_A_CONFIG },
   });
-  const versionB = await prisma.householdVersion.create({
+  await prisma.householdVersion.create({
     data: { startsFromMonth: "2026-11", schemaVersion: HOUSEHOLD_SCHEMA_VERSION, config: NOV_2026_CONFIG },
   });
 
@@ -268,15 +293,11 @@ async function main() {
   });
   await markPaid(samCredit.id, PERSON_IDS.alex, "2026-10-12");
 
-  // --- November 2026 (current/go-live): rent and recurring only, no bill yet. ---
-  await prisma.month.create({ data: { month: "2026-11", householdVersionId: versionB.id, openedAt: new Date("2026-11-01T09:00:00+08:00") } });
-  await Promise.all(
-    buildMonthCharges(NOV_2026_CONFIG, "2026-11").map((c) =>
-      insertCharge({ ...c, month: "2026-11", householdVersionId: versionB.id }),
-    ),
-  );
+  // --- November 2026: nothing is created. Home opens it on the first request on or
+  // after 1 Nov (version B), with rent and recurring charges only and no bill. ---
 
-  console.log("Seeded Aug-Oct 2026 (history) and Nov 2026 (current, upload state).");
+  console.log(`Seeded Aug-Oct 2026 (history), scenario "${scenario}".`);
+  console.log(`Run the backend with DEV_NOW=${SCENARIOS[scenario].devNow}`);
 }
 
 main()
