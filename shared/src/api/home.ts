@@ -3,7 +3,7 @@ import { dateKey, monthKey } from '../schemas/primitives';
 import { badgeSchema } from './history';
 
 /** Where the month is in its cycle. Picks the hero and the footer. */
-export const homeStatusSchema = z.enum(['bill_missing', 'draft', 'unsent', 'collecting']);
+export const homeStatusSchema = z.enum(['bill_missing', 'draft', 'unsent', 'collecting', 'settled']);
 
 /** Where the month is in its cycle. Picks the hero and the footer. */
 export type HomeStatus = z.infer<typeof homeStatusSchema>;
@@ -76,6 +76,17 @@ export const homeHeroBodySchema = z.discriminatedUnion('kind', [
       /** e.g. `Your share only so far · due 16 Nov`. */
       note: z.string(),
     }),
+  }),
+  /** Every charge and the bill are paid: a check beside the title, two tiles and a footnote. */
+  z.object({
+    kind: z.literal('settled'),
+    /** e.g. `November is settled`. */
+    title: z.string(),
+    /** e.g. `Everyone’s paid. Utilities bill paid 16 Nov.` */
+    text: z.string(),
+    tiles: z.tuple([homeTileSchema, homeTileSchema]),
+    /** e.g. `December’s bill usually lands around the 2nd.` */
+    footnote: z.string(),
   }),
 ]);
 

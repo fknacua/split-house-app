@@ -19,11 +19,17 @@ export interface HomeCollectingBodyProps {
   body: Extract<HomeHero['body'], { kind: 'collecting' }>;
 }
 
+/** Props for {@link HomeSettledBody}. */
+export interface HomeSettledBodyProps {
+  /** The settled title, text, tiles and footnote. */
+  body: Extract<HomeHero['body'], { kind: 'settled' }>;
+}
+
 /** Props for {@link HomeSteps}. */
 export interface HomeStepsProps {
   /** The three month steps. */
   steps: HomeStep[];
-  /** Draws the compact bar: no check marks on done steps. */
+  /** Draws the compact bar, with tighter spacing. */
   compact?: boolean;
 }
 

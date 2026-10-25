@@ -7,7 +7,7 @@ import {
   type HomeMessage,
   type HomePerson,
 } from "@/lib/home/build-home";
-import { deriveMonthStatus } from "@/lib/home/derive-month-status";
+import { deriveMonthStatus, isMonthSettled } from "@/lib/home/derive-month-status";
 import { messageRecipientIds, monthlyMessagedIds, unsentRecipientIds } from "@/lib/home/message-recipients";
 import { currentMonth } from "@/lib/month";
 import { openMonthIfNeeded, type MonthOpenDb } from "@/lib/month-open";
@@ -29,7 +29,7 @@ const CHARGE_SELECT = {
 const MESSAGE_SELECT = { personId: true, kind: true, chargeId: true, openedAt: true } as const;
 
 // The bill's PDF lives in `BillFile`, which is never read here.
-const BILL_SELECT = { currentChargesCents: true, dueDate: true } as const;
+const BILL_SELECT = { currentChargesCents: true, dueDate: true, paidCents: true, paidOn: true } as const;
 
 /** The newest opened month with the household version it is pinned to. */
 interface OpenedMonthRow {
@@ -96,7 +96,12 @@ export async function getHome(db: HomeDb): Promise<HomeResponse> {
   return buildHome({
     month: opened.month,
     today: todayKey(now()),
-    status: deriveMonthStatus({ hasBill: bill !== null, hasDraft: draft !== null, unsentMessages }),
+    status: deriveMonthStatus({
+      hasBill: bill !== null,
+      hasDraft: draft !== null,
+      unsentMessages,
+      settled: isMonthSettled(charges, ownerIds, bill),
+    }),
     config: parseHouseholdConfig(opened.householdVersion.schemaVersion, opened.householdVersion.config),
     people,
     charges,

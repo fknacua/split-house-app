@@ -1,4 +1,5 @@
 import {
+  addMonths,
   dateKeyOf,
   daysUntil,
   dueDateKey,
@@ -54,6 +55,9 @@ export interface HomeMessage {
 export interface HomeBill {
   currentChargesCents: number;
   dueDate: Date | null;
+  /** What Francis paid the provider. Null until he marks the bill paid. */
+  paidCents: number | null;
+  paidOn: Date | null;
 }
 
 /** Everything `buildHome` works from. */
@@ -324,7 +328,9 @@ function billRow(input: HomeInput, ownerIds: Set<string>): RankedRow {
       },
     };
   }
-  const collecting = input.status === "collecting";
+  const billPaid = input.bill.paidCents !== null;
+  // Mark bill paid is only offered while collecting, and goes once the bill is paid.
+  const collecting = input.status === "collecting" && !billPaid;
   const coverage = billCoverage(input, input.bill, ownerIds);
   return {
     rank: BILL_RANK,
@@ -333,8 +339,12 @@ function billRow(input: HomeInput, ownerIds: Set<string>): RankedRow {
       dueDate,
       title: "Utilities bill",
       amount: formatCents(input.bill.currentChargesCents),
-      detail: "You pay utilities",
-      badge: dueDate === null ? HOME_BADGES.upcoming : billDueBadge(daysUntil(dueDate, input.today)),
+      detail: billPaid && input.bill.paidOn ? `You paid ${formatDateShort(dateKeyOf(input.bill.paidOn))}` : "You pay utilities",
+      badge: billPaid
+        ? HOME_BADGES.paid
+        : dueDate === null
+          ? HOME_BADGES.upcoming
+          : billDueBadge(daysUntil(dueDate, input.today)),
       tint: "none",
       // While collecting, the bill starts open so Mark bill paid is one tap away.
       expanded: collecting,
@@ -387,7 +397,7 @@ interface DueTodayCopy {
 
 /**
  * The hero's due-today copy while collecting: one line naming the charge when one payment is due
- * (`Jordan’s utilities are due today`), a count when several are. Only unpaid charges of people
+ * a count when several are. Only unpaid charges of people
  * other than the owner count.
  *
  * @returns The copy, or null when nothing is due today.
@@ -421,6 +431,31 @@ function buildHero(
   dueToday: DueTodayCopy | null,
 ): HomeHero {
   switch (input.status) {
+    case "settled": {
+      if (!input.bill) throw new Error("The settled status needs a saved bill");
+      const billPaidOn = input.bill.paidOn ? ` Utilities bill paid ${formatDateShort(dateKeyOf(input.bill.paidOn))}.` : "";
+      return {
+        dateLine: `${formatDateShort(input.today)} · Done`,
+        steps: [
+          { label: "Upload bill", state: "done" },
+          { label: "Send messages", state: "done" },
+          { label: "Settle up", state: "done" },
+        ],
+        compactStatus: `${formatMonthName(input.month)} is settled`,
+        body: {
+          kind: "settled",
+          title: `${formatMonthName(input.month)} is settled`,
+          text: `Everyone’s paid.${billPaidOn}`,
+          tiles: [
+            { label: "You’re fronting", value: formatCents(fronting) },
+            { label: "Utilities bill covered", value: formatCents(input.bill.currentChargesCents) },
+          ],
+          footnote: `${formatMonthName(addMonths(input.month, 1))}’s bill usually lands around the 2nd.`,
+        },
+        notice: null,
+        dueToday: null,
+      };
+    }
     case "collecting": {
       if (!input.bill) throw new Error("The collecting status needs a saved bill");
       const coverage = billCoverage(input, input.bill, ownerIds);
@@ -523,6 +558,9 @@ function buildPrimaryAction(input: HomeInput): HomePrimaryAction {
       };
     case "unsent":
       // Each message is reviewed from its row, so there is no footer button.
+      return null;
+    case "settled":
+      // Nothing is left to do this month.
       return null;
     case "collecting":
       return { label: "Record payment", icon: "banknote", target: { kind: "record-payment", month: input.month } };
