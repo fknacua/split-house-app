@@ -6,6 +6,7 @@ import type { BottomTabBarProps } from 'expo-router/js-tabs';
 import { Icon } from '@/components/ui/icon';
 import { Pressable } from '@/components/ui/pressable';
 import { topShadow } from '@/lib/elevation';
+import { useNavFooterShown } from '@/lib/nav-footer';
 import { useThemePreference } from '@/lib/theme-preference';
 
 /** One bottom navigation item. */
@@ -32,6 +33,8 @@ export interface BottomNavBarProps {
   active: string;
   /** Called with the key of the pressed item. */
   onItemPress: (key: string) => void;
+  /** Cast the bar's own shadow upward. Turn off when a sticky footer sits right above it. Defaults to true. */
+  shadow?: boolean;
 }
 const TAB_CSS_CLASS_MAP_BY_STATE: Record<'active' | 'inactive', TabViewEl> = {
   'active': {
@@ -53,7 +56,7 @@ const TAB_CSS_CLASS_MAP_BY_STATE: Record<'active' | 'inactive', TabViewEl> = {
  * selected pill uses `track` with `on-selected`, 44px minimum targets, and the
  * bottom safe-area inset is added under the items.
  */
-export function BottomNavBar({ items, active, onItemPress }: BottomNavBarProps) {
+export function BottomNavBar({ items, active, onItemPress, shadow = true }: BottomNavBarProps) {
   const insets = useSafeAreaInsets();
   const { resolved } = useThemePreference();
   return (
@@ -62,7 +65,7 @@ export function BottomNavBar({ items, active, onItemPress }: BottomNavBarProps) 
       className="bg-container px-2 pt-3"
       style={{
         paddingBottom: 16 + insets.bottom,
-        boxShadow: topShadow(resolved),
+        boxShadow: shadow ? topShadow(resolved) : undefined,
       }}
     >
       <View className="flex-row">
@@ -113,10 +116,12 @@ export interface BottomNavProps extends BottomTabBarProps {
  */
 export function BottomNav({ state, navigation, items }: BottomNavProps) {
   const active = state.routes[state.index]?.name;
+  const footerShown = useNavFooterShown();
   return (
     <BottomNavBar
       items={items}
       active={active}
+      shadow={!footerShown}
       onItemPress={(key) => {
         const route = state.routes.find((r) => r.name === key);
         if (!route) return;

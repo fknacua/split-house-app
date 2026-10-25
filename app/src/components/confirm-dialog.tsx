@@ -1,6 +1,7 @@
 import { Check, type LucideIcon } from 'lucide-react-native';
 import { Text, View } from 'react-native';
 
+import { Alert } from '@/components/alert';
 import { Button } from '@/components/button';
 import {
   AlertDialog,
@@ -34,7 +35,9 @@ const ICON_COLOR: Record<ConfirmDialogTone, string> = {
  * outline. Used by Remove person, Remove version, Discard changes and Save with warnings.
  *
  * There is no close icon, and a tap on the scrim does nothing: the dialog is left through one of
- * the two buttons or the Android back gesture, which calls `onCancel`.
+ * the two buttons or the Android back gesture, which calls `onCancel`. While `loading`, the action
+ * button shows its Spinner, Cancel is disabled and the back gesture does nothing, so the dialog
+ * cannot be dismissed until the work finishes.
  *
  * @param open - Whether the dialog is shown.
  * @param tone - `danger` (red icon, red outline action) or `warning` (amber icon, neutral outline
@@ -48,6 +51,10 @@ const ICON_COLOR: Record<ConfirmDialogTone, string> = {
  * @param onCancel - Called by the safe button and the Android back gesture.
  * @param confirmLabel - The outlined action, such as "Remove from household".
  * @param onConfirm - Called by the action button.
+ * @param loading - The action is in progress: Spinner on the action button, Cancel disabled, dialog
+ *   cannot be dismissed. Defaults to false.
+ * @param error - Message of a failed action, drawn as a danger Alert above the buttons. The dialog
+ *   stays open so the action can be tried again.
  */
 export function ConfirmDialog({
   open,
@@ -61,6 +68,8 @@ export function ConfirmDialog({
   onCancel,
   confirmLabel,
   onConfirm,
+  loading = false,
+  error,
 }: {
   open: boolean;
   tone?: ConfirmDialogTone;
@@ -73,9 +82,11 @@ export function ConfirmDialog({
   onCancel: () => void;
   confirmLabel: string;
   onConfirm: () => void;
+  loading?: boolean;
+  error?: string;
 }) {
   return (
-    <AlertDialog isOpen={open} onClose={onCancel} closeOnOverlayClick={false}>
+    <AlertDialog isOpen={open} onClose={loading ? () => {} : onCancel} closeOnOverlayClick={false}>
       <AlertDialogBackdrop />
       <AlertDialogContent className="gap-4">
         <View
@@ -115,11 +126,13 @@ export function ConfirmDialog({
             </View>
           ))}
         </AlertDialogBody>
+        {error ? <Alert variant="danger" message={error} /> : null}
         <AlertDialogFooter className="flex-col items-stretch gap-2 pt-1">
-          <Button label={cancelLabel} onPress={onCancel} />
+          <Button label={cancelLabel} onPress={onCancel} disabled={loading} />
           <Button
             label={confirmLabel}
             onPress={onConfirm}
+            loading={loading}
             variant={tone === 'danger' ? 'outline-danger' : 'outline'}
           />
         </AlertDialogFooter>

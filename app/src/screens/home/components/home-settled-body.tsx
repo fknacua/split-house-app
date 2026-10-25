@@ -5,7 +5,7 @@ import { Icon } from '@/components';
 import type { HomeSettledBodyProps } from '../types';
 import { HomeTile } from './home-tile';
 
-/** The hero body once the month is settled: a check beside the title, the two tiles and a footnote about the next bill. */
+/** The hero body once the month is settled: a check beside the title, and the two tiles. */
 export function HomeSettledBody({ body }: HomeSettledBodyProps) {
   return (
     <>
@@ -30,9 +30,6 @@ export function HomeSettledBody({ body }: HomeSettledBodyProps) {
           <HomeTile key={tile.label} label={tile.label} value={tile.value} />
         ))}
       </View>
-      <Text className="font-manrope-semibold text-caption text-on-selected opacity-90">
-        {body.footnote}
-      </Text>
     </>
   );
 }

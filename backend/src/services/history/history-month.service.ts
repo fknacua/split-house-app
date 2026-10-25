@@ -5,7 +5,7 @@ import {
   type HistoryMonthBillRow,
   type HistoryMonthChargeRow,
 } from "@/lib/history/build-history-month";
-import { currentMonth } from "@/lib/month";
+import { getActiveMonth, type ActiveMonthDb } from "@/services/months/active-month.service";
 
 const CHARGE_SELECT = {
   month: true,
@@ -21,7 +21,7 @@ const CHARGE_SELECT = {
 } as const;
 
 /** The slice of the Prisma client this service uses, so tests can pass an in-memory fake. */
-export interface HistoryMonthDb {
+export interface HistoryMonthDb extends ActiveMonthDb {
   bill: {
     findUnique(args: {
       where: { month: string };
@@ -42,13 +42,13 @@ export interface HistoryMonthDb {
  *
  * @param db - The Prisma client, or a fake in tests.
  * @param month - The month key, e.g. `2026-10`.
- * @throws {ApiError} 404 when the month is not before the current month, or has no saved bill.
+ * @throws {ApiError} 404 when the month is not before the active month (the newest opened), or has no saved bill.
  */
 export async function getHistoryMonth(
   db: HistoryMonthDb,
   month: string,
 ): Promise<HistoryMonthResponse> {
-  if (month >= currentMonth()) throw notFound();
+  if (month >= (await getActiveMonth(db))) throw notFound();
   // The user's own charges are not payments to anyone, so they are not listed.
   const [bill, charges, corrections] = await Promise.all([
     db.bill.findUnique({

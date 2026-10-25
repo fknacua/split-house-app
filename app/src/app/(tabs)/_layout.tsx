@@ -2,6 +2,7 @@ import { FlaskConical, History, House, Settings, Users } from 'lucide-react-nati
 import { Tabs } from 'expo-router/js-tabs';
 
 import { BottomNav, type NavItem } from '@/components';
+import { NavFooterProvider } from '@/lib/nav-footer';
 
 // Keys are the route file names in this folder.
 const TAB_ITEMS: NavItem[] = [
@@ -19,13 +20,15 @@ export default function TabsLayout() {
   const tabsToDisplay = __DEV__ ? [...TAB_ITEMS, ...DEV_TABS] : TAB_ITEMS;
 
   return (
-    <Tabs
-      tabBar={(props) => <BottomNav {...props} items={tabsToDisplay} />}
-      screenOptions={{ headerShown: false }}
-    >
-      {tabsToDisplay.map((item) => (
-        <Tabs.Screen key={item.key} name={item.key} />
-      ))}
-    </Tabs>
+    <NavFooterProvider>
+      <Tabs
+        tabBar={(props) => <BottomNav {...props} items={tabsToDisplay} />}
+        screenOptions={{ headerShown: false }}
+      >
+        {tabsToDisplay.map((item) => (
+          <Tabs.Screen key={item.key} name={item.key} />
+        ))}
+      </Tabs>
+    </NavFooterProvider>
   );
 }

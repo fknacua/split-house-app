@@ -4,10 +4,10 @@ import {
   type HistoryBillRow,
   type HistoryChargeRow,
 } from "@/lib/history/build-history-list";
-import { currentMonth } from "@/lib/month";
+import { getActiveMonth, type ActiveMonthDb } from "@/services/months/active-month.service";
 
 /** The slice of the Prisma client this service uses, so tests can pass an in-memory fake. */
-export interface HistoryListDb {
+export interface HistoryListDb extends ActiveMonthDb {
   bill: {
     findMany(args: {
       where: { month: { lt: string } };
@@ -27,14 +27,14 @@ export interface HistoryListDb {
 }
 
 /**
- * Reads what the History list needs and hands it to `buildHistoryList`: every month before the
- * current one that has a saved bill, grouped by year, newest first. Read-only: it does not open
- * the month.
+ * Reads what the History list needs and hands it to `buildHistoryList`: every month before the active
+ * month (the newest opened, so one started early counts) that has a saved bill, grouped by year,
+ * newest first. Read-only: it does not open a month.
  *
  * @param db - The Prisma client, or a fake in tests.
  */
 export async function getHistoryList(db: HistoryListDb): Promise<HistoryListResponse> {
-  const current = currentMonth();
+  const current = await getActiveMonth(db);
   const [bills, charges] = await Promise.all([
     db.bill.findMany({
       where: { month: { lt: current } },
