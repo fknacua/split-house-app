@@ -76,7 +76,36 @@ Built in `app/src/screens/history/` (list) and `app/src/screens/history-month/` 
 | U9 | No error design | A request that fails with an API error (not "can't reach the server", which has its own prompt) shows a danger Alert with the server's message text. | Assumed: no copy invented in the app. |
 | U10 | Empty History | Nothing below the title. | Decided earlier (L9): the empty state is designed later. |
 
-### Still to decide or carry forward
+## Phase 5: Home (logged 2026-10-25, during planning)
+
+Source: `Main.dc.html`. Contract (to be built in 5.1): `shared/src/api/home.ts`. Backend: `GET /api/home`. Same backend-for-frontend principle as Phase 4: the API returns display-ready text, tones and navigation targets; the app renders and navigates. Rows below are what the plan now says; each is confirmed or corrected as its step is built.
+
+### Home (`GET /api/home`)
+
+| # | Design shows | Built | Why |
+|---|---|---|---|
+| H1 | "You're fronting" `$2,725.83`: Primary's rent + Tenant 1's rent + Starhub + others' aircon shares, leaving out Tenant 2's rent and utilities | Non-owner charges other than utilities, minus what has been paid. It includes Tenant 2's rent and falls as people pay. On the seed at the start of November: $3,602.50 (no aircon charges are seeded). | Decided in direction: Home only tracks whether tenants have paid; no savings special case. The exact formula (which categories count, how corrections count) is **Assumed**; confirm in 5.1 and 5.4. |
+| H2 | "Goes to savings once paid", "Paid 3 Nov · moved to savings", settled footnote "Tenant 2's $950.00 moved to savings 3 Nov" | Dropped. Settled footnote keeps only "December's bill usually lands around the 2nd." | Decided: savings is not tracked. |
+| H3 | Grouped rows by payer: `Tenant 2 · Utilities`, `Primary Tenant + Tenant 1's share`, and so on (5 rows) | One row per charge, as History: `Rent · Jordan`, `Starhub · Priya`, `Utilities · Sam`, ordered by due date, with the due-day column kept. About 8 rows in the upload state. | Decided. Sam's utilities are paid via Priya and have no due day of their own, so they use Priya's due day for now (Francis will extend this to per-person due dates later). |
+| H4 | Title is name first (`Tenant 2 · Rent`) | Type first (`Rent · Jordan`), like History's `Rent - Tenant 1` but keeping the design's `·` separator. Detail lines and badges follow the design boards, but dates have no weekday (`Sent 2 Nov`, not `Sent Mon 2 Nov`), in rows and in the hero date line (`3 Nov · Collecting`). | Decided. |
+| H5 | Upload board at "Mon 2 Nov": `Tenant 2 · Rent` "Overdue 1 day" | At `DEV_NOW` 1 Nov the rent is due that day, so it shows "Due today" (info tint). "Overdue" first appears in 5.4 (`DEV_NOW` 3 Nov). | Decided: the working date for 5.1 to 5.3 is the 1st. |
+| H6 | Header month name with a chevron (`Change month`) | Month name only, no chevron. | Assumed (explained to Francis, no objection). Home never switches months and the server picks the month; History is for other months. |
+| H7 | No aircon-due or unusual-bill alert in any Home state | Not built. The old plan listed both as Home alerts; the `aircon-due` seed scenario is dropped. | Assumed (explained to Francis, no objection). Both are silent FYI notifications (Tech Stack), Phase 9B. |
+| H8 | Utilities bill row shows day `16` before any bill exists | Day comes from a new optional config field `categories.utilities.billDueDay` (Nov version 16, Aug to Oct version 25). An uploaded bill's own due date supersedes it. | Decided. Additive, so `HOUSEHOLD_SCHEMA_VERSION` stays 1. Data Model doc updated. |
+| H9 | No way to start the next month early | Step 5.7 adds a "Start <month>" action once the newest month is settled, and `POST /api/home/start-next-month`. Months also open on the first request on or after the 1st, even when last month is unsettled (its unpaid charges stay in History). | Decided: paydays differ, so billing often starts a few days before the 1st. **The design for the button does not exist yet and must be agreed and created before 5.7 starts.** |
+| H10 | History: "past month" is a month before the calendar month | In 5.7, a past month is one before the newest opened month. | Follows from H9: October moves to History when November starts early. |
+
+### Plan deviations (Phase 5)
+
+| # | Before | Now | Why |
+|---|---|---|---|
+| Q1 | Plan 5.1 `GET /api/months/:month/summary`; 1.9 `useMonthSummary`; 7A.5 "invalidate month summary" | `GET /api/home`, `useHome`, "invalidate Home". The 1.9 placeholder (`hooks/use-month-summary.ts`, `queryKeys.monthSummary`, `MonthSummaryResponse`) is replaced in 5.1. | Decided: the response is Home's view-model, so it is named for the screen. The server picks the month. |
+| Q2 | Phase 5 had 5.0 (all seed scenarios), 5.1 backend, 5.2 all states, 5.3 to 5.6 | 5.1 `upload` + `loading` (the base), 5.2 `draft`, 5.3 `unsent`, 5.4 `collecting`, 5.5 `dueToday`, 5.6 `settled`, 5.7 start next month early, 5.8 Home pass. Seed scenarios are built inside each step; 5.0 is removed. | Decided: one step per state, each building on the last, as Phase 4. |
+| Q3 | Seed scenarios run with `npm run seed:reset -- --scenario <name>` | `npx prisma db seed -- --scenario <name>` from `backend/` (Prisma docs). 5.1 confirms the flag reaches the script. | Looked up in the Prisma seeding docs. |
+| Q4 | Plan 5.4/5.5: Add charge and Mark bill paid entries hidden until their phases | Everything the design shows is rendered, and actions to unbuilt screens do nothing. Only Add charge stays hidden (Phase 11). | Decided: Home has to be checkable against the data. |
+
+## Still to decide or carry forward
 
 - Phase 11 (Add charge): code-side validation of the correction fields (P1); how a credit is marked paid (P5).
 - Short payment and unpaid-bill states stay undesigned (D5, D7).
+- Phase 5: the "Due in N days" window in 5.4 (proposed N of 3 or less); the design for the start-next-month action before 5.7.
