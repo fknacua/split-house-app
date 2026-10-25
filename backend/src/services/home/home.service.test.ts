@@ -33,10 +33,16 @@ interface FakeOptions {
   hasBill?: boolean;
   /** The people with a MONTHLY message event. */
   messaged?: string[];
+  /** Every charge and the bill are paid. Needs `hasBill`. */
+  allPaid?: boolean;
 }
 
 /** A database where November is either already open or not, with no household version to open it from. */
-function fakeDb(open: boolean, { hasDraft = false, hasBill = false, messaged = [] }: FakeOptions = {}): HomeDb {
+function fakeDb(
+  open: boolean,
+  { hasDraft = false, hasBill = false, messaged = [], allPaid = false }: FakeOptions = {},
+): HomeDb {
+  const paidCharges = CHARGES_WITH_BILL.map((c) => ({ ...c, paidCents: c.amountCents, paidOn: new Date("2026-11-03") }));
   const tx = {
     month: {
       findUnique: async () => (open ? { month: "2026-11", householdVersionId: "v-b" } : null),
@@ -48,7 +54,7 @@ function fakeDb(open: boolean, { hasDraft = false, hasBill = false, messaged = [
     householdVersion: { findFirst: async () => null },
     charge: {
       createMany: async () => undefined,
-      findMany: async () => (hasBill ? CHARGES_WITH_BILL : CHARGES),
+      findMany: async () => (allPaid ? paidCharges : hasBill ? CHARGES_WITH_BILL : CHARGES),
     },
     person: {
       findMany: async () => [
@@ -60,7 +66,14 @@ function fakeDb(open: boolean, { hasDraft = false, hasBill = false, messaged = [
     },
     bill: {
       findUnique: async () =>
-        hasBill ? { currentChargesCents: 41230, dueDate: new Date("2026-11-16") } : null,
+        hasBill
+          ? {
+              currentChargesCents: 41230,
+              dueDate: new Date("2026-11-16"),
+              paidCents: allPaid ? 41230 : null,
+              paidOn: allPaid ? new Date("2026-11-16") : null,
+            }
+          : null,
     },
     billDraft: { findUnique: async () => (hasDraft ? { id: "draft-1" } : null) },
     messageEvent: {
@@ -127,6 +140,22 @@ describe("getHome", () => {
     const home = await getHome(fakeDb(true, { hasBill: true, messaged: [PERSON_IDS.priya, PERSON_IDS.jordan] }));
     expect(homeResponseSchema.safeParse(home).success).toBe(true);
     expect(home.hero.dueToday).toEqual({ text: "Jordan’s utilities are due today", amount: "$82.46" });
+  });
+
+  it("returns the settled status once every charge and the bill are paid, and it parses", async () => {
+    vi.stubEnv("DEV_NOW", "2026-11-29T09:00:00+08:00");
+    const home = await getHome(fakeDb(true, { hasBill: true, allPaid: true, messaged: [PERSON_IDS.priya, PERSON_IDS.jordan] }));
+    expect(homeResponseSchema.safeParse(home).success).toBe(true);
+    expect(home.status).toBe("settled");
+    expect(home.hero.dateLine).toBe("29 Nov · Done");
+    expect(home.hero.compactStatus).toBe("November is settled");
+    expect(home.primaryAction).toBeNull();
+  });
+
+  it("stays collecting while charges and the bill are unpaid, however late in the month", async () => {
+    vi.stubEnv("DEV_NOW", "2026-11-29T09:00:00+08:00");
+    const home = await getHome(fakeDb(true, { hasBill: true, messaged: [PERSON_IDS.priya, PERSON_IDS.jordan] }));
+    expect(home.status).toBe("collecting");
   });
 
   it("answers 409 when no month can be open because there is no household yet", async () => {

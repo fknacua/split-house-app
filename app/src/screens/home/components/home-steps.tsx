@@ -1,12 +1,10 @@
-import { Check } from 'lucide-react-native';
 import { Text, View } from 'react-native';
 
-import { Icon } from '@/components';
 import type { HomeStepsProps } from '../types';
 
 /**
  * The month's three steps as a segmented bar with a label under each segment. Done and current
- * steps are filled; the current one is bold. Done steps get a check mark unless `compact`.
+ * steps are filled; the current one is bold. `compact` tightens the spacing for the pinned card.
  */
 export function HomeSteps({ steps, compact = false }: HomeStepsProps) {
   return (
@@ -16,18 +14,13 @@ export function HomeSteps({ steps, compact = false }: HomeStepsProps) {
         return (
           <View key={step.label} className={`min-w-0 flex-1 ${compact ? 'gap-1' : 'gap-[5px]'}`}>
             <View className={`h-1 rounded-sm ${reached ? 'bg-on-selected' : 'bg-background'}`} />
-            <View className={`flex-row items-center gap-[3px] ${reached ? '' : 'opacity-75'}`}>
-              {!compact && step.state === 'done' ? (
-                <Icon as={Check} size={12} className="text-on-selected" />
-              ) : null}
-              <Text
-                className={`text-caption text-on-selected ${
-                  step.state === 'current' ? 'font-manrope-extrabold' : 'font-manrope-semibold'
-                }`}
-              >
-                {step.label}
-              </Text>
-            </View>
+            <Text
+              className={`text-caption text-on-selected ${reached ? '' : 'opacity-75'} ${
+                step.state === 'current' ? 'font-manrope-extrabold' : 'font-manrope-semibold'
+              }`}
+            >
+              {step.label}
+            </Text>
           </View>
         );
       })}

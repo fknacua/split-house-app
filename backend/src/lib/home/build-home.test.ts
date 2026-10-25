@@ -36,8 +36,7 @@ function monthly(...personIds: string[]): HomeMessage[] {
 
 /** The tiles of a hero that has them (waiting and unsent). */
 function tiles(home: ReturnType<typeof buildHome>) {
-  if (home.hero.body.kind === "collecting") throw new Error("The collecting hero has no tiles");
-  return home.hero.body.tiles;
+  if (home.hero.body.kind === "collecting") throw new Error("The collecting hero has no tiles");  return home.hero.body.tiles;
 }
 
 /** The November rent and recurring charges, as the database would return them. */
@@ -53,7 +52,7 @@ function novemberChargesWithBill(): HomeChargeRow[] {
   ]);
 }
 
-const BILL = { currentChargesCents: 41230, dueDate: new Date("2026-11-16") };
+const BILL = { currentChargesCents: 41230, dueDate: new Date("2026-11-16"), paidCents: null, paidOn: null };
 
 function input(overrides: Partial<HomeInput> = {}): HomeInput {
   return {
@@ -557,5 +556,82 @@ describe("buildHome, payments due today while collecting (4 Nov)", () => {
     const unsent = buildHome(input({ status: "unsent", charges: novemberChargesWithBill(), bill: BILL }));
     expect(unsent.hero.dueToday).toBeNull();
     expect(unsent.rows[0].note).toBeNull();
+  });
+});
+
+describe("buildHome, settled on 29 Nov", () => {
+  const charges = novemberChargesWithBill().map((c) => ({ ...c, paidCents: c.amountCents, paidOn: new Date("2026-11-03") }));
+  const paidBill = { ...BILL, paidCents: 41230, paidOn: new Date("2026-11-16") };
+  const settled = (overrides: Partial<HomeInput> = {}) =>
+    buildHome(
+      input({
+        status: "settled",
+        today: "2026-11-29",
+        charges,
+        bill: paidBill,
+        messages: monthly(PERSON_IDS.jordan, PERSON_IDS.priya),
+        ...overrides,
+      }),
+    );
+  const home = settled();
+
+  it("shows the settled hero: all steps done, the check title, two tiles and the footnote", () => {
+    expect(home.status).toBe("settled");
+    expect(home.hero.dateLine).toBe("29 Nov · Done");
+    expect(home.hero.steps.map((s) => s.state)).toEqual(["done", "done", "done"]);
+    expect(home.hero.compactStatus).toBe("November is settled");
+    expect(home.hero.body).toEqual({
+      kind: "settled",
+      title: "November is settled",
+      text: "Everyone’s paid. Utilities bill paid 16 Nov.",
+      tiles: [
+        { label: "You’re fronting", value: "$0.00" },
+        { label: "Utilities bill covered", value: "$412.30" },
+      ],
+      footnote: "December’s bill usually lands around the 2nd.",
+    });
+    expect(home.hero.dueToday).toBeNull();
+    expect(home.hero.notice).toBeNull();
+  });
+
+  it("has no footer button", () => {
+    expect(home.primaryAction).toBeNull();
+  });
+
+  it("shows every row Paid, closed, with no actions and no row-level payment prompts", () => {
+    for (const row of home.rows) {
+      expect(row.badge).toEqual({ label: "Paid", tone: "success" });
+      expect(row).toMatchObject({ tint: "none", expanded: false, actions: [], note: null });
+    }
+  });
+
+  it("dates each charge's payment, and the bill's", () => {
+    expect(home.rows.find((r) => r.title === "Rent · Jordan")!.detail).toBe("Paid 3 Nov");
+    expect(home.rows.find((r) => r.id === "bill")).toMatchObject({
+      amount: "$412.30",
+      detail: "You paid 16 Nov",
+      link: { label: "View bill", target: { kind: "bill-view", month: "2026-11" } },
+    });
+  });
+
+  it("drops the bill's Mark bill paid once the bill is paid, even while still collecting", () => {
+    const collecting = settled({ status: "collecting", today: "2026-11-05", charges: novemberChargesWithBill() });
+    expect(collecting.rows.find((r) => r.id === "bill")).toMatchObject({
+      badge: { label: "Paid", tone: "success" },
+      expanded: false,
+      actions: [],
+      note: null,
+    });
+  });
+
+  it("leaves out the bill's paid date when none is recorded", () => {
+    const noDate = settled({ bill: { ...paidBill, paidOn: null } });
+    expect(noDate.hero.body).toMatchObject({ text: "Everyone’s paid." });
+  });
+
+  it("rolls the footnote into the new year", () => {
+    expect(settled({ month: "2026-12" }).hero.body).toMatchObject({
+      footnote: "January’s bill usually lands around the 2nd.",
+    });
   });
 });

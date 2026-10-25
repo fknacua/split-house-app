@@ -4,6 +4,7 @@ import type { HomeHeroProps } from '../types';
 import { HomeCollectingBody } from './home-collecting-body';
 import { HomeDueToday } from './home-due-today';
 import { HomeNotice } from './home-notice';
+import { HomeSettledBody } from './home-settled-body';
 import { HomeSteps } from './home-steps';
 import { HomeTile } from './home-tile';
 
@@ -24,6 +25,8 @@ export function HomeHero({ hero }: HomeHeroProps) {
       </View>
       {body.kind === 'collecting' ? (
         <HomeCollectingBody body={body} />
+      ) : body.kind === 'settled' ? (
+        <HomeSettledBody body={body} />
       ) : (
         <>
           <View className="gap-1.5">

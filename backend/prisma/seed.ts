@@ -31,6 +31,8 @@ const SCENARIOS = {
   collecting: { devNow: "2026-11-03T09:00:00+08:00" },
   // As collecting a day later: Jordan's rent is paid and his utilities are due today.
   dueToday: { devNow: "2026-11-04T09:00:00+08:00" },
+  // As collecting, but every charge is paid and the bill is marked paid.
+  settled: { devNow: "2026-11-29T09:00:00+08:00" },
 } as const;
 
 type ScenarioName = keyof typeof SCENARIOS;
@@ -323,7 +325,7 @@ async function main() {
     });
   }
 
-  if (scenario === "unsent" || scenario === "collecting" || scenario === "dueToday") {
+  if (scenario === "unsent" || scenario === "collecting" || scenario === "dueToday" || scenario === "settled") {
     // Opened through the same function Home uses, so November has version B's rent and recurring
     // charges. The bill is synthetic, with the Nov 2026 fixture total; due 16 Nov.
     const november = await openMonthIfNeeded(prisma, "2026-11");
@@ -352,7 +354,7 @@ async function main() {
       await insertCharge({ ...c, month: "2026-11", householdVersionId: november.householdVersionId, billId: bill.id });
     }
 
-    if (scenario === "collecting" || scenario === "dueToday") {
+    if (scenario === "collecting" || scenario === "dueToday" || scenario === "settled") {
       const charges = await prisma.charge.findMany({ where: { month: "2026-11" } });
       const find = (personId: string, category: string) => {
         const charge = charges.find((c) => c.personId === personId && c.category === category);
@@ -379,6 +381,16 @@ async function main() {
       await markPaid(find(PERSON_IDS.priya, "UTILITIES").id, PERSON_IDS.priya, "2026-11-03");
       // Jordan paid the rent he was nudged for; his utilities fall due on the 4th.
       if (scenario === "dueToday") await markPaid(jordanRent.id, PERSON_IDS.jordan, "2026-11-03");
+      if (scenario === "settled") {
+        // Jordan's rent came late, the rest of what was left came on the 27th, and the bill went on
+        // its due date. The owner's own charges are not payments to anyone.
+        await markPaid(jordanRent.id, PERSON_IDS.jordan, "2026-11-05");
+        const unpaid = await prisma.charge.findMany({
+          where: { month: "2026-11", paidCents: null, personId: { not: PERSON_IDS.alex } },
+        });
+        for (const c of unpaid) await markPaid(c.id, c.payViaPersonId ?? c.personId, "2026-11-27");
+        await markBillPaid(bill.id, "2026-11-16");
+      }
     }
   }
 
