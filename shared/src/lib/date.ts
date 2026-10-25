@@ -4,7 +4,9 @@
  */
 
 import { TZDate } from '@date-fns/tz';
-import { format, isValid, parse } from 'date-fns';
+import { differenceInCalendarDays, format, getDaysInMonth, isValid, parse } from 'date-fns';
+
+import { isValidMonthKey } from './month';
 
 const SINGAPORE = 'Asia/Singapore';
 
@@ -93,4 +95,37 @@ export function formatDateLabel(key: string): string {
  */
 export function formatDateShort(key: string): string {
   return format(dateKeyToDate(key), 'd MMM');
+}
+
+/**
+ * Counts the calendar days from one date key to another.
+ *
+ * @param to The date key counted towards, e.g. `2026-11-16`.
+ * @param from The date key counted from, e.g. `2026-11-01`.
+ * @returns 15 for the example. 0 for the same day, negative when `to` is before `from`.
+ * @throws {RangeError} When either key is not a valid date key.
+ */
+export function daysUntil(to: string, from: string): number {
+  return differenceInCalendarDays(dateKeyToDate(to), dateKeyToDate(from));
+}
+
+/**
+ * Turns a due day from the household config into a date key in one month.
+ *
+ * @param month A month key, e.g. `2026-11`.
+ * @param dueDay The day of the month, 1 to 31. A day past the month's end falls on its last day.
+ * @returns e.g. `2026-11-07`, or null when no due day is set.
+ * @throws {RangeError} When `month` is not a valid month key.
+ */
+export function dueDateKey(month: string, dueDay?: number): string | null {
+  if (!dueDay) return null;
+
+  if (!isValidMonthKey(month)) { 
+    throw new RangeError(`Not a month key: ${month}`); 
+  }
+
+  const lastDayOfMonth = getDaysInMonth(dateKeyToDate(`${month}-01`));
+  const dayOfTheMonth = dueDay > lastDayOfMonth ? lastDayOfMonth : dueDay;
+  
+  return `${month}-${String(dayOfTheMonth).padStart(2, '0')}`;
 }

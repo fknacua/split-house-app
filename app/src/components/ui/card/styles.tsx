@@ -6,7 +6,8 @@ export const cardStyle = tva({
   base: `${baseStyle} flex-col overflow-hidden rounded-card bg-surface`,
   variants: {
     size: {
-      none: '',
+      // Not empty: tailwind-variants treats an empty variant as unset and falls back to `default`.
+      none: 'p-0 gap-0',
       default: 'p-4 gap-3',
       sm: 'p-3 gap-3',
     },

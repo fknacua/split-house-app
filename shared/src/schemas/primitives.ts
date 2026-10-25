@@ -1,4 +1,5 @@
 import { z } from 'zod';
+import { isDateKey } from '../lib/date';
 
 /**
  * Building blocks for request, response and form schemas, used by both the
@@ -7,6 +8,9 @@ import { z } from 'zod';
 
 /** A month key, `YYYY-MM`. */
 export const monthKey = z.string().regex(/^\d{4}-(0[1-9]|1[0-2])$/, 'Use YYYY-MM');
+
+/** A calendar date key, `YYYY-MM-DD`, in Singapore. */
+export const dateKey = z.string().refine(isDateKey, 'Use YYYY-MM-DD');
 
 /**
  * Money as integer cents, SGD. Can be negative (correction charges). Form

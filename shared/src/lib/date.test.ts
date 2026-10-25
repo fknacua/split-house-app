@@ -3,6 +3,8 @@ import { describe, expect, it } from 'vitest';
 import {
   dateKeyOf,
   dateKeyToValue,
+  daysUntil,
+  dueDateKey,
   formatDateLabel,
   formatDateShort,
   isDateKey,
@@ -63,5 +65,47 @@ describe('formatDateShort', () => {
 
   it('throws on a bad key', () => {
     expect(() => formatDateShort('2026-02-30')).toThrow(RangeError);
+  });
+});
+
+describe('daysUntil', () => {
+  it('counts the days from one key to the other', () => {
+    expect(daysUntil('2026-11-16', '2026-11-01')).toBe(15);
+    expect(daysUntil('2026-11-01', '2026-11-01')).toBe(0);
+  });
+
+  it('is negative when the first key is earlier', () => {
+    expect(daysUntil('2026-11-01', '2026-11-03')).toBe(-2);
+  });
+
+  it('counts across a month end', () => {
+    expect(daysUntil('2026-12-02', '2026-11-30')).toBe(2);
+  });
+
+  it('throws on a bad key', () => {
+    expect(() => daysUntil('2026-02-30', '2026-02-01')).toThrow(RangeError);
+  });
+});
+
+describe('dueDateKey', () => {
+  it('gives the date key of the due day in the month', () => {
+    expect(dueDateKey('2026-11', 7)).toBe('2026-11-07');
+    expect(dueDateKey('2026-12', 25)).toBe('2026-12-25');
+  });
+
+  it('is null when no due day is set', () => {
+    expect(dueDateKey('2026-11', undefined)).toBeNull();
+    expect(dueDateKey('2026-11', 0)).toBeNull();
+  });
+
+  it('moves a day past the end of the month to its last day', () => {
+    expect(dueDateKey('2026-11', 31)).toBe('2026-11-30');
+    expect(dueDateKey('2026-02', 31)).toBe('2026-02-28');
+    expect(dueDateKey('2028-02', 30)).toBe('2028-02-29');
+  });
+
+  it('throws on a bad month key', () => {
+    expect(() => dueDateKey('2026-13', 7)).toThrow(RangeError);
+    expect(() => dueDateKey('2026-1', 7)).toThrow(RangeError);
   });
 });

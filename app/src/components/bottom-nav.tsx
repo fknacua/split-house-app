@@ -5,6 +5,7 @@ import type { BottomTabBarProps } from 'expo-router/js-tabs';
 
 import { Icon } from '@/components/ui/icon';
 import { Pressable } from '@/components/ui/pressable';
+import { topShadow } from '@/lib/elevation';
 import { useThemePreference } from '@/lib/theme-preference';
 
 /** One bottom navigation item. */
@@ -15,9 +16,6 @@ export interface NavItem {
   icon: ComponentProps<typeof Icon>['as'];
 }
 
-// Elevation table: footers and bottom nav above content.
-const SHADOW_LIGHT = '0 -6px 14px rgba(0,0,0,0.14)';
-const SHADOW_DARK = '0 -8px 16px rgba(0,0,0,0.45)';
 const TAB_VIEW_CLASSES = ['h-8', 'w-16', 'items-center', 'justify-center', 'rounded-2xl', 'transition-colors', 'duration-150'];
 const TAB_TEXT_CLASSES = ['text-caption', 'transition-colors', 'duration-150'];
 
@@ -64,7 +62,7 @@ export function BottomNavBar({ items, active, onItemPress }: BottomNavBarProps) 
       className="bg-container px-2 pt-3"
       style={{
         paddingBottom: 16 + insets.bottom,
-        boxShadow: resolved === 'dark' ? SHADOW_DARK : SHADOW_LIGHT,
+        boxShadow: topShadow(resolved),
       }}
     >
       <View className="flex-row">

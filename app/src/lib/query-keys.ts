@@ -9,8 +9,8 @@
 export const queryKeys = {
   me: ['me'] as const,
   bootstrap: ['bootstrap'] as const,
-  /** @param month `YYYY-MM` key. */
-  monthSummary: (month: string) => ['month-summary', month] as const,
+  /** Home: the newest opened month. The server picks the month, so there is no month in the key. */
+  home: ['home'] as const,
   /** The History list. Also the prefix of every `historyMonth` key, so invalidating it refreshes both. */
   history: ['history'] as const,
   /** @param month `YYYY-MM` key. */

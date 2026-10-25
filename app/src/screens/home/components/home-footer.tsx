@@ -1,0 +1,22 @@
+import { Upload } from 'lucide-react-native';
+import { View } from 'react-native';
+
+import { Button } from '@/components';
+import { topShadow } from '@/lib/elevation';
+import { useThemePreference } from '@/lib/theme-preference';
+import { openTarget } from '../open-target';
+import type { HomeFooterProps } from '../types';
+
+/** The sticky button under the content, above the bottom navigation. */
+export function HomeFooter({ action }: HomeFooterProps) {
+  const { resolved } = useThemePreference();
+
+  return (
+    <View
+      className="border-t border-outline-variant bg-background px-4 py-2.5"
+      style={{ boxShadow: topShadow(resolved) }}
+    >
+      <Button label={action.label} icon={Upload} onPress={() => openTarget(action.target)} />
+    </View>
+  );
+}

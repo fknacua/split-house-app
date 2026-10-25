@@ -52,7 +52,7 @@ export const VERSION_A_CONFIG: HouseholdConfig = {
   ],
   categories: {
     rent: { sharedRentCents: 330000, ownerBps: 5000, primaryBps: 5000 },
-    utilities: { totalShares: 4800, ownerBps: 5000, primaryBps: 5000 },
+    utilities: { totalShares: 4800, ownerBps: 5000, primaryBps: 5000, billDueDay: 25 },
     aircon: { totalUnits: 6, ownerBps: 5000, primaryBps: 5000 },
   },
   recurring: [
@@ -105,7 +105,7 @@ export const NOV_2026_CONFIG: HouseholdConfig = {
   ],
   categories: {
     rent: { sharedRentCents: 335000, ownerBps: 5000, primaryBps: 5000 },
-    utilities: { totalShares: 5000, ownerBps: 5000, primaryBps: 5000 },
+    utilities: { totalShares: 5000, ownerBps: 5000, primaryBps: 5000, billDueDay: 16 },
     aircon: { totalUnits: 6, ownerBps: 5000, primaryBps: 5000 },
   },
   recurring: [
