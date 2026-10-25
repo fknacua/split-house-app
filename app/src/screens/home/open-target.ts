@@ -13,6 +13,7 @@ export function openTarget(target: HomeTarget): void {
     case 'bill-upload': // Phase 6B
     case 'bill-draft-continue': // Phase 6B
     case 'bill-draft-discard': // Phase 6B
+    case 'bill-view': // Phase 6C
       return;
   }
 }

@@ -3,7 +3,7 @@ import { dateKey, monthKey } from '../schemas/primitives';
 import { badgeSchema } from './history';
 
 /** Where the month is in its cycle. Picks the hero and the footer. */
-export const homeStatusSchema = z.enum(['bill_missing', 'draft']);
+export const homeStatusSchema = z.enum(['bill_missing', 'draft', 'unsent']);
 
 /** Where the month is in its cycle. Picks the hero and the footer. */
 export type HomeStatus = z.infer<typeof homeStatusSchema>;
@@ -15,6 +15,7 @@ export const homeTargetSchema = z.discriminatedUnion('kind', [
   z.object({ kind: z.literal('bill-upload'), month: monthKey }),
   z.object({ kind: z.literal('bill-draft-continue'), month: monthKey }),
   z.object({ kind: z.literal('bill-draft-discard'), month: monthKey }),
+  z.object({ kind: z.literal('bill-view'), month: monthKey }),
 ]);
 
 /** Where a tap on a row link, a row action or the footer goes. Carries only the ids the target screen needs. */
@@ -39,15 +40,20 @@ export const homeTileSchema = z.object({
 /** A small figure in the hero, e.g. `You're fronting` with `$2,725.83`. */
 export type HomeTile = z.infer<typeof homeTileSchema>;
 
+/** A hero body made of a title, a line of text and two tiles. */
+const homeHeroTilesBodyShape = {
+  /** e.g. `Waiting on the utilities bill`. */
+  title: z.string(),
+  text: z.string(),
+  tiles: z.tuple([homeTileSchema, homeTileSchema]),
+};
+
 /** The hero card's body. One member per kind of hero; later statuses add members. */
 export const homeHeroBodySchema = z.discriminatedUnion('kind', [
-  z.object({
-    kind: z.literal('waiting'),
-    /** e.g. `Waiting on the utilities bill`. */
-    title: z.string(),
-    text: z.string(),
-    tiles: z.tuple([homeTileSchema, homeTileSchema]),
-  }),
+  /** No bill yet: the second tile says `No bill yet`. */
+  z.object({ kind: z.literal('waiting'), ...homeHeroTilesBodyShape }),
+  /** The bill is in and the messages are not sent: the second tile is the bill and its due date. */
+  z.object({ kind: z.literal('unsent'), ...homeHeroTilesBodyShape }),
 ]);
 
 /** The hero card's body. One member per kind of hero; later statuses add members. */
