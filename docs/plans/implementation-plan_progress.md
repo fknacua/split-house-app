@@ -388,3 +388,136 @@ Rewrote the Phase 5 section of `implementation-plan.md` as one step per Home sta
 Decided with Francis: one row per charge with type-first titles and the due-day column; no savings special case (fronting is non-owner, non-utilities charges minus what is paid, so Tenant 2's rent counts); a fixed bill due day in the household config (`categories.utilities.billDueDay`, superseded by an uploaded bill's date); months can start early (automatically on the 1st even if last month is unsettled, or by a button once the month is settled, any day), built in 5.7 only after its design exists; every action the design shows is rendered, with actions to unbuilt screens doing nothing; each step labels its changes to earlier steps as refactor or simple addition. Dropped from Home: the aircon-due and unusual-bill alerts and the header month chevron.
 
 Also reworded the "month summary" and old 5.3/5.4 references in 1.9, 7A.5, 7B.5 and 11.2. Logged H1 to H10 and Q1 to Q4 in `design-deviations.md`; added `billDueDay` to the Data Model doc. Dev database was reseeded once to inspect November (5 rent and recurring charges, no bill, no messages); no code changed. Decided afterwards: Sam's utilities use Priya's due day for now (per-person due dates come later). Row titles keep the design's `·` separator and the design's detail lines and badges (Francis sent the dark collecting, due-today and settled boards). Nothing is open before 5.1.
+
+## 2026-10-25: 5.1 🔄 (Seed and Config bullets done)
+
+Marked Phase 5 and 5.1 in progress. Config: added the optional `categories.utilities.billDueDay` to the shared household schema, set it in the fixtures (Nov 16, Aug to Oct 25) and added a test; the Data Model doc already had the line. Seed: `--scenario` is read with `parseArgs` (default `upload`, unknown names exit before touching the database) and the script prints the `DEV_NOW` to use; November is no longer seeded, so Home opens it. Config and split tests pass and editor diagnostics are clean on the changed files (the full type check runs at the end of the phase); the seed was not run against the dev database. Stopped before the Shared bullet at Francis's request to review the proposed code first. Decided: Nudge appears only on overdue rows, so none at 1 Nov (Jordan's rent is due today). Still open: the `dayMonth` field and whether the enums start with one value.
+
+## 2026-10-25: 5.1 🔄 (Shared bullet done)
+
+Added `shared/src/api/home.ts` (the `GET /api/home` contract, with only the 5.1 enum values and one hero body, `waiting`), a `daysUntil` helper in `shared/src/lib/date.ts` with tests, and a `dateKey` primitive. Decided with Francis: rows carry the raw `dueDate` key and the app formats the day and the short month, so there is no `dayMonth` field. Shared tests pass (63) and the shared type check and editor diagnostics are clean. Backend and App bullets are still to do.
+
+## 2026-10-25: 5.1 🔄 (Backend bullet done)
+
+Added the pure builders `lib/home/derive-month-status.ts` and `lib/home/build-home.ts`, the service `services/home/home.service.ts` (opens the calendar month, then reads the newest opened month; 409 `no_household` when none), the thin `GET /api/home` route and its README row, and exported `dueDateFor` from the engine. The shared row `detail` became nullable: a detail line shows only for a charge paid via someone else, and paying direct shows nothing (H11); the date format decision is H12. Tests pass (14 new: status, builder on the Nov 2026 fixtures at 1 Nov including the $3,602.50 fronting figure, and a service contract test that parses with the shared schema); lint and editor diagnostics are clean on the changed files (the full type check runs at the end of the phase). The route was not called over HTTP and the seed was not run against the dev database. App bullet still to do.
+
+## 2026-10-25: 5.1 🔄 (App bullet done, waiting on device review)
+
+Added `useHome` and the `home` query key, and removed the step 1.9 placeholder (`use-month-summary.ts`, `monthSummary`, `lib/api-types.ts`) and the spike `dev-bootstrap-check.tsx`. Rebuilt `screens/home/` to the History layout (main file, `types.ts`, barrel, one component per file): hero card with the steps bar and two tiles, the pinned compact summary after 140px of scroll, the Charges accordion (rows open by default when the server says so, tinted when due today), the loading skeleton, the footer button and a danger Alert on error. The route `(tabs)/index.tsx` is a thin wrapper. Row buttons and links go through one `openTarget`, which does nothing until Phases 6 and 7. Small changes elsewhere: `AccordionRow` gained `className`, and the top shadow now comes from `lib/elevation.ts`, shared by the bottom nav and the footer. Checks: editor diagnostics clean on the new and changed files, `npm run lint` clean, app tests pass (40, including the new due-date test), the hex grep finds nothing, and a cleared Android export compiles every new class to its expected value (checked in the bundle). Not run: the full type check (phase end), the dev database seed, `GET /api/home` over HTTP with a session, and the screen on a device. Deviations H13 and H14 logged.
+
+## 2026-10-25: 5.1 🔄 (follow-ups from review)
+
+Per Francis: the hero tiles and unreached step bars now use the existing `background` token instead of an approximated class, so `screens/home/styles.ts` is gone (H13 updated); `formatDueDate` moved into `screens/home/helpers.ts` and its test was dropped, since `formatDateShort` is already tested in shared; two comments in `shared/src/api/home.ts` use role names instead of the sample names. Still waiting on the device review.
+
+## 2026-10-25: 5.1 🔄 (Card bug found on device)
+
+Francis's device review showed tinted rows on Home and History stopping short of the card edges. Cause: `Card` with `padded={false}` never removed the default padding. `ui/card` set `none: ''`, and tailwind-variants treats an empty variant as unset and falls back to `default` (`p-4 gap-3`), so every unpadded card carried 16px padding and a 12px gap. Fixed in `ui/card/styles.tsx` (`none: 'p-0 gap-0'`). This also changes the other unpadded cards: History list and month detail, the test page, and the Returning checklist, which loses the stray 12px gap between its rows. Verified only by reproducing the class output with tailwind-variants; not yet re-checked on device. Other empty variants exist in `ui/alert-dialog` and `ui/textarea`, which fall back to their defaults and are not changed.
+
+## 2026-10-25: 5.1 ✅
+
+Francis reviewed 5.1 on device and approved it. After the review: the Card padding fix was confirmed (tinted rows now fill the card), the hero tiles use the `background` token, and the light-mode tint of the due-today row was left as the design has it (Francis called it a design issue; a trial with `info-container` was reverted). Pixel checks of the dark-mode screenshots matched the tokens. The full type check has not been run; it runs at the end of the phase, and everything so far was checked with editor diagnostics, lint and tests. Next is 5.2 `draft`.
+
+## 2026-10-26: 5.2 🔄 (built, waiting on device review)
+
+Added the `draft` status end to end. Shared: `draft` in the status enum, a `notice` on the row schema, `primary` tone and a nullable icon on actions, two draft targets and a `formatMonthName` helper with tests. Backend: `deriveMonthStatus` takes `hasDraft`; the service looks the draft up by id only (no bytes); `buildHome` puts the "Unfinished bill draft" notice with Continue and Discard draft on the bill row and otherwise treats `draft` like `bill_missing`; the seed has a `draft` scenario (synthetic parsed fields, placeholder PDF). App: `Accordion` rows gain a `before` slot, a new `HomeRowNotice` draws the info Alert with its two buttons, and `openTarget` ignores the new targets until Phase 6B. Deviation H15 logged. Checks: shared (70), backend home tests (19) and app tests (38) pass, lint is clean apart from a warning in the generated `.expo` types, editor diagnostics are clean on the changed files (the full type check runs at the end of the phase) and the hex grep finds nothing. Not run: the dev database seed, `GET /api/home` over HTTP, and the screen on a device.
+
+## 2026-10-26: 5.2 🔄 (notice moved to the hero)
+
+Francis's device review showed the draft notice below the fold, above the 16 Nov bill row. Per Francis it now sits at the bottom of the hero card, like the due-today Alert planned for 5.5. The hero schema carries a nullable `notice` and the row schema no longer has one; `buildHome` fills it only for `draft`; the app draws it with a new `HomeNotice` in `HomeHero`, and the bill row is plain again. The `Accordion` `before` slot stays, unused, at Francis's request. Deviation H15 rewritten. The plan text for 5.2 still says "the bill row gains a notice" and "row schema gains `notice`"; it was not edited. Shared (70), backend home (19) and app (38) tests pass, lint is clean apart from the existing `.expo` warning, editor diagnostics are clean on the changed files, and the hex grep finds nothing. Not run: the seed, `GET /api/home` over HTTP, and the new layout on a device (including how the Alert and buttons look inside the hero in light mode).
+
+## 2026-10-26: 5.2 🔄 (footer reworded for the draft)
+
+Per Francis, the draft's footer button is "Continue bill upload" and opens the draft (`bill-draft-continue`), instead of repeating "Upload utilities bill" beside the hero's Continue and Discard draft. It stays visible when the hero scrolls away, so the compact summary does not need the notice. Only `buildPrimaryAction` changed (draft case split from `bill_missing`), plus a builder test; the plan line "the footer button stays" was not edited. Deviation H15 updated. Backend home tests pass and lint is clean on `lib/home`; editor diagnostics were not re-run on `build-home.ts` after this small edit beyond the test run. Not run on a device.
+
+## 2026-10-26: 5.2 🔄 (footer icon)
+
+The draft footer button now uses an arrow-right icon instead of the upload one. The footer icon in the contract is `upload` or `arrow-right`; the backend sends `arrow-right` for the draft and `HomeFooter` maps the name to the Lucide icon (it was hard-coded to Upload). Shared (70) and backend home (20) tests pass and app lint is clean apart from the existing `.expo` warning. Not run on a device.
+
+## 2026-10-26: 5.2 🔄 (footer icon changed to file-pen)
+
+Per Francis, the draft footer icon is `file-pen` instead of `arrow-right`. The footer icon in the contract is now `upload` or `file-pen`; the backend sends `file-pen` for the draft and `HomeFooter` maps it to the Lucide `FilePen`. Deviation H15 updated. Not run on a device.
+
+## 2026-10-26: 5.2 ✅
+
+Francis reviewed 5.2 on device and approved it. Final shape: the draft status and seed scenario, an info Alert in the hero (title, text, Continue and Discard draft) and a footer that reads "Continue bill upload" with a file-pen icon. Deviations H15 and H16 and plan deviation Q5 are logged in `design-deviations.md`; the plan text for 5.2 was not edited. Open for Phase 6A: Continue needs a `GET /api/months/:month/bill-draft` that the plan does not list. The full type check has not been run; it runs at the end of the phase. Next is 5.3 `unsent`.
+
+## 2026-10-26: 5.3 🚫
+
+Backend first, at Francis's request; no code written yet. Read the plan, `Main.dc.html` (`unsent`), the Home builders and service, the seed and the Nov 2026 fixture. Blocked on two points the plan leaves open. (1) Who counts as a payer who needs a MONTHLY message: the design says "2 messages are ready" (Jordan, and Priya with Sam's utilities), but Sam also pays his rent directly, so "any payer who owes something" would give 3. (2) Which one-row-per-charge rows get the "Not sent" badge and "Review message" link, since the design groups Priya's charges into one row and keeps Jordan's rent on its own chip. Question asked, with a recommendation: messages go to payers with at least one utilities charge, and only utilities rows show "Not sent".
+
+
+## 2026-10-26: 5.3 🔄 (backend built, waiting on review before the app)
+
+Resolved the two open points with Francis: a person needs a monthly message only if they pay a utilities charge, so Sam rides in Priya's message and the count is 2, and only the utilities rows show "Not sent" (one row per charge stays). Built the backend only: shared contract (`unsent` status and hero body, `bill-view` target), `message-recipients.ts`, status derivation from message events, the builder (Not sent rows, real bill row, step 2 hero, no footer), the service (reads the bill amount and due date and the MONTHLY events) and the `unsent` seed scenario. A new test caught that Sam's real utilities charge has no stored due date, so the row now uses Priya's due day, as the projected row did in 5.1. Backend tests pass (122), shared tests pass (70), editor diagnostics and ESLint are clean on the changed files (the full type check runs at the end of the phase). Deviations H17 to H19 and Q6 are logged and the README row is updated. Not run: the dev database seed, `GET /api/home` over HTTP, and the app, which still needs an `unsent` hero branch and a `bill-view` case.
+
+## 2026-10-26: 5.3 🔄 (app built, waiting on device review)
+
+Francis seeded the `unsent` scenario himself; calling the real service against the dev database returned a response that parses with the shared schema (status `unsent`, three Not sent utilities rows, bill row $412.30 in 15 days, no footer). App: `HomeHero` now renders the `unsent` body with the same title, text and tiles as `waiting`, and `openTarget` ignores `bill-view` until Phase 6C. Nothing else changed: the footer is already skipped when the server sends no primary action, and the `primary` badge tone and open rows were already supported. App tests (38) pass, ESLint is clean on `screens/home`, editor diagnostics are clean on both files and the hex grep finds nothing. Not run: the screen on a device, in light and dark.
+
+## 2026-10-26: 5.3 🔄 (Sam's Review message removed)
+
+Per Francis, after the first device look: Sam's utilities row no longer offers `Review message`, since Sam gets no message. A charge paid via someone now stays closed with the usual `View details` link to Priya's page, and keeps `Pays via Priya` and the `Not sent` badge until Priya's message goes out. Jordan's and Priya's own utilities rows still start open with `Review message`. Backend only (`chargeRow`); the app needed no change because the label, open state and target all come from the data. Backend tests pass (123), ESLint and editor diagnostics are clean on the changed files. Deviation H17 updated. The dev database needs no reseed. Not run on a device again.
+
+## 2026-10-26: 5.3 ✅
+
+Francis reviewed 5.3 on device and approved it. Final shape: the `unsent` status and seed scenario, the "Bill's in. Send the breakdowns" hero at step 2 counting two messages (Jordan and Priya), `Not sent` utilities rows (Jordan's and Priya's open with `Review message`; Sam's closed with `View details` to Priya's page), the bill row with the saved amount, due date and note, and no footer. Deviations H17 to H19 and Q6 are logged; the plan text for 5.3 was not edited. Open: Sam's row keeps the `Not sent` badge (Francis did not ask to remove it); `bill-view` and the Review message links do nothing until Phases 6C and 7B. The full type check has not been run; it runs at the end of the phase. Committed on `phase-5-homepage`, without `docs/plans/`. Next is 5.4 `collecting`.
+
+## 2026-10-26: 5.4 🔄 (backend built, stopped before the app)
+
+Backend only, at Francis's request. Francis chose N ≤ 3 for "Due in N days". Shared contract: `collecting` status, a collecting hero body (fronting with "back so far", bill coverage with a percent), a `warning` tint and action tone, `bell` and `banknote` icons, and `record-payment` and `mark-bill-paid` targets. Backend: full chip precedence in `badges.ts` (overdue, due today, due tomorrow, due in N days, sent unpaid, upcoming), `Nudged`, `Sent` and `Paid` detail lines, Nudge or Nudge again beside Mark paid on overdue rows, the bill row open with "$X of $Y covered so far" and Mark bill paid, the `Record payment` footer, and `deriveMonthStatus` returning `collecting` once every message is out. The service now reads paid dates and all message events; the `collecting` seed scenario is added. Deviations H20 to H22 and Q7 are logged. Backend tests (137), shared tests (70), backend type check and ESLint on the changed files pass. The app type check shows two expected errors (icon maps in `home-action-button` and `home-footer`); the app is not touched yet. Not run: the seed, `GET /api/home` over HTTP, and the app. The plan text for 5.4 was not edited.
+
+## 2026-10-26: 5.4 🔄 (app built, waiting on device review)
+
+App side of 5.4. The hero draws the collecting body in a new `HomeCollectingBody` (fronting figure with the "back so far" note, then the bill coverage line, `Progress` bar and note). Overdue rows take the warning tint, Nudge uses the existing `warning` button with a bell icon, and the footer maps the `banknote` icon. `openTarget` ignores `record-payment` and `mark-bill-paid` until Phases 7A and 6C. Deviation H23 logged (hero label colours). Editor diagnostics on the changed files, ESLint on `screens/home`, the app tests (38) and the full app type check are clean, and the hex grep finds nothing. Not run: the seed, and the screen on a device in light and dark.
+
+## 2026-10-26: 5.4 ✅
+
+Francis reviewed 5.4 on device and approved it. The 34px fronting figure first looked too small; it was a stale Metro cache for the new `text-hero` class, and restarting with `-c` fixed it with no code change. Final shape: the `collecting` status and seed scenario, the fronting and bill-coverage hero, the full chip precedence (Due in N days up to 3 days), `Nudged`, `Sent` and `Paid` detail lines, Nudge or Nudge again beside Mark paid on overdue rows, the open bill row with Mark bill paid, and the Record payment footer. Deviations H20 to H23 and Q7 are logged; the plan text for 5.4 was not edited. Open: Nudge opens the payer's Recipient page until Phase 7B, and the full type check across all packages runs at the end of the phase. Not committed. Next is 5.5 `dueToday`.
+
+## 2026-10-26: 5.5 🔄 (built end to end, waiting on device review)
+
+Committed 5.4 first (`d5e1403`, without `docs/plans/`). 5.5 backend and app together, at Francis's request. Shared: the hero gains a nullable `dueToday` (text and amount). Backend: `dueTodayCopy` builds the one-line text and total for unpaid non-owner charges due today while collecting ("Jordan’s utilities are due today", or a count for several), the compact status says the same, and a due-today row gets the "payment check tonight" note; `dueToday` seed scenario (the collecting seed with Jordan's rent paid; `DEV_NOW=2026-11-04T09:00:00+08:00`). App: `HomeDueToday` draws the Alert with a Clock icon and the amount at the right, using a new optional `trailing` on the `Alert` wrapper; the hero shows it above any notice. Deviations H24 and Q8 are logged; `dueToday` is not a status. Backend (144), shared (70) and app (38) tests, the backend and app type checks, ESLint on the changed files and the hex grep are all clean. Not run: the seed, and the screen on a device in light and dark.
+
+## 2026-10-26: 5.5 ✅
+
+Francis reviewed 5.5 on device and approved it. Final shape: the hero's one-line due-today Alert (Clock icon, amount at the right), the compact status and the "payment check tonight" row note while collecting, the `dueToday` seed scenario, and the `trailing` prop on the `Alert` wrapper. Deviations H24 and Q8 are logged; the plan text for 5.5 was not edited. Not committed. Next is 5.6 `settled`.
+
+## 2026-10-26: 5.6 🔄 (built end to end, waiting on device review)
+
+Backend and app together, at Francis's request. Shared: `settled` status and a `settled` hero body (title, text, two tiles, footnote). Backend: `isMonthSettled` (saved bill paid and every non-owner charge has a payment), `deriveMonthStatus` returns `settled` ahead of `unsent` and `collecting`, the service now reads the bill's paid fields, and `buildHome` builds the settled hero (all steps done, "29 Nov · Done", no footer, footnote without the savings sentence) and a Paid bill row ("You paid 16 Nov", closed, no Mark bill paid); the `settled` seed scenario (`DEV_NOW=2026-11-29T09:00:00+08:00`) is added. App: new `HomeSettledBody` (check circle, title, text, tiles, footnote) used by `HomeHero`. Deviation H25 logged; the plan text for 5.6 was not edited. Backend (159), shared (70) and app (38) tests, ESLint on the changed files, editor diagnostics on every changed file and the hex grep are clean (type check was diagnostics only). Not run: the seed, `GET /api/home` over HTTP, and the screen on a device in light and dark.
+
+## 2026-10-26: 5.6 🔄 (check marks removed from the hero steps)
+
+Per Francis, the hero's step bar no longer shows a check mark on done steps, matching the compact bar. Only `home-steps.tsx` changed (the `Check` icon and its import are gone; `compact` now only tightens spacing). Deviation H26 logged. ESLint on `screens/home` and editor diagnostics on the file are clean. Not run on a device again.
+
+## 2026-10-26: 5.6 ✅
+
+Francis reviewed 5.6 on device and approved it. Final shape: the `settled` status and seed scenario, the settled hero (check circle, "November is settled", fronting and bill-covered tiles, footnote without the savings sentence, all steps done, "29 Nov · Done"), Paid rows with "Paid d Mmm", the Paid bill row ("You paid 16 Nov", no Mark bill paid), no footer, and no check marks on done steps in the hero step bar. Deviations H25 and H26 are logged; the plan text for 5.6 was not edited. The full type check across all packages runs at the end of the phase. Not committed. Next is 5.7 (start the next month early), which cannot start until its design is agreed and added to `docs/design/`.
+
+## 2026-10-26: 5.7 🔄 (built end to end, waiting on device review)
+
+Backend and app together, at Francis's request. Francis chose the existing `settled` scenario over a new `settled-oct` one, and the plan text for 5.7 was updated to say so. Shared: `nextMonthAction` on the Home response (fixed label and the Close dialog text) and `startNextMonthResponseSchema`. Backend: `buildNextMonthAction` in `build-home.ts` (settled only), `startNextMonth` (409 `not_settled`, `month_already_open`, `no_household`), `POST /api/home/start-next-month`, and `getActiveMonth`, which History's list and month detail and bootstrap now use (`getBootstrap` moved to `services/bootstrap/`). App: `useStartNextMonth`, a `loading` state on `ConfirmDialog`, the settled bottom bar with Start next month and the Close dialog, `HomeFooterBar` shared by both footers, and the bottom navigation dropping its shadow while a footer shows. Deviations H27, H28, Q9 and Q10 are logged. Backend (167), shared (70) and app (38) tests, the backend and app type checks, ESLint on the changed files, editor diagnostics on the changed app files and the hex grep are clean. Not run: the seed, the endpoint over HTTP, and the screen on a device in light and dark.
+
+## 2026-10-26: 5.7 🔄 (failed close stays in the dialog)
+
+Per Francis, a failed close now keeps the Close dialog open with the error Alert inside it (new optional `error` on `ConfirmDialog`), so Confirm can be retried; a network failure still closes the dialog so it is not under the "Can't reach the server" prompt. Deviation H27 updated. A temporary mock failure is in `start-next-month.service.ts` for the device check and must be removed before 5.7 is marked done. ESLint and editor diagnostics on the changed files are clean. Not run again on a device.
+
+## 2026-10-26: 5.7 🔄 (mock error removed, settled footnote dropped)
+
+The mock failure is out of `start-next-month.service.ts`; Francis verified the failed close and the network failure. At Francis's request the settled hero's footnote ("December’s bill usually lands around the 2nd.") is removed from the shared schema, `buildHome`, the app component and the tests, and the year-rollover test now checks the Close dialog (December to January). Deviation H25 updated. Backend (167) and shared (70) tests, both type checks and ESLint on `screens/home` are clean. Not run again on a device.
+
+## 2026-10-26: 5.7 🔄 (side trip: pull down to refresh)
+
+Francis verified 5.7 on device and approved moving on, with a side trip first: pull-down refresh on Home and History (not in the plan). New `usePullToRefresh` hook (own `refreshing` flag, so background refetches do not show the spinner) and `AppRefreshControl` (circle coloured by the `card` token class, no hex), used by both `ScrollView`s. App type check and ESLint on the changed files are clean. Not run on a device: how the spinner reads in light and dark, and that a pull refetches.
+
+## 2026-10-26: 5.7 🔄 (pull to refresh fixed: blank Home and History)
+
+The first pull-to-refresh version blanked Home and History on device. Cause: on Android `ScrollView` clones its `refreshControl` and gives it the layout `style`; my styled `AppRefreshControl` wrapper dropped that `style`, so the list collapsed. The wrapper is deleted and both screens use React Native's `RefreshControl` directly (platform spinner colours, no token colouring). App type check and ESLint on the changed files are clean. Not run on a device again.
+
+## 2026-10-26: 5.7 ✅
+
+Francis reviewed 5.7 on device and approved it. Final shape: `POST /api/home/start-next-month` and `nextMonthAction` on Home (settled only), `getActiveMonth` used by History and bootstrap, the Start next month bar and Close dialog (a failed close stays in the dialog with the error inside it, a network failure closes it), the bottom navigation dropping its shadow under any footer, the settled hero without its footnote, and pull-down refresh on Home and History. The temporary mock error is removed. Deviations H27, H28, Q9 and Q10 are logged, and H25 and H2 updated; the plan text for 5.7 was edited only to use the 5.6 `settled` scenario. Open: the Household edit rule (Phase 8) must read `getActiveMonth`, and the full type check across all packages runs at the end of the phase. Not committed. Next is 5.8 (Home pass).
+
+## 2026-10-26: 5.8 ✅
+
+Home pass, at Francis's request without a device walk (each scenario was already verified per seed). Full type check, tests and lint pass in all three packages: shared 70 tests, backend 167, app 38; shared has no lint script; the two lint warnings left are in generated or existing files (`prisma.ts`, `.expo/types`). The hex grep finds nothing in Home code, and every Home touch target is 44px or more (buttons h-12 and h-11, links min-h-11). `deriveMonthStatus` already has a test per status (all five). Dead code: removed the unused `before` slot on `Accordion` (H15 updated); the projected utilities rows are still live for `bill_missing` and `draft`, and `add-charge-sheet.tsx` stays for Phase 11. Deviation Q11 (pull-down refresh) added, so the list covers H1 to H28 and Q1 to Q11. Phase 5 is complete. Not committed.
