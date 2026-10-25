@@ -263,14 +263,14 @@ Source `History.dc.html`. Built first as a quick win: it is read-only and the Au
 
 ---
 
-## 🔄 Phase 5: Home ("Main", 7 states), one step per state
+## ✅ Phase 5: Home ("Main", 7 states), one step per state
 
 Source `Main.dc.html` (40KB). Replaces spike `screens/home`. Reorganized 2026-10-25: one step per Home state, each building on the last. 5.1 builds the base (contract, services, libs, route, UI); every later step adds its state on top. Home renders from the database: no state needs a flow (bill upload, payments) to be reached.
 
 Home is a backend-for-frontend (as Phase 4): `GET /api/home` returns display-ready text, tones and navigation targets, and the app renders and navigates. The server picks the month, so there is no month parameter and the client's time zone never matters. Layers: route -> `services/home/` (reads) -> pure builders in `lib/home/` (take `today`, no clock). Contract in `shared/src/api/home.ts`. A screen that needs the same facts later calls the same services and libs from its own endpoint; it does not read `/api/home`. Plan text elsewhere that says "month summary" (1.9, 7A.5) means this query.
 
 **Decisions (Francis, 2026-10-25)**
-- **Months can start early.** Paydays differ, so billing for a month often starts a few days before the 1st. Home shows the newest opened month. A month opens automatically on the first request on or after the 1st (even if last month is unsettled; its unpaid charges stay in History as "N unpaid"), or by a "Start <next month>" button once the current month is settled, any day (5.7). Both use `openMonthIfNeeded`, which takes a month.
+- **Months can start early.** Paydays differ, so billing for a month often starts a few days before the 1st. Home shows the newest opened month. A month opens automatically on the first request on or after the 1st (even if last month is unsettled; its unpaid charges stay in History as "N unpaid"), or by a "Start next month" button once the current month is settled, any day (5.7). Both use `openMonthIfNeeded`, which takes a month.
 - **No savings special case.** Home only tracks whether each person has paid. "You're fronting" = non-owner charges other than utilities, minus what has been paid; it is $0.00 when settled. Utilities show separately as bill coverage. The "goes to savings" and "moved to savings" copy is dropped.
 - **Bill due day in the household config:** `categories.utilities.billDueDay` (optional, 1 to 31; additive, so `HOUSEHOLD_SCHEMA_VERSION` stays 1). The due date of an uploaded bill supersedes it.
 - **One row per charge, type first** (`Rent · Jordan`, with the design's `·` separator), with the due-day column, ordered by due date. Replaces the design's grouped rows. Detail lines, badges and layout follow the design boards (`Sent 2 Nov`, `Nudged 2 Nov`, `Paid 3 Nov`), minus the savings text. Dates show as day and month, with no weekday, everywhere on Home (rows and hero date line). Sam's utilities (paid via Priya, no due day of his own) use Priya's due day for now; separate due dates per person come later.
@@ -284,7 +284,7 @@ Home is a backend-for-frontend (as Phase 4): `GET /api/home` returns display-rea
 - Tests: builder tests on fake rows from the Nov 2026 fixtures; a contract test that parses the real response with the shared schema (as `bootstrap.test.ts`); `deriveMonthStatus` gets one test per status it learns.
 - Differences from the design go in `docs/plans/design-deviations.md`, Phase 5 section.
 
-- 🔄 **5.1** `upload` + `loading` (the base). `DEV_NOW=2026-11-01T09:00:00+08:00`.
+- ✅ **5.1** `upload` + `loading` (the base). `DEV_NOW=2026-11-01T09:00:00+08:00`.
   - Seed: `--scenario` handling in `seed.ts`; `upload` is the default (Aug to Oct as today, November not created, no bill, no draft).
   - Config: add `billDueDay`; update fixtures (Nov 16, Aug to Oct 25), seed and the Data Model doc.
   - Shared: `shared/src/api/home.ts` (status; hero with date line, steps, compact status and a body union; rows with day, title, amount, detail, badge, tint, expanded, note, actions, link; primary action; navigation targets as a union with only the ids needed). Reuse `badgeSchema`. Dates use the existing `formatDateShort` (`2 Nov`); add only a days-until helper to `shared/src/lib/date.ts`.
@@ -292,34 +292,34 @@ Home is a backend-for-frontend (as Phase 4): `GET /api/home` returns display-rea
   - App: `useHome` hook and query key (like `use-history.ts`) replacing the step 1.9 placeholder (`hooks/use-month-summary.ts`, `queryKeys.monthSummary`, `MonthSummaryResponse`); `screens/home/` rebuilt (components/, types.ts, main file, index.ts barrel): hero card with step bar and two tiles, `Charges` accordion rows, loading skeleton, footer "Upload utilities bill"; `(tabs)/index.tsx` stays a thin wrapper in `Screen`. Remove the spike `index.tsx` and `dev-bootstrap-check.tsx` (check nothing else imports them); keep `add-charge-sheet.tsx` for Phase 11.
   - Shown at 1 Nov, by due date: `Rent · Jordan` "Due today" (info tint, expanded); `Utilities · Jordan` (4th); `Rent · Priya`, `Starhub · Priya`, `Utilities · Priya` (7th); `Utilities · Sam` (via Priya); the bill row (config day 16, "Not uploaded"); `Rent · Sam` (28th, "Upcoming"). Projected utilities rows show "—" and "Needs bill". Hero "Waiting on the utilities bill", fronting tile, "No bill yet" tile.
   - Deviations to log: fronting, no savings copy, no month chevron, one row per charge with type-first titles, "Due today" instead of the board's "Overdue 1 day".
-- **5.2** `draft`. `DEV_NOW` as 5.1.
+- ✅ **5.2** `draft`. `DEV_NOW` as 5.1.
   - Seed scenario `draft`: a `BillDraft` row with synthetic parsed fields and the placeholder PDF.
   - Backend: the service checks for a draft without loading its bytes; `deriveMonthStatus` returns `draft`; the bill row gains a `notice` (title, text, Continue and Discard draft actions). Still step 1 of 3; the footer button stays.
   - App: the info Alert with two buttons above the bill row.
   - Changes to 5.1: simple addition (row schema gains `notice`). Continue and Discard draft do nothing until Phase 6.
-- **5.3** `unsent`. `DEV_NOW` as 5.1.
+- ✅ **5.3** `unsent`. `DEV_NOW` as 5.1.
   - Seed scenario `unsent`: `Bill` (with file) saved and utilities charges built with `buildUtilitiesCharges`; no `MessageEvent`.
   - Backend: reads the bill's amount and due date and the month's `MessageEvent`s. Status is `unsent` while any payer who owes something has no MONTHLY event ("N messages ready" counts payers, so Sam's utilities ride in Priya's message). The real bill due date supersedes `billDueDay`.
   - UI: hero "Bill's in. Send the breakdowns" with the bill tile, step bar at step 2, real amounts, "Not sent" badge and "Review message" link, no footer button (design), bill row note "Nothing collected yet. Shares go out with the messages."
   - Changes to 5.1: refactor (the footer depends on status; projected rows are limited to `bill_missing` and `draft`); simple additions (real amounts instead of "—", a hero body variant).
-- **5.4** `collecting`. `DEV_NOW=2026-11-03T09:00:00+08:00`.
+- ✅ **5.4** `collecting`. `DEV_NOW=2026-11-03T09:00:00+08:00`.
   - Seed scenario `collecting`: monthly messages opened, Jordan's rent nudged, a partial payment so coverage is partial.
   - Backend: reads paid fields; hero collecting body (fronting with "back so far"; bill coverage = Francis's own utilities share + paid utilities charges; progress); full chip precedence (Paid, Overdue N days, Due today, Due tomorrow, Due in N days, Sent unpaid, Upcoming); the `Nudged` detail line; warning tint for overdue; Nudge, Nudge again and Mark paid row actions; footer "Record payment". Decide at this step: the "Due in N days" window (the design's boards disagree; proposed N ≤ 3).
   - Changes to earlier steps: refactor (the 5.1 chip rules become the full precedence list); simple additions (more `tint` values, fronting moves, compact summary text).
-- **5.5** `dueToday`. `DEV_NOW=2026-11-04T09:00:00+08:00`.
+- ✅ **5.5** `dueToday`. `DEV_NOW=2026-11-04T09:00:00+08:00`.
   - Seed scenario `dueToday`: as `collecting`, Jordan's rent paid, Jordan's utilities due on the 4th.
   - Hero info Alert "Jordan's utilities are due today" with the amount, info tint on that row, the "payment check tonight" note. Mostly additive over 5.4.
-- **5.6** `settled`. `DEV_NOW=2026-11-29T09:00:00+08:00`.
+- ✅ **5.6** `settled`. `DEV_NOW=2026-11-29T09:00:00+08:00`.
   - Seed scenario `settled`: everything paid, bill marked paid.
   - Hero settled body (check, "November is settled", two tiles), step bar all done, rows Paid with "Paid d Mmm", date line "29 Nov · Done", no footer, footnote without the savings sentence. Settled means every non-owner charge is paid and the bill is paid.
-- **5.7** Start the next month early. `DEV_NOW=2026-10-28T09:00:00+08:00`.
-  - **Prerequisite: no work starts until the design is agreed and created.** The design has no such button, so Francis and Claude settle where it goes, its copy and its states (idle, starting, failed), and a board is added to `docs/design/` first.
-  - Seed scenario `settled-oct`: October fully settled, November not opened.
-  - Backend: `POST /api/home/start-next-month` opens the month after the newest opened one through `openMonthIfNeeded`; 409 unless the newest month is settled, or if the next month is already open. `GET /api/home` gains `nextMonthAction: { label } | null` (only when the newest month is settled, the next is not open and a household version covers it). A service decides the newest opened month and Home reads it instead of the calendar month.
+- ✅ **5.7** Start the next month early. Uses the 5.6 `settled` scenario, `DEV_NOW=2026-11-29T09:00:00+08:00`.
+  - **Design (received 2026-10-26, `docs/design/source/Main.dc.html`, `state=settled`):** a solid full-width primary "Start next month" button (48px, fully rounded, calendar-plus icon on the left) in the bottom action bar above the navigation, settled state only. The label is fixed, not the month's name. It opens the `CloseMonth` confirm dialog (blocking AlertDialog: "Close November?", Cancel solid primary, Confirm destructive outline). While closing, Confirm shows a spinner, Cancel is disabled and the dialog cannot be dismissed. Confirm leads to Home for the next month in the Bill not uploaded state (`Main` with `month=dec`). Decided with Francis (2026-10-26): no undo in v1; after Confirm Home shows the newest opened month (current + 1) as if it were the 1st; a failed close is not drawn, so it is decided at build (the dialog returns to idle and shows the existing error Alert; the "Can't reach the server" prompt still handles a network failure). Scrims must sit above Home's footer and navigation (z-index fix from the handoff, also in `ServerError`). Starting while unsettled is not offered, which matches the 409 rule. The Data Model doc now says a settled month can open the next one early. Household edits must start after the newest opened month, so after an early December start the earliest edit month is January (the Household edit rule and its validation read the newest opened month, not the calendar month).
+  - Seed: no new scenario. The 5.6 `settled` scenario (November fully settled, December not opened) is the review scenario, so the dialog reads "Close November?" as in the design. Reseed `settled` to review again, since confirming opens December.
+  - Backend: `POST /api/home/start-next-month` opens the month after the newest opened one through `openMonthIfNeeded`; 409 unless the newest month is settled, or if the next month is already open. `GET /api/home` gains `nextMonthAction: { label, dialog } | null` (the label is the constant "Start next month"; `dialog` holds the display text for the Close dialog, built from the month being closed and the next, since the backend writes display text; only when the newest month is settled, the next is not open and a household version covers it). A service decides the newest opened month and Home reads it instead of the calendar month.
   - History: "past month" means before the newest opened month, not before the calendar month (list, month detail 404 rule and unpaid counts in `services/history/`).
-  - App: the button from the agreed design, calling the endpoint and refetching Home and History.
+  - App: the button and the Close dialog with its closing state from the design above (the settled state gains a bottom action bar, and the navigation loses its own shadow there; the dialog's month names come from the response, not hard-coded), calling the endpoint and refetching Home and History.
   - Changes to earlier steps: simple addition (settled hero gains the button); refactor (`bootstrap.currentMonth`, History's services and anything else that treats the calendar month as "current" switch to the newest opened month).
-- **5.8** Home pass. Walk every state in order by reseeding each scenario, light and dark, on device; hex grep and 44px targets; `deriveMonthStatus` table test covers all five statuses; remove dead code left by earlier steps (for example unused projection branches); full type check, lint and tests in `app`, `backend` and `shared`; deviations list complete.
+- ✅ **5.8** Home pass. Walk every state in order by reseeding each scenario, light and dark, on device; hex grep and 44px targets; `deriveMonthStatus` table test covers all five statuses; remove dead code left by earlier steps (for example unused projection branches); full type check, lint and tests in `app`, `backend` and `shared`; deviations list complete.
 
 Exit: each seeded scenario renders its design state on device, starting the next month works from Home, and Home needs no flow to be reached.
 

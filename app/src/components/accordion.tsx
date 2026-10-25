@@ -1,6 +1,5 @@
 import { ChevronDown } from 'lucide-react-native';
 import type { ReactNode } from 'react';
-import { View } from 'react-native';
 
 import {
   Accordion as NativeAccordion,
@@ -19,8 +18,6 @@ export interface AccordionRow {
   header: ReactNode;
   /** The content shown when the row is open. */
   content: ReactNode;
-  /** Content drawn inside the row's frame directly above its header, such as an Alert. Not part of the trigger. */
-  before?: ReactNode;
   /** Stops the row from opening. */
   disabled?: boolean;
   /** Screen-reader name for the row's button. */
@@ -66,9 +63,6 @@ export function Accordion({
           isDisabled={row.disabled}
           className={`border-t border-outline-variant first:border-t-0 ${row.className ?? ''}`}
         >
-          {row.before ? (
-            <View className="border-b border-outline-variant p-3">{row.before}</View>
-          ) : null}
           <AccordionHeader>
             <AccordionTrigger accessibilityLabel={row.accessibilityLabel}>
               {row.header}
