@@ -2,6 +2,7 @@ import { Text, View } from 'react-native';
 
 import type { HomeHeroProps } from '../types';
 import { HomeCollectingBody } from './home-collecting-body';
+import { HomeDueToday } from './home-due-today';
 import { HomeNotice } from './home-notice';
 import { HomeSteps } from './home-steps';
 import { HomeTile } from './home-tile';
@@ -43,6 +44,7 @@ export function HomeHero({ hero }: HomeHeroProps) {
           </View>
         </>
       )}
+      {hero.dueToday ? <HomeDueToday dueToday={hero.dueToday} /> : null}
       {hero.notice ? <HomeNotice notice={hero.notice} /> : null}
     </View>
   );
