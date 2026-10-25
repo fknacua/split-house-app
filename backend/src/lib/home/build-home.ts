@@ -5,9 +5,11 @@ import {
   formatCents,
   formatDateShort,
   formatMonthLabel,
+  formatMonthName,
   type BadgeContent,
   type HomeAction,
   type HomeHero,
+  type HomeNotice,
   type HomePrimaryAction,
   type HomeResponse,
   type HomeRow,
@@ -146,6 +148,18 @@ function projectedUtilitiesRows(input: HomeInput, names: Map<string, string>): R
     });
 }
 
+/** The info Alert at the bottom of the hero while an unsaved draft is waiting. Both buttons open the draft. */
+function draftNotice(month: string): HomeNotice {
+  return {
+    title: "Unfinished bill draft",
+    text: `You started uploading a bill for ${formatMonthName(month)} and didn’t save it.`,
+    actions: [
+      { label: "Continue", tone: "primary", icon: null, target: { kind: "bill-draft-continue", month } },
+      { label: "Discard draft", tone: "outline", icon: null, target: { kind: "bill-draft-discard", month } },
+    ],
+  };
+}
+
 function billRow(input: HomeInput): RankedRow {
   return {
     rank: BILL_RANK,
@@ -176,6 +190,7 @@ function frontingCents(charges: HomeChargeRow[], ownerIds: Set<string>): number 
 function buildHero(input: HomeInput, fronting: number): HomeHero {
   switch (input.status) {
     case "bill_missing":
+    case "draft":
       return {
         dateLine: `${formatDateShort(input.today)} · Step 1 of 3`,
         steps: [
@@ -193,6 +208,7 @@ function buildHero(input: HomeInput, fronting: number): HomeHero {
             { label: "Utilities bill coverage", value: "No bill yet" },
           ],
         },
+        notice: input.status === "draft" ? draftNotice(input.month) : null,
       };
   }
 }
@@ -204,6 +220,12 @@ function buildPrimaryAction(input: HomeInput): HomePrimaryAction {
         label: "Upload utilities bill",
         icon: "upload",
         target: { kind: "bill-upload", month: input.month },
+      };
+    case "draft":
+      return {
+        label: "Continue bill upload",
+        icon: "file-pen",
+        target: { kind: "bill-draft-continue", month: input.month },
       };
   }
 }
@@ -222,7 +244,7 @@ export function buildHome(input: HomeInput): HomeResponse {
   // The owner's own charges are not payments to anyone, so they get no row.
   const ranked: RankedRow[] = [
     ...input.charges.filter((c) => !ownerIds.has(c.personId)).map((c) => chargeRow(input, c, names)),
-    ...(input.status === "bill_missing" ? projectedUtilitiesRows(input, names) : []),
+    ...(input.status === "bill_missing" || input.status === "draft" ? projectedUtilitiesRows(input, names) : []),
     billRow(input),
   ];
   ranked.sort(

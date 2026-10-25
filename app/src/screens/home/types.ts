@@ -1,4 +1,11 @@
-import type { HomeAction, HomeHero, HomePrimaryAction, HomeRow, HomeStep } from '@splithouse/shared';
+import type {
+  HomeAction,
+  HomeHero,
+  HomeNotice,
+  HomePrimaryAction,
+  HomeRow,
+  HomeStep,
+} from '@splithouse/shared';
 
 /** Props for {@link HomeHero}. */
 export interface HomeHeroProps {
@@ -38,6 +45,12 @@ export interface HomeChargesProps {
 export interface HomeRowProps {
   /** The row to draw. */
   row: HomeRow;
+}
+
+/** Props for {@link HomeNotice}. */
+export interface HomeNoticeProps {
+  /** The Alert's title, text and buttons. */
+  notice: HomeNotice;
 }
 
 /** Props for {@link HomeActionButton}. */

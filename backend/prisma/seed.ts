@@ -22,6 +22,8 @@ if (process.env.NODE_ENV === "production") {
 const SCENARIOS = {
   // November is not created: Home's first request on 1 Nov opens it.
   upload: { devNow: "2026-11-01T09:00:00+08:00" },
+  // November is not created either; it has an unsaved bill draft waiting.
+  draft: { devNow: "2026-11-01T09:00:00+08:00" },
 } as const;
 
 type ScenarioName = keyof typeof SCENARIOS;
@@ -293,8 +295,26 @@ async function main() {
   });
   await markPaid(samCredit.id, PERSON_IDS.alex, "2026-10-12");
 
-  // --- November 2026: nothing is created. Home opens it on the first request on or
-  // after 1 Nov (version B), with rent and recurring charges only and no bill. ---
+  // --- November 2026: no month, charges or bill are created. Home opens it on the first
+  // request on or after 1 Nov (version B), with rent and recurring charges only and no bill. ---
+  if (scenario === "draft") {
+    // Synthetic parsed fields and the placeholder PDF; nothing from a real bill.
+    await prisma.billDraft.create({
+      data: {
+        month: "2026-11",
+        filename: "2026-11-sample-bill.pdf",
+        bytes: PLACEHOLDER_PDF,
+        parsedJson: {
+          provider: "SP Group",
+          billingPeriodStart: "2026-10-16",
+          billingPeriodEnd: "2026-11-15",
+          dueDate: "2026-11-25",
+          currentChargesCents: 41200,
+        },
+        parseOk: true,
+      },
+    });
+  }
 
   console.log(`Seeded Aug-Oct 2026 (history), scenario "${scenario}".`);
   console.log(`Run the backend with DEV_NOW=${SCENARIOS[scenario].devNow}`);

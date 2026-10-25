@@ -40,6 +40,9 @@ export type HomeDb = MonthOpenDb & {
   bill: {
     findUnique(args: { where: { month: string }; select: { id: true } }): Promise<{ id: string } | null>;
   };
+  billDraft: {
+    findUnique(args: { where: { month: string }; select: { id: true } }): Promise<{ id: string } | null>;
+  };
 };
 
 /**
@@ -58,16 +61,18 @@ export async function getHome(db: HomeDb): Promise<HomeResponse> {
   });
   if (!opened) throw new ApiError(409, "no_household", "Set up the household first.");
 
-  const [people, charges, bill] = await Promise.all([
+  // The draft is looked up by id only: its PDF bytes stay in the database.
+  const [people, charges, bill, draft] = await Promise.all([
     db.person.findMany({ select: { id: true, name: true, isOwner: true } }),
     db.charge.findMany({ where: { month: opened.month }, select: CHARGE_SELECT }),
     db.bill.findUnique({ where: { month: opened.month }, select: { id: true } }),
+    db.billDraft.findUnique({ where: { month: opened.month }, select: { id: true } }),
   ]);
 
   return buildHome({
     month: opened.month,
     today: todayKey(now()),
-    status: deriveMonthStatus({ hasBill: bill !== null }),
+    status: deriveMonthStatus({ hasBill: bill !== null, hasDraft: draft !== null }),
     config: parseHouseholdConfig(opened.householdVersion.schemaVersion, opened.householdVersion.config),
     people,
     charges,

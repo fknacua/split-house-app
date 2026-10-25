@@ -4,6 +4,7 @@ import {
   addMonths,
   currentMonth,
   formatMonthLabel,
+  formatMonthName,
   formatMonthShort,
   isValidMonthKey,
   monthKeyOf,
@@ -58,6 +59,19 @@ describe('formatMonthLabel', () => {
 
   it('throws on a bad key', () => {
     expect(() => formatMonthLabel('2026-13')).toThrow(RangeError);
+  });
+});
+
+describe('formatMonthName', () => {
+  it.each([
+    ['2026-01', 'January'],
+    ['2026-11', 'November'],
+  ])('%s -> %s', (key, expected) => {
+    expect(formatMonthName(key)).toBe(expected);
+  });
+
+  it('throws on a bad key', () => {
+    expect(() => formatMonthName('2026-13')).toThrow(RangeError);
   });
 });
 
