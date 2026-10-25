@@ -118,6 +118,13 @@ export const homeHeroSchema = z.object({
   body: homeHeroBodySchema,
   /** An info Alert at the bottom of the card, e.g. the unfinished bill draft. Null when there is none. */
   notice: homeNoticeSchema.nullable(),
+  /** An info Alert with one line and an amount while payments are due today. Null when none is. */
+  dueToday: z.object({
+    /** e.g. `Jordan’s utilities are due today`. */
+    text: z.string(),
+    /** e.g. `$82.46`. The total when more than one payment is due. */
+    amount: z.string(),
+  }).nullable(),
 });
 
 /** The hero card at the top of Home. */

@@ -122,6 +122,13 @@ describe("getHome", () => {
     expect(home.rows.find((r) => r.title === "Rent · Jordan")?.badge.label).toBe("Overdue 2 days");
   });
 
+  it("returns the due-today Alert, and it parses, when a payment falls due on the day", async () => {
+    vi.stubEnv("DEV_NOW", "2026-11-04T09:00:00+08:00");
+    const home = await getHome(fakeDb(true, { hasBill: true, messaged: [PERSON_IDS.priya, PERSON_IDS.jordan] }));
+    expect(homeResponseSchema.safeParse(home).success).toBe(true);
+    expect(home.hero.dueToday).toEqual({ text: "Jordan’s utilities are due today", amount: "$82.46" });
+  });
+
   it("answers 409 when no month can be open because there is no household yet", async () => {
     vi.stubEnv("DEV_NOW", "2026-11-01T09:00:00+08:00");
     await expect(getHome(fakeDb(false))).rejects.toMatchObject({ status: 409 });

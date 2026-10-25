@@ -32,6 +32,7 @@ const IS_ALERT: Record<AlertVariant, boolean> = {
  * @param message - The body text.
  * @param title - Optional bold first line above the message.
  * @param icon - Replaces the variant's default Lucide icon, such as `Clock` for "due today".
+ * @param trailing - Optional bold figure at the right edge of the row, such as an amount.
  * @param children - Optional content under the text, such as Buttons (Continue / Discard).
  * @param className - Extra classes for the outer alert.
  */
@@ -40,6 +41,7 @@ export function Alert({
   message,
   title,
   icon,
+  trailing,
   children,
   className,
 }: {
@@ -47,6 +49,7 @@ export function Alert({
   message: string;
   title?: string;
   icon?: LucideIcon;
+  trailing?: string;
   children?: ReactNode;
   className?: string;
 }) {
@@ -67,6 +70,11 @@ export function Alert({
         </View>
         {children}
       </View>
+      {trailing ? (
+        <AlertText className="font-manrope-extrabold" style={{ fontVariant: ['tabular-nums'] }}>
+          {trailing}
+        </AlertText>
+      ) : null}
     </NativeAlert>
   );
 }

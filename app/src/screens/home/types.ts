@@ -59,6 +59,12 @@ export interface HomeNoticeProps {
   notice: HomeNotice;
 }
 
+/** Props for {@link HomeDueToday}. */
+export interface HomeDueTodayProps {
+  /** The Alert's line and amount. */
+  dueToday: NonNullable<HomeHero['dueToday']>;
+}
+
 /** Props for {@link HomeActionButton}. */
 export interface HomeActionButtonProps {
   /** The button's label, look and where it goes. */

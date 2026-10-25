@@ -493,3 +493,69 @@ describe("buildHome, collecting on 3 Nov", () => {
     expect(late.rows.find((r) => r.id === "bill")!.badge).toEqual({ label: "Overdue 2 days", tone: "danger" });
   });
 });
+
+describe("buildHome, payments due today while collecting (4 Nov)", () => {
+  const paidOn = new Date("2026-11-03");
+  const charges = novemberChargesWithBill().map((c) =>
+    (c.personId === PERSON_IDS.jordan && c.category === "RENT") ||
+    (c.personId === PERSON_IDS.sam && c.category === "RENT") ||
+    (c.personId === PERSON_IDS.priya && c.category === "UTILITIES")
+      ? { ...c, paidCents: c.amountCents, paidOn }
+      : c,
+  );
+  const messages = monthly(PERSON_IDS.jordan, PERSON_IDS.priya);
+  const collecting = (overrides: Partial<HomeInput> = {}) =>
+    buildHome(input({ status: "collecting", today: "2026-11-04", charges, bill: BILL, messages, ...overrides }));
+  const home = collecting();
+
+  it("puts a one-line Alert with the amount in the hero, and the same words in the compact status", () => {
+    expect(home.hero.dueToday).toEqual({ text: "Jordan’s utilities are due today", amount: "$82.46" });
+    expect(home.hero.compactStatus).toBe("Jordan’s utilities due today");
+    expect(home.hero.dateLine).toBe("4 Nov · Collecting");
+  });
+
+  it("shades Jordan's utilities row, opens it and adds the payment check note", () => {
+    const row = home.rows.find((r) => r.title === "Utilities · Jordan")!;
+    expect(row).toMatchObject({
+      badge: { label: "Due today", tone: "info" },
+      tint: "info",
+      expanded: true,
+      detail: "Sent 2 Nov",
+      note: "You’ll get a payment check tonight if it’s still unpaid.",
+    });
+    expect(row.actions.map((a) => a.label)).toEqual(["Mark paid"]);
+  });
+
+  it("shows Jordan's paid rent as Paid with the date", () => {
+    expect(home.rows.find((r) => r.title === "Rent · Jordan")).toMatchObject({
+      badge: { label: "Paid", tone: "success" },
+      detail: "Paid 3 Nov",
+    });
+  });
+
+  it("has no Alert and the usual compact status when nothing is due today", () => {
+    const quiet = collecting({ today: "2026-11-03" });
+    expect(quiet.hero.dueToday).toBeNull();
+    expect(quiet.hero.compactStatus).toBe("Collecting · $1,702.50 fronted");
+    expect(quiet.rows.find((r) => r.title === "Utilities · Jordan")!.note).toBeNull();
+  });
+
+  it("says rent is, and counts several payments with their total", () => {
+    const rentDue = collecting({
+      today: "2026-11-01",
+      charges: novemberChargesWithBill().map((c) =>
+        c.personId === PERSON_IDS.jordan && c.category === "UTILITIES" ? { ...c, paidCents: c.amountCents, paidOn } : c,
+      ),
+    });
+    expect(rentDue.hero.dueToday).toEqual({ text: "Jordan’s rent is due today", amount: "$950.00" });
+    const both = collecting({ today: "2026-11-07", charges: novemberChargesWithBill() });
+    expect(both.hero.dueToday).toEqual({ text: "4 payments are due today", amount: "$1,908.65" });
+    expect(both.hero.compactStatus).toBe("4 payments due today");
+  });
+
+  it("shows no Alert outside collecting, even with a payment due today", () => {
+    const unsent = buildHome(input({ status: "unsent", charges: novemberChargesWithBill(), bill: BILL }));
+    expect(unsent.hero.dueToday).toBeNull();
+    expect(unsent.rows[0].note).toBeNull();
+  });
+});

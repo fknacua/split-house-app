@@ -29,6 +29,8 @@ const SCENARIOS = {
   unsent: { devNow: "2026-11-01T09:00:00+08:00" },
   // As unsent, with the monthly messages opened on 2 Nov, Jordan's rent nudged, and a few payments in.
   collecting: { devNow: "2026-11-03T09:00:00+08:00" },
+  // As collecting a day later: Jordan's rent is paid and his utilities are due today.
+  dueToday: { devNow: "2026-11-04T09:00:00+08:00" },
 } as const;
 
 type ScenarioName = keyof typeof SCENARIOS;
@@ -321,7 +323,7 @@ async function main() {
     });
   }
 
-  if (scenario === "unsent" || scenario === "collecting") {
+  if (scenario === "unsent" || scenario === "collecting" || scenario === "dueToday") {
     // Opened through the same function Home uses, so November has version B's rent and recurring
     // charges. The bill is synthetic, with the Nov 2026 fixture total; due 16 Nov.
     const november = await openMonthIfNeeded(prisma, "2026-11");
@@ -350,7 +352,7 @@ async function main() {
       await insertCharge({ ...c, month: "2026-11", householdVersionId: november.householdVersionId, billId: bill.id });
     }
 
-    if (scenario === "collecting") {
+    if (scenario === "collecting" || scenario === "dueToday") {
       const charges = await prisma.charge.findMany({ where: { month: "2026-11" } });
       const find = (personId: string, category: string) => {
         const charge = charges.find((c) => c.personId === personId && c.category === category);
@@ -375,6 +377,8 @@ async function main() {
       // Sam paid his rent early, and Priya paid her utilities, so some is back and coverage is partial.
       await markPaid(find(PERSON_IDS.sam, "RENT").id, PERSON_IDS.sam, "2026-11-03");
       await markPaid(find(PERSON_IDS.priya, "UTILITIES").id, PERSON_IDS.priya, "2026-11-03");
+      // Jordan paid the rent he was nudged for; his utilities fall due on the 4th.
+      if (scenario === "dueToday") await markPaid(jordanRent.id, PERSON_IDS.jordan, "2026-11-03");
     }
   }
 

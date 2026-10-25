@@ -213,7 +213,7 @@ function chargeRow(
       badge,
       tint: dueToday ? "info" : overdue ? "warning" : "none",
       expanded: dueToday || overdue || ownMessage,
-      note: null,
+      note: dueToday && input.status === "collecting" ? "You’ll get a payment check tonight if it’s still unpaid." : null,
       actions: unpaid && !messageUnsent ? (overdue ? [nudge, markPaid] : [markPaid]) : [],
       link: {
         label: ownMessage ? "Review message" : "View details",
@@ -378,11 +378,47 @@ function unsentText(unsentCount: number): string {
     : `${unsentCount} messages are ready. Open each one to review it, then send it on WhatsApp yourself.`;
 }
 
+/** What the hero says about payments due today: the Alert's line and amount, and the compact status. */
+interface DueTodayCopy {
+  text: string;
+  amount: string;
+  compactStatus: string;
+}
+
+/**
+ * The hero's due-today copy while collecting: one line naming the charge when one payment is due
+ * (`Jordan’s utilities are due today`), a count when several are. Only unpaid charges of people
+ * other than the owner count.
+ *
+ * @returns The copy, or null when nothing is due today.
+ */
+function dueTodayCopy(input: HomeInput, names: Map<string, string>, ownerIds: Set<string>): DueTodayCopy | null {
+  if (input.status !== "collecting") return null;
+  const due = input.charges.filter(
+    (c) => c.paidCents === null && !ownerIds.has(c.personId) && chargeDueDate(input, c) === input.today,
+  );
+  if (due.length === 0) return null;
+
+  const amount = formatCents(due.reduce((sum, c) => sum + c.amountCents, 0));
+  if (due.length > 1) {
+    return { text: `${due.length} payments are due today`, amount, compactStatus: `${due.length} payments due today` };
+  }
+  const [charge] = due;
+  const what = `${names.get(charge.personId)}’s ${charge.label.toLowerCase()}`;
+  // "Utilities" is plural, "Rent" and "Starhub" are not.
+  return {
+    text: `${what} ${charge.category === "UTILITIES" ? "are" : "is"} due today`,
+    amount,
+    compactStatus: `${what} due today`,
+  };
+}
+
 function buildHero(
   input: HomeInput,
   ownerIds: Set<string>,
   { frontingCents: fronting, backCents }: ReturnType<typeof frontingTotals>,
   unsentCount: number,
+  dueToday: DueTodayCopy | null,
 ): HomeHero {
   switch (input.status) {
     case "collecting": {
@@ -400,7 +436,7 @@ function buildHero(
           { label: "Send messages", state: "done" },
           { label: "Settle up", state: "current" },
         ],
-        compactStatus: `Collecting · ${formatCents(fronting)} fronted`,
+        compactStatus: dueToday?.compactStatus ?? `Collecting · ${formatCents(fronting)} fronted`,
         body: {
           kind: "collecting",
           fronting: {
@@ -416,6 +452,7 @@ function buildHero(
           },
         },
         notice: null,
+        dueToday: dueToday && { text: dueToday.text, amount: dueToday.amount },
       };
     }
     case "unsent": {
@@ -442,6 +479,7 @@ function buildHero(
           ],
         },
         notice: null,
+        dueToday: null,
       };
     }
     case "bill_missing":
@@ -464,6 +502,7 @@ function buildHero(
           ],
         },
         notice: input.status === "draft" ? draftNotice(input.month) : null,
+        dueToday: null,
       };
   }
 }
@@ -523,7 +562,13 @@ export function buildHome(input: HomeInput): HomeResponse {
     month: input.month,
     monthName: formatMonthLabel(input.month),
     status: input.status,
-    hero: buildHero(input, ownerIds, frontingTotals(input.charges, ownerIds), unsentIds.length),
+    hero: buildHero(
+      input,
+      ownerIds,
+      frontingTotals(input.charges, ownerIds),
+      unsentIds.length,
+      dueTodayCopy(input, names, ownerIds),
+    ),
     rows: ranked.map((r) => r.row),
     primaryAction: buildPrimaryAction(input),
   };
