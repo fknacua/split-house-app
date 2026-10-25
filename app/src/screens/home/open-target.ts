@@ -11,6 +11,8 @@ export function openTarget(target: HomeTarget): void {
     case 'recipient': // Phase 7B
     case 'mark-paid': // Phase 7A
     case 'bill-upload': // Phase 6B
+    case 'bill-draft-continue': // Phase 6B
+    case 'bill-draft-discard': // Phase 6B
       return;
   }
 }

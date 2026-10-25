@@ -119,6 +119,40 @@ describe("buildHome, bill_missing on 1 Nov", () => {
   });
 });
 
+describe("buildHome, draft on 1 Nov", () => {
+  const draft = buildHome(input({ status: "draft" }));
+  const missing = buildHome(input());
+
+  it("puts the draft notice in the hero", () => {
+    expect(draft.status).toBe("draft");
+    expect(draft.hero.notice).toEqual({
+      title: "Unfinished bill draft",
+      text: "You started uploading a bill for November and didn’t save it.",
+      actions: [
+        { label: "Continue", tone: "primary", icon: null, target: { kind: "bill-draft-continue", month: "2026-11" } },
+        { label: "Discard draft", tone: "outline", icon: null, target: { kind: "bill-draft-discard", month: "2026-11" } },
+      ],
+    });
+  });
+
+  it("is otherwise the same as bill_missing: rows and hero text", () => {
+    expect(draft.rows).toEqual(missing.rows);
+    expect({ ...draft.hero, notice: null }).toEqual(missing.hero);
+  });
+
+  it("turns the footer into Continue bill upload, which opens the draft", () => {
+    expect(draft.primaryAction).toEqual({
+      label: "Continue bill upload",
+      icon: "file-pen",
+      target: { kind: "bill-draft-continue", month: "2026-11" },
+    });
+  });
+
+  it("has no hero notice when there is no draft", () => {
+    expect(missing.hero.notice).toBeNull();
+  });
+});
+
 describe("buildHome, paid charges", () => {
   it("drops Mark paid and the due-today shading, and lowers what you're fronting", () => {
     const charges = novemberCharges().map((c) =>

@@ -19,7 +19,7 @@ const CHARGES: HomeChargeRow[] = buildMonthCharges(NOV_2026_CONFIG, "2026-11").m
 }));
 
 /** A database where November is either already open or not, with no household version to open it from. */
-function fakeDb(open: boolean): HomeDb {
+function fakeDb(open: boolean, hasDraft = false): HomeDb {
   const tx = {
     month: {
       findUnique: async () => (open ? { month: "2026-11", householdVersionId: "v-b" } : null),
@@ -42,6 +42,7 @@ function fakeDb(open: boolean): HomeDb {
       ],
     },
     bill: { findUnique: async () => null },
+    billDraft: { findUnique: async () => (hasDraft ? { id: "draft-1" } : null) },
   };
   return { ...tx, $transaction: async (fn: (t: typeof tx) => Promise<unknown>) => fn(tx) } as unknown as HomeDb;
 }
@@ -55,6 +56,14 @@ describe("getHome", () => {
     expect(homeResponseSchema.safeParse(home).success).toBe(true);
     expect(home.month).toBe("2026-11");
     expect(home.hero.dateLine).toBe("1 Nov · Step 1 of 3");
+  });
+
+  it("returns the draft status, with a notice that parses, when a bill draft is waiting", async () => {
+    vi.stubEnv("DEV_NOW", "2026-11-01T09:00:00+08:00");
+    const home = await getHome(fakeDb(true, true));
+    expect(homeResponseSchema.safeParse(home).success).toBe(true);
+    expect(home.status).toBe("draft");
+    expect(home.hero.notice?.actions).toHaveLength(2);
   });
 
   it("answers 409 when no month can be open because there is no household yet", async () => {

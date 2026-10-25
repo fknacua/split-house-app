@@ -3,7 +3,7 @@ import { dateKey, monthKey } from '../schemas/primitives';
 import { badgeSchema } from './history';
 
 /** Where the month is in its cycle. Picks the hero and the footer. */
-export const homeStatusSchema = z.enum(['bill_missing']);
+export const homeStatusSchema = z.enum(['bill_missing', 'draft']);
 
 /** Where the month is in its cycle. Picks the hero and the footer. */
 export type HomeStatus = z.infer<typeof homeStatusSchema>;
@@ -13,6 +13,8 @@ export const homeTargetSchema = z.discriminatedUnion('kind', [
   z.object({ kind: z.literal('recipient'), month: monthKey, personId: z.string() }),
   z.object({ kind: z.literal('mark-paid'), chargeId: z.string() }),
   z.object({ kind: z.literal('bill-upload'), month: monthKey }),
+  z.object({ kind: z.literal('bill-draft-continue'), month: monthKey }),
+  z.object({ kind: z.literal('bill-draft-discard'), month: monthKey }),
 ]);
 
 /** Where a tap on a row link, a row action or the footer goes. Carries only the ids the target screen needs. */
@@ -51,6 +53,30 @@ export const homeHeroBodySchema = z.discriminatedUnion('kind', [
 /** The hero card's body. One member per kind of hero; later statuses add members. */
 export type HomeHeroBody = z.infer<typeof homeHeroBodySchema>;
 
+/** A button inside an expanded row, or inside the hero's notice. */
+export const homeActionSchema = z.object({
+  /** e.g. `Mark paid`. */
+  label: z.string(),
+  tone: z.enum(['primary', 'outline']),
+  /** Null for a button with a label only, like Continue. */
+  icon: z.enum(['check']).nullable(),
+  target: homeTargetSchema,
+});
+
+/** A button inside an expanded row, or inside the hero's notice. */
+export type HomeAction = z.infer<typeof homeActionSchema>;
+
+/** An info Alert inside the hero card, e.g. the unfinished bill draft. */
+export const homeNoticeSchema = z.object({
+  /** e.g. `Unfinished bill draft`. */
+  title: z.string(),
+  text: z.string(),
+  actions: z.array(homeActionSchema),
+});
+
+/** An info Alert inside the hero card, e.g. the unfinished bill draft. */
+export type HomeNotice = z.infer<typeof homeNoticeSchema>;
+
 /** The hero card at the top of Home. */
 export const homeHeroSchema = z.object({
   /** e.g. `1 Nov · Step 1 of 3`. */
@@ -60,22 +86,12 @@ export const homeHeroSchema = z.object({
   /** The one-line status the pinned compact card shows once the hero scrolls away. */
   compactStatus: z.string(),
   body: homeHeroBodySchema,
+  /** An info Alert at the bottom of the card, e.g. the unfinished bill draft. Null when there is none. */
+  notice: homeNoticeSchema.nullable(),
 });
 
 /** The hero card at the top of Home. */
 export type HomeHero = z.infer<typeof homeHeroSchema>;
-
-/** A button inside an expanded row. */
-export const homeActionSchema = z.object({
-  /** e.g. `Mark paid`. */
-  label: z.string(),
-  tone: z.enum(['outline']),
-  icon: z.enum(['check']),
-  target: homeTargetSchema,
-});
-
-/** A button inside an expanded row. */
-export type HomeAction = z.infer<typeof homeActionSchema>;
 
 /** One row of the Charges list: a charge, or the utilities bill. */
 export const homeRowSchema = z.object({
@@ -113,7 +129,7 @@ export const homePrimaryActionSchema = z
   .object({
     /** e.g. `Upload utilities bill`. */
     label: z.string(),
-    icon: z.enum(['upload']),
+    icon: z.enum(['upload', 'file-pen']),
     target: homeTargetSchema,
   })
   .nullable();
