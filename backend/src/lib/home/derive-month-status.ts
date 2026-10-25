@@ -14,13 +14,10 @@ export interface MonthFacts {
  *
  * @param facts - What was read for the month.
  * @returns `draft` while an unsaved bill draft is waiting and no bill is saved, `unsent` while a
- * saved bill has people with no monthly message, otherwise `bill_missing`.
- * @throws {Error} When every message is sent: the later statuses are built in the next Home steps.
+ * saved bill has people with no monthly message, `collecting` once every message is out, otherwise
+ * `bill_missing`.
  */
 export function deriveMonthStatus(facts: MonthFacts): HomeStatus {
-  if (facts.hasBill) {
-    if (facts.unsentMessages > 0) return "unsent";
-    throw new Error("Month statuses after unsent are not built yet");
-  }
+  if (facts.hasBill) return facts.unsentMessages > 0 ? "unsent" : "collecting";
   return facts.hasDraft ? "draft" : "bill_missing";
 }

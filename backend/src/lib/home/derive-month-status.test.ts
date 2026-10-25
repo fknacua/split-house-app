@@ -18,7 +18,7 @@ describe("deriveMonthStatus", () => {
     expect(deriveMonthStatus({ hasBill: true, hasDraft: true, unsentMessages: 1 })).toBe("unsent");
   });
 
-  it("throws once every message is sent, until the later statuses are built", () => {
-    expect(() => deriveMonthStatus({ hasBill: true, hasDraft: false, unsentMessages: 0 })).toThrow();
+  it("is collecting once every message is out, whatever is paid", () => {
+    expect(deriveMonthStatus({ hasBill: true, hasDraft: false, unsentMessages: 0 })).toBe("collecting");
   });
 });

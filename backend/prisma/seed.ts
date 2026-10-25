@@ -27,6 +27,8 @@ const SCENARIOS = {
   draft: { devNow: "2026-11-01T09:00:00+08:00" },
   // November is open with its bill saved and utilities charges built, and no message sent.
   unsent: { devNow: "2026-11-01T09:00:00+08:00" },
+  // As unsent, with the monthly messages opened on 2 Nov, Jordan's rent nudged, and a few payments in.
+  collecting: { devNow: "2026-11-03T09:00:00+08:00" },
 } as const;
 
 type ScenarioName = keyof typeof SCENARIOS;
@@ -319,7 +321,7 @@ async function main() {
     });
   }
 
-  if (scenario === "unsent") {
+  if (scenario === "unsent" || scenario === "collecting") {
     // Opened through the same function Home uses, so November has version B's rent and recurring
     // charges. The bill is synthetic, with the Nov 2026 fixture total; due 16 Nov.
     const november = await openMonthIfNeeded(prisma, "2026-11");
@@ -346,6 +348,33 @@ async function main() {
     });
     for (const c of buildUtilitiesCharges(NOV_2026_CONFIG, { month: "2026-11", currentChargesCents: 41230 })) {
       await insertCharge({ ...c, month: "2026-11", householdVersionId: november.householdVersionId, billId: bill.id });
+    }
+
+    if (scenario === "collecting") {
+      const charges = await prisma.charge.findMany({ where: { month: "2026-11" } });
+      const find = (personId: string, category: string) => {
+        const charge = charges.find((c) => c.personId === personId && c.category === category);
+        if (!charge) throw new Error(`No ${category} charge for ${personId}`);
+        return charge;
+      };
+      // Jordan and Priya are the payers who get a monthly message (Sam rides in Priya's).
+      await seedMonthlyMessage("2026-11", PERSON_IDS.jordan, find(PERSON_IDS.jordan, "UTILITIES").id, "2026-11-02T10:00:00+08:00");
+      await seedMonthlyMessage("2026-11", PERSON_IDS.priya, find(PERSON_IDS.priya, "UTILITIES").id, "2026-11-02T10:05:00+08:00");
+      // Jordan's rent was due 1 Nov and is still unpaid, so it was nudged on 2 Nov.
+      const jordanRent = find(PERSON_IDS.jordan, "RENT");
+      await prisma.messageEvent.create({
+        data: {
+          month: "2026-11",
+          personId: PERSON_IDS.jordan,
+          kind: "NUDGE",
+          chargeId: jordanRent.id,
+          renderedText: `Hi ${PERSON_NAMES[PERSON_IDS.jordan]}! Paalala lang, yung Rent for 2026-11 ay due na. (seed placeholder text)`,
+          openedAt: new Date("2026-11-02T18:00:00+08:00"),
+        },
+      });
+      // Sam paid his rent early, and Priya paid her utilities, so some is back and coverage is partial.
+      await markPaid(find(PERSON_IDS.sam, "RENT").id, PERSON_IDS.sam, "2026-11-03");
+      await markPaid(find(PERSON_IDS.priya, "UTILITIES").id, PERSON_IDS.priya, "2026-11-03");
     }
   }
 

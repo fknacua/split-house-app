@@ -1,8 +1,14 @@
 import { parseHouseholdConfig, todayKey, type HomeResponse } from "@splithouse/shared";
 import { ApiError } from "@/lib/api";
-import { buildHome, type HomeBill, type HomeChargeRow, type HomePerson } from "@/lib/home/build-home";
+import {
+  buildHome,
+  type HomeBill,
+  type HomeChargeRow,
+  type HomeMessage,
+  type HomePerson,
+} from "@/lib/home/build-home";
 import { deriveMonthStatus } from "@/lib/home/derive-month-status";
-import { messageRecipientIds, unsentRecipientIds } from "@/lib/home/message-recipients";
+import { messageRecipientIds, monthlyMessagedIds, unsentRecipientIds } from "@/lib/home/message-recipients";
 import { currentMonth } from "@/lib/month";
 import { openMonthIfNeeded, type MonthOpenDb } from "@/lib/month-open";
 import { now } from "@/lib/now";
@@ -16,7 +22,11 @@ const CHARGE_SELECT = {
   amountCents: true,
   dueDate: true,
   paidCents: true,
+  paidOn: true,
 } as const;
+
+// The rendered text of a message is never needed on Home.
+const MESSAGE_SELECT = { personId: true, kind: true, chargeId: true, openedAt: true } as const;
 
 // The bill's PDF lives in `BillFile`, which is never read here.
 const BILL_SELECT = { currentChargesCents: true, dueDate: true } as const;
@@ -48,10 +58,7 @@ export type HomeDb = MonthOpenDb & {
     findUnique(args: { where: { month: string }; select: { id: true } }): Promise<{ id: string } | null>;
   };
   messageEvent: {
-    findMany(args: {
-      where: { month: string; kind: "MONTHLY" };
-      select: { personId: true };
-    }): Promise<{ personId: string }[]>;
+    findMany(args: { where: { month: string }; select: typeof MESSAGE_SELECT }): Promise<HomeMessage[]>;
   };
 };
 
@@ -77,12 +84,14 @@ export async function getHome(db: HomeDb): Promise<HomeResponse> {
     db.charge.findMany({ where: { month: opened.month }, select: CHARGE_SELECT }),
     db.bill.findUnique({ where: { month: opened.month }, select: BILL_SELECT }),
     db.billDraft.findUnique({ where: { month: opened.month }, select: { id: true } }),
-    db.messageEvent.findMany({ where: { month: opened.month, kind: "MONTHLY" }, select: { personId: true } }),
+    db.messageEvent.findMany({ where: { month: opened.month }, select: MESSAGE_SELECT }),
   ]);
 
   const ownerIds = new Set(people.filter((p) => p.isOwner).map((p) => p.id));
-  const messagedPersonIds = messages.map((m) => m.personId);
-  const unsentMessages = unsentRecipientIds(messageRecipientIds(charges, ownerIds), messagedPersonIds).length;
+  const unsentMessages = unsentRecipientIds(
+    messageRecipientIds(charges, ownerIds),
+    monthlyMessagedIds(messages),
+  ).length;
 
   return buildHome({
     month: opened.month,
@@ -92,6 +101,6 @@ export async function getHome(db: HomeDb): Promise<HomeResponse> {
     people,
     charges,
     bill,
-    messagedPersonIds,
+    messages,
   });
 }

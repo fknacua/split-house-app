@@ -1,4 +1,4 @@
-import { FilePen, Upload, type LucideIcon } from 'lucide-react-native';
+import { Banknote, FilePen, Upload, type LucideIcon } from 'lucide-react-native';
 import { View } from 'react-native';
 
 import { Button } from '@/components';
@@ -10,6 +10,7 @@ import type { HomeFooterProps } from '../types';
 const ICONS: Record<HomeFooterProps['action']['icon'], LucideIcon> = {
   upload: Upload,
   'file-pen': FilePen,
+  banknote: Banknote,
 };
 
 /** The sticky button under the content, above the bottom navigation. */
