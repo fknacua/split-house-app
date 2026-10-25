@@ -30,6 +30,7 @@ Stack it assumes: Postgres on Neon, Prisma, Next.js route handlers on Vercel, Be
 `config` holds:
 - **Per person:** fixed rent in cents, utility shares (stored as thousandths, so 1.5 shares is 1500), aircon units, payment route per charge type (`DIRECT` or `VIA` another person), due day per charge type, deposit held.
 - **Per category (rent, utilities, aircon):** total shares or units, and the remainder split between Francis and Primary tenant in basis points (5000/5000 by default).
+- **Utilities bill due day:** an optional fixed day of the month (1 to 31). Home uses it to place the bill row before a bill exists; the due date of an uploaded bill supersedes it.
 - **Recurring charges:** label, amount in cents, person, optional end month (Starhub $27.50 for Primary tenant).
 - **Message templates:** monthly breakdown and nudge, per-person overrides, custom line labels.
 

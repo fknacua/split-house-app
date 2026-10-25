@@ -380,3 +380,11 @@ Skipped at Francis's request: not needed. `History.dc.html` shows no target for 
 ## 2026-10-25: 4.4, Phase 4 ✅
 
 Francis said 4.4 (check against the seeded Aug, Sep and Oct months) is essentially done, taken as approval; I did not re-run the device check. Phase 4 exit check: the full type check passes in `app`, `backend` and `shared`. Phase 4 is complete.
+
+## 2026-10-25: Phase 5 reorganized (planning only)
+
+Rewrote the Phase 5 section of `implementation-plan.md` as one step per Home state, each building on the last: 5.1 `upload` + `loading` (the base: contract, services, libs, route, UI), 5.2 `draft`, 5.3 `unsent`, 5.4 `collecting`, 5.5 `dueToday`, 5.6 `settled`, 5.7 start the next month early, 5.8 Home pass. Seed scenarios are now built inside each step (old 5.0 removed), with a `DEV_NOW` per step: the 1st for 5.1 to 5.3, later dates after. Home is a backend-for-frontend, `GET /api/home`, with the server choosing the month.
+
+Decided with Francis: one row per charge with type-first titles and the due-day column; no savings special case (fronting is non-owner, non-utilities charges minus what is paid, so Tenant 2's rent counts); a fixed bill due day in the household config (`categories.utilities.billDueDay`, superseded by an uploaded bill's date); months can start early (automatically on the 1st even if last month is unsettled, or by a button once the month is settled, any day), built in 5.7 only after its design exists; every action the design shows is rendered, with actions to unbuilt screens doing nothing; each step labels its changes to earlier steps as refactor or simple addition. Dropped from Home: the aircon-due and unusual-bill alerts and the header month chevron.
+
+Also reworded the "month summary" and old 5.3/5.4 references in 1.9, 7A.5, 7B.5 and 11.2. Logged H1 to H10 and Q1 to Q4 in `design-deviations.md`; added `billDueDay` to the Data Model doc. Dev database was reseeded once to inspect November (5 rent and recurring charges, no bill, no messages); no code changed. Decided afterwards: Sam's utilities use Priya's due day for now (per-person due dates come later). Row titles keep the design's `·` separator and the design's detail lines and badges (Francis sent the dark collecting, due-today and settled boards). Nothing is open before 5.1.
