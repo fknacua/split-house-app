@@ -163,3 +163,28 @@ describe("getHome", () => {
     await expect(getHome(fakeDb(false))).rejects.toMatchObject({ status: 409 });
   });
 });
+
+describe("getHome nextMonthAction", () => {
+  it("offers the Close dialog for a settled month, and it parses", async () => {
+    vi.stubEnv("DEV_NOW", "2026-11-29T09:00:00+08:00");
+    const home = await getHome(fakeDb(true, { hasBill: true, allPaid: true, messaged: [PERSON_IDS.priya, PERSON_IDS.jordan] }));
+    expect(homeResponseSchema.safeParse(home).success).toBe(true);
+    expect(home.nextMonthAction).toEqual({
+      label: "Start next month",
+      dialog: {
+        title: "Close November?",
+        body: "This closes November 2026 and starts December. You can’t undo this.",
+        items: [
+          "November moves to History and becomes read-only",
+          "Changes to any household configuration will take effect after December",
+        ],
+      },
+    });
+  });
+
+  it("offers nothing while the month is not settled", async () => {
+    vi.stubEnv("DEV_NOW", "2026-11-29T09:00:00+08:00");
+    const home = await getHome(fakeDb(true, { hasBill: true, messaged: [PERSON_IDS.priya, PERSON_IDS.jordan] }));
+    expect(home.nextMonthAction).toBeNull();
+  });
+});

@@ -12,7 +12,7 @@ Stack it assumes: Postgres on Neon, Prisma, Next.js route handlers on Vercel, Be
 
 - **Versioned settings.** Every save on Household (and the settings that follow its "starts from" rule) creates a new immutable `HouseholdVersion` stamped with a starts-from month. A month uses the newest version that starts on or before it. Old versions are never edited.
 - **Saved amounts.** Charges are created with their cents stored. They are never recalculated from settings later.
-- **Edits never touch existing months.** A Household edit must start **after the current month** (next month or later), so it can never affect a month whose charges already exist. Fixing a past or current month is done with a correction charge. There is no regenerate step.
+- **Edits never touch existing months.** A Household edit must start **after the current month** (next month or later), so it can never affect a month whose charges already exist. "Current month" here is the newest opened month, so once December is started early, edits start from January. Fixing a past or current month is done with a correction charge. There is no regenerate step.
 - **First-run exception.** The very first version, created in first-run setup, may start at the go-live month (Nov 2026).
 - **Payments are paid fields on the Charge.** No separate Payment table. Recording a payment marks charges paid, with who paid.
 - **Split engine** is one pure function that runs only on the backend. Add charge and Household previews call preview endpoints. Its unit tests use the Nov 2026 fixtures below.
@@ -65,6 +65,7 @@ Better Auth tables (`user`, `session`, `account`, `verification`). Sign-in is al
 ## Rules the model enforces
 
 - **Month opens lazily.** The first request on or after the 1st creates the `Month`, pins the current `HouseholdVersion`, and creates the rent and recurring charges.
+- **A settled month can open the next one early.** Paydays differ, so billing often starts a few days before the 1st. Once the newest opened month is settled, Home offers "Start next month", which opens the month after it the same way (pinning the `HouseholdVersion` that covers that month). The request is refused if the newest month is not settled or the next month is already open. "Current month" then means the newest opened month, not the calendar month. There is no undo; fix mistakes with correction charges.
 - **Utilities charges are created when a bill is saved**, in the same transaction.
 - **Aircon and other one-offs** are created from the Add charge sheet.
 - **Corrections** are charges with `correctsMonth` set, positive or negative, landing on the next payment.

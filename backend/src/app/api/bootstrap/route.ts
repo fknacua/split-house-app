@@ -1,5 +1,5 @@
 import { requireSession, route } from "@/lib/api";
-import { getBootstrap } from "@/lib/bootstrap";
+import { getBootstrap } from "@/services/bootstrap/bootstrap.service";
 import { prisma } from "@/lib/prisma";
 
 /** What the app needs after sign-in and on launch: household present, month, setup steps, settings. */

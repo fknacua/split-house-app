@@ -22,7 +22,7 @@ body{margin:0}
 <!-- Header: Pressable (month picker) + Button outline small (Add charge) -->
 <header style="display: flex; align-items: center; justify-content: space-between; padding: 4px 8px 4px 16px; height: 56px; flex-shrink: 0">
 <button aria-label="Change month" style="display: flex; align-items: center; gap: 6px; background: none; border: 0; padding: 0; min-height: 48px; font-family: inherit; color: {{c.onSurface}}; cursor: pointer">
-<span style="font-size: 24px; line-height: 32px; font-weight: 800; letter-spacing: -0.3px">November 2026</span>
+<span style="font-size: 24px; line-height: 32px; font-weight: 800; letter-spacing: -0.3px">{{monthLabel}}</span>
 <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m6 9 6 6 6-6"></path></svg>
 </button>
 <button style="height: 44px; padding: 0 16px 0 12px; border-radius: 22px; border: 1px solid {{c.outline}}; background: none; color: {{c.onSurface}}; display: flex; align-items: center; gap: 6px; font-family: inherit; font-size: 14px; line-height: 20px; font-weight: 700; cursor: pointer">
@@ -105,7 +105,7 @@ Add charge
 <div style="display: flex; gap: 10px">
 <div style="flex: 1 1 0; min-width: 0; background: {{c.heroTile}}; border-radius: 16px; padding: 12px; display: flex; flex-direction: column; gap: 2px">
 <span style="font-size: 12px; line-height: 16px; font-weight: 600; opacity: 0.85">You’re fronting</span>
-<span style="font-size: 20px; line-height: 28px; font-weight: 800; font-variant-numeric: tabular-nums">$2,725.83</span>
+<span style="font-size: 20px; line-height: 28px; font-weight: 800; font-variant-numeric: tabular-nums">{{frontAmt}}</span>
 </div>
 <div style="flex: 1 1 0; min-width: 0; background: {{c.heroTile}}; border-radius: 16px; padding: 12px; display: flex; flex-direction: column; gap: 2px">
 <span style="font-size: 12px; line-height: 16px; font-weight: 600; opacity: 0.85">Utilities bill coverage</span>
@@ -208,7 +208,7 @@ Add charge
 <button aria-expanded="{{r.expandedAttr}}" onClick="{{r.toggle}}" style="width: 100%; display: flex; align-items: center; gap: 12px; min-height: 64px; padding: 12px 10px 12px 14px; box-sizing: border-box; border: 0; background: none; color: inherit; font-family: inherit; text-align: left; cursor: pointer">
 <div style="width: 38px; flex-shrink: 0; display: flex; flex-direction: column; align-items: center; padding-top: 1px">
 <span style="font-size: 20px; line-height: 24px; font-weight: 800; color: {{r.dayFg}}; font-variant-numeric: tabular-nums">{{r.day}}</span>
-<span style="font-size: 10px; line-height: 14px; font-weight: 700; letter-spacing: 0.8px; color: {{c.onSurfaceVariant}}">NOV</span>
+<span style="font-size: 10px; line-height: 14px; font-weight: 700; letter-spacing: 0.8px; color: {{c.onSurfaceVariant}}">{{monAbbr}}</span>
 </div>
 <div style="flex-grow: 1; min-width: 0; display: flex; flex-direction: column; gap: 3px">
 <div style="display: flex; justify-content: space-between; gap: 8px">
@@ -265,6 +265,13 @@ Add charge
 Upload utilities bill
 </a>
 </sc-if>
+<sc-if value="{{isSettled}}" hint-placeholder-val="{{false}}">
+<!-- Button (solid, 48px): start the next month before its bill arrives -->
+<a href="{{nextMonthHref}}" style="width: 100%; height: 48px; border-radius: 24px; background: {{c.primary}}; color: {{c.onPrimary}}; display: flex; align-items: center; justify-content: center; gap: 10px; font-size: 15px; line-height: 20px; font-weight: 700; text-decoration: none">
+<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M8 2v4"></path><path d="M16 2v4"></path><path d="M21 13V6a2 2 0 0 0-2-2H5a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h8"></path><path d="M3 10h18"></path><path d="M19 16v6"></path><path d="M16 19h6"></path></svg>
+Start next month
+</a>
+</sc-if>
 <sc-if value="{{isCollecting}}" hint-placeholder-val="{{false}}">
 <a href="{{recordHref}}" style="width: 100%; height: 48px; border-radius: 24px; background: {{c.primary}}; color: {{c.onPrimary}}; display: flex; align-items: center; justify-content: center; gap: 10px; font-size: 15px; line-height: 20px; font-weight: 700; text-decoration: none">
 <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect width="20" height="12" x="2" y="6" rx="2"></rect><circle cx="12" cy="12" r="2"></circle><path d="M6 12h.01M18 12h.01"></path></svg>
@@ -296,7 +303,7 @@ Record payment
 </div>
 </div>
 </x-dc>
-<script type="text/x-dc" data-dc-script data-props='{"state":{"editor":"enum","options":["upload","draft","unsent","collecting","dueToday","settled","loading"],"default":"upload"},"theme":{"editor":"enum","options":["light","dark"],"default":"light"},"$preview":{"width":400,"height":848}}'>
+<script type="text/x-dc" data-dc-script data-props='{"state":{"editor":"enum","options":["upload","draft","unsent","collecting","dueToday","settled","loading"],"default":"upload"},"month":{"editor":"enum","options":["nov","dec"],"default":"nov"},"theme":{"editor":"enum","options":["light","dark"],"default":"light"},"$preview":{"width":400,"height":848}}'>
 class Component extends DCLogic {
   renderVals() {
     var dark = this.props.theme === 'dark';
@@ -381,7 +388,17 @@ class Component extends DCLogic {
     };
     var rows;
     var needsBill = 'Worked out once the utilities bill is uploaded.';
-    if (st === 'upload') {
+    var dec = this.props.month === 'dec';
+    if (st === 'upload' && dec) {
+      // Next month, started early: nothing is due yet and no bill is in
+      rows = [
+        mk('1', 'Tenant 2 · Rent', '$950.00', 'Goes to savings once paid', 'Due in 2 days', 'due', L.tenant2, 'View details', [PAID()]),
+        mk('4', 'Tenant 2 · Utilities', '—', 'Utilities share + aircon', 'Needs bill', 'wait', L.tenant2, 'View details', null, needsBill),
+        mk('7', 'Primary Tenant + Tenant 1’s share', '—', 'Rent, utilities, aircon, Starhub', 'Needs bill', 'wait', L.primaryNotSent, 'View details', null, needsBill),
+        mk('16', 'Utilities bill', '—', 'You pay utilities', 'Not uploaded', 'wait', L.billPick, 'Upload bill'),
+        mk('28', 'Tenant 1 · Rent', '$950.00', 'Pays you directly', 'Upcoming', 'wait', null, 'View details', [PAID()])
+      ];
+    } else if (st === 'upload') {
       rows = [
         mk('1', 'Tenant 2 · Rent', '$950.00', 'Goes to savings once paid', 'Overdue 1 day', 'overdue', L.tenant2, 'View details', [NUDGE('Nudge'), PAID()]),
         mk('4', 'Tenant 2 · Utilities', '—', 'Utilities share + aircon', 'Needs bill', 'wait', L.tenant2, 'View details', null, needsBill),
@@ -450,10 +467,10 @@ class Component extends DCLogic {
         opacity: reached ? '1' : '0.75'
       };
     });
-    var dateLine = { upload: 'Mon 2 Nov · Step 1 of 3', unsent: 'Mon 2 Nov · Step 2 of 3', collecting: 'Tue 3 Nov · Collecting', dueToday: 'Wed 4 Nov · Collecting', settled: 'Sun 29 Nov · Done' }[st];
+    var dateLine = { upload: dec ? 'Sun 29 Nov · Step 1 of 3' : 'Mon 2 Nov · Step 1 of 3', unsent: 'Mon 2 Nov · Step 2 of 3', collecting: 'Tue 3 Nov · Collecting', dueToday: 'Wed 4 Nov · Collecting', settled: 'Sun 29 Nov · Done' }[st];
     var skelW = [['58%', '44%'], ['50%', '62%'], ['66%', '70%'], ['44%', '38%'], ['52%', '48%']];
     var skelRows = skelW.map(function (w, i) { return { w1: w[0], w2: w[1], divider: i === 0 ? 'transparent' : c.outlineVariant }; });
-    var showAction = st !== 'settled' && st !== 'unsent' && !isLoading;
+    var showAction = st !== 'unsent' && !isLoading;
     return {
       uploadHref: L.billPick,
       continueHref: 'Upload-Review-' + T + '.dc.html',
@@ -473,6 +490,10 @@ class Component extends DCLogic {
       coverNote: 'Your share only so far · due Mon 16 Nov',
       hasDueToday: st === 'dueToday',
       recordHref: L.record,
+      monthLabel: dec ? 'December 2026' : 'November 2026',
+      monAbbr: dec ? 'DEC' : 'NOV',
+      frontAmt: dec ? '$0.00' : '$2,725.83',
+      nextMonthHref: dark ? 'CloseMonth-Idle-Dark.dc.html' : 'CloseMonth-Idle-Light.dc.html',
       onScroll: function (e) {
         var y = e && e.currentTarget ? e.currentTarget.scrollTop : 0;
         var next = y > 140;

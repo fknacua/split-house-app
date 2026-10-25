@@ -1,11 +1,9 @@
 import { Banknote, FilePen, Upload, type LucideIcon } from 'lucide-react-native';
-import { View } from 'react-native';
 
 import { Button } from '@/components';
-import { topShadow } from '@/lib/elevation';
-import { useThemePreference } from '@/lib/theme-preference';
 import { openTarget } from '../open-target';
 import type { HomeFooterProps } from '../types';
+import { HomeFooterBar } from './home-footer-bar';
 
 const ICONS: Record<HomeFooterProps['action']['icon'], LucideIcon> = {
   upload: Upload,
@@ -15,14 +13,9 @@ const ICONS: Record<HomeFooterProps['action']['icon'], LucideIcon> = {
 
 /** The sticky button under the content, above the bottom navigation. */
 export function HomeFooter({ action }: HomeFooterProps) {
-  const { resolved } = useThemePreference();
-
   return (
-    <View
-      className="border-t border-outline-variant bg-background px-4 py-2.5"
-      style={{ boxShadow: topShadow(resolved) }}
-    >
+    <HomeFooterBar>
       <Button label={action.label} icon={ICONS[action.icon]} onPress={() => openTarget(action.target)} />
-    </View>
+    </HomeFooterBar>
   );
 }

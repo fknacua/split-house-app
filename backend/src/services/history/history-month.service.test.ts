@@ -1,4 +1,4 @@
-import { describe, expect, it } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
 import { ApiError } from "@/lib/api";
 import {
   buildHistoryMonth,
@@ -13,10 +13,12 @@ function fakeDb(
   bill: HistoryMonthBillRow | null,
   charges: HistoryMonthChargeRow[],
   corrections: HistoryMonthChargeRow[] = [],
+  newestMonth: string | null = null,
 ): HistoryMonthDb {
   return {
     bill: { findUnique: async () => bill },
     charge: { findMany: async ({ where }) => ("correctsMonth" in where ? corrections : charges) },
+    month: { findFirst: async () => (newestMonth ? { month: newestMonth } : null) },
   };
 }
 
@@ -54,5 +56,15 @@ describe("getHistoryMonth", () => {
     const error = await getHistoryMonth(fakeDb(BILL, CHARGES), currentMonth()).catch((e) => e);
     expect(error).toBeInstanceOf(ApiError);
     expect(error.status).toBe(404);
+  });
+});
+
+describe("getHistoryMonth with a month started early", () => {
+  afterEach(() => vi.unstubAllEnvs());
+
+  it("serves the month before the newest opened month, though it is still the calendar month", async () => {
+    vi.stubEnv("DEV_NOW", "2026-11-29T09:00:00+08:00");
+    const response = await getHistoryMonth(fakeDb(BILL, CHARGES, [], "2026-12"), "2026-11");
+    expect(response.month).toBe("2026-11");
   });
 });

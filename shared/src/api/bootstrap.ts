@@ -7,7 +7,7 @@ import { setupStepSchema } from '../schemas/setup';
 export const bootstrapResponseSchema = z.object({
   /** A household version exists. False sends the app to first-run setup. */
   hasHousehold: z.boolean(),
-  /** Current billing month, `YYYY-MM`, in Asia/Singapore. */
+  /** The active billing month, `YYYY-MM`: the newest opened month, or the calendar month in Asia/Singapore when that is later. */
   currentMonth: monthKey,
   /** The first-run checklist, in display order. */
   setupProgress: z.array(setupStepSchema),

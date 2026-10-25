@@ -11,6 +11,7 @@ import {
   type ChargeType,
   type HomeAction,
   type HomeHero,
+  type HomeNextMonthAction,
   type HomeNotice,
   type HomePrimaryAction,
   type HomeResponse,
@@ -450,7 +451,6 @@ function buildHero(
             { label: "You’re fronting", value: formatCents(fronting) },
             { label: "Utilities bill covered", value: formatCents(input.bill.currentChargesCents) },
           ],
-          footnote: `${formatMonthName(addMonths(input.month, 1))}’s bill usually lands around the 2nd.`,
         },
         notice: null,
         dueToday: null,
@@ -568,6 +568,29 @@ function buildPrimaryAction(input: HomeInput): HomePrimaryAction {
 }
 
 /**
+ * The settled month's bottom button and the Close dialog it opens. The label is fixed; the dialog
+ * names the month being closed and the next one.
+ *
+ * @returns The action, or null in every status but `settled`.
+ */
+function buildNextMonthAction(input: HomeInput): HomeNextMonthAction {
+  if (input.status !== "settled") return null;
+  const closing = formatMonthName(input.month);
+  const next = formatMonthName(addMonths(input.month, 1));
+  return {
+    label: "Start next month",
+    dialog: {
+      title: `Close ${closing}?`,
+      body: `This closes ${formatMonthLabel(input.month)} and starts ${next}. You can’t undo this.`,
+      items: [
+        `${closing} moves to History and becomes read-only`,
+        `Changes to any household configuration will take effect after ${next}`,
+      ],
+    },
+  };
+}
+
+/**
  * Builds the Home response: the hero, one row per charge ordered by due date, and the footer.
  * Rows for utilities charges that do not exist yet are projected from the pinned config.
  *
@@ -609,5 +632,6 @@ export function buildHome(input: HomeInput): HomeResponse {
     ),
     rows: ranked.map((r) => r.row),
     primaryAction: buildPrimaryAction(input),
+    nextMonthAction: buildNextMonthAction(input),
   };
 }

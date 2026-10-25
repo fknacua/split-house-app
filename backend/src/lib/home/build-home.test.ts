@@ -575,7 +575,7 @@ describe("buildHome, settled on 29 Nov", () => {
     );
   const home = settled();
 
-  it("shows the settled hero: all steps done, the check title, two tiles and the footnote", () => {
+  it("shows the settled hero: all steps done, the check title, two tiles", () => {
     expect(home.status).toBe("settled");
     expect(home.hero.dateLine).toBe("29 Nov · Done");
     expect(home.hero.steps.map((s) => s.state)).toEqual(["done", "done", "done"]);
@@ -588,7 +588,6 @@ describe("buildHome, settled on 29 Nov", () => {
         { label: "You’re fronting", value: "$0.00" },
         { label: "Utilities bill covered", value: "$412.30" },
       ],
-      footnote: "December’s bill usually lands around the 2nd.",
     });
     expect(home.hero.dueToday).toBeNull();
     expect(home.hero.notice).toBeNull();
@@ -629,9 +628,10 @@ describe("buildHome, settled on 29 Nov", () => {
     expect(noDate.hero.body).toMatchObject({ text: "Everyone’s paid." });
   });
 
-  it("rolls the footnote into the new year", () => {
-    expect(settled({ month: "2026-12" }).hero.body).toMatchObject({
-      footnote: "January’s bill usually lands around the 2nd.",
+  it("names the next month in the Close dialog across the new year", () => {
+    expect(settled({ month: "2026-12" }).nextMonthAction?.dialog).toMatchObject({
+      title: "Close December?",
+      body: "This closes December 2026 and starts January. You can’t undo this.",
     });
   });
 });

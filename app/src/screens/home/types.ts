@@ -1,6 +1,7 @@
 import type {
   HomeAction,
   HomeHero,
+  HomeNextMonthAction,
   HomeNotice,
   HomePrimaryAction,
   HomeRow,
@@ -21,7 +22,7 @@ export interface HomeCollectingBodyProps {
 
 /** Props for {@link HomeSettledBody}. */
 export interface HomeSettledBodyProps {
-  /** The settled title, text, tiles and footnote. */
+  /** The settled title, text and tiles. */
   body: Extract<HomeHero['body'], { kind: 'settled' }>;
 }
 
@@ -81,4 +82,10 @@ export interface HomeActionButtonProps {
 export interface HomeFooterProps {
   /** The footer button. */
   action: NonNullable<HomePrimaryAction>;
+}
+
+/** Props for {@link HomeNextMonthFooter}. */
+export interface HomeNextMonthFooterProps {
+  /** The button label and the Close dialog's text. */
+  action: NonNullable<HomeNextMonthAction>;
 }

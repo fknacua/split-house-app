@@ -14,7 +14,7 @@ This is the design reference for the coding agent working in this repo. It point
 
 | Path | What it is |
 |---|---|
-| `docs/design/source/*.dc.html` | One file per screen component (18). Read them as markup (they need the design tool to render): the HTML gives exact spacing, sizes, copy and the token set `c` in the script block. They are a visual reference, not code to port line by line. |
+| `docs/design/source/*.dc.html` | One file per screen component (19). Read them as markup (they need the design tool to render): the HTML gives exact spacing, sizes, copy and the token set `c` in the script block. They are a visual reference, not code to port line by line. |
 | `docs/design/config.ts`, `docs/design/global.css` | NativeWind and gluestack v5 theme variables, light and dark. Copy into the app's gluestack provider config and global CSS. |
 | `docs/Rent & Utils — gluestack v5 theme and screen mapping.md` | Token names, which gluestack component each part of each screen uses, and what is custom. |
 | Design canvas (private, owner only) | https://claude.ai/artifact/Lknba8Qamp5n3N7BLMNuQe. The agent cannot open it. Ask the owner for a screenshot of a board when the source file is not enough. |
@@ -34,6 +34,10 @@ The canvas boards are the same component with different props. The tables below 
 - Success alert (gluestack `Alert`, success variant): only on Mark bill paid, fully collected ("All $412.30 is collected..."). Tinted background (`success-tint`), `success-line` border, `success` check icon, `on-success-container` text. Alert text is tinted per variant (info, warning, success, error), not neutral. The partial-collected note stays a warning alert. Status chips such as Paid are unchanged.
 - Overdue is an error badge: `danger-container` background with `on-danger-container` text, on Home, Recipient and the Can't reach the server backdrop. Recipient's "Rent overdue since..." status line is `danger`. The overdue row's background tint on Home stays the warning tint. Due today and Due tomorrow stay info.
 - The big day number in every Home charge row uses `on-surface`, whatever the status.
+- Home · All settled has a **Start next month** button in the bottom action bar, above the bottom navigation: solid full-width primary, 48px, fully rounded, 15px bold label, calendar-plus icon on the left, in the same bar (top border and shadow) as Upload utilities bill and Record payment. The navigation bar below it has no shadow of its own in this state. The label is fixed ("Start next month"), not the month's name. It shows only in the settled state and opens the Close dialog (not the next month directly); Confirm there leads to Home for the next month, in the Bill not uploaded state.
+- Close dialog (`CloseMonth`, gluestack AlertDialog, blocking): lock icon in a `danger-line` circle, title "Close November?", body "This closes November 2026 and starts December. You can't undo this.", two check lines (the month moves to History and becomes read-only; household configuration changes take effect after the next month). Cancel is the solid primary button (the safe action is the strong one); Confirm is a destructive outline (`danger` border and text). The month names are built from the month being closed and the one after it. While closing, Confirm shows a spinner and keeps its label, Cancel is disabled, both ignore taps, the dialog is busy for screen readers and cannot be dismissed.
+- Overlay stacking: Home's footer and bottom navigation sit at z-index 3, so the scrim must be above them (scrim 10, dialog 11 in `CloseMonth` and `ServerError`). Build overlays so the scrim covers the footer and navigation.
+- Home takes a `month` prop (`nov` or `dec`). December is the same screen back at Bill not uploaded: header "December 2026", row label "DEC", fronting $0.00. Its date line and sample rows are placeholder data, not to be hard-coded.
 - gluestack v5 has no connected button group, chip or bottom navigation. These are custom pieces: the bottom navigation bar, the connected button groups, the single-select chips, and the Google sign-in button. The older "segmented control" is replaced by the connected button group everywhere. Specs follow.
 - Connected button group (choose one of two to four short options, all visible). Used for Add charge Shared / Personal, Settings Theme (Light / Dark / System), Settings > Message template preview sample, and Household payment route (Directly / Via someone, in edit person and add person).
   - Row of buttons with a 2px gap, no outer border, no dividers. Equal widths (`flex: 1`) in full-width groups. The Message template preview group is compact: min width 72, horizontal padding 14, natural width.
@@ -102,7 +106,8 @@ Component and props are what to pass to the source file in `docs/design/source/`
 | Home · Bill in, messages not sent | `Main` | `state=unsent` |
 | Home · Tenant 2 rent overdue, nudged | `Main` | `state=collecting` |
 | Home · Tenant 2 utilities due today | `Main` | `state=dueToday` |
-| Home · All settled | `Main` | `state=settled` |
+| Home · All settled (with Start next month) | `Main` | `state=settled` |
+| Home · December, bill not uploaded | `Main` | `state=upload`, `month=dec` |
 | Home · Unfinished bill draft | `Main` | `state=draft` |
 
 ### Bill upload — PDF → reading → review → save, Nov 2026
@@ -218,6 +223,8 @@ Component and props are what to pass to the source file in `docs/design/source/`
 | Confirm · Remove from household | `Confirm` | `kind=removePerson` |
 | Confirm · Remove template version | `Confirm` | `kind=removeVersion` |
 | Confirm · Discard unsaved changes | `Confirm` | `kind=discard` |
+| Close November (start next month) | `CloseMonth` | `state=idle` |
+| Close November · Closing | `CloseMonth` | `state=saving` |
 
 ### Form controls — one FormControl pattern for every field
 
@@ -236,6 +243,7 @@ Component and props are what to pass to the source file in `docs/design/source/`
 
 ## Not covered by the design
 
+- Start next month (Home · All settled, Close dialog): the failure state when closing fails (no board; decided in the plan's step 5.7), and starting early while the current month still has unpaid charges (no entry point, no warning). Undo is not offered in v1. The data side (the early open, "current month" meaning the newest opened month, household edits starting after it) is in the Data Model doc. How a correction made against a closed month shows in the next month (Home, Recipient, the WhatsApp message) is not designed.
 - Anything not listed above, including a "shared in" bill intake path. That design was removed from v1.
 - Real data, copy for languages other than English, and tablet or landscape layouts.
 - The designs were never rendered on a device. Expect to nudge spacing, especially on the taller label-above forms and the Settings "notifications blocked" state.

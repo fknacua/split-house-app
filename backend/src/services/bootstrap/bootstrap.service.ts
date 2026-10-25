@@ -3,11 +3,11 @@ import {
   parseNotificationSettings,
   type BootstrapResponse,
 } from "@splithouse/shared";
-import { currentMonth } from "@/lib/month";
 import { deriveSetupProgress } from "@/lib/setup-progress";
+import { getActiveMonth, type ActiveMonthDb } from "@/services/months/active-month.service";
 
 /** The slice of the Prisma client this module uses, so tests can pass an in-memory fake. */
-export interface BootstrapDb {
+export interface BootstrapDb extends ActiveMonthDb {
   householdVersion: {
     findFirst(args: {
       orderBy: { startsFromMonth: "desc" };
@@ -19,20 +19,22 @@ export interface BootstrapDb {
 }
 
 /**
- * Builds the bootstrap response. Read-only: it does not open the month (Home's summary does).
+ * Builds the bootstrap response. Read-only: it does not open the month (Home does).
+ * `currentMonth` is the active month, so a month started early counts as the current one.
  *
  * @param db - The Prisma client, or a fake in tests.
  * @throws When the newest version has a `schemaVersion` this code does not know.
  */
 export async function getBootstrap(db: BootstrapDb): Promise<BootstrapResponse> {
-  const [version, settingsRow] = await Promise.all([
+  const [version, settingsRow, activeMonth] = await Promise.all([
     db.householdVersion.findFirst({ orderBy: { startsFromMonth: "desc" } }),
     db.settings.findUnique({ where: { id: "singleton" } }),
+    getActiveMonth(db),
   ]);
   const config = version ? parseHouseholdConfig(version.schemaVersion, version.config) : null;
   return {
     hasHousehold: version !== null,
-    currentMonth: currentMonth(),
+    currentMonth: activeMonth,
     setupProgress: deriveSetupProgress(config),
     settings: { notifications: parseNotificationSettings(settingsRow?.notifications) },
   };

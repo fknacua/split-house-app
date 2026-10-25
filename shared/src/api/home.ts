@@ -77,7 +77,7 @@ export const homeHeroBodySchema = z.discriminatedUnion('kind', [
       note: z.string(),
     }),
   }),
-  /** Every charge and the bill are paid: a check beside the title, two tiles and a footnote. */
+  /** Every charge and the bill are paid: a check beside the title and two tiles. */
   z.object({
     kind: z.literal('settled'),
     /** e.g. `November is settled`. */
@@ -85,8 +85,6 @@ export const homeHeroBodySchema = z.discriminatedUnion('kind', [
     /** e.g. `Everyone’s paid. Utilities bill paid 16 Nov.` */
     text: z.string(),
     tiles: z.tuple([homeTileSchema, homeTileSchema]),
-    /** e.g. `December’s bill usually lands around the 2nd.` */
-    footnote: z.string(),
   }),
 ]);
 
@@ -185,6 +183,31 @@ export const homePrimaryActionSchema = z
 /** The sticky footer button. Null when the status has none. */
 export type HomePrimaryAction = z.infer<typeof homePrimaryActionSchema>;
 
+/** The text of the Close dialog that confirms starting the next month. */
+export const homeCloseDialogSchema = z.object({
+  /** e.g. `Close November?`. */
+  title: z.string(),
+  /** e.g. `This closes November 2026 and starts December. You can’t undo this.` */
+  body: z.string(),
+  /** What happens next, one line each. */
+  items: z.array(z.string()),
+});
+
+/** The text of the Close dialog that confirms starting the next month. */
+export type HomeCloseDialog = z.infer<typeof homeCloseDialogSchema>;
+
+/** The button that starts the next month early, with the text of the dialog it opens. */
+export const homeNextMonthActionSchema = z
+  .object({
+    /** Always `Start next month`, whatever the months are. */
+    label: z.string(),
+    dialog: homeCloseDialogSchema,
+  })
+  .nullable();
+
+/** The button that starts the next month early, with the text of the dialog it opens. Null unless the month is settled. */
+export type HomeNextMonthAction = z.infer<typeof homeNextMonthActionSchema>;
+
 /** `GET /api/home`: the newest opened month, ready to render. The server picks the month. */
 export const homeResponseSchema = z.object({
   /** `YYYY-MM`. */
@@ -196,7 +219,18 @@ export const homeResponseSchema = z.object({
   /** One per charge, ordered by due date. */
   rows: z.array(homeRowSchema),
   primaryAction: homePrimaryActionSchema,
+  /** The settled month's bottom button. Null in every other status. */
+  nextMonthAction: homeNextMonthActionSchema,
 });
 
 /** `GET /api/home`: the newest opened month, ready to render. The server picks the month. */
 export type HomeResponse = z.infer<typeof homeResponseSchema>;
+
+/** `POST /api/home/start-next-month`: the month that was opened. */
+export const startNextMonthResponseSchema = z.object({
+  /** `YYYY-MM`. */
+  month: monthKey,
+});
+
+/** `POST /api/home/start-next-month`: the month that was opened. */
+export type StartNextMonthResponse = z.infer<typeof startNextMonthResponseSchema>;
