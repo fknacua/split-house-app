@@ -41,6 +41,20 @@ describe("checkBillDraft", () => {
     ]);
   });
 
+  it("lists the lines note's title first, then the unusual-bill line", async () => {
+    const { db } = fakeDb([38000, 40000, 42000]);
+    const lines = [{ label: "Electricity", cents: 21000 }, { label: "Water", cents: null }];
+    const result = await checkBillDraft(db, "2026-11", { ...FIELDS, currentChargesCents: 56000, lines });
+    expect(result.warnings).toEqual(["1 line not found", "This bill is 40% higher than your recent bills."]);
+    expect(result.linesNote?.title).toBe("1 line not found");
+  });
+
+  it("lists a lines note even without any saved bills", async () => {
+    const { db } = fakeDb([]);
+    const lines = [{ label: "Water", cents: null }];
+    expect((await checkBillDraft(db, "2026-11", { ...FIELDS, lines })).warnings).toEqual(["1 line not found"]);
+  });
+
   it("has no warnings for a bill in range, with the blockers and lines note passed through", async () => {
     const { db } = fakeDb([38000, 40000, 42000]);
     expect(await checkBillDraft(db, "2026-11", FIELDS)).toEqual({ blockers: [], linesNote: null, warnings: [] });

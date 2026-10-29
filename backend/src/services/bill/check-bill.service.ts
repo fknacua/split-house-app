@@ -16,8 +16,8 @@ export interface CheckBillDb {
 
 /**
  * Checks the Review bill values for a month's upload: the blockers and the lines note, which need no
- * database, and the warnings that compare with earlier bills (the last three saved before the month).
- * Nothing is stored.
+ * database, and the "Save with warnings?" dialog's lines: the lines note's title and the warning that
+ * compares with earlier bills (the last three saved before the month). Nothing is stored.
  *
  * @param db - The Prisma client, or a fake in tests.
  * @param month - `YYYY-MM`, the month the upload started from.
@@ -43,5 +43,8 @@ export async function checkBillDraft(
     fields.currentChargesCents,
     recent.map((bill) => bill.currentChargesCents),
   );
-  return { ...checkBill(month, fields), warnings: unusual ? [unusual] : [] };
+  const result = checkBill(month, fields);
+  // The dialog lists the lines note's title, then the warning that needs the saved bills.
+  const warnings = [result.linesNote?.title, unusual].filter((line): line is string => Boolean(line));
+  return { ...result, warnings };
 }

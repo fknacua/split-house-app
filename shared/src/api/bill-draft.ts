@@ -91,9 +91,9 @@ export const checkBillResponseSchema = z.object({
   /** The warning under the lines, or null when they match the Subtotal or there is nothing to say (no lines, or all have amounts and there is no Subtotal). */
   linesNote: billLinesNoteSchema.nullable(),
   /**
-   * Lines for the "Save with warnings?" dialog that come from comparing with earlier bills, display-ready,
-   * e.g. `This bill is 32% higher than your recent bills.`. Empty when there is nothing to warn about.
-   * They never stop Save.
+   * The lines of the "Save with warnings?" dialog, display-ready: the lines note's title (e.g. `2 lines
+   * not found`), then `This bill is 32% higher than your recent bills.` when it is unusual. Empty when
+   * there is nothing to warn about. They never stop Save.
    */
   warnings: z.array(z.string()),
 });
