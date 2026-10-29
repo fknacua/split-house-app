@@ -5,6 +5,7 @@ import {
   type SaveBillResponse,
 } from "@splithouse/shared";
 import { ApiError } from "@/lib/api";
+import { checkBill } from "@/lib/bill/check-bill";
 import { buildUtilitiesCharges } from "@/lib/split/engine";
 import { postgresBillFileStore, type BillFileDb } from "./bill-file-store.service";
 
@@ -78,11 +79,15 @@ function isUniqueViolation(err: unknown): boolean {
  * @param month - `YYYY-MM`, the month the upload started from.
  * @param values - The reviewed values from the Review bill form.
  * @returns The month whose bill was saved.
- * @throws {ApiError} 404 `no_draft` when the month has no draft to save, 409 `bill_exists` when
+ * @throws {ApiError} 422 `bill_blocked` when a check stops Save (the bill is for another month),
+ * 404 `no_draft` when the month has no draft to save, 409 `bill_exists` when
  * the month already has a bill (also on a second tap that loses the race), 409 `month_not_open`
  * when the month has not been opened.
  */
 export async function saveBill(db: SaveBillDb, month: string, values: SaveBillRequest): Promise<SaveBillResponse> {
+  // The same checks the app ran while the form was filled in.
+  const [blocker] = checkBill(month, values).blockers;
+  if (blocker) throw new ApiError(422, "bill_blocked", blocker.message);
   try {
     return await db.$transaction(async (tx) => {
       const draft = await tx.billDraft.findUnique({

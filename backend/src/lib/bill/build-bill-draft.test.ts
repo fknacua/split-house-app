@@ -21,8 +21,8 @@ describe("buildBillDraftResponse", () => {
         currentChargesCents: 38150,
         billMonth: "2026-11",
         dueDate: "2026-11-16",
-        billingPeriodStart: "2026-10-01",
-        billingPeriodEnd: "2026-10-31",
+        billingPeriodStart: "2026-10-03",
+        billingPeriodEnd: "2026-11-02",
         lines: BILL_FIXTURE.lines,
       },
     });

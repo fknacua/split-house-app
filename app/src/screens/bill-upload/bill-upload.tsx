@@ -2,11 +2,11 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { FileText } from 'lucide-react-native';
 import { useRef, useState } from 'react';
-import { useForm } from 'react-hook-form';
+import { useForm, useWatch } from 'react-hook-form';
 import { ScrollView } from 'react-native';
 
 import { Button, Screen, SubpageHeader } from '@/components';
-import { useSaveBill, useUploadBillDraft } from '@/hooks';
+import { useCheckBill, useDebouncedValue, useSaveBill, useUploadBillDraft } from '@/hooks';
 import { ServerUnreachableError } from '@/lib/api';
 import { formatMonthLabel, formatMonthName, type BillDraftResponse } from '@splithouse/shared';
 import { PickStep } from './components/pick-step';
@@ -16,12 +16,16 @@ import { UploadFooter } from './components/upload-footer';
 import {
   pickBillPdf,
   reviewFormSchema,
+  toCheckBillRequest,
   toReviewFormValues,
   toSaveBillRequest,
   type PickedPdfProblem,
   type ReviewFormValues,
 } from './helpers';
 import type { UploadStep } from './types';
+
+/** How long the form has to stay still before the server checks it, in milliseconds. */
+const CHECK_DELAY_MS = 500;
 
 /** The message to show for a failed request, or null for an unreachable server (the app's own prompt covers that). */
 function messageOf(error: Error | null): string | null {
@@ -57,6 +61,10 @@ export function BillUpload() {
     resolver: zodResolver(reviewFormSchema),
     mode: 'onChange',
   });
+  // The server's checks run once typing pauses; Save checks them again.
+  const values = useWatch({ control });
+  const checkRequest = useDebouncedValue(toCheckBillRequest(values), CHECK_DELAY_MS);
+  const blockers = useCheckBill(month, checkRequest, draft !== null).data?.blockers ?? [];
 
   const choosePdf = async () => {
     const picked = await pickBillPdf();
@@ -115,6 +123,7 @@ export function BillUpload() {
             draft={draft}
             control={control}
             onChooseAnother={choosePdf}
+            blockers={blockers}
             saveError={messageOf(save.error)}
           />
         ) : null}
@@ -127,7 +136,7 @@ export function BillUpload() {
             <Button
               label={save.isPending ? 'Saving' : 'Save bill'}
               loading={save.isPending}
-              disabled={!isValid}
+              disabled={!isValid || blockers.length > 0}
               onPress={onSave}
             />
             {/* Cancel asks "Discard this bill?" in 6.4; until then it does nothing. */}

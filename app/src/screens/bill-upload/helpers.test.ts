@@ -1,6 +1,6 @@
 import { describe, expect, it, vi } from 'vitest';
 
-import { reviewFormSchema, toReviewFormValues, toSaveBillRequest } from './helpers';
+import { reviewFormSchema, toCheckBillRequest, toReviewFormValues, toSaveBillRequest } from './helpers';
 
 // Hoisted above the imports by vitest: the helpers pull in the native picker and the component barrel.
 vi.mock('expo-document-picker', () => ({ getDocumentAsync: vi.fn() }));
@@ -80,6 +80,28 @@ describe('billing period required', () => {
     expect(result.error?.issues.map((i) => [i.path.join('.'), i.message])).toEqual([
       ['billingPeriod', 'Enter the billing period'],
     ]);
+  });
+});
+
+describe('toCheckBillRequest', () => {
+  it('sends a clean read back as it was read', () => {
+    expect(toCheckBillRequest(toReviewFormValues(READ))).toEqual(READ);
+  });
+
+  it('sends empty fields and text that is not a month as null, without needing the form to be valid', () => {
+    expect(toCheckBillRequest({ billMonth: 'Octo 2026' }).billMonth).toBeNull();
+    expect(toCheckBillRequest({})).toEqual({
+      currentChargesCents: null,
+      billMonth: null,
+      dueDate: null,
+      billingPeriodStart: null,
+      billingPeriodEnd: null,
+      lines: [],
+    });
+  });
+
+  it('sends the bill month the user typed as a month key', () => {
+    expect(toCheckBillRequest({ billMonth: ' Oct 2026 ' }).billMonth).toBe('2026-10');
   });
 });
 

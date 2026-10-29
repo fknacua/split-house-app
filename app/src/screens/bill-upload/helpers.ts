@@ -1,4 +1,5 @@
 import * as DocumentPicker from 'expo-document-picker';
+import type { DeepPartial } from 'react-hook-form';
 import { z } from 'zod';
 
 import { EMPTY_DATE_RANGE } from '@/components';
@@ -11,6 +12,7 @@ import {
   positiveCents,
   requiredText,
   type BillDraftFields,
+  type CheckBillRequest,
   type SaveBillRequest,
 } from '@splithouse/shared';
 
@@ -83,6 +85,24 @@ export function toReviewFormValues(fields: BillDraftFields): ReviewFormValues {
         ? { start: fields.billingPeriodStart, end: fields.billingPeriodEnd }
         : EMPTY_DATE_RANGE,
     lines: fields.lines,
+  };
+}
+
+/**
+ * Turns the form's values as they are right now into the request for the server's checks. Empty
+ * fields, and a bill month that is not a month, are null; nothing has to be valid yet.
+ *
+ * @param values The form values, unchecked and possibly partial.
+ * @returns The `POST /api/months/:month/bill-draft/check` body.
+ */
+export function toCheckBillRequest(values: DeepPartial<ReviewFormValues>): CheckBillRequest {
+  return {
+    currentChargesCents: values.currentChargesCents ?? null,
+    billMonth: values.billMonth ? parseShortDisplayMonth(values.billMonth) : null,
+    dueDate: values.dueDate || null,
+    billingPeriodStart: values.billingPeriod?.start || null,
+    billingPeriodEnd: values.billingPeriod?.end || null,
+    lines: (values.lines ?? []).map((line) => ({ label: line?.label?.trim() ?? '', cents: line?.cents ?? null })),
   };
 }
 

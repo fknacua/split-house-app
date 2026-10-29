@@ -15,4 +15,10 @@ export const queryKeys = {
   history: ['history'] as const,
   /** @param month `YYYY-MM` key. */
   historyMonth: (month: string) => ['history', month] as const,
+  /**
+   * The server's checks of the Review bill form, by the values checked.
+   * @param month `YYYY-MM` key of the upload.
+   * @param request The values sent to the check.
+   */
+  billCheck: (month: string, request: unknown) => ['bill-check', month, request] as const,
 };

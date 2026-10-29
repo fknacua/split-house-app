@@ -9,8 +9,8 @@ const VALUES: SaveBillRequest = {
   currentChargesCents: 41230,
   billMonth: "2026-11",
   dueDate: "2026-11-16",
-  billingPeriodStart: "2026-10-01",
-  billingPeriodEnd: "2026-10-31",
+  billingPeriodStart: "2026-10-03",
+  billingPeriodEnd: "2026-11-02",
   lines: [
     { label: "Electricity", cents: 26845 },
     { label: "Gas", cents: null },
@@ -83,7 +83,7 @@ describe("saveBill", () => {
       month: "2026-11",
       currentChargesCents: 41230,
       dueDate: new Date("2026-11-16"),
-      billingPeriodStart: new Date("2026-10-01"),
+      billingPeriodStart: new Date("2026-10-03"),
       lines: VALUES.lines,
       parseStatus: "PARSED",
     });
@@ -100,6 +100,25 @@ describe("saveBill", () => {
     state.draft = { ...state.draft!, parseOk: false };
     await saveBill(db, "2026-11", VALUES);
     expect(state.bill).toMatchObject({ parseStatus: "NOT_PARSED" });
+  });
+
+  it("returns 422 and saves nothing when the bill is for another month", async () => {
+    const { db, state } = fakeDb();
+    await expectApiError(saveBill(db, "2026-11", { ...VALUES, billMonth: "2026-10" }), 422, "bill_blocked");
+    expect(state.bill).toBeNull();
+    expect(state.charges).toHaveLength(0);
+    expect(state.draft).not.toBeNull();
+  });
+
+  it("returns 422 and saves nothing when the billing period does not start in the month before the bill month or runs over 30 days", async () => {
+    for (const period of [
+      { billingPeriodStart: "2026-11-03", billingPeriodEnd: "2026-12-02" },
+      { billingPeriodStart: "2026-10-03", billingPeriodEnd: "2026-12-10" },
+    ]) {
+      const { db, state } = fakeDb();
+      await expectApiError(saveBill(db, "2026-11", { ...VALUES, ...period }), 422, "bill_blocked");
+      expect(state.bill).toBeNull();
+    }
   });
 
   it("returns 404 when there is no draft", async () => {

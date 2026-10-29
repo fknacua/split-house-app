@@ -3,6 +3,7 @@ import { useFieldArray, useWatch } from 'react-hook-form';
 import { Text, View } from 'react-native';
 
 import { Alert, Button, Card, DateField, DateRangeField, MoneyInput, TextInput } from '@/components';
+import type { BillBlocker } from '@splithouse/shared';
 import type { ReviewFormProps } from '../types';
 import { FileCard } from './file-card';
 import { LineRow } from './line-row';
@@ -12,10 +13,11 @@ import { LineRow } from './line-row';
  * the utility lines, filled from what the server read and all editable. Save and Cancel are in
  * the footer.
  */
-export function ReviewForm({ draft, control, onChooseAnother, saveError }: ReviewFormProps) {
+export function ReviewForm({ draft, control, onChooseAnother, blockers, saveError }: ReviewFormProps) {
   const { fields, remove } = useFieldArray({ control, name: 'lines' });
   const lines = useWatch({ control, name: 'lines' });
   const hasLines = fields.length > 0;
+  const blockerOn = (field: BillBlocker['field']) => blockers.find((blocker) => blocker.field === field);
 
   return (
     <>
@@ -53,6 +55,7 @@ export function ReviewForm({ draft, control, onChooseAnother, saveError }: Revie
               name: 'billMonth',
               label: 'Bill month',
               required: true,
+              error: blockerOn('billMonth')?.fieldMessage,
               className: 'min-w-0 flex-1',
             }}
           />
@@ -62,8 +65,18 @@ export function ReviewForm({ draft, control, onChooseAnother, saveError }: Revie
           />
         </View>
         <DateRangeField
-          fieldControlProps={{ control, name: 'billingPeriod', label: 'Billing period', required: true }}
+          fieldControlProps={{
+            control,
+            name: 'billingPeriod',
+            label: 'Billing period',
+            required: true,
+            error: blockerOn('billingPeriod')?.fieldMessage,
+          }}
         />
+        {/* Both fields' problems sit together under them, as on the `period` board. */}
+        {blockers.map((blocker) => (
+          <Alert key={blocker.field} variant="danger" title={blocker.title} message={blocker.message} />
+        ))}
       </Card>
 
       <Card className="gap-3 pb-1.5">
