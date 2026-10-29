@@ -13,13 +13,16 @@ import { SubtotalRow } from './subtotal-row';
 /**
  * The `review` board: the file with Choose another file, Current Charges, the bill's dates and
  * the utility lines, filled from what the server read and all editable. Save and Cancel are in
- * the footer.
+ * the footer. For a bill the server could not read it is the `unread` board: empty, with the
+ * "Manual entry" Alert under the file.
  */
 export function ReviewForm({ draft, control, onChooseAnother, blockers, linesNote, saveError }: ReviewFormProps) {
   const { fields, append, remove } = useFieldArray({ control, name: 'lines' });
   const lines = useWatch({ control, name: 'lines' });
   const hasLines = fields.length > 0;
   const blockerOn = (field: BillBlocker['field']) => blockers.find((blocker) => blocker.field === field);
+  // The `unread` board: the server could not read the bill and the user said it is the right one.
+  const typed = !draft.readOk;
 
   return (
     <>
@@ -34,6 +37,12 @@ export function ReviewForm({ draft, control, onChooseAnother, blockers, linesNot
           className="mb-3"
         />
       </FileCard>
+      {typed ? (
+        <Alert
+          title="Manual entry"
+          message="This bill could not be read. Values will be keyed in manually."
+        />
+      ) : null}
 
       <Card className="gap-4">
         <MoneyInput
@@ -115,7 +124,11 @@ export function ReviewForm({ draft, control, onChooseAnother, blockers, linesNot
             ) : null}
           </>
         ) : (
-          <NoLinesBox />
+          <NoLinesBox
+            note={
+              typed ? 'Add them if you want them on View bill.' : 'Optional. Current Charges is all the split needs.'
+            }
+          />
         )}
         {/* The new row is inline, not a sheet; react-hook-form focuses its name field. */}
         <Button

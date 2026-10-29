@@ -22,6 +22,7 @@ import {
   type BillDraftResponse,
   type SaveBillRequest,
 } from '@splithouse/shared';
+import { FailedStep } from './components/failed-step';
 import { PickStep } from './components/pick-step';
 import { ReviewForm } from './components/review-form';
 import { ReviewSkeleton } from './components/review-skeleton';
@@ -54,8 +55,9 @@ function messageOf(error: Error | null): string | null {
  * Bill upload, opened from Home for one month: choose the PDF, wait while the server reads it,
  * then check the values and save. Saving creates the month's utilities charges and returns to
  * Home, which then shows the month as `unsent`. Opened with `draft=stored` (Home's Continue), it
- * starts on Review bill with the month's stored draft. Leaving Review bill asks "Discard this
- * bill?", and Discard deletes the draft.
+ * starts on Review bill with the month's stored draft. A file the server could not read asks
+ * "Is this the right bill?" first: Yes opens Review bill empty, No discards it. Leaving Review bill
+ * asks "Discard this bill?", and Discard deletes the draft.
  */
 export function BillUpload() {
   const { month, draft: draftParam } = useLocalSearchParams<{ month: string; draft?: string }>();
@@ -100,20 +102,33 @@ export function BillUpload() {
     toCheckBillRequest(values, draft?.fields.subtotalCents ?? null),
     CHECK_DELAY_MS,
   );
-  const check = useCheckBill(month, checkRequest, draft !== null).data;
+  const check = useCheckBill(month, checkRequest, step === 'review' && draft !== null).data;
   const blockers = check?.blockers ?? [];
 
-  /** Shows Review bill for a draft the server has read, uploaded now or stored before. */
+  /** Shows Review bill filled from the draft (empty for one the server could not read). */
+  const openReview = useCallback(
+    (read: BillDraftResponse) => {
+      reset(toReviewFormValues(read.fields));
+      // Fields are only checked once they change, so check what the bill left empty straight away.
+      // A bill typed in by hand starts empty on purpose, so its fields wait until they are edited.
+      if (read.readOk) void trigger();
+      setStep('review');
+    },
+    [reset, trigger],
+  );
+
+  /**
+   * Shows a draft the server has answered with, uploaded now or stored before: Review bill when it
+   * was read, "Is this the right bill?" when nothing could be read.
+   */
   const fillForm = useCallback(
     (read: BillDraftResponse) => {
       setFilename(read.file.filename);
       setDraft(read);
-      reset(toReviewFormValues(read.fields));
-      // Fields are only checked once they change, so check what the bill left empty straight away.
-      void trigger();
-      setStep('review');
+      if (read.readOk) openReview(read);
+      else setStep('failed');
     },
-    [reset, trigger],
+    [openReview],
   );
 
   const leave = useCallback(() => {
@@ -187,6 +202,14 @@ export function BillUpload() {
     setStep('pick');
   };
 
+  /** "No, choose another file" and Back on "Is this the right bill?": discards the draft and returns to choosing a PDF. */
+  const rejectUnread = () => {
+    // Fire and forget, as Cancel while reading does: a draft left behind is replaced by the next upload.
+    discard.mutate(month);
+    setDraft(null);
+    setStep('pick');
+  };
+
   const openDiscard = () => {
     discard.reset();
     setDiscarding(true);
@@ -202,13 +225,15 @@ export function BillUpload() {
   /**
    * Back in the header, Cancel in the footer and the Android back gesture. While a stored draft
    * loads, leaving keeps it; while a picked file is read, Cancel stops the upload and returns to
-   * choosing a PDF; on Review bill it asks "Discard this bill?".
+   * choosing a PDF; on "Is this the right bill?" it does what No does; on Review bill it asks
+   * "Discard this bill?".
    *
    * @returns False on the pick step, where leaving needs no question.
    */
   const goBack = (): boolean => {
     if (loadingStored) leave();
     else if (reading) cancelReading();
+    else if (step === 'failed') rejectUnread();
     else if (step === 'review') openDiscard();
     else return false;
     return true;
@@ -258,7 +283,7 @@ export function BillUpload() {
       <SubpageHeader
         title={step === 'review' ? 'Review bill' : 'Utilities bill'}
         subtitle={formatMonthLabel(month)}
-        onBack={step === 'review' ? goBack : undefined}
+        onBack={step === 'pick' ? undefined : goBack}
       />
       {/* Edge-to-edge Android does not resize for the keyboard, so the padding keeps the focused field in view. */}
       <KeyboardAvoidingView behavior="padding" className="flex-1">
@@ -270,6 +295,7 @@ export function BillUpload() {
               error={messageOf(upload.error) ?? storedError}
             />
           ) : null}
+          {step === 'failed' && draft ? <FailedStep draft={draft} /> : null}
           {reading ? <ReviewSkeleton filename={filename} /> : null}
           {step === 'review' && draft ? (
             <ReviewForm
@@ -285,6 +311,12 @@ export function BillUpload() {
       </KeyboardAvoidingView>
       <UploadFooter>
         {step === 'pick' ? <Button label="Choose PDF" icon={FileText} onPress={choosePdf} /> : null}
+        {step === 'failed' && draft ? (
+          <>
+            <Button label="Yes, it’s the right bill" onPress={() => openReview(draft)} />
+            <Button label="No, choose another file" variant="outline" onPress={rejectUnread} />
+          </>
+        ) : null}
         {reading ? <Button label="Cancel" variant="outline" onPress={goBack} /> : null}
         {step === 'review' && draft ? (
           <>
