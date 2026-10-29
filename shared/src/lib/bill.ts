@@ -1,8 +1,11 @@
 /**
- * The utility bill line items View bill shows, in display order. The parser only reads
- * lines whose label is in this list; everything else on the bill is ignored.
+ * The utility services the bill prints under `<Label> Services`, in display order. The parser
+ * reads one line for each that is present.
  */
 export const UTIL_BILL_LINE_LABELS = ['Electricity', 'Gas', 'Water'] as const;
+
+/** The refuse removal charge, printed as its own row after the services. It is the fourth line. */
+export const REFUSE_REMOVAL_LABEL = 'Refuse Removal';
 
 /**
  * The largest bill PDF the backend accepts, in bytes (4 MB). Vercel rejects request bodies over

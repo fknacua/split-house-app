@@ -6,7 +6,7 @@ import { countPdfPages, readBill } from "./read-bill.service";
 describe("readBill", () => {
   it("reads the synthetic bill fixture PDF with unpdf and parses it", async () => {
     const bytes = await generateBillFixturePdf();
-    expect(await readBill(bytes)).toEqual({ pageCount: 1, parsed: BILL_FIXTURE });
+    expect(await readBill(bytes)).toEqual({ pageCount: 2, parsed: BILL_FIXTURE });
   });
 
   it("returns no fields for a PDF with no readable Current Charges", async () => {

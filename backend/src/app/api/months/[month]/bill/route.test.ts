@@ -22,7 +22,7 @@ describe("POST /api/months/:month/bill", () => {
   const filled = {
     currentChargesCents: 41230,
     billMonth: "2026-11",
-    dueDate: null,
+    dueDate: "2026-11-16",
     billingPeriodStart: "2026-10-03",
     billingPeriodEnd: "2026-11-02",
     lines: [],
@@ -31,6 +31,7 @@ describe("POST /api/months/:month/bill", () => {
   it.each([
     ["Current Charges is not above zero", { currentChargesCents: 0 }],
     ["the bill month is missing", { billMonth: null }],
+    ["the due date is missing", { dueDate: null }],
     ["the billing period start is missing", { billingPeriodStart: null }],
     ["the billing period end is missing", { billingPeriodEnd: null }],
   ])("returns 400 when %s", async (_name, change) => {
@@ -48,6 +49,7 @@ describe("POST /api/months/:month/bill-draft/check", () => {
     dueDate: null,
     billingPeriodStart: null,
     billingPeriodEnd: null,
+    subtotalCents: null,
     lines: [],
   };
   const post = (month: string, body: unknown) =>
@@ -63,7 +65,14 @@ describe("POST /api/months/:month/bill-draft/check", () => {
   it("returns no blockers for a bill that matches the month", async () => {
     const matching = { ...fields, billMonth: "2026-11", billingPeriodStart: "2026-10-03", billingPeriodEnd: "2026-11-02" };
     const response = await post("2026-11", matching);
-    expect(checkBillResponseSchema.parse(await response.json())).toEqual({ blockers: [] });
+    expect(checkBillResponseSchema.parse(await response.json())).toEqual({ blockers: [], linesNote: null });
+  });
+
+  it("returns the lines note when the lines and the Subtotal are there, parsing with the shared schema", async () => {
+    const lines = [{ label: "Electricity", cents: 21000 }];
+    const response = await post("2026-11", { ...fields, subtotalCents: 35000, lines });
+    const check = checkBillResponseSchema.parse(await response.json());
+    expect(check.linesNote?.title).toBe("Lines don’t add up to the Subtotal");
   });
 
   it("returns a billing period blocker for a period that starts in the wrong month", async () => {

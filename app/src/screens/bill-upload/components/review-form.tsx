@@ -7,13 +7,14 @@ import type { BillBlocker } from '@splithouse/shared';
 import type { ReviewFormProps } from '../types';
 import { FileCard } from './file-card';
 import { LineRow } from './line-row';
+import { SubtotalRow } from './subtotal-row';
 
 /**
  * The `review` board: the file with Choose another file, Current Charges, the bill's dates and
  * the utility lines, filled from what the server read and all editable. Save and Cancel are in
  * the footer.
  */
-export function ReviewForm({ draft, control, onChooseAnother, blockers, saveError }: ReviewFormProps) {
+export function ReviewForm({ draft, control, onChooseAnother, blockers, linesNote, saveError }: ReviewFormProps) {
   const { fields, remove } = useFieldArray({ control, name: 'lines' });
   const lines = useWatch({ control, name: 'lines' });
   const hasLines = fields.length > 0;
@@ -61,7 +62,13 @@ export function ReviewForm({ draft, control, onChooseAnother, blockers, saveErro
           />
           <DateField
             clearable={false}
-            fieldControlProps={{ control, name: 'dueDate', label: 'Due date', className: 'min-w-0 flex-1' }}
+            fieldControlProps={{
+              control,
+              name: 'dueDate',
+              label: 'Due date',
+              required: true,
+              className: 'min-w-0 flex-1',
+            }}
           />
         </View>
         <DateRangeField
@@ -89,17 +96,23 @@ export function ReviewForm({ draft, control, onChooseAnother, blockers, saveErro
           </Text>
         </View>
         {hasLines ? (
-          <View className="gap-4 pt-1.5">
-            {fields.map((field, index) => (
-              <LineRow
-                key={field.id}
-                control={control}
-                index={index}
-                label={lines[index]?.label ?? ''}
-                onRemove={() => remove(index)}
-              />
-            ))}
-          </View>
+          <>
+            <View className="gap-4 pt-1.5">
+              {fields.map((field, index) => (
+                <LineRow
+                  key={field.id}
+                  control={control}
+                  index={index}
+                  label={lines[index]?.label ?? ''}
+                  onRemove={() => remove(index)}
+                />
+              ))}
+            </View>
+            {draft.fields.subtotalCents !== null ? <SubtotalRow subtotalCents={draft.fields.subtotalCents} /> : null}
+            {linesNote ? (
+              <Alert variant="warning" title={linesNote.title} message={linesNote.message} />
+            ) : null}
+          </>
         ) : null}
         {/* Add line appends an inline row in 6.3; until then it does nothing. */}
         <Button label="Add line" icon={Plus} variant="ghost" size="small" className="self-start pl-1 pr-2" />

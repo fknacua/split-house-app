@@ -6,7 +6,8 @@ import { reviewFormSchema, toCheckBillRequest, toReviewFormValues, toSaveBillReq
 vi.mock('expo-document-picker', () => ({ getDocumentAsync: vi.fn() }));
 vi.mock('@/components', () => ({ EMPTY_DATE_RANGE: { start: '', end: '' } }));
 
-const READ = {
+// What Save sends: the Subtotal is shown but not saved.
+const SAVED = {
   currentChargesCents: 41230,
   billMonth: '2026-11',
   dueDate: '2026-11-16',
@@ -14,15 +15,16 @@ const READ = {
   billingPeriodEnd: '2026-10-31',
   lines: [{ label: 'Electricity', cents: 26845 }],
 };
+const READ = { ...SAVED, subtotalCents: 37830 };
 
 describe('toReviewFormValues and toSaveBillRequest', () => {
-  it('round-trips a clean read', () => {
-    expect(toSaveBillRequest(toReviewFormValues(READ))).toEqual(READ);
+  it('round-trips a clean read, without the Subtotal', () => {
+    expect(toSaveBillRequest(toReviewFormValues(READ))).toEqual(SAVED);
   });
 
-  it('turns an empty due date into null and trims line names', () => {
-    const values = toReviewFormValues({ ...READ, dueDate: null, lines: [{ label: ' Gas ', cents: null }] });
-    expect(toSaveBillRequest(values)).toEqual({ ...READ, dueDate: null, lines: [{ label: 'Gas', cents: null }] });
+  it('trims line names', () => {
+    const values = toReviewFormValues({ ...READ, lines: [{ label: ' Gas ', cents: null }] });
+    expect(toSaveBillRequest(values)).toEqual({ ...SAVED, lines: [{ label: 'Gas', cents: null }] });
   });
 
   it('shows a half-read billing period as empty', () => {
@@ -71,6 +73,17 @@ describe('bill month text', () => {
   });
 });
 
+describe('due date required', () => {
+  it('is an error when the bill had none or it is cleared', () => {
+    const values = toReviewFormValues({ ...READ, dueDate: null });
+    expect(values.dueDate).toBe('');
+    const result = reviewFormSchema.safeParse(values);
+    expect(result.error?.issues.map((i) => [i.path.join('.'), i.message])).toEqual([
+      ['dueDate', 'Enter the due date'],
+    ]);
+  });
+});
+
 describe('billing period required', () => {
   it.each([
     ['nothing picked', { start: '', end: '' }],
@@ -84,24 +97,25 @@ describe('billing period required', () => {
 });
 
 describe('toCheckBillRequest', () => {
-  it('sends a clean read back as it was read', () => {
-    expect(toCheckBillRequest(toReviewFormValues(READ))).toEqual(READ);
+  it('sends a clean read back as it was read, with the Subtotal from the draft', () => {
+    expect(toCheckBillRequest(toReviewFormValues(READ), READ.subtotalCents)).toEqual(READ);
   });
 
   it('sends empty fields and text that is not a month as null, without needing the form to be valid', () => {
-    expect(toCheckBillRequest({ billMonth: 'Octo 2026' }).billMonth).toBeNull();
-    expect(toCheckBillRequest({})).toEqual({
+    expect(toCheckBillRequest({ billMonth: 'Octo 2026' }, null).billMonth).toBeNull();
+    expect(toCheckBillRequest({}, null)).toEqual({
       currentChargesCents: null,
       billMonth: null,
       dueDate: null,
       billingPeriodStart: null,
       billingPeriodEnd: null,
+      subtotalCents: null,
       lines: [],
     });
   });
 
   it('sends the bill month the user typed as a month key', () => {
-    expect(toCheckBillRequest({ billMonth: ' Oct 2026 ' }).billMonth).toBe('2026-10');
+    expect(toCheckBillRequest({ billMonth: ' Oct 2026 ' }, null).billMonth).toBe('2026-10');
   });
 });
 

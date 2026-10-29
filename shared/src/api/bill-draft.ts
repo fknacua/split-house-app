@@ -18,6 +18,11 @@ export const billDraftFieldsSchema = z.object({
   dueDate: dateKey.nullable(),
   billingPeriodStart: dateKey.nullable(),
   billingPeriodEnd: dateKey.nullable(),
+  /**
+   * The bill's own Subtotal: the charges before GST, which the lines should add up to. Shown read-only
+   * under the lines and used by the check; not editable and not saved.
+   */
+  subtotalCents: cents.nullable(),
   lines: z.array(billLineSchema),
 });
 
@@ -68,10 +73,23 @@ export const billBlockerSchema = z.object({
 /** Something that stops Save: the field to mark red and the Alert text above the form. */
 export type BillBlocker = z.infer<typeof billBlockerSchema>;
 
+/** The warning under the lines when they do not add up to the bill's Subtotal. It never stops Save. */
+export const billLinesNoteSchema = z.object({
+  /** Bold first line, e.g. `Lines don’t add up to the Subtotal`. */
+  title: z.string(),
+  /** Second line, display-ready, e.g. `Lines total $335.50, which is $14.50 less than the Subtotal. …`. */
+  message: z.string(),
+});
+
+/** The warning under the lines when they do not add up to the bill's Subtotal. It never stops Save. */
+export type BillLinesNote = z.infer<typeof billLinesNoteSchema>;
+
 /** `POST /api/months/:month/bill-draft/check`: what the server finds wrong with the values. */
 export const checkBillResponseSchema = z.object({
   /** Problems that disable Save. Save checks them again and answers 422. */
   blockers: z.array(billBlockerSchema),
+  /** The warning under the lines, or null when they match the Subtotal or there is nothing to compare (no lines, no Subtotal, or a line without an amount). */
+  linesNote: billLinesNoteSchema.nullable(),
 });
 
 /** `POST /api/months/:month/bill-draft/check`: what the server finds wrong with the values. */
@@ -79,12 +97,13 @@ export type CheckBillResponse = z.infer<typeof checkBillResponseSchema>;
 
 /**
  * `POST /api/months/:month/bill`: the reviewed values. The file is the month's stored draft, so it
- * is not sent again. Current Charges, the bill month and the billing period are required: the bill
- * is the source of truth for the month it covers.
+ * is not sent again. Current Charges, the bill month, the due date and the billing period are
+ * required: the bill is the source of truth for the month it covers.
  */
-export const saveBillRequestSchema = billDraftFieldsSchema.extend({
+export const saveBillRequestSchema = billDraftFieldsSchema.omit({ subtotalCents: true }).extend({
   currentChargesCents: positiveCents,
   billMonth: monthKey,
+  dueDate: dateKey,
   billingPeriodStart: dateKey,
   billingPeriodEnd: dateKey,
   lines: z.array(billLineSchema.extend({ label: requiredText })),

@@ -31,6 +31,8 @@ export function buildBillDraftResponse(input: BillDraftInput): BillDraftResponse
       dueDate: parsed?.dueDate ?? null,
       billingPeriodStart: parsed?.billingPeriodStart ?? null,
       billingPeriodEnd: parsed?.billingPeriodEnd ?? null,
+      // Drafts stored before the Subtotal was read have no such key.
+      subtotalCents: parsed?.subtotalCents ?? null,
       lines: parsed?.lines ?? [],
     },
   };

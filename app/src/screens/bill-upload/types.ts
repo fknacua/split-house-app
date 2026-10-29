@@ -1,7 +1,7 @@
 import type { ReactNode } from 'react';
 import type { Control } from 'react-hook-form';
 
-import type { BillBlocker, BillDraftResponse } from '@splithouse/shared';
+import type { BillBlocker, BillDraftResponse, BillLinesNote } from '@splithouse/shared';
 import type { PickedPdfProblem, ReviewFormValues } from './helpers';
 
 /** Which board of Bill upload is showing. */
@@ -41,8 +41,15 @@ export interface ReviewFormProps {
   onChooseAnother: () => void;
   /** What the server's check says stops Save; empty while all is well (or before the first answer). */
   blockers: BillBlocker[];
+  /** The server's note on whether the lines add up to the Subtotal, or null while there is nothing to compare. */
+  linesNote: BillLinesNote | null;
   /** The server's message when Save failed, or null. */
   saveError: string | null;
+}
+
+/** Props for {@link SubtotalRow}. */
+export interface SubtotalRowProps {
+  subtotalCents: number;
 }
 
 /** Props for {@link LineRow}. */

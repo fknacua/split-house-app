@@ -8,7 +8,7 @@ import type { LineRowProps } from '../types';
 export function LineRow({ control, index, label, onRemove }: LineRowProps) {
   const name = label.trim() || 'line';
   return (
-    <View className="flex-row items-start gap-3">
+    <View className="flex-row items-start gap-2">
       <TextInput
         placeholder="Field"
         fieldControlProps={{ control, name: `lines.${index}.label`, label: 'Field', className: 'min-w-0 flex-1' }}
@@ -24,7 +24,7 @@ export function LineRow({ control, index, label, onRemove }: LineRowProps) {
         variant="ghost"
         size="small"
         onPress={onRemove}
-        className="mt-[26px]"
+        className="-ml-2 mt-[26px]"
       />
     </View>
   );

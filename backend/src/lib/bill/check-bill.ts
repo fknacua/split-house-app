@@ -7,6 +7,7 @@ import {
   type CheckBillRequest,
   type CheckBillResponse,
 } from "@splithouse/shared";
+import { buildLinesNote } from "./lines-note";
 
 /**
  * The longest billing period allowed, counted as the days from the first day to the last day. A
@@ -80,11 +81,11 @@ const BLOCKER_CHECKS: readonly BlockerCheck[] = [checkBillMonth, checkBillingPer
  *
  * @param month - `YYYY-MM`, the month the upload started from.
  * @param fields - The form's values as they are right now.
- * @returns The problems that stop Save, in form order.
+ * @returns The problems that stop Save, in form order, and the note under the lines.
  */
 export function checkBill(month: string, fields: CheckBillRequest): CheckBillResponse {
   const blockers = BLOCKER_CHECKS.map((check) => check(month, fields)).filter(
     (blocker): blocker is BillBlocker => blocker !== null,
   );
-  return { blockers };
+  return { blockers, linesNote: buildLinesNote(fields.subtotalCents, fields.lines) };
 }

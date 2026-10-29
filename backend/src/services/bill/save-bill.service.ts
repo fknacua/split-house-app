@@ -85,8 +85,9 @@ function isUniqueViolation(err: unknown): boolean {
  * when the month has not been opened.
  */
 export async function saveBill(db: SaveBillDb, month: string, values: SaveBillRequest): Promise<SaveBillResponse> {
-  // The same checks the app ran while the form was filled in.
-  const [blocker] = checkBill(month, values).blockers;
+  // The same checks the app ran while the form was filled in. The Subtotal is not saved, and only
+  // the lines note uses it, so the blockers do not need it.
+  const [blocker] = checkBill(month, { ...values, subtotalCents: null }).blockers;
   if (blocker) throw new ApiError(422, "bill_blocked", blocker.message);
   try {
     return await db.$transaction(async (tx) => {

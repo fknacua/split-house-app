@@ -3,7 +3,7 @@ import { useLocalSearchParams, useRouter } from 'expo-router';
 import { FileText } from 'lucide-react-native';
 import { useRef, useState } from 'react';
 import { useForm, useWatch } from 'react-hook-form';
-import { ScrollView } from 'react-native';
+import { KeyboardAvoidingView, ScrollView } from 'react-native';
 
 import { Button, Screen, SubpageHeader } from '@/components';
 import { useCheckBill, useDebouncedValue, useSaveBill, useUploadBillDraft } from '@/hooks';
@@ -56,6 +56,7 @@ export function BillUpload() {
     control,
     handleSubmit,
     reset,
+    trigger,
     formState: { isValid },
   } = useForm<ReviewFormValues>({
     resolver: zodResolver(reviewFormSchema),
@@ -63,8 +64,12 @@ export function BillUpload() {
   });
   // The server's checks run once typing pauses; Save checks them again.
   const values = useWatch({ control });
-  const checkRequest = useDebouncedValue(toCheckBillRequest(values), CHECK_DELAY_MS);
-  const blockers = useCheckBill(month, checkRequest, draft !== null).data?.blockers ?? [];
+  const checkRequest = useDebouncedValue(
+    toCheckBillRequest(values, draft?.fields.subtotalCents ?? null),
+    CHECK_DELAY_MS,
+  );
+  const check = useCheckBill(month, checkRequest, draft !== null).data;
+  const blockers = check?.blockers ?? [];
 
   const choosePdf = async () => {
     const picked = await pickBillPdf();
@@ -85,6 +90,8 @@ export function BillUpload() {
         if (id !== uploadId.current) return;
         setDraft(read);
         reset(toReviewFormValues(read.fields));
+        // Fields are only checked once they change, so check what the bill left empty straight away.
+        void trigger();
         setStep('review');
       },
       onError: () => {
@@ -113,21 +120,25 @@ export function BillUpload() {
         subtitle={formatMonthLabel(month)}
         onBack={reading ? cancelReading : undefined}
       />
-      <ScrollView keyboardShouldPersistTaps="handled" contentContainerClassName="gap-4 px-4 pb-5 pt-2">
-        {step === 'pick' ? (
-          <PickStep monthName={formatMonthName(month)} problem={problem} error={messageOf(upload.error)} />
-        ) : null}
-        {reading ? <ReviewSkeleton filename={filename} /> : null}
-        {step === 'review' && draft ? (
-          <ReviewForm
-            draft={draft}
-            control={control}
-            onChooseAnother={choosePdf}
-            blockers={blockers}
-            saveError={messageOf(save.error)}
-          />
-        ) : null}
-      </ScrollView>
+      {/* Edge-to-edge Android does not resize for the keyboard, so the padding keeps the focused field in view. */}
+      <KeyboardAvoidingView behavior="padding" className="flex-1">
+        <ScrollView keyboardShouldPersistTaps="handled" contentContainerClassName="gap-4 px-4 pb-5 pt-2">
+          {step === 'pick' ? (
+            <PickStep monthName={formatMonthName(month)} problem={problem} error={messageOf(upload.error)} />
+          ) : null}
+          {reading ? <ReviewSkeleton filename={filename} /> : null}
+          {step === 'review' && draft ? (
+            <ReviewForm
+              draft={draft}
+              control={control}
+              onChooseAnother={choosePdf}
+              blockers={blockers}
+              linesNote={check?.linesNote ?? null}
+              saveError={messageOf(save.error)}
+            />
+          ) : null}
+        </ScrollView>
+      </KeyboardAvoidingView>
       <UploadFooter>
         {step === 'pick' ? <Button label="Choose PDF" icon={FileText} onPress={choosePdf} /> : null}
         {reading ? <Button label="Cancel" variant="outline" onPress={cancelReading} /> : null}
