@@ -13,6 +13,7 @@ export * from './chip';
 export * from './confirm-dialog';
 export * from './connected-button-group';
 export * from './date-field';
+export * from './date-range-field';
 export * from './external-link';
 export * from './form-field';
 export * from './google-button';

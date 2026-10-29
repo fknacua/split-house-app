@@ -6,6 +6,8 @@ import {
   daysUntil,
   dueDateKey,
   formatDateLabel,
+  formatDateMedium,
+  formatDateRange,
   formatDateShort,
   isDateKey,
   todayKey,
@@ -65,6 +67,23 @@ describe('formatDateShort', () => {
 
   it('throws on a bad key', () => {
     expect(() => formatDateShort('2026-02-30')).toThrow(RangeError);
+  });
+});
+
+describe('formatDateMedium', () => {
+  it('gives day, short month and year with no weekday', () => {
+    expect(formatDateMedium('2026-11-16')).toBe('16 Nov 2026');
+    expect(formatDateMedium('2026-11-03')).toBe('3 Nov 2026');
+  });
+});
+
+describe('formatDateRange', () => {
+  it.each([
+    ['2026-10-01', '2026-10-31', '1–31 Oct 2026'],
+    ['2026-10-16', '2026-11-15', '16 Oct – 15 Nov 2026'],
+    ['2026-12-16', '2027-01-15', '16 Dec 2026 – 15 Jan 2027'],
+  ])('%s to %s -> %s', (start, end, expected) => {
+    expect(formatDateRange(start, end)).toBe(expected);
   });
 });
 

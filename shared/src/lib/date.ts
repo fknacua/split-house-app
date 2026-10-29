@@ -98,6 +98,39 @@ export function formatDateShort(key: string): string {
 }
 
 /**
+ * Formats a date key as day, month and year with no weekday, for form fields and facts.
+ *
+ * @param key A date key, e.g. `2026-11-16`.
+ * @returns e.g. `16 Nov 2026`.
+ * @throws {RangeError} When `key` is not a valid date key.
+ */
+export function formatDateMedium(key: string): string {
+  return format(dateKeyToDate(key), 'd MMM yyyy');
+}
+
+/**
+ * Formats a span of days, such as a bill's billing period, without repeating the shared month
+ * or year.
+ *
+ * @param start The first day's key, e.g. `2026-10-01`.
+ * @param end The last day's key, e.g. `2026-10-31`.
+ * @returns `1–31 Oct 2026` within one month, `16 Oct – 15 Nov 2026` within one year, and
+ *   `16 Dec 2026 – 15 Jan 2027` across years.
+ * @throws {RangeError} When either key is not a valid date key.
+ */
+export function formatDateRange(start: string, end: string): string {
+  const from = dateKeyToDate(start);
+  const to = dateKeyToDate(end);
+  if (from.getFullYear() !== to.getFullYear()) {
+    return `${format(from, 'd MMM yyyy')} – ${format(to, 'd MMM yyyy')}`;
+  }
+  if (from.getMonth() !== to.getMonth()) {
+    return `${format(from, 'd MMM')} – ${format(to, 'd MMM yyyy')}`;
+  }
+  return `${format(from, 'd')}–${format(to, 'd MMM yyyy')}`;
+}
+
+/**
  * Counts the calendar days from one date key to another.
  *
  * @param to The date key counted towards, e.g. `2026-11-16`.

@@ -1,21 +1,25 @@
+import { router } from 'expo-router';
+
 import type { HomeTarget } from '@splithouse/shared';
 
 /**
- * Opens what a row link, a row button or the footer points at. The screens do not exist yet, so
- * a tap does nothing; each case is filled in by the phase that builds its screen.
+ * Opens what a row link, a row button or the footer points at. Targets whose screen does not exist
+ * yet do nothing; each case is filled in by the phase that builds its screen.
  *
  * @param target - Where the server says the tap goes.
  */
 export function openTarget(target: HomeTarget): void {
   switch (target.kind) {
+    case 'bill-upload':
+      router.push({ pathname: '/bill/[month]/upload', params: { month: target.month } });
+      return;
     case 'recipient': // Phase 7B
     case 'mark-paid': // Phase 7A
     case 'record-payment': // Phase 7A
-    case 'mark-bill-paid': // Phase 6C
-    case 'bill-upload': // Phase 6B
-    case 'bill-draft-continue': // Phase 6B
-    case 'bill-draft-discard': // Phase 6B
-    case 'bill-view': // Phase 6C
+    case 'mark-bill-paid': // 6.8
+    case 'bill-draft-continue': // 6.4
+    case 'bill-draft-discard': // 6.4
+    case 'bill-view': // 6.6
       return;
   }
 }

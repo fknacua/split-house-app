@@ -37,6 +37,9 @@ const NATIVE_VARIANT = {
 
 const NATIVE_SIZE = { default: 'default', small: 'sm' } as const;
 
+/** An icon-only button is a circle: as wide as the size is tall, with no side padding. */
+const ICON_ONLY_SIZE = { default: 'w-12 px-0', small: 'w-11 px-0' } as const;
+
 /**
  * App button (screen mapping doc: Button). A thin wrapper over the native gluestack button in
  * `ui/button`: it renames props, composes the label, icon and spinner, and adds loading, which
@@ -51,6 +54,8 @@ const NATIVE_SIZE = { default: 'default', small: 'sm' } as const;
  * @param variant - Which look to use. Defaults to `primary`.
  * @param size - `default` (48px) or `small` (44px). Defaults to `default`.
  * @param icon - Optional Lucide icon shown before the label.
+ * @param iconOnly - Draws only `icon`, as a round button as wide as it is tall (44px or 48px), such as
+ * the ✕ that removes a line. `label` is then only read out by screen readers.
  * @param loading - Show the Spinner, fade the button and ignore taps.
  * @param disabled - Show the disabled look and ignore taps.
  * @param className - Extra classes for the outer button, such as `flex-1` or `self-start`.
@@ -61,6 +66,7 @@ export function Button({
   variant = 'primary',
   size = 'default',
   icon,
+  iconOnly = false,
   loading = false,
   disabled = false,
   className,
@@ -70,6 +76,7 @@ export function Button({
   variant?: ButtonVariant;
   size?: ButtonSize;
   icon?: LucideIcon;
+  iconOnly?: boolean;
   loading?: boolean;
   disabled?: boolean;
   className?: string;
@@ -86,10 +93,10 @@ export function Button({
       pointerEvents={loading ? 'none' : undefined}
       accessibilityLabel={label}
       accessibilityState={{ disabled: disabled || loading, busy: loading }}
-      className={[fadeForLoading ? 'opacity-60' : '', className].join(' ')}
+      className={[fadeForLoading ? 'opacity-60' : '', iconOnly ? ICON_ONLY_SIZE[size] : '', className].join(' ')}
     >
       {loading ? <ButtonSpinner /> : icon ? <ButtonIcon as={icon} /> : null}
-      <ButtonText>{label}</ButtonText>
+      {iconOnly ? null : <ButtonText>{label}</ButtonText>}
     </NativeButton>
   );
 }
