@@ -47,8 +47,14 @@ export function ReviewForm({ draft, control, onChooseAnother, saveError }: Revie
         <View className="flex-row gap-3">
           {/* Free text until a month picker exists. */}
           <TextInput
-            placeholder="Oct 2026"
-            fieldControlProps={{ control, name: 'billMonth', label: 'Bill month', className: 'min-w-0 flex-1' }}
+            placeholder="e.g Oct 2026"
+            fieldControlProps={{
+              control,
+              name: 'billMonth',
+              label: 'Bill month',
+              required: true,
+              className: 'min-w-0 flex-1',
+            }}
           />
           <DateField
             clearable={false}
@@ -56,8 +62,7 @@ export function ReviewForm({ draft, control, onChooseAnother, saveError }: Revie
           />
         </View>
         <DateRangeField
-          placeholder="1–31 Oct 2026"
-          fieldControlProps={{ control, name: 'billingPeriod', label: 'Billing period' }}
+          fieldControlProps={{ control, name: 'billingPeriod', label: 'Billing period', required: true }}
         />
       </Card>
 

@@ -37,8 +37,8 @@ export async function pickBillPdf(): Promise<PickResult | null> {
 }
 
 /**
- * The Review bill form's checks. The device checks required fields only (Current Charges and a
- * name on each line); every other check is the server's.
+ * The Review bill form's checks. The device checks required fields only (Current Charges, Bill
+ * month, Billing period and a name on each line); every other check is the server's.
  */
 export const reviewFormSchema = z.object({
   // `null` while the field is empty (or the PDF had no Current Charges); that is an error, not a pass.
@@ -46,12 +46,18 @@ export const reviewFormSchema = z.object({
   currentChargesCents: positiveCents
     .nullable()
     .refine((value): boolean => value !== null, 'Enter Current Charges'),
-  // Free text such as `Oct 2026`; empty is allowed, anything else must read as a month.
-  billMonth: z.string().refine((text) => text.trim() === '' || parseShortDisplayMonth(text) !== null, {
-    message: 'Use a month like Oct 2026',
-  }),
+  // Free text such as `Oct 2026`; required, and must read as a month.
+  billMonth: z
+    .string()
+    .refine((text) => text.trim() !== '', { message: 'Enter the bill month' })
+    .refine((text) => text.trim() === '' || parseShortDisplayMonth(text) !== null, {
+      message: 'Use a month like Oct 2026',
+    }),
   dueDate: z.string(),
-  billingPeriod: z.object({ start: z.string(), end: z.string() }),
+  // The field only sets a span once both days are picked, and the end cannot be before the start.
+  billingPeriod: z
+    .object({ start: z.string(), end: z.string() })
+    .refine(({ start, end }) => start !== '' && end !== '', { message: 'Enter the billing period' }),
   lines: z.array(z.object({ label: requiredText, cents: cents.nullable() })),
 });
 
@@ -89,12 +95,12 @@ export function toReviewFormValues(fields: BillDraftFields): ReviewFormValues {
 export function toSaveBillRequest(values: ReviewFormValues): SaveBillRequest {
   const { start, end } = values.billingPeriod;
   return {
-    // The footer only offers Save once Current Charges is filled in.
+    // Save is only enabled once the form passes `reviewFormSchema`.
     currentChargesCents: values.currentChargesCents ?? 0,
-    billMonth: parseShortDisplayMonth(values.billMonth),
+    billMonth: parseShortDisplayMonth(values.billMonth) ?? '',
     dueDate: values.dueDate || null,
-    billingPeriodStart: start || null,
-    billingPeriodEnd: end || null,
+    billingPeriodStart: start,
+    billingPeriodEnd: end,
     lines: values.lines.map((line) => ({ label: line.label.trim(), cents: line.cents })),
   };
 }
