@@ -553,3 +553,169 @@ At Francis's request, Add line on Review bill is now a ghost small `Button`, and
 ## 2026-10-29: 6.2 🔄 (weekday opt-in)
 
 At Francis's request, `DateField`'s `showWeekday` is now opt-in (default `16 Nov 2026`, per B2), so Review bill no longer passes it and the dev gallery's date fields drop the weekday too. ESLint and the type check on the changed files are clean. Waiting for Francis to say whether 6.2 can be marked done.
+
+## 2026-10-29: 6.2 ✅
+
+Francis reviewed 6.2 on device and closed it. Changes since the last entry, found on device:
+- **Upload never left the phone.** The global `fetch` is `expo/fetch`, which rejects React Native's `{ uri, name, type }` form part, and `apiFetch` turned that local error into "Can't reach the server". The part is now a plain object with `name`, `type` and `bytes()` read from the picker's cached copy. The picker's cached copy has a UUID name, so the original name is sent in the part; `expo/fetch` percent-encodes it, so the route decodes it (`decodeFilename`).
+- **No reading board.** Review bill opens as soon as the file is picked, with the file's name and a skeleton of the form (`ReviewSkeleton`); Cancel stays in the footer. `ReadingStep` is deleted (B8, B25).
+- **Bill month** is a free-text field in `Mmm YYYY` (`Oct 2026`) until a month picker exists, with a check that blocks Save on text that is not a month. New shared `formatMonthShortLabel` and `parseShortDisplayMonth`; `billMonthOptions` removed (B17).
+- **Current Charges** empty now gives the required error and a red box as the field is cleared (the form checks as you type), and the footer hint uses the danger colour (B26).
+- **Text cuts** (the pick intro, the Total Amount Payable note, the Current Charges helper, the Due date placeholder) logged as B22 to B24, B18.
+- **Seed:** new `uploadOct` scenario (Aug and Sep only, `DEV_NOW=2026-10-01T09:00:00+08:00`) for testing with an October bill; the October block moved into `seedOctober`.
+
+Left for later steps, by design: the period and bill-month checks (a September bill saves into October until 6.3), Add line (6.3), the discard dialog and Review-step Cancel (6.4), Home's View bill link (6.6). Removed two debug `console.log`s from `bill-upload.tsx`. Shared month tests 48, app bill-upload tests 7.
+
+## 2026-10-29: 6.3 🔄 (check 1 of 8: required fields)
+
+Settled the 6.3 rules with Francis before building. The per-share helper under Current Charges is dropped (not built, not returned). His real billing period runs from the 3rd to the 2nd of the next month, so the period is never compared to a calendar month: Bill month and Billing period become required, and the only blocker against the month is the Bill month not matching the month the upload started from (the field stays editable, so a misread can be corrected). Threshold and wording for the unusual-bill warning: the proposals (25% of the last 3 saved bills). Plan text, B14, B15, B17 and B18 updated. Francis asked for the checks one at a time, each reviewed before the next: 1 required fields, 2 bill month mismatch (with the check endpoint), 3 `sum`, 4 `partial`, 5 `noLines`, 6 `addLine`, 7 `unusual`, 8 `confirm` dialog.
+
+Check 1 built: the save schema now requires `billMonth`, `billingPeriodStart` and `billingPeriodEnd`; the form shows both fields as required with "Enter the bill month" and "Enter the billing period"; the footer hint names the first empty required field and Save stays disabled. A start after the end needs no check, since the date range field cannot pick an end before the start. Shared/backend route tests (4 new 400 cases) and 13 app tests pass; ESLint and editor diagnostics clean on the changed files (the full type check runs at the end of the phase). Not run on a device: waiting for Francis's review with the `uploadOct` or `upload` scenario.
+
+## 2026-10-29: 6.3 🔄 (check 1 adjusted)
+
+At Francis's request the footer hint under Save is gone: each field shows its own error, and Save is disabled by `formState.isValid` from the form's own checks (so a bill month typo or a nameless line also disables it, with the error on that field). `hasMissingRequired` was removed. `DateRangeField` gained a `clearable` × button (on by default, like `DateField`); named `clearable` to match the other fields. App bill-upload tests 11 pass; ESLint and editor diagnostics clean on the changed files. Not run on a device.
+
+## 2026-10-29: 6.3 🔄 (check 2 of 8: bill month)
+
+Check 1 was committed as 8abafaf. Check 2 built: the bill month on the form must be the month the upload started from. Shared: `checkBillRequestSchema` (the form's values, any of them null), `checkBillResponseSchema` and `billBlockerSchema` (field, Alert title and text, short field error). Backend: pure `lib/bill/check-bill.ts` (table-tested, also guards Save), `services/bill/check-bill.service.ts`, `POST /api/months/:month/bill-draft/check`, and `saveBill` now returns 422 `bill_blocked` with the Alert text; the real response is parsed with the shared schema in the route test. App: `useDebouncedValue`, `useCheckBill` (query, keeps the previous answer while typing, 500 ms after typing pauses), `toCheckBillRequest`; the Alert shows above the form, Bill month turns red with "Should be November 2026" and Save is disabled while there is a blocker. The billing period is never matched to the month (B15, B28); the footer hint is gone (B27). README rows updated.
+
+Shared 110, backend 51 (bill lib, services and routes), app bill-upload 14 tests pass; ESLint clean on the changed files and editor diagnostics clean (the full type check runs at the end of the phase). Not run on a device: waiting for Francis's review with `upload` (bill read for November) and `uploadOct` (a November bill uploaded into October shows the Alert).
+
+## 2026-10-29: 6.3 🔄 (check 2 extended: billing period)
+
+Francis asked for a billing period check too, to catch a wrong pick such as next year. Rules, as he set them: the billing period must start in the Bill month, and its total days must be at most 30. The days are counted between the first and last day, so his usual 3rd to 2nd period (30 days apart in a 31-day month) passes in every month; an end before the start is also a blocker. Same pattern as the Bill month check: pure `checkBillingPeriod` in `lib/bill/check-bill.ts` (table-tested, including February, 30 vs 31 days and a start in the wrong year), a red Billing period field with a short error, a danger Alert "Check the billing period", Save disabled, and 422 `bill_blocked` at Save. It uses the Bill month on the form, not the upload month, and stays quiet while a month or date is missing. I first built a looser rule (start in the bill month or the month before) on a guess about his bill, which Francis stopped; he then gave the rule above. The synthetic fixture bill's invented period moved from 1 to 31 Oct to 3 Nov to 2 Dec so it still passes (regenerate the PDF with `npm run generate:bill-fixture` in `backend/` before copying it to the phone). B15, B28, the README row and the plan text updated.
+
+Backend 227 tests (all), shared 110, app bill-upload 14 pass; ESLint clean on the changed files (one existing warning in `prisma.ts`); editor diagnostics clean. Not run on a device.
+
+## 2026-10-29: 6.3 🔄 (billing period rule corrected)
+
+Francis corrected the billing period rule: a bill pays for the month before it (the October bill covers 3 Sep to 2 Oct, the November bill 3 Oct to 2 Nov). The check now requires the period to start in the month before the Bill month, not in the Bill month; the at-most-30-days-between rule and the end-before-start block are unchanged. The earlier "start in the Bill month" wording came from a misread of his first answer. The checks are now a list of `BlockerCheck` functions (`BLOCKER_CHECKS` in `lib/bill/check-bill.ts`) so later checks are added by writing one function and listing it. The synthetic fixture bill's invented period went back to 3 Oct to 2 Nov (its bill date of 1 Nov fits again); regenerate the PDF with `npm run generate:bill-fixture` in `backend/` before copying it to the phone. Plan text, README and B28 updated. Backend 227 tests pass; ESLint clean on the changed files; editor diagnostics clean. Not run on a device.
+
+## 2026-10-29: 6.3 🔄 (field error wording)
+
+Francis did not like field errors that say what the value should be ("Should be November 2026"). The red fields now say only "Invalid bill month" and "Invalid billing period" (the latter for every billing period rule); the Alert above the form still explains why. B28 updated. Backend bill tests (60) pass; ESLint and editor diagnostics clean. Not run on a device.
+
+## 2026-10-29: 6.3 🔄 (errors independent, Alerts inside the card)
+
+Found on device: the Alerts sat at the top of the page (the design puts them in the card under the Billing period field), and editing the Bill month hid the billing period error, because the period was judged against the typed Bill month. Both Alerts now sit together inside the card, and the billing period is judged against the month the upload started from, so each error shows on its own whatever the other field says. A test covers Bill month Dec 2026 with a 19 Nov period in a November upload (both flagged). Plan text, README and B28 updated. Backend 228 tests pass; ESLint and editor diagnostics clean. Also noted for Francis: his test PDF read as bill month November with a period of 3 Sep to 1 Oct, which may be a parser read to look at (not looked at, to keep the bill's contents out of the logs).
+
+## 2026-10-29: 6.3 🔄 (check 3 of 8: `sum`, lines note)
+
+Check 2 (bill month, billing period) was committed as 1953818. Check 3 built: the note under the utility lines. Shared: `linesNote` (tone, title, message) on the check response. Backend: pure `lib/bill/lines-note.ts` (table-tested: match, less, more, one cent off, no lines, no Current Charges, a line without an amount) and `checkBill` returns it next to the blockers. App: `LinesNote` component under the lines (quiet box with a check when they match; orange box with a warning and the difference when they do not, copy from the `sum` board), updated as lines are edited. It only warns; Save stays enabled, and the "Save with warnings?" dialog is check 8. The note is null while a line has no amount (check 4 adds the "N lines not found" note in that case).
+
+Backend 235 tests pass (including the contract test parsing the real response); app bill-upload 14; ESLint and editor diagnostics clean. Not run on a device. Two things to know: real bills print Refuse Collection, Conservancy and GST besides the three utility lines, so lines from a real bill will usually not add up to Current Charges and the orange note will show most months (as the design intends, it is only a warning); and the synthetic fixture's own comment says its lines add up, but they total $330.00 against $381.50.
+
+## 2026-10-29: 6.3 🔄 (check 3 of 8, reworked: lines against the Subtotal)
+
+The `sum` check was changed after Francis pointed out the lines can never add up to Current Charges (GST is on top), so the warning would show every month. The lines note is now the shared Alert (the hand-built box had the wrong corners) and compares the lines with the bill's Subtotal, the charges before GST. Parser: Refuse Removal is a fourth line and the Subtotal is read, both from the second page's breakdown table (a line that starts with the label and ends in its total); the services are still read from the first page. Plain `unpdf` text, no positions, no AI. Shared: `subtotalCents` on the draft fields and the check request, not on save. Backend: `buildLinesNote(subtotalCents, lines)`; the fixture is now two pages mirroring the real bill's layout, with invented values (lines add up to the Subtotal). App: a read-only `SubtotalRow` under the lines; the Subtotal comes from the draft into each check request. Plan text, README and design-deviations B29 updated.
+
+Backend 243 tests pass (parser tests cover the table rows, a quantity row, thousands separators, and the page 1 heading and a footnote not being read); app bill-upload 14; ESLint and editor diagnostics clean on the changed files. Not run on a device. The parser has not been run on the real bill; Francis checks that locally. GST and the layout of other months are not handled.
+
+## 2026-10-29: 6.3 🔄 (check 3 of 8, after the first device look)
+
+From the device screenshot: the lines note no longer shows when the lines match the Subtotal (only the warning is kept, so the shared `tone` field is gone and the app always draws the warning Alert), and the line rows are tighter (smaller gaps around the remove button, so the name field is wider for "Refuse Removal"). The remove button keeps its 44px size. README, plan text and B29 updated.
+
+## 2026-10-29: 6.3 🔄 (check 3 of 8, keyboard)
+
+Francis confirmed the new line row sizing. On Review bill the keyboard covered the focused amount field, the same problem the component test page had. The scroll area is now wrapped in a `KeyboardAvoidingView` with `behavior="padding"`, as on the test page (the Save and Cancel buttons stay under the keyboard while it is open, as they do there). Editor diagnostics and lint are clean; not yet run on the device.
+
+## 2026-10-29: plan rule (keyboard)
+
+Added a keyboard rule to the working rules at the top of the plan (step 3) and to the device check (step 6): any screen with a text or number input wraps its scroll area in a `KeyboardAvoidingView` with `behavior="padding"`; sheets keep the bottom sheet's own handling. Decided by Francis after the Review bill keyboard fix. Plan text only; no code changed.
+
+## 2026-10-30: 6.3 🔄 (check 3 of 8, due date required)
+
+Francis's mock bill with no due date saved without any warning, and the design's "Save with warnings?" dialog would not have opened for it. Decided with Francis: the Due date is a required field (the required-fields check, not a `partial` item). The form schema requires it ("Enter the due date", asterisk on the field), the save request schema requires it (400 otherwise), and the check endpoint and parser are unchanged. Tests: helper test for the form error, a route test row for the 400. README, plan text and design-deviations B30 updated. Home was read to confirm what a missing date does today: the bill row still shows (with the config's `billDueDay`, or no date), and Mark bill paid does not depend on it.
+
+## 2026-10-30: 6.3 🔄 (check 3 of 8, empty required fields show their error)
+
+On the mock bill with no due date the field was red-asterisked and Save was disabled, but no error text showed: the form only checks a field when it changes, so a field the bill left empty had no error yet. The form is now checked as a whole right after the server's read fills it in, so Due date, and any other required field the read left empty, show their error straight away. Editor diagnostics and lint clean; not yet checked on the device.
+
+## 2026-10-30: 6.3 🔄 (check 3 committed as b7e1ba2; check 4 of 8: `partial`)
+
+Check 3 (lines against the Subtotal, due date required, required errors shown after the read, keyboard avoiding, tighter line rows) was committed as b7e1ba2. Check 4 built: the parser now keeps a service whose heading is on the bill but whose amount is not as a line with no amount, and stops reading at the next block so it never takes the next service's amount. The server's lines note says "N lines not found" while any line has no amount (the sum is compared once all have one). On the form, such a line shows the dashed orange Add in place of the amount field and "Not found on the bill" under the row until filled; Add reveals the field and focuses it. A new fixture, `bill-partial.pdf` (no Water amount, written by `npm run generate:bill-fixture`), is for the device. README, plan text and design-deviations B31 updated.
+
+Backend 249 tests pass (parser, note, read-bill and route contract tests for the new cases); app bill-upload 15; type checks for backend, shared and app clean; ESLint clean apart from one existing warning in `lib/prisma.ts`. Not run on a device. A line the user adds in 6.3's `addLine` check with an empty amount will count as "not found" in the note; `addLine` will decide how that reads.
+
+## 2026-10-30: 6.3 🔄 (check 4 committed as 392ac24; check 5 of 8: `noLines`)
+
+Check 4 (`partial`) was committed as 392ac24. Check 5 built: the "No lines found" box ("Optional. Current Charges is all the split needs.", the `noLines` board's copy) replaces the lines whenever the form has none, whether the bill had none or all were removed. It is drawn by the app, as B14 decided, so there is no server change. A new `NoLinesBox` component; the radius is the theme's alert radius (the board's 14px has no token). Editor diagnostics and lint clean; not run on a device. To see it: remove every line on a read bill.
+
+## 2026-10-30: 6.3 🔄 (check 5 committed as f191567; check 6 of 8: `addLine`)
+
+Check 5 (`noLines`) was committed as f191567. Check 6 built: Add line appends an inline row (an empty name and amount, as on the `addLine` board, not a sheet) and react-hook-form focuses its name field. A row with no name and no amount is ignored: left out of the server check and the save, and it does not block Save; a row with an amount needs a name; a row with a name and no amount is kept with no amount. A just-added row is a plain empty field, not a "not found on the bill" line. Helper tests added (app bill-upload 18 pass); type check, lint and diagnostics clean. Deviation B32 logged. Not run on a device: needs a check that the name field takes focus and that the new row scrolls into view above the keyboard.
+
+## 2026-10-30: 6.3 🔄 (check 6 committed as 5211dcb; check 7 of 8: `unusual`)
+
+Check 6 (`addLine`) was committed as 5211dcb. Check 7 built, server side only: a pure rule `lib/bill/unusual-bill.ts` (Current Charges more than 25% above or below the average of the last 3 saved bills; exactly 25% passes; fewer than 3 bills use what exists; no warning with no saved bills or no amount) and the check service now takes the db and reads the last 3 saved bills before the month (skipped when there is no amount). The check response gets `warnings`, holding the wording agreed with Francis, "This bill is X% higher/lower than your recent bills.". Per B11 it only appears in the "Save with warnings?" dialog, so nothing shows in the app until check 8, which also adds the lines warnings to the dialog.
+
+Backend 264 tests pass (rule table, service with a fake db checking the query it makes, route contract with the new field); type checks for backend, shared and app clean; ESLint clean. Not seen on a device, because the dialog is check 8: the seeded Aug to Oct bills (about $400 on average) are what a new Nov bill is compared with.
+
+## 2026-10-30: 6.3 🔄 (check 7 committed as 91545ef; check 8 of 8: `confirm`; all eight built)
+
+Check 7 (`unusual`) was committed as 91545ef. Check 8 built: Save now asks the server for a check of exactly the current values, and when the response's `warnings` list is not empty it opens the "Save with warnings?" dialog, built on the shared `ConfirmDialog` (warning tone; "Go back and fix" filled; "Save anyway" neutral outline; spinner while saving; a failed save shown in the dialog; Go back clears that error). The server builds `warnings`: the lines note's title, then the unusual-bill line. The Save button also shows its spinner while the fresh check runs. An unreachable server shows the app's own prompt; other check failures do not stop the save. Switched the on-demand check to `queryClient.query`, because `fetchQuery` is deprecated in the installed TanStack Query. Deviation B33 logged (the dialog uses our line wording).
+
+Backend 266 tests pass (service tests for the combined `warnings`); app bill-upload 18; type checks for backend, shared and app clean; ESLint clean. The editor still shows a stale hint for the old `fetchQuery` call. Not run on a device. All eight 6.3 checks are now built, so 6.3 stays 🔄 until Francis's device review (the checks one by one: required fields, month and period, lines note, partial, noLines, addLine, unusual, confirm).
+
+## 2026-10-30: 6.3 ✅
+
+Check 8 (`confirm`) was committed as 7268d21, and Francis approved 6.3 after the device review. All eight checks are in: required fields (Current Charges, Bill month, Due date, Billing period), bill month and billing period against the upload month, the lines against the Subtotal, lines not found with the Add button, "No lines found", the inline Add line, the unusual-bill warning, and the "Save with warnings?" dialog. Commits: 8abafaf, 1953818, b7e1ba2, 392ac24, f191567, 5211dcb, 91545ef, 7268d21. Deviations B14 to B33 are logged in `design-deviations.md`. The full type check across the workspace is still due at the end of Phase 6; per-step checks used editor diagnostics, the per-package type checks and lint.
+
+## 2026-10-30: 6.4 🔄
+
+Built `POST /api/months/:month/bill-draft/discard` (deletes the month's draft; a month with no draft answers the same) with its shared schema, service and route tests. On Review bill, Back, Cancel and the Android back gesture always open "Discard this bill?" (Francis's call, as the board draws it), and Discard deletes the draft and returns to Home. Home's Continue opens Review bill with the stored draft, and Discard draft deletes it with a Spinner on the button (`open-target.ts` became the `useOpenTarget` hook for that). Cancel while reading aborts the upload (`apiFetch` now takes a `signal`) and discards the draft. Deviations B34 to B37 logged; Q5 resolved.
+
+Backend 269 tests and app 38 tests pass; type checks for app, shared and backend clean; app ESLint clean, backend ESLint has only the existing warning in `lib/prisma.ts`. Not run on a device yet.
+
+## 2026-10-30: 6.4 ✅
+
+Committed as 4ba582d and approved by Francis after the device review: Continue from both Home buttons, the "Discard this bill?" dialog from Back, the back gesture and Cancel, Home's Discard, and Cancel while a bill is read (tested with a temporary 5-second server delay, since removed). Added after the review: Continue is disabled while the draft is being discarded, and the notice's "Discard draft" button now reads "Discard" (Francis's change, logged as B38). Continue shows the values read from the bill, not edits made before leaving (as planned, B35). Backend 269 tests pass; app type check and lint clean.
+
+## 2026-10-30: 6.5 🔄
+
+The backend already stored an unreadable bill as a draft with `parseOk` false, returned `readOk: false`, and saved it as `NOT_PARSED`; added a letter-like fixture (`BILL_FIXTURE_UNREADABLE_PAGES`, written as `bill-unreadable.pdf` by `npm run generate:bill-fixture`) and a test that reads such a draft back. App: a read that finds nothing (on upload or Home's Continue) opens "Is this the right bill?" (`FailedStep`: danger Alert, file card, heading); Yes opens Review bill empty with the info Alert "Manual entry" (wording changed by Francis, B40) and the `unread` no-lines note (no Current Charges helper, B41); No and Back discard the draft and return to `pick`. The server check runs only on Review bill. Deviations B39 to B42 logged.
+
+Backend bill tests (87) and app bill-upload tests (18) pass; app type check clean; ESLint clean for the changed files; no hex values. Not run on a device yet.
+
+## 2026-10-30: 6.5 ✅
+
+Committed as cc9ca27 and approved by Francis after the device review. Changed during the review: the typed-bill Alert reads "Manual entry / This bill could not be read. Values will be keyed in manually." (B40), Current Charges has no helper on a typed bill (B41), and a typed bill's empty fields show no errors until edited, while Save stays disabled until they are filled. `bill-unreadable.pdf` is generated on demand and gitignored.
+
+## 2026-10-30: 6.6 🔄
+
+Built View bill. Backend: `GET /api/months/:month/bill` (404 `no_bill`) with `shared/src/api/bill.ts`, the pure `lib/bill/build-bill-view.ts`, and `services/bill/bill-view.service.ts`, which reads the file's name and page count but never its bytes. Bill coverage moved out of `build-home.ts` into `lib/bill/bill-coverage.ts`, and the due-date helpers into `lib/home/due-dates.ts`, so Home and View bill share them. `Covered`, `Waiting`, `billDueInBadge` and `paidOnBadge` joined the central badge map. Per Francis: `unsent` shows `Not sent` per person, and the chips go Paid, Not sent, Overdue, Waiting (B3, B43). `BillFile` gains a nullable `pageCount` (migration `bill_file_page_count`), set on save (B46). The seeded November bill now has the board's three lines and a 3 Oct to 2 Nov period; past months have sample lines. App: route `bill/[month]/index.tsx` (a folder, because `bill/[month]/upload` already exists), `useBill`, `screens/bill/` with the `loading` skeleton, Home's `bill-view` target, and History's View bill link (U4). Bill upload's footer became the shared `SubpageFooter`. Open and Mark bill paid do nothing until 6.7 and 6.8. Deviations B43 to B49 logged; B3 and U4 updated.
+
+Backend 301 tests pass. Type checks for backend, shared and app are clean, apart from the known `components/ui` errors; the app's typed routes were regenerated by starting Metro briefly. ESLint is clean on the changed files, the app's 38 tests pass, and there are no new hex values. The service was run against the reseeded `collecting` data for Nov, Oct and Aug. Not run on a device yet.
+
+## 2026-10-30: 6.6 ✅
+
+Francis approved View bill after the device review: `collecting` (and its Overdue chips at a later `DEV_NOW`), `unsent`, `settled`, the History month links, the loading skeleton, and light and dark. Changed during the review: person rows got 8px of vertical padding and centred chips (B50). Not committed yet. The full workspace type check is still due at the end of Phase 6.
+
+## 2026-10-30: 6.6 committed as ded950b; 6.7 🔄
+
+Built `GET /api/months/:month/bill/file`, which returns the stored PDF inline with an encoded file name; 404 `no_bill` or `no_file`, and route and service tests added. The seed now gives every saved bill (and the draft) the valid synthetic two-page PDF with its page count, in place of the placeholder. App: `apiFetch` now shares its request code with a new `apiFetchFile`, so a download gets the same session, timeout and unreachable-server handling. `lib/open-pdf.ts` writes the PDF to the cache and opens it with Android's view intent through its content URI, and `useOpenBillPdf` wraps both. Open shows a Spinner and a danger Alert under the row on failure, with copy agreed with Francis (B51, B52).
+
+Backend 307 tests and app 38 tests pass. Type checks are clean (the typed routes had been regenerated with backend files in them and were regenerated again), and ESLint is clean on the changed files. Not run on a device yet: needs the chooser or viewer to open, and the no-viewer Alert if it can be reproduced.
+
+## 2026-10-30: 6.7 ✅
+
+Francis approved Open after the device test: the sample bill opens in the phone's PDF viewer from View bill on the current month and on History months, and an unreachable server shows the app's prompt. No new development build was needed. Not committed yet.
+
+## 2026-10-30: 6.7 committed as f81a376; 6.8 🔄
+
+Built Mark bill paid. Backend: `POST /api/months/:month/bill/paid` (`services/bill/mark-bill-paid.service.ts`; updates only an unpaid bill, so a second tap gets 409 `bill_paid`; 400 for a later day or an amount of zero or less; 404 `no_bill`). The bill response gains `paySheet`: Current Charges filled in, the due day, and the collected note (warning "You’ve collected … You’re covering …", or success "All … is collected"), null once paid. Seed scenario `fullyCollected` added (`DEV_NOW=2026-11-10T09:00:00+08:00`). App: `src/sheets/pay-bill/` (`PayBillSheet` on `AppSheet`, with a form for the amount and day) and `useMarkBillPaid`, which refetches Home, History and the bill before the sheet closes. Per Francis, each screen mounts its own sheet: Home through the new `HomeSheetsProvider` (the `mark-bill-paid` target), View bill from its footer. Deviations B53 to B56 logged.
+
+Backend 319 tests, app 44 tests; type checks for backend, shared and app clean (typed routes regenerated again); ESLint clean on the changed files; no hex values. Not run on a device yet.
+
+## 2026-10-30: 6.8 ✅
+
+Francis approved Mark bill paid after the device review: the partial and full notes (`collecting`, `fullyCollected`), saving from View bill and from Home, the form checks, a failed save with Retry, the keyboard, and light and dark. Changed during the review: Amount paid and Paid on each got an × to empty them (`MoneyInput` gained an opt-in `clearable`), and the sheet closes after awaiting the save. The sheet did not close after saving because the bottom sheet wrapper (`components/ui/bottomsheet`) closed it by setting gorhom's `index` to -1, which gorhom ignores (it looks for a snap point at -1). It now calls gorhom's `close()`, as the back gesture did, which fixes closing from code for every sheet, Cancel included.
+
+## 2026-10-30: 6.8 committed as eb94ade; 6.9 🔄 (parts 4 to 6)
+
+At Francis's request the phase pass covers only dead code, the full checks and the deviations list. The on-device walk of every scenario, the end-to-end run, and the hex and 44px checks were skipped at the user's request, since each step was reviewed on device when it was built. Dead code: none found among the files and exports Phase 6 touched. The only removed file, `open-target.ts`, became `useOpenTarget` in 6.4, and the unused `screens/home/add-charge-sheet.tsx` spike is left for Phase 11. The full checks pass. Type check: `app`, `backend` and `shared` are clean, and the known `components/ui` errors are gone; the app's typed routes had to be regenerated first, because the running Metro (`expo start --clear`, watching the whole repo) adds every changed backend file to `.expo/types/router.d.ts` as a route. Lint: 0 errors and 2 warnings, both old (an unused disable in `backend/src/lib/prisma.ts` and one in the generated `router.d.ts`). Tests: backend 319, app 44, shared 110. Deviations: the Phase 6 header and B49 updated, B57 added (sheet subtitle size), the skipped checks noted, and B10, B12 and B17 carried forward.
+
+## 2026-10-30: 6.9 ✅, Phase 6 ✅
+
+Francis approved the phase pass (dead code, full checks, deviations list; the device walk, end-to-end run, and hex and 44px checks skipped at his request). Phase 6 is done: commits cc9ca27 (6.5), ded950b (6.6), f81a376 (6.7) and eb94ade (6.8) on top of the earlier 6.1 to 6.4 commits, all on `phase-6-bill-mgmt`. Open: the Metro typed-routes pollution (proposed fix: a `resolver.blockList` for `backend/` in `app/metro.config.js`, not applied).
