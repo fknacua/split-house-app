@@ -129,6 +129,17 @@ function payerFor(c: { personId: string; payViaPersonId: string | null }): strin
   return c.payViaPersonId ?? c.personId;
 }
 
+/** Sample Electricity, Gas and Water lines that add up to a past month's Current Charges. */
+function sampleLines(currentChargesCents: number) {
+  const electricity = Math.round(currentChargesCents * 0.65);
+  const gas = Math.round(currentChargesCents * 0.1);
+  return [
+    { label: "Electricity", cents: electricity },
+    { label: "Gas", cents: gas },
+    { label: "Water", cents: currentChargesCents - electricity - gas },
+  ];
+}
+
 interface PastMonthResult {
   rentAndRecurring: Awaited<ReturnType<typeof insertCharge>>[];
   utilities: Awaited<ReturnType<typeof insertCharge>>[];
@@ -147,8 +158,9 @@ async function seedPastMonth(
       billingPeriodStart: new Date(billingPeriod.start),
       billingPeriodEnd: new Date(billingPeriod.end),
       dueDate: new Date(billingPeriod.dueDate),
-      lines: [{ label: "Current Charges", cents: billingPeriod.currentChargesCents }],
+      lines: sampleLines(billingPeriod.currentChargesCents),
       parseStatus: "PARSED",
+      createdAt: new Date(`${month}-02T10:00:00+08:00`),
       file: {
         create: {
           filename: `${month}-sample-bill.pdf`,
@@ -332,18 +344,24 @@ async function main() {
 
   if (scenario === "unsent" || scenario === "collecting" || scenario === "dueToday" || scenario === "settled") {
     // Opened through the same function Home uses, so November has version B's rent and recurring
-    // charges. The bill is synthetic, with the Nov 2026 fixture total; due 16 Nov.
+    // charges. The bill is synthetic, with the Nov 2026 fixture total and the View bill board's
+    // sample lines; due 16 Nov, saved on 1 Nov.
     const november = await openMonthIfNeeded(prisma, "2026-11");
     if (!november) throw new Error("No household version covers 2026-11");
     const bill = await prisma.bill.create({
       data: {
         month: "2026-11",
         currentChargesCents: 41230,
-        billingPeriodStart: new Date("2026-10-01"),
-        billingPeriodEnd: new Date("2026-10-31"),
+        billingPeriodStart: new Date("2026-10-03"),
+        billingPeriodEnd: new Date("2026-11-02"),
         dueDate: new Date("2026-11-16"),
-        lines: [{ label: "Current Charges", cents: 41230 }],
+        lines: [
+          { label: "Electricity", cents: 26845 },
+          { label: "Gas", cents: 4120 },
+          { label: "Water", cents: 10265 },
+        ],
         parseStatus: "PARSED",
+        createdAt: new Date("2026-11-01T09:00:00+08:00"),
         file: {
           create: {
             filename: "2026-11-sample-bill.pdf",

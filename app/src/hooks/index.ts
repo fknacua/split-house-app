@@ -1,4 +1,5 @@
 export * from './use-app-fonts';
+export * from './use-bill';
 export * from './use-bootstrap';
 export * from './use-check-bill';
 export * from './use-color-scheme';

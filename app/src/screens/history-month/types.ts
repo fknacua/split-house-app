@@ -2,6 +2,8 @@ import type { HistoryBill, HistoryPayment } from '@splithouse/shared';
 
 /** Props for {@link BillCard}. */
 export interface BillCardProps {
+  /** `YYYY-MM` key of the month, for the View bill link. */
+  month: string;
   /** The month's utilities bill card. */
   bill: HistoryBill;
 }

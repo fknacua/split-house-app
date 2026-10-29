@@ -15,6 +15,8 @@ export const queryKeys = {
   history: ['history'] as const,
   /** @param month `YYYY-MM` key. */
   historyMonth: (month: string) => ['history', month] as const,
+  /** @param month `YYYY-MM` key of the month View bill shows. */
+  bill: (month: string) => ['bill', month] as const,
   /** The mutation key of Home's Discard (the bill draft), so every Continue on Home can see that it is running. */
   billDraftDiscard: ['bill-draft-discard'] as const,
   /** @param month `YYYY-MM` key of the month whose stored bill draft Continue opens. */

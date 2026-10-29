@@ -1,9 +1,10 @@
-import type { BadgeContent } from "@splithouse/shared";
+import { formatDateShort, type BadgeContent } from "@splithouse/shared";
 
 /**
- * Every fixed badge Home shows, keyed by name. The builders pick from here instead of writing
- * labels and tones inline, so a badge changes in one place. Badges with a number in them are
- * made by `overdueBadge`, `chargeDueBadge` and `billDueBadge`. Later Home steps add their own.
+ * Every fixed badge Home and View bill show, keyed by name. The builders pick from here instead of
+ * writing labels and tones inline, so a badge changes in one place. Badges with a number or a date
+ * in them are made by `overdueBadge`, `chargeDueBadge`, `billDueBadge`, `billDueInBadge` and
+ * `paidOnBadge`. Later steps add their own.
  */
 export const HOME_BADGES = {
   paid: { label: "Paid", tone: "success" },
@@ -14,6 +15,10 @@ export const HOME_BADGES = {
   needsBill: { label: "Needs bill", tone: "neutral" },
   billNotUploaded: { label: "Not uploaded", tone: "neutral" },
   notSent: { label: "Not sent", tone: "primary" },
+  /** View bill: the user's own share, covered from the start. */
+  covered: { label: "Covered", tone: "success" },
+  /** View bill: a share whose message is out and is not paid or overdue. */
+  waiting: { label: "Waiting", tone: "neutral" },
 } as const satisfies Record<string, BadgeContent>;
 
 /** A charge due within this many days shows `Due in N days`. Further out it is `Sent, unpaid` or `Upcoming`. */
@@ -54,4 +59,24 @@ export function billDueBadge(days: number): BadgeContent {
   if (days < 0) return overdueBadge(-days);
   if (days === 0) return HOME_BADGES.dueToday;
   return { label: days === 1 ? "In 1 day" : `In ${days} days`, tone: "neutral" };
+}
+
+/**
+ * View bill's chip on an unpaid bill, which counts every day down rather than switching to `In N days`.
+ *
+ * @param days - Whole days from today to the bill's due date. Negative once it is past.
+ * @returns `Overdue N days`, `Due today`, `Due tomorrow`, or `Due in N days`.
+ */
+export function billDueInBadge(days: number): BadgeContent {
+  return chargeDueBadge(days) ?? { label: `Due in ${days} days`, tone: "neutral" };
+}
+
+/**
+ * The chip for something paid, with the day when it is known.
+ *
+ * @param paidOn - The date key it was paid on, or null.
+ * @returns e.g. `Paid 5 Nov`, or `Paid` with no date.
+ */
+export function paidOnBadge(paidOn: string | null): BadgeContent {
+  return paidOn === null ? HOME_BADGES.paid : { label: `Paid ${formatDateShort(paidOn)}`, tone: "success" };
 }

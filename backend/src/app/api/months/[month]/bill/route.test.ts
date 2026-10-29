@@ -6,8 +6,10 @@ vi.mock("@/lib/api", async (importOriginal) => ({
 }));
 vi.mock("@/lib/prisma", () => ({ prisma: {} }));
 
-import { checkBillResponseSchema } from "@splithouse/shared";
-import { POST as saveBill } from "./route";
+import { billViewResponseSchema, checkBillResponseSchema, HOUSEHOLD_SCHEMA_VERSION } from "@splithouse/shared";
+import { NOV_2026_CONFIG, PERSON_IDS } from "@/lib/fixtures/household";
+import { prisma } from "@/lib/prisma";
+import { GET as getBill, POST as saveBill } from "./route";
 import { GET as getDraft, POST as uploadDraft } from "../bill-draft/route";
 import { POST as checkDraft } from "../bill-draft/check/route";
 import { POST as discardDraft } from "../bill-draft/discard/route";
@@ -121,5 +123,65 @@ describe("POST /api/months/:month/bill-draft/discard", () => {
     const response = await discardDraft(new Request("http://localhost", { method: "POST" }), params("2026-13"));
     expect(response.status).toBe(400);
     expect((await response.json()).error.code).toBe("invalid_request");
+  });
+});
+
+describe("GET /api/months/:month/bill", () => {
+  /** Points the mocked Prisma client at a November with its bill saved, or with none. */
+  function useNovember(bill: object | null) {
+    Object.assign(prisma, {
+      bill: { findUnique: async () => bill },
+      month: {
+        findFirst: async () => ({ month: "2026-11" }),
+        findUnique: async () => ({
+          householdVersion: { schemaVersion: HOUSEHOLD_SCHEMA_VERSION, config: NOV_2026_CONFIG },
+        }),
+      },
+      person: { findMany: async () => [{ id: PERSON_IDS.alex, name: "Alex", isOwner: true }] },
+      charge: {
+        findMany: async () => [
+          {
+            personId: PERSON_IDS.alex,
+            payViaPersonId: null,
+            category: "UTILITIES",
+            amountCents: 12369,
+            dueDate: null,
+            paidCents: null,
+            paidOn: null,
+          },
+        ],
+      },
+      messageEvent: { findMany: async () => [] },
+    });
+  }
+
+  it("returns the bill, parsing with the shared schema", async () => {
+    useNovember({
+      currentChargesCents: 41230,
+      billingPeriodStart: new Date("2026-10-03"),
+      billingPeriodEnd: new Date("2026-11-02"),
+      dueDate: new Date("2026-11-16"),
+      lines: [{ label: "Electricity", cents: 26845 }],
+      paidCents: null,
+      paidOn: null,
+      createdAt: new Date("2026-11-02T10:00:00+08:00"),
+      file: { filename: "bill.pdf", pageCount: 2 },
+    });
+    const response = await getBill(new Request("http://localhost"), params("2026-11"));
+    expect(response.status).toBe(200);
+    const view = billViewResponseSchema.parse(await response.json());
+    expect(view.hero.amount).toBe("$412.30");
+  });
+
+  it("returns 404 no_bill when the month has no saved bill", async () => {
+    useNovember(null);
+    const response = await getBill(new Request("http://localhost"), params("2026-11"));
+    expect(response.status).toBe(404);
+    expect((await response.json()).error.code).toBe("no_bill");
+  });
+
+  it("returns 400 for a bad month", async () => {
+    const response = await getBill(new Request("http://localhost"), params("2026-13"));
+    expect(response.status).toBe(400);
   });
 });

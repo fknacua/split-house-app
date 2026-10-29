@@ -28,6 +28,7 @@ export * from './select-field';
 export * from './server-error-dialog';
 export * from './server-unreachable-provider';
 export * from './skeletons';
+export * from './subpage-footer';
 export * from './spinner';
 export * from './switch';
 export * from './text-input';

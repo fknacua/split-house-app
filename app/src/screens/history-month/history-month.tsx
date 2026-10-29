@@ -39,7 +39,7 @@ export function HistoryMonth() {
                 message={banner.text}
               />
             ))}
-            <BillCard bill={data.bill} />
+            <BillCard month={data.month} bill={data.bill} />
             <View className="gap-1.5">
               <Text className="mx-1 font-manrope-bold text-body text-on-surface">Payments</Text>
               <Card padded={false}>

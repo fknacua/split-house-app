@@ -80,8 +80,3 @@ export interface LineRowProps {
   label: string;
   onRemove: () => void;
 }
-
-/** Props for {@link UploadFooter}. */
-export interface UploadFooterProps {
-  children: ReactNode;
-}

@@ -87,7 +87,8 @@ describe("saveBill", () => {
       lines: VALUES.lines,
       parseStatus: "PARSED",
     });
-    expect(state.file).toMatchObject({ billId: "bill-1", mimeType: "application/pdf", sizeBytes: PDF.byteLength });
+    // The sample bytes are not a real PDF, so no page count is stored.
+    expect(state.file).toMatchObject({ billId: "bill-1", mimeType: "application/pdf", sizeBytes: PDF.byteLength, pageCount: null });
     const expected = buildUtilitiesCharges(NOV_2026_CONFIG, { month: "2026-11", currentChargesCents: 41230 });
     expect(state.charges).toHaveLength(expected.length);
     expect(state.charges.reduce((sum, c) => sum + (c.amountCents as number), 0)).toBe(41230);

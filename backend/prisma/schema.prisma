@@ -188,6 +188,8 @@ model BillFile {
   filename  String
   mimeType  String
   sizeBytes Int
+  // The PDF's page count; null when it could not be opened to count them.
+  pageCount Int?
   bytes     Bytes
 
   bill Bill @relation(fields: [billId], references: [id], onDelete: Cascade)
