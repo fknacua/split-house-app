@@ -8,7 +8,6 @@ import {
   formatMonthLabel,
   formatMonthName,
   type BadgeContent,
-  type ChargeType,
   type HomeAction,
   type HomeHero,
   type HomeNextMonthAction,
@@ -20,7 +19,9 @@ import {
   type HouseholdConfig,
 } from "@splithouse/shared";
 import type { ChargeCategory, MessageKind } from "@/generated/prisma/enums";
+import { billCoverage, coveragePercent } from "@/lib/bill/bill-coverage";
 import { billDueBadge, chargeDueBadge, HOME_BADGES } from "./badges";
+import { billDueDateKey, chargeDueDate } from "./due-dates";
 import { messageRecipientIds, monthlyMessagedIds, unsentRecipientIds } from "./message-recipients";
 
 /** A person, as much of them as Home needs. */
@@ -155,18 +156,6 @@ function routeDetail(viaPersonId: string | null | undefined, names: Map<string, 
 }
 
 /**
- * The date a charge's row shows. A charge stored with no due date that is paid via someone
- * (Sam's utilities) uses that person's due day for the same charge type, as the projected
- * row did before the bill was saved. The stored charge is not changed.
- */
-function chargeDueDate(input: HomeInput, charge: HomeChargeRow): string | null {
-  if (charge.dueDate) return dateKeyOf(charge.dueDate);
-  if (!charge.payViaPersonId) return null;
-  const via = input.config.people.find((p) => p.personId === charge.payViaPersonId);
-  return dueDateKey(input.month, via?.dueDays[charge.category as ChargeType]);
-}
-
-/**
  * One row per real charge. A utilities charge whose payer has no monthly message yet is `Not sent`
  * and has no Mark paid, since the message comes before any payment. When the person pays for
  * themselves the row starts open with a Review message link; a charge paid via someone else has
@@ -180,7 +169,7 @@ function chargeRow(
   unsentIds: Set<string>,
   dates: MessageDates,
 ): RankedRow {
-  const dueDate = chargeDueDate(input, charge);
+  const dueDate = chargeDueDate(input.month, input.config, charge);
   const payerId = charge.payViaPersonId ?? charge.personId;
   const unpaid = charge.paidCents === null;
   const messageUnsent = unpaid && charge.category === "UTILITIES" && unsentIds.has(payerId);
@@ -280,33 +269,7 @@ function draftNotice(month: string): HomeNotice {
 
 /** The bill's due date: the saved bill's own date supersedes the day in the config. */
 function billDueDate(input: HomeInput): string | null {
-  return input.bill?.dueDate
-    ? dateKeyOf(input.bill.dueDate)
-    : dueDateKey(input.month, input.config.categories.utilities.billDueDay);
-}
-
-/** How much of the bill the household has covered: Francis's own share plus what the others have paid. */
-interface BillCoverage {
-  coveredCents: number;
-  totalCents: number;
-  /** Utilities charges of people other than the owner, and how many of them are paid. */
-  othersTotal: number;
-  othersPaid: number;
-}
-
-function billCoverage(input: HomeInput, bill: HomeBill, ownerIds: Set<string>): BillCoverage {
-  const utilities = input.charges.filter((c) => c.category === "UTILITIES");
-  const own = utilities.filter((c) => ownerIds.has(c.personId));
-  const others = utilities.filter((c) => !ownerIds.has(c.personId));
-  // A payment over the amount covers no more than the charge.
-  const paid = others.reduce((sum, c) => sum + Math.min(c.paidCents ?? 0, c.amountCents), 0);
-  const coveredCents = own.reduce((sum, c) => sum + c.amountCents, 0) + paid;
-  return {
-    coveredCents: Math.min(coveredCents, bill.currentChargesCents),
-    totalCents: bill.currentChargesCents,
-    othersTotal: others.length,
-    othersPaid: others.filter((c) => c.paidCents !== null).length,
-  };
+  return billDueDateKey(input.month, input.config, input.bill?.dueDate ?? null);
 }
 
 function billRow(input: HomeInput, ownerIds: Set<string>): RankedRow {
@@ -332,7 +295,7 @@ function billRow(input: HomeInput, ownerIds: Set<string>): RankedRow {
   const billPaid = input.bill.paidCents !== null;
   // Mark bill paid is only offered while collecting, and goes once the bill is paid.
   const collecting = input.status === "collecting" && !billPaid;
-  const coverage = billCoverage(input, input.bill, ownerIds);
+  const coverage = billCoverage(input.charges, ownerIds, input.bill.currentChargesCents);
   return {
     rank: BILL_RANK,
     row: {
@@ -406,7 +369,7 @@ interface DueTodayCopy {
 function dueTodayCopy(input: HomeInput, names: Map<string, string>, ownerIds: Set<string>): DueTodayCopy | null {
   if (input.status !== "collecting") return null;
   const due = input.charges.filter(
-    (c) => c.paidCents === null && !ownerIds.has(c.personId) && chargeDueDate(input, c) === input.today,
+    (c) => c.paidCents === null && !ownerIds.has(c.personId) && chargeDueDate(input.month, input.config, c) === input.today,
   );
   if (due.length === 0) return null;
 
@@ -458,7 +421,7 @@ function buildHero(
     }
     case "collecting": {
       if (!input.bill) throw new Error("The collecting status needs a saved bill");
-      const coverage = billCoverage(input, input.bill, ownerIds);
+      const coverage = billCoverage(input.charges, ownerIds, input.bill.currentChargesCents);
       const dueDate = billDueDate(input);
       const share =
         coverage.othersPaid === 0
@@ -482,7 +445,7 @@ function buildHero(
           coverage: {
             label: "Utilities bill covered",
             text: `${formatCents(coverage.coveredCents)} of ${formatCents(coverage.totalCents)}`,
-            percent: coverage.totalCents === 0 ? 0 : Math.round((coverage.coveredCents / coverage.totalCents) * 100),
+            percent: coveragePercent(coverage),
             note: dueDate === null ? share : `${share} · due ${formatDateShort(dueDate)}`,
           },
         },

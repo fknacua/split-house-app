@@ -1,6 +1,6 @@
 import type { BillFileStore, StoredBillFile } from "@/lib/bill/bill-file-store";
 
-const FILE_SELECT = { filename: true, mimeType: true, sizeBytes: true, bytes: true } as const;
+const FILE_SELECT = { filename: true, mimeType: true, sizeBytes: true, pageCount: true, bytes: true } as const;
 
 /** The slice of the Prisma client (or a transaction) the Postgres file store uses. */
 export interface BillFileDb {

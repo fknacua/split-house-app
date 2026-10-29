@@ -3,6 +3,8 @@ export interface StoredBillFile {
   filename: string;
   mimeType: string;
   sizeBytes: number;
+  /** The PDF's page count, or `null` when it could not be opened to count them. */
+  pageCount: number | null;
   bytes: Uint8Array<ArrayBuffer>;
 }
 

@@ -5,7 +5,7 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import { useForm, useWatch } from 'react-hook-form';
 import { BackHandler, KeyboardAvoidingView, ScrollView } from 'react-native';
 
-import { Button, ConfirmDialog, Screen, SubpageHeader } from '@/components';
+import { Button, ConfirmDialog, Screen, SubpageFooter, SubpageHeader } from '@/components';
 import {
   useCheckBill,
   useCheckBillNow,
@@ -26,7 +26,6 @@ import { FailedStep } from './components/failed-step';
 import { PickStep } from './components/pick-step';
 import { ReviewForm } from './components/review-form';
 import { ReviewSkeleton } from './components/review-skeleton';
-import { UploadFooter } from './components/upload-footer';
 import {
   pickBillPdf,
   reviewFormSchema,
@@ -309,7 +308,7 @@ export function BillUpload() {
           ) : null}
         </ScrollView>
       </KeyboardAvoidingView>
-      <UploadFooter>
+      <SubpageFooter>
         {step === 'pick' ? <Button label="Choose PDF" icon={FileText} onPress={choosePdf} /> : null}
         {step === 'failed' && draft ? (
           <>
@@ -329,7 +328,7 @@ export function BillUpload() {
             <Button label="Cancel" variant="ghost" size="small" onPress={goBack} />
           </>
         ) : null}
-      </UploadFooter>
+      </SubpageFooter>
       <ConfirmDialog
         open={confirming !== null}
         tone="warning"

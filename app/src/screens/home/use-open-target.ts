@@ -29,6 +29,9 @@ export function useOpenTarget() {
       case 'bill-draft-continue':
         router.push({ pathname: '/bill/[month]/upload', params: { month: target.month, draft: 'stored' } });
         return;
+      case 'bill-view':
+        router.push({ pathname: '/bill/[month]', params: { month: target.month } });
+        return;
       case 'bill-draft-discard':
         if (!discardDraft.isPending) discardDraft.mutate(target.month);
         return;
@@ -36,7 +39,6 @@ export function useOpenTarget() {
       case 'mark-paid': // Phase 7A
       case 'record-payment': // Phase 7A
       case 'mark-bill-paid': // 6.8
-      case 'bill-view': // 6.6
         return;
     }
   };
