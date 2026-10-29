@@ -38,6 +38,16 @@ export interface ApiFetchOptions {
   body?: unknown;
   /** Sent as multipart (bill upload). */
   formData?: FormData;
+  /** Cancels the request (Cancel while a bill uploads). A cancelled request rejects with {@link RequestCancelledError}. */
+  signal?: AbortSignal;
+}
+
+/** The caller cancelled the request through its `signal`. It is not a failure, so nothing is shown for it. */
+export class RequestCancelledError extends Error {
+  constructor() {
+    super('The request was cancelled.');
+    this.name = 'RequestCancelledError';
+  }
 }
 
 /**
@@ -48,9 +58,11 @@ export interface ApiFetchOptions {
  * @throws {ServerUnreachableError} On network failure, timeout, a 502/503/504, or a success
  *   response whose body is not JSON. An empty body (for example a 204) is fine.
  * @throws {ApiRequestError} When the backend returns its error shape (a 401 means the session ended).
+ * @throws {RequestCancelledError} When `signal` aborts before the response arrives.
  */
 export async function apiFetch<T>(path: string, options: ApiFetchOptions = {}): Promise<T> {
-  const { method = 'GET', body, formData } = options;
+  const { method = 'GET', body, formData, signal } = options;
+  if (signal?.aborted) throw new RequestCancelledError();
   const headers: Record<string, string> = {};
   const cookie = await authClient.getCookie();
   if (cookie) headers.cookie = cookie;
@@ -58,6 +70,8 @@ export async function apiFetch<T>(path: string, options: ApiFetchOptions = {}): 
 
   const controller = new AbortController();
   const timer = setTimeout(() => controller.abort(), REQUEST_TIMEOUT_MS);
+  const cancel = () => controller.abort();
+  signal?.addEventListener('abort', cancel);
   try {
     let response: Response;
     try {
@@ -70,7 +84,8 @@ export async function apiFetch<T>(path: string, options: ApiFetchOptions = {}): 
         signal: controller.signal,
       });
     } catch {
-      throw new ServerUnreachableError();
+      // The same abort ends a timeout and a cancel; only the caller's signal tells them apart.
+      throw signal?.aborted ? new RequestCancelledError() : new ServerUnreachableError();
     }
 
     if (UNREACHABLE_STATUSES.includes(response.status)) throw new ServerUnreachableError();
@@ -97,5 +112,6 @@ export async function apiFetch<T>(path: string, options: ApiFetchOptions = {}): 
     return json as T;
   } finally {
     clearTimeout(timer);
+    signal?.removeEventListener('abort', cancel);
   }
 }

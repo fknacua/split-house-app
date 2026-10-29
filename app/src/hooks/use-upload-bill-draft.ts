@@ -12,6 +12,12 @@ export interface PickedPdf {
   name: string;
 }
 
+/** What {@link useUploadBillDraft} sends: the file, and the signal that cancels the upload. */
+export interface UploadBillDraftVariables {
+  file: PickedPdf;
+  signal: AbortSignal;
+}
+
 /**
  * Uploads a picked bill PDF as the month's draft (`POST /api/months/:month/bill-draft`) and
  * returns what the server read from it. Nothing is cached: the draft is the screen's own state
@@ -21,7 +27,7 @@ export interface PickedPdf {
  */
 export function useUploadBillDraft(month: string) {
   return useMutation({
-    mutationFn: (file: PickedPdf) => {
+    mutationFn: ({ file, signal }: UploadBillDraftVariables) => {
       const formData = new FormData();
       const cached = new File(file.uri);
       formData.append('file', {
@@ -29,7 +35,11 @@ export function useUploadBillDraft(month: string) {
         type: 'application/pdf',
         bytes: () => cached.bytes(),
       } as unknown as Blob);
-      return apiFetch<BillDraftResponse>(`/api/months/${month}/bill-draft`, { method: 'POST', formData });
+      return apiFetch<BillDraftResponse>(`/api/months/${month}/bill-draft`, {
+        method: 'POST',
+        formData,
+        signal,
+      });
     },
   });
 }

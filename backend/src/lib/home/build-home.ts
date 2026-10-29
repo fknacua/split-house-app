@@ -273,7 +273,7 @@ function draftNotice(month: string): HomeNotice {
     text: `You started uploading a bill for ${formatMonthName(month)} and didn’t save it.`,
     actions: [
       { label: "Continue", tone: "primary", icon: null, target: { kind: "bill-draft-continue", month } },
-      { label: "Discard draft", tone: "outline", icon: null, target: { kind: "bill-draft-discard", month } },
+      { label: "Discard", tone: "outline", icon: null, target: { kind: "bill-draft-discard", month } },
     ],
   };
 }

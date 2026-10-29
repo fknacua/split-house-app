@@ -15,13 +15,13 @@ function FieldSkeleton({ labelWidth, className }: { labelWidth: DimensionValue; 
 }
 
 /**
- * Review bill while the server reads the PDF: the file's name on its card, then the form's fields
+ * Review bill while the server reads the PDF, or while a stored draft loads: the file's name on its card, then the form's fields
  * (Current Charges, the dates, the utility lines) as placeholders, so the screen does not jump
  * when the values arrive. Cancel is in the footer.
  */
 export function ReviewSkeleton({ filename }: ReviewSkeletonProps) {
   return (
-    <View accessibilityLabel={`Reading ${filename}`} accessibilityRole="progressbar" className="gap-4">
+    <View accessibilityLabel={filename === null ? 'Loading the bill' : `Reading ${filename}`} accessibilityRole="progressbar" className="gap-4">
       <FileCard filename={filename} size="small">
         <View className="mb-3 self-start">
           <SkeletonBlock className="h-11 w-44 rounded-full" />

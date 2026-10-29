@@ -1,9 +1,9 @@
 import { describe, expect, it } from "vitest";
-import { billDraftResponseSchema, MAX_BILL_PDF_BYTES } from "@splithouse/shared";
+import { billDraftResponseSchema, discardBillDraftResponseSchema, MAX_BILL_PDF_BYTES } from "@splithouse/shared";
 import { ApiError } from "@/lib/api";
 import { BILL_FIXTURE } from "@/lib/fixtures/bill";
 import { generateBillFixturePdf } from "@/lib/fixtures/generate-bill-pdf";
-import { getBillDraft, uploadBillDraft, type BillDraftDb } from "./bill-draft.service";
+import { discardBillDraft, getBillDraft, uploadBillDraft, type BillDraftDb } from "./bill-draft.service";
 
 interface DraftRow {
   month: string;
@@ -28,7 +28,9 @@ function fakeDb({ hasBill = false, open = ["2026-11"], drafts = [] as DraftRow[]
         rows.set(data.month, data);
       },
       deleteMany: async ({ where }) => {
-        for (const month of [...rows.keys()]) if (month <= where.month.lte) rows.delete(month);
+        const matches = (month: string) =>
+          typeof where.month === "string" ? month === where.month : month <= where.month.lte;
+        for (const month of [...rows.keys()]) if (matches(month)) rows.delete(month);
       },
     },
   };
@@ -115,5 +117,26 @@ describe("getBillDraft", () => {
   it("returns 404 when the month has no draft", async () => {
     const { db } = fakeDb();
     await expectApiError(getBillDraft(db, "2026-11"), 404, "no_draft");
+  });
+});
+
+describe("discardBillDraft", () => {
+  const draft = { filename: "bill.pdf", bytes: new Uint8Array([1]), parseOk: true };
+
+  it("deletes only the month's draft and returns the month in the shared shape", async () => {
+    const { db, rows } = fakeDb({
+      drafts: [
+        { ...draft, month: "2026-10" },
+        { ...draft, month: "2026-11" },
+      ],
+    });
+    expect(discardBillDraftResponseSchema.parse(await discardBillDraft(db, "2026-11"))).toEqual({ month: "2026-11" });
+    expect([...rows.keys()]).toEqual(["2026-10"]);
+  });
+
+  it("does nothing when the month has no draft", async () => {
+    const { db, rows } = fakeDb();
+    expect(await discardBillDraft(db, "2026-11")).toEqual({ month: "2026-11" });
+    expect(rows.size).toBe(0);
   });
 });

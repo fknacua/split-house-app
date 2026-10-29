@@ -125,3 +125,11 @@ export const saveBillResponseSchema = z.object({
 
 /** `POST /api/months/:month/bill`: the month whose bill was saved. */
 export type SaveBillResponse = z.infer<typeof saveBillResponseSchema>;
+
+/** `POST /api/months/:month/bill-draft/discard`: the month whose draft is gone. */
+export const discardBillDraftResponseSchema = z.object({
+  month: monthKey,
+});
+
+/** `POST /api/months/:month/bill-draft/discard`: the month whose draft is gone. */
+export type DiscardBillDraftResponse = z.infer<typeof discardBillDraftResponseSchema>;

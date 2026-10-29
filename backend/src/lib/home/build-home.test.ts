@@ -162,7 +162,7 @@ describe("buildHome, draft on 1 Nov", () => {
       text: "You started uploading a bill for November and didn’t save it.",
       actions: [
         { label: "Continue", tone: "primary", icon: null, target: { kind: "bill-draft-continue", month: "2026-11" } },
-        { label: "Discard draft", tone: "outline", icon: null, target: { kind: "bill-draft-discard", month: "2026-11" } },
+        { label: "Discard", tone: "outline", icon: null, target: { kind: "bill-draft-discard", month: "2026-11" } },
       ],
     });
   });

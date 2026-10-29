@@ -1,10 +1,10 @@
 import { FileText } from 'lucide-react-native';
 import { Text, View } from 'react-native';
 
-import { Card, Icon } from '@/components';
+import { Card, Icon, SkeletonBlock } from '@/components';
 import type { FileCardProps } from '../types';
 
-/** The picked PDF: a file icon, its name on one line and the pages and size under it. */
+/** The picked PDF: a file icon, its name on one line and the pages and size under it. A null name draws a placeholder. */
 export function FileCard({ filename, meta, size, children }: FileCardProps) {
   const large = size === 'large';
   return (
@@ -16,9 +16,13 @@ export function FileCard({ filename, meta, size, children }: FileCardProps) {
           <Icon as={FileText} size={large ? 24 : 22} className="text-on-selected" />
         </View>
         <View className="min-w-0 flex-1 gap-0.5">
-          <Text numberOfLines={1} className="font-manrope-bold text-label text-on-surface">
-            {filename}
-          </Text>
+          {filename === null ? (
+            <SkeletonBlock className="h-4" width="60%" />
+          ) : (
+            <Text numberOfLines={1} className="font-manrope-bold text-label text-on-surface">
+              {filename}
+            </Text>
+          )}
           {meta ? (
             <Text className="font-manrope-semibold text-caption text-on-surface-variant">{meta}</Text>
           ) : null}
