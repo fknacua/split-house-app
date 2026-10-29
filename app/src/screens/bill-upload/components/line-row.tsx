@@ -17,8 +17,9 @@ import { AddAmountButton } from './add-amount-button';
 export function LineRow({ control, index, label, onRemove }: LineRowProps) {
   const name = label.trim() || 'line';
   const cents = useWatch({ control, name: `lines.${index}.cents` });
-  // Whether the bill gave this line an amount, fixed when the row appears.
-  const [startedMissing] = useState(() => cents === null || cents === undefined);
+  // Whether the bill named this line but gave it no amount, fixed when the row appears. A row the
+  // user just added has no name yet, so it is a plain empty field, not a "not found" line.
+  const [startedMissing] = useState(() => (cents === null || cents === undefined) && label.trim() !== '');
   const [adding, setAdding] = useState(false);
   const amountRef = useRef<ComponentRef<typeof MoneyInput>>(null);
 

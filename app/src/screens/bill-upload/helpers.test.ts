@@ -73,6 +73,29 @@ describe('bill month text', () => {
   });
 });
 
+describe('a line just added', () => {
+  const blank = { label: '', cents: null };
+
+  it('is left out of the check and the save while it has no name and no amount', () => {
+    const values = { ...toReviewFormValues(READ), lines: [...READ.lines, blank] };
+    expect(toCheckBillRequest(values, READ.subtotalCents).lines).toEqual(READ.lines);
+    expect(toSaveBillRequest(values).lines).toEqual(READ.lines);
+    expect(reviewFormSchema.safeParse(values).success).toBe(true);
+  });
+
+  it('needs a name once it has an amount', () => {
+    const values = { ...toReviewFormValues(READ), lines: [...READ.lines, { label: ' ', cents: 500 }] };
+    const result = reviewFormSchema.safeParse(values);
+    expect(result.error?.issues.map((i) => [i.path.join('.'), i.message])).toEqual([['lines.1.label', 'Required']]);
+  });
+
+  it('can have a name and no amount', () => {
+    const values = { ...toReviewFormValues(READ), lines: [...READ.lines, { label: 'Cleaning', cents: null }] };
+    expect(reviewFormSchema.safeParse(values).success).toBe(true);
+    expect(toSaveBillRequest(values).lines).toEqual([...READ.lines, { label: 'Cleaning', cents: null }]);
+  });
+});
+
 describe('due date required', () => {
   it('is an error when the bill had none or it is cleared', () => {
     const values = toReviewFormValues({ ...READ, dueDate: null });

@@ -10,7 +10,6 @@ import {
   MAX_BILL_PDF_BYTES,
   parseShortDisplayMonth,
   positiveCents,
-  requiredText,
   type BillDraftFields,
   type CheckBillRequest,
   type SaveBillRequest,
@@ -60,8 +59,18 @@ export const reviewFormSchema = z.object({
   billingPeriod: z
     .object({ start: z.string(), end: z.string() })
     .refine(({ start, end }) => start !== '' && end !== '', { message: 'Enter the billing period' }),
-  lines: z.array(z.object({ label: requiredText, cents: cents.nullable() })),
+  // A row with an amount needs a name; a row with neither is a blank one just added, and is left out.
+  lines: z.array(
+    z
+      .object({ label: z.string(), cents: cents.nullable() })
+      .refine(({ label, cents }) => label.trim() !== '' || cents === null, { message: 'Required', path: ['label'] }),
+  ),
 });
+
+/** A line the user added and has not filled in: no name and no amount. It is not sent or saved. */
+function isBlankLine(line: { label?: string; cents?: number | null } | undefined): boolean {
+  return (line?.label ?? '').trim() === '' && (line?.cents ?? null) === null;
+}
 
 /**
  * The Review bill form's values. Empty dates and months are `''`, as the fields hold them; the
@@ -108,7 +117,9 @@ export function toCheckBillRequest(
     dueDate: values.dueDate || null,
     billingPeriodStart: values.billingPeriod?.start || null,
     billingPeriodEnd: values.billingPeriod?.end || null,
-    lines: (values.lines ?? []).map((line) => ({ label: line?.label?.trim() ?? '', cents: line?.cents ?? null })),
+    lines: (values.lines ?? [])
+      .filter((line) => !isBlankLine(line))
+      .map((line) => ({ label: line?.label?.trim() ?? '', cents: line?.cents ?? null })),
   };
 }
 
@@ -127,6 +138,8 @@ export function toSaveBillRequest(values: ReviewFormValues): SaveBillRequest {
     dueDate: values.dueDate,
     billingPeriodStart: start,
     billingPeriodEnd: end,
-    lines: values.lines.map((line) => ({ label: line.label.trim(), cents: line.cents })),
+    lines: values.lines
+      .filter((line) => !isBlankLine(line))
+      .map((line) => ({ label: line.label.trim(), cents: line.cents })),
   };
 }
