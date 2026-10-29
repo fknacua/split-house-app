@@ -11,6 +11,15 @@ async function monthParam(params: Context["params"]): Promise<string> {
   return month.data;
 }
 
+/** The app (expo/fetch) percent-encodes the filename in the multipart header, so `a b.pdf` arrives as `a%20b.pdf`. */
+function decodeFilename(name: string): string {
+  try {
+    return decodeURIComponent(name);
+  } catch {
+    return name;
+  }
+}
+
 /** Uploads the bill PDF (multipart, field `file`) as the month's draft and returns what was read from it. */
 export const POST = route<Context>(async (request, { params }) => {
   await requireSession(request);
@@ -23,7 +32,7 @@ export const POST = route<Context>(async (request, { params }) => {
   }
   if (!(file instanceof File)) throw new ApiError(400, "invalid_request", "Attach the PDF as `file`.");
   const bytes = new Uint8Array(await file.arrayBuffer());
-  return Response.json(await uploadBillDraft(prisma, month, { filename: file.name, bytes }));
+  return Response.json(await uploadBillDraft(prisma, month, { filename: decodeFilename(file.name), bytes }));
 });
 
 /** The month's stored draft, as the upload returned it. */
