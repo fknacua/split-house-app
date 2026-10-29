@@ -4,8 +4,8 @@ import type { Control } from 'react-hook-form';
 import type { BillBlocker, BillDraftResponse, BillLinesNote } from '@splithouse/shared';
 import type { PickedPdfProblem, ReviewFormValues } from './helpers';
 
-/** Which board of Bill upload is showing. */
-export type UploadStep = 'pick' | 'review';
+/** Which board of Bill upload is showing. `failed` is "Is this the right bill?", after a read that found nothing. */
+export type UploadStep = 'pick' | 'failed' | 'review';
 
 /** Props for {@link FileCard}. */
 export interface FileCardProps {
@@ -26,6 +26,18 @@ export interface PickStepProps {
   problem: PickedPdfProblem | null;
   /** The server's message when the last upload failed, or null. */
   error: string | null;
+}
+
+/** Props for {@link FailedStep}. */
+export interface FailedStepProps {
+  /** The draft the server could not read: only its file card is shown. */
+  draft: BillDraftResponse;
+}
+
+/** Props for {@link NoLinesBox}. */
+export interface NoLinesBoxProps {
+  /** The line under "No lines found". */
+  note: string;
 }
 
 /** Props for {@link ReviewSkeleton}. */

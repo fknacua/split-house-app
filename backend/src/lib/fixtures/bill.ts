@@ -110,3 +110,16 @@ export const BILL_FIXTURE_PAGES = [
  * the parser reads the services from page 1). For device-testing the "line not found" state.
  */
 export const BILL_FIXTURE_PARTIAL_PAGES = BILL_FIXTURE_PAGES.map((page) => page.filter((line) => line !== "$70.00"));
+
+/**
+ * A real PDF that is not a utilities bill: a short letter with no Current Charges, so the parser
+ * reads nothing. For tests and for device-testing the "Is this the right bill?" screen.
+ */
+export const BILL_FIXTURE_UNREADABLE_PAGES = [
+  [
+    "Tenancy renewal notice",
+    "Dear tenant,",
+    "Your tenancy renews on 01 Jan 2027 on the same terms.",
+    "No action is needed.",
+  ],
+];

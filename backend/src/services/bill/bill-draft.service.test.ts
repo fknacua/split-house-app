@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { billDraftResponseSchema, discardBillDraftResponseSchema, MAX_BILL_PDF_BYTES } from "@splithouse/shared";
 import { ApiError } from "@/lib/api";
-import { BILL_FIXTURE } from "@/lib/fixtures/bill";
+import { BILL_FIXTURE, BILL_FIXTURE_UNREADABLE_PAGES } from "@/lib/fixtures/bill";
 import { generateBillFixturePdf } from "@/lib/fixtures/generate-bill-pdf";
 import { discardBillDraft, getBillDraft, uploadBillDraft, type BillDraftDb } from "./bill-draft.service";
 
@@ -112,6 +112,17 @@ describe("getBillDraft", () => {
     const { db } = fakeDb();
     const uploaded = await uploadBillDraft(db, "2026-11", await fixtureFile());
     expect(billDraftResponseSchema.parse(await getBillDraft(db, "2026-11"))).toEqual(uploaded);
+  });
+
+  it("reads back an unreadable draft with readOk false and empty fields", async () => {
+    const { db } = fakeDb();
+    const bytes = new Uint8Array(await generateBillFixturePdf(BILL_FIXTURE_UNREADABLE_PAGES));
+    await uploadBillDraft(db, "2026-11", { filename: "letter.pdf", bytes });
+    expect(billDraftResponseSchema.parse(await getBillDraft(db, "2026-11"))).toMatchObject({
+      readOk: false,
+      file: { filename: "letter.pdf" },
+      fields: { currentChargesCents: null, lines: [] },
+    });
   });
 
   it("returns 404 when the month has no draft", async () => {
