@@ -249,3 +249,33 @@ describe("buildBillView, edge cases", () => {
     expect(buildBillView(input({ bill: { ...BILL, file: null } })).file).toBeNull();
   });
 });
+
+describe("buildBillView, the Mark bill paid sheet", () => {
+  it("fills in Current Charges and says what the user is still covering", () => {
+    expect(buildBillView(input({ today: "2026-11-03" })).paySheet).toEqual({
+      subtitle: "Utilities bill · November",
+      currentCharges: "$412.30",
+      due: "16 Nov",
+      amountCents: 41230,
+      note: {
+        tone: "warning",
+        text: "You’ve collected $123.69 so far. You’re covering $288.61 until the others pay.",
+      },
+      actionLabel: "Mark as paid",
+    });
+  });
+
+  it("says all of it is collected once everyone has paid", () => {
+    let charges = novemberCharges();
+    for (const id of [PERSON_IDS.priya, PERSON_IDS.sam, PERSON_IDS.jordan]) charges = payUtilities(charges, id, "2026-11-08");
+    expect(buildBillView(input({ charges })).paySheet!.note).toEqual({
+      tone: "success",
+      text: "All $412.30 is collected. You’re not covering anything.",
+    });
+  });
+
+  it("is null once the bill is paid", () => {
+    const paid = { ...BILL, paidCents: 41230, paidOn: new Date("2026-11-16") };
+    expect(buildBillView(input({ bill: paid })).paySheet).toBeNull();
+  });
+});
