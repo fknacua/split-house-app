@@ -65,7 +65,7 @@ describe("POST /api/months/:month/bill-draft/check", () => {
   it("returns no blockers for a bill that matches the month", async () => {
     const matching = { ...fields, billMonth: "2026-11", billingPeriodStart: "2026-10-03", billingPeriodEnd: "2026-11-02" };
     const response = await post("2026-11", matching);
-    expect(checkBillResponseSchema.parse(await response.json())).toEqual({ blockers: [], linesNote: null });
+    expect(checkBillResponseSchema.parse(await response.json())).toEqual({ blockers: [], linesNote: null, warnings: [] });
   });
 
   it("returns the lines note when the lines and the Subtotal are there, parsing with the shared schema", async () => {
