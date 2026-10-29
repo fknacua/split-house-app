@@ -20,23 +20,13 @@ describe('toReviewFormValues and toSaveBillRequest', () => {
     expect(toSaveBillRequest(toReviewFormValues(READ))).toEqual(READ);
   });
 
-  it('turns empty fields into nulls and trims line names', () => {
-    const values = toReviewFormValues({
-      ...READ,
-      billMonth: null,
-      dueDate: null,
-      billingPeriodEnd: null,
-      lines: [{ label: ' Gas ', cents: null }],
-    });
-    expect(values.billingPeriod).toEqual({ start: '', end: '' });
-    expect(toSaveBillRequest(values)).toEqual({
-      ...READ,
-      billMonth: null,
-      dueDate: null,
-      billingPeriodStart: null,
-      billingPeriodEnd: null,
-      lines: [{ label: 'Gas', cents: null }],
-    });
+  it('turns an empty due date into null and trims line names', () => {
+    const values = toReviewFormValues({ ...READ, dueDate: null, lines: [{ label: ' Gas ', cents: null }] });
+    expect(toSaveBillRequest(values)).toEqual({ ...READ, dueDate: null, lines: [{ label: 'Gas', cents: null }] });
+  });
+
+  it('shows a half-read billing period as empty', () => {
+    expect(toReviewFormValues({ ...READ, billingPeriodEnd: null }).billingPeriod).toEqual({ start: '', end: '' });
   });
 });
 
@@ -68,10 +58,33 @@ describe('bill month text', () => {
     expect(toSaveBillRequest(values).billMonth).toBe('2026-10');
   });
 
-  it('accepts an empty bill month but not text that is not a month', () => {
+  it('needs a bill month that reads as a month', () => {
     const values = toReviewFormValues(READ);
-    expect(reviewFormSchema.safeParse({ ...values, billMonth: '' }).success).toBe(true);
-    const result = reviewFormSchema.safeParse({ ...values, billMonth: 'Octo 2026' });
-    expect(result.error?.issues.map((i) => i.path.join('.'))).toEqual(['billMonth']);
+    const empty = reviewFormSchema.safeParse({ ...values, billMonth: ' ' });
+    expect(empty.error?.issues.map((i) => [i.path.join('.'), i.message])).toEqual([
+      ['billMonth', 'Enter the bill month'],
+    ]);
+    const typo = reviewFormSchema.safeParse({ ...values, billMonth: 'Octo 2026' });
+    expect(typo.error?.issues.map((i) => [i.path.join('.'), i.message])).toEqual([
+      ['billMonth', 'Use a month like Oct 2026'],
+    ]);
+  });
+});
+
+describe('billing period required', () => {
+  it.each([
+    ['nothing picked', { start: '', end: '' }],
+    ['only a start', { start: '2026-10-03', end: '' }],
+  ])('is an error with %s', (_name, billingPeriod) => {
+    const result = reviewFormSchema.safeParse({ ...toReviewFormValues(READ), billingPeriod });
+    expect(result.error?.issues.map((i) => [i.path.join('.'), i.message])).toEqual([
+      ['billingPeriod', 'Enter the billing period'],
+    ]);
+  });
+});
+
+describe('a clean read', () => {
+  it('passes the form checks', () => {
+    expect(reviewFormSchema.safeParse(toReviewFormValues(READ)).success).toBe(true);
   });
 });

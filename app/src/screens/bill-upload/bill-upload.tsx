@@ -2,8 +2,8 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { FileText } from 'lucide-react-native';
 import { useRef, useState } from 'react';
-import { useForm, useWatch } from 'react-hook-form';
-import { ScrollView, Text } from 'react-native';
+import { useForm } from 'react-hook-form';
+import { ScrollView } from 'react-native';
 
 import { Button, Screen, SubpageHeader } from '@/components';
 import { useSaveBill, useUploadBillDraft } from '@/hooks';
@@ -48,11 +48,15 @@ export function BillUpload() {
   const upload = useUploadBillDraft(month);
   const save = useSaveBill(month);
   // Checked as it changes, so clearing Current Charges turns the field red straight away.
-  const { control, handleSubmit, reset } = useForm<ReviewFormValues>({
+  const {
+    control,
+    handleSubmit,
+    reset,
+    formState: { isValid },
+  } = useForm<ReviewFormValues>({
     resolver: zodResolver(reviewFormSchema),
     mode: 'onChange',
   });
-  const currentCharges = useWatch({ control, name: 'currentChargesCents' });
 
   const choosePdf = async () => {
     const picked = await pickBillPdf();
@@ -120,15 +124,10 @@ export function BillUpload() {
         {reading ? <Button label="Cancel" variant="outline" onPress={cancelReading} /> : null}
         {step === 'review' && draft ? (
           <>
-            {currentCharges === null ? (
-              <Text className="px-1 pb-1 text-center font-manrope-semibold text-caption text-danger">
-                Enter Current Charges to save
-              </Text>
-            ) : null}
             <Button
               label={save.isPending ? 'Saving' : 'Save bill'}
               loading={save.isPending}
-              disabled={currentCharges === null}
+              disabled={!isValid}
               onPress={onSave}
             />
             {/* Cancel asks "Discard this bill?" in 6.4; until then it does nothing. */}

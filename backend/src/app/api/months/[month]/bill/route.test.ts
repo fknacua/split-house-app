@@ -17,15 +17,22 @@ describe("POST /api/months/:month/bill", () => {
     expect(response.status).toBe(400);
   });
 
-  it("returns 400 when Current Charges is not above zero", async () => {
-    const body = JSON.stringify({
-      currentChargesCents: 0,
-      billMonth: null,
-      dueDate: null,
-      billingPeriodStart: null,
-      billingPeriodEnd: null,
-      lines: [],
-    });
+  const filled = {
+    currentChargesCents: 41230,
+    billMonth: "2026-11",
+    dueDate: null,
+    billingPeriodStart: "2026-10-03",
+    billingPeriodEnd: "2026-11-02",
+    lines: [],
+  };
+
+  it.each([
+    ["Current Charges is not above zero", { currentChargesCents: 0 }],
+    ["the bill month is missing", { billMonth: null }],
+    ["the billing period start is missing", { billingPeriodStart: null }],
+    ["the billing period end is missing", { billingPeriodEnd: null }],
+  ])("returns 400 when %s", async (_name, change) => {
+    const body = JSON.stringify({ ...filled, ...change });
     const response = await saveBill(new Request("http://localhost", { method: "POST", body }), params("2026-11"));
     expect(response.status).toBe(400);
     expect((await response.json()).error.code).toBe("invalid_request");

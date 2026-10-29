@@ -1,10 +1,10 @@
 import { DateTimePickerAndroid } from '@react-native-community/datetimepicker';
-import { CalendarDays } from 'lucide-react-native';
+import { CalendarDays, X } from 'lucide-react-native';
 import { type ComponentRef, forwardRef } from 'react';
 import { Pressable, View } from 'react-native';
 
 import { type BareInputProps, withFormControlledFieldOf } from '@/components/form-field/';
-import { Input, InputField, InputIcon } from '@/components/ui/input';
+import { Input, InputField, InputIcon, InputSlot } from '@/components/ui/input';
 import { dateKeyOf, dateKeyToValue, formatDateRange, todayKey } from '@splithouse/shared';
 
 /** A span of days as `YYYY-MM-DD` keys. Both are `''` while no span is picked. */
@@ -20,6 +20,8 @@ export const EMPTY_DATE_RANGE: DateRange = { start: '', end: '' };
 export interface DateRangeFieldOwnProps {
   /** Shown in the field while no span is picked. */
   placeholder?: string;
+  /** Shows an × button to clear a picked span. On by default (like `DateField`); pass `false` to opt out. */
+  clearable?: boolean;
 }
 
 /**
@@ -30,7 +32,10 @@ export interface DateRangeFieldOwnProps {
 const BareDateRangeField = forwardRef<
   ComponentRef<typeof View>,
   BareInputProps<DateRange> & DateRangeFieldOwnProps
->(function BareDateRangeField({ value, onChange, onBlur, accessibilityLabel, invalid, disabled, placeholder }, ref) {
+>(function BareDateRangeField(
+  { value, onChange, onBlur, accessibilityLabel, invalid, disabled, placeholder, clearable = true },
+  ref
+) {
   const pickEnd = (start: string) => {
     DateTimePickerAndroid.open({
       mode: 'date',
@@ -76,6 +81,19 @@ const BareDateRangeField = forwardRef<
             value={complete ? formatDateRange(value.start, value.end) : ''}
             className={disabled ? 'text-on-disabled' : undefined}
           />
+          {clearable && complete && !disabled && (
+            <InputSlot
+              accessibilityRole="button"
+              accessibilityLabel="Clear"
+              onPress={() => {
+                onChange(EMPTY_DATE_RANGE);
+                onBlur?.();
+              }}
+              className="-mr-1 h-11 w-11"
+            >
+              <InputIcon as={X} />
+            </InputSlot>
+          )}
           <InputIcon as={CalendarDays} className={disabled ? 'text-on-disabled' : undefined} />
         </Input>
       </Pressable>
@@ -89,8 +107,9 @@ const BareDateRangeField = forwardRef<
  * Standalone, pass `value` and `onChange`; inside a form, pass `fieldControlProps`.
  *
  * @param placeholder - Shown while nothing is picked.
+ * @param clearable - Shows an × button to clear the span. Defaults to `true`; pass `false` to hide it.
  * @param value - The picked span, or {@link EMPTY_DATE_RANGE} (standalone only).
- * @param onChange - Called with the new span once both days are picked (standalone only).
+ * @param onChange - Called with the new span once both days are picked, or {@link EMPTY_DATE_RANGE} on clear (standalone only).
  * @param fieldControlProps - Binds the field to a form field (form-controlled only).
  */
 export const DateRangeField = withFormControlledFieldOf<

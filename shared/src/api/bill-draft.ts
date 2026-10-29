@@ -46,10 +46,14 @@ export type BillDraftResponse = z.infer<typeof billDraftResponseSchema>;
 
 /**
  * `POST /api/months/:month/bill`: the reviewed values. The file is the month's stored draft, so it
- * is not sent again.
+ * is not sent again. Current Charges, the bill month and the billing period are required: the bill
+ * is the source of truth for the month it covers.
  */
 export const saveBillRequestSchema = billDraftFieldsSchema.extend({
   currentChargesCents: positiveCents,
+  billMonth: monthKey,
+  billingPeriodStart: dateKey,
+  billingPeriodEnd: dateKey,
   lines: z.array(billLineSchema.extend({ label: requiredText })),
 });
 
