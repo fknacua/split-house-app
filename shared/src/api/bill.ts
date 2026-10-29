@@ -1,5 +1,5 @@
 import { z } from 'zod';
-import { monthKey } from '../schemas/primitives';
+import { dateKey, monthKey, positiveCents } from '../schemas/primitives';
 import { badgeSchema } from './history';
 import { homeTargetSchema } from './home';
 
@@ -86,6 +86,47 @@ export const billViewActionSchema = z.object({
 /** The footer button, e.g. `Mark bill paid`. */
 export type BillViewAction = z.infer<typeof billViewActionSchema>;
 
+/** The Mark bill paid sheet's text, so the sheet needs no request of its own. */
+export const billPaySheetSchema = z.object({
+  /** e.g. `Utilities bill · November`. */
+  subtitle: z.string(),
+  /** Current Charges, e.g. `$412.30`. */
+  currentCharges: z.string(),
+  /** The due date with no year, e.g. `16 Nov`. Null when none is known. */
+  due: z.string().nullable(),
+  /** Amount paid, filled in: Current Charges in cents. */
+  amountCents: positiveCents,
+  /** What has been collected so far, not about the amount typed. */
+  note: z.object({
+    /** `success` once all of it is collected, otherwise `warning`. Same names as the app's `Alert` variants. */
+    tone: z.enum(['success', 'warning']),
+    /** e.g. `You’ve collected $123.69 so far. You’re covering $288.61 until the others pay.` */
+    text: z.string(),
+  }),
+  /** The save button, e.g. `Mark as paid`. */
+  actionLabel: z.string(),
+});
+
+/** The Mark bill paid sheet's text, so the sheet needs no request of its own. */
+export type BillPaySheet = z.infer<typeof billPaySheetSchema>;
+
+/** `POST /api/months/:month/bill/paid`: what the user paid the utility company, and when. */
+export const markBillPaidRequestSchema = z.object({
+  /** May differ from Current Charges. */
+  paidCents: positiveCents,
+  /** Today or earlier. */
+  paidOn: dateKey,
+});
+
+/** `POST /api/months/:month/bill/paid`: what the user paid the utility company, and when. */
+export type MarkBillPaidRequest = z.infer<typeof markBillPaidRequestSchema>;
+
+/** `POST /api/months/:month/bill/paid`: the month whose bill was marked paid. */
+export const markBillPaidResponseSchema = z.object({ month: monthKey });
+
+/** `POST /api/months/:month/bill/paid`: the month whose bill was marked paid. */
+export type MarkBillPaidResponse = z.infer<typeof markBillPaidResponseSchema>;
+
 /** `GET /api/months/:month/bill`: the month's saved utilities bill, ready to render. */
 export const billViewResponseSchema = z.object({
   /** `YYYY-MM`. */
@@ -100,6 +141,8 @@ export const billViewResponseSchema = z.object({
   file: billViewFileSchema.nullable(),
   /** `Mark bill paid` while the current month is collecting and the bill is unpaid; otherwise null. */
   action: billViewActionSchema.nullable(),
+  /** The Mark bill paid sheet's text while the bill is unpaid; null once it is paid. */
+  paySheet: billPaySheetSchema.nullable(),
 });
 
 /** `GET /api/months/:month/bill`: the month's saved utilities bill, ready to render. */

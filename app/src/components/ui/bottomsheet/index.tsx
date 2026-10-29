@@ -112,7 +112,9 @@ export const BottomSheet = forwardRef<BottomSheetRef, IBottomSheetRootProps>(
 
     const handleClose = useCallback(() => {
       Keyboard.dismiss();
-      setCurrentIndex(-1);
+      // Gorhom's own close, as the back gesture uses: setting the controlled `index` to -1 looks up
+      // a snap point at -1, finds none, and leaves the sheet open. `onChange(-1)` then hides it.
+      bottomSheetRef.current?.close();
     }, []);
 
     const handleSheetChanges = useCallback(

@@ -3,12 +3,14 @@ import { router } from 'expo-router';
 
 import { useDiscardBillDraft } from '@/hooks';
 import { queryKeys } from '@/lib';
+import { useHomeSheets } from './home-sheets';
 import type { HomeTarget } from '@splithouse/shared';
 
 /**
  * How Home opens what a row link, a row button or the footer points at. Most targets open a
- * screen; Discard runs at once. Targets whose screen does not exist yet do nothing; each case
- * is filled in by the phase that builds its screen.
+ * screen; Mark bill paid opens Home's sheet (`HomeSheetsProvider`); Discard runs at once.
+ * Targets whose screen does not exist yet do nothing; each case is filled in by the phase that
+ * builds its screen.
  *
  * @returns `openTarget`, which opens a target; `pending`, true while an action this caller started
  *   (Discard on the draft notice) is still running, for its button's Spinner; and `isDisabled`, true for a target
@@ -16,6 +18,7 @@ import type { HomeTarget } from '@splithouse/shared';
  */
 export function useOpenTarget() {
   const discardDraft = useDiscardBillDraft();
+  const { openPayBill } = useHomeSheets();
   const discarding = useIsMutating({ mutationKey: queryKeys.billDraftDiscard }) > 0;
 
   const isDisabled = (target: HomeTarget): boolean => target.kind === 'bill-draft-continue' && discarding;
@@ -32,13 +35,15 @@ export function useOpenTarget() {
       case 'bill-view':
         router.push({ pathname: '/bill/[month]', params: { month: target.month } });
         return;
+      case 'mark-bill-paid':
+        openPayBill(target.month);
+        return;
       case 'bill-draft-discard':
         if (!discardDraft.isPending) discardDraft.mutate(target.month);
         return;
       case 'recipient': // Phase 7B
       case 'mark-paid': // Phase 7A
       case 'record-payment': // Phase 7A
-      case 'mark-bill-paid': // 6.8
         return;
     }
   };

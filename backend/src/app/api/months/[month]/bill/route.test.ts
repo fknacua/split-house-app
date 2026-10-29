@@ -6,11 +6,17 @@ vi.mock("@/lib/api", async (importOriginal) => ({
 }));
 vi.mock("@/lib/prisma", () => ({ prisma: {} }));
 
-import { billViewResponseSchema, checkBillResponseSchema, HOUSEHOLD_SCHEMA_VERSION } from "@splithouse/shared";
+import {
+  billViewResponseSchema,
+  checkBillResponseSchema,
+  HOUSEHOLD_SCHEMA_VERSION,
+  markBillPaidResponseSchema,
+} from "@splithouse/shared";
 import { NOV_2026_CONFIG, PERSON_IDS } from "@/lib/fixtures/household";
 import { prisma } from "@/lib/prisma";
 import { GET as getBill, POST as saveBill } from "./route";
 import { GET as getBillFile } from "./file/route";
+import { POST as markPaid } from "./paid/route";
 import { GET as getDraft, POST as uploadDraft } from "../bill-draft/route";
 import { POST as checkDraft } from "../bill-draft/check/route";
 import { POST as discardDraft } from "../bill-draft/discard/route";
@@ -226,5 +232,33 @@ describe("GET /api/months/:month/bill/file", () => {
   it("returns 400 for a bad month", async () => {
     const response = await getBillFile(new Request("http://localhost"), params("2026-13"));
     expect(response.status).toBe(400);
+  });
+});
+
+describe("POST /api/months/:month/bill/paid", () => {
+  const post = (month: string, body: unknown) =>
+    markPaid(new Request("http://localhost", { method: "POST", body: JSON.stringify(body) }), params(month));
+
+  it("returns the month, parsing with the shared schema", async () => {
+    Object.assign(prisma, {
+      bill: { findUnique: async () => ({ paidCents: null }), updateMany: async () => ({ count: 1 }) },
+    });
+    const response = await post("2026-11", { paidCents: 41230, paidOn: "2026-10-30" });
+    expect(response.status).toBe(200);
+    expect(markBillPaidResponseSchema.parse(await response.json())).toEqual({ month: "2026-11" });
+  });
+
+  it.each([
+    ["the amount is zero", { paidCents: 0, paidOn: "2026-10-30" }],
+    ["the day is missing", { paidCents: 41230 }],
+    ["the day is not a date", { paidCents: 41230, paidOn: "30 Oct" }],
+  ])("returns 400 when %s", async (_name, body) => {
+    const response = await post("2026-11", body);
+    expect(response.status).toBe(400);
+    expect((await response.json()).error.code).toBe("invalid_request");
+  });
+
+  it("returns 400 for a bad month", async () => {
+    expect((await post("2026-13", { paidCents: 41230, paidOn: "2026-10-30" })).status).toBe(400);
   });
 });

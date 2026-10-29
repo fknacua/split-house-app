@@ -1,9 +1,15 @@
 import { type ComponentRef, forwardRef, useState } from 'react';
+import { X } from 'lucide-react-native';
 import { View } from 'react-native';
 
 import { Button } from '@/components/button';
 import { type BareInputProps, withFormControlledFieldOf } from '@/components/form-field/';
-import { Input as NativeInput, InputField as NativeInputField } from '@/components/ui/input';
+import {
+  Input as NativeInput,
+  InputField as NativeInputField,
+  InputIcon as NativeInputIcon,
+  InputSlot as NativeInputSlot,
+} from '@/components/ui/input';
 import { formatCents } from '@splithouse/shared';
 import { centsToInputText, parseMoneyToCents, sanitizeMoneyInput } from '@/lib/money-input';
 
@@ -12,6 +18,8 @@ export interface MoneyInputOwnProps {
   placeholder?: string;
   /** Shows a +/- button, since the numeric keyboard has no minus key. For corrections. */
   allowNegative?: boolean;
+  /** Shows an × button that empties the field. Off by default. */
+  clearable?: boolean;
 }
 
 /**
@@ -24,7 +32,17 @@ const BareMoneyInput = forwardRef<
   ComponentRef<typeof NativeInputField>,
   BareInputProps<number | null> & MoneyInputOwnProps
 >(function BareMoneyInput(
-  { value, onChange, onBlur, accessibilityLabel, invalid, disabled, placeholder = '$0.00', allowNegative },
+  {
+    value,
+    onChange,
+    onBlur,
+    accessibilityLabel,
+    invalid,
+    disabled,
+    placeholder = '$0.00',
+    allowNegative,
+    clearable = false,
+  },
   ref
 ) {
   // The text being typed, only while focused; null means show the formatted value.
@@ -43,6 +61,16 @@ const BareMoneyInput = forwardRef<
       onChange(parseMoneyToCents(next));
     } else if (value) {
       onChange(-value);
+    }
+  };
+
+  const handleClear = () => {
+    onChange(null);
+    if (draft !== null) {
+      setDraft('');
+    } else {
+      // Not focused: count it as touched, so an empty required field shows its error.
+      onBlur?.();
     }
   };
 
@@ -66,6 +94,16 @@ const BareMoneyInput = forwardRef<
             onBlur?.();
           }}
         />
+        {clearable && shown !== '' && !disabled ? (
+          <NativeInputSlot
+            accessibilityRole="button"
+            accessibilityLabel="Clear"
+            onPress={handleClear}
+            className="-mr-1 h-11 w-11"
+          >
+            <NativeInputIcon as={X} />
+          </NativeInputSlot>
+        ) : null}
       </NativeInput>
       {allowNegative ? (
         <Button label="+/-" variant="outline" size="small" disabled={disabled} onPress={handleToggleSign} />
@@ -85,6 +123,7 @@ const BareMoneyInput = forwardRef<
  * @param fieldControlProps - Binds the input to a form field (form-controlled only).
  * @param placeholder - Shown while empty. Defaults to `$0.00`.
  * @param allowNegative - Shows a +/- button for negative amounts, like correction charges.
+ * @param clearable - Shows an × button that empties the field. Defaults to `false`.
  */
 export const MoneyInput = withFormControlledFieldOf<
   MoneyInputOwnProps,

@@ -7,7 +7,9 @@ import {
   formatDateRange,
   formatDateShort,
   formatMonthLabel,
+  formatMonthName,
   type BadgeContent,
+  type BillPaySheet,
   type BillViewFact,
   type BillViewLine,
   type BillViewPerson,
@@ -19,7 +21,7 @@ import type { ChargeCategory, MessageKind } from "@/generated/prisma/enums";
 import { billDueInBadge, HOME_BADGES, overdueBadge, paidOnBadge } from "@/lib/home/badges";
 import { billDueDateKey, chargeDueDate } from "@/lib/home/due-dates";
 import { messageRecipientIds, monthlyMessagedIds, unsentRecipientIds } from "@/lib/home/message-recipients";
-import { billCoverage, coveragePercent } from "./bill-coverage";
+import { billCoverage, coveragePercent, type BillCoverage } from "./bill-coverage";
 
 /** A person, as much of them as View bill needs. */
 export interface BillViewPersonRow {
@@ -171,8 +173,9 @@ function fileMeta(pageCount: number | null, createdAt: Date): string {
 
 /**
  * Builds View bill: the bill card with its due or paid chip and lines, how much is collected with a
- * row per person, the facts, the stored file and the footer. Mark bill paid is offered only on the
- * month Home shows, while every message is out and the bill is unpaid (Home's `collecting`).
+ * row per person, the facts, the stored file, the footer, and the Mark bill paid sheet's text while
+ * the bill is unpaid. The Mark bill paid button is offered only on the month Home shows, while
+ * every message is out and the bill is unpaid (Home's `collecting`).
  *
  * @param input - The month, today's date key, the pinned config and what was read.
  * @returns The response, ready to render.
@@ -209,5 +212,30 @@ export function buildBillView(input: BillViewInput): BillViewResponse {
       input.isActiveMonth && !billPaid && unsentIds.size === 0
         ? { label: "Mark bill paid", target: { kind: "mark-bill-paid", month: input.month } }
         : null,
+    paySheet: billPaid ? null : paySheet(input, dueDate, coverage),
+  };
+}
+
+/**
+ * The Mark bill paid sheet's text: Current Charges filled in as the amount, and an Alert about
+ * what has been collected, so the user sees what they are still covering.
+ */
+function paySheet(input: BillViewInput, dueDate: string | null, coverage: BillCoverage): BillPaySheet {
+  const total = formatCents(coverage.totalCents);
+  const fully = coverage.coveredCents >= coverage.totalCents;
+  return {
+    subtitle: `Utilities bill · ${formatMonthName(input.month)}`,
+    currentCharges: total,
+    due: dueDate === null ? null : formatDateShort(dueDate),
+    amountCents: input.bill.currentChargesCents,
+    note: fully
+      ? { tone: "success", text: `All ${total} is collected. You’re not covering anything.` }
+      : {
+          tone: "warning",
+          text: `You’ve collected ${formatCents(coverage.coveredCents)} so far. You’re covering ${formatCents(
+            coverage.totalCents - coverage.coveredCents,
+          )} until the others pay.`,
+        },
+    actionLabel: "Mark as paid",
   };
 }

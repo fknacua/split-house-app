@@ -37,6 +37,9 @@ const SCENARIOS = {
   collecting: { devNow: "2026-11-03T09:00:00+08:00" },
   // As collecting a day later: Jordan's rent is paid and his utilities are due today.
   dueToday: { devNow: "2026-11-04T09:00:00+08:00" },
+  // As collecting a week on: everyone's utilities are paid, so the bill is fully collected, but it
+  // is not marked paid yet.
+  fullyCollected: { devNow: "2026-11-10T09:00:00+08:00" },
   // As collecting, but every charge is paid and the bill is marked paid.
   settled: { devNow: "2026-11-29T09:00:00+08:00" },
 } as const;
@@ -347,7 +350,13 @@ async function main() {
     });
   }
 
-  if (scenario === "unsent" || scenario === "collecting" || scenario === "dueToday" || scenario === "settled") {
+  if (
+    scenario === "unsent" ||
+    scenario === "collecting" ||
+    scenario === "dueToday" ||
+    scenario === "fullyCollected" ||
+    scenario === "settled"
+  ) {
     // Opened through the same function Home uses, so November has version B's rent and recurring
     // charges. The bill is synthetic, with the Nov 2026 fixture total and the View bill board's
     // sample lines; due 16 Nov, saved on 1 Nov.
@@ -382,7 +391,7 @@ async function main() {
       await insertCharge({ ...c, month: "2026-11", householdVersionId: november.householdVersionId, billId: bill.id });
     }
 
-    if (scenario === "collecting" || scenario === "dueToday" || scenario === "settled") {
+    if (scenario === "collecting" || scenario === "dueToday" || scenario === "fullyCollected" || scenario === "settled") {
       const charges = await prisma.charge.findMany({ where: { month: "2026-11" } });
       const find = (personId: string, category: string) => {
         const charge = charges.find((c) => c.personId === personId && c.category === category);
@@ -409,6 +418,12 @@ async function main() {
       await markPaid(find(PERSON_IDS.priya, "UTILITIES").id, PERSON_IDS.priya, "2026-11-03");
       // Jordan paid the rent he was nudged for; his utilities fall due on the 4th.
       if (scenario === "dueToday") await markPaid(jordanRent.id, PERSON_IDS.jordan, "2026-11-03");
+      if (scenario === "fullyCollected") {
+        // Jordan paid his utilities on the 4th and Priya paid Sam's on the 8th; Jordan's rent is
+        // still unpaid, so the month is collecting with the bill fully covered.
+        await markPaid(find(PERSON_IDS.jordan, "UTILITIES").id, PERSON_IDS.jordan, "2026-11-04");
+        await markPaid(find(PERSON_IDS.sam, "UTILITIES").id, PERSON_IDS.priya, "2026-11-08");
+      }
       if (scenario === "settled") {
         // Jordan's rent came late, the rest of what was left came on the 27th, and the bill went on
         // its due date. The owner's own charges are not payments to anyone.
