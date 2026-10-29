@@ -1,6 +1,6 @@
 import { describe, expect, it, vi } from 'vitest';
 
-import { billMonthOptions, reviewFormSchema, toReviewFormValues, toSaveBillRequest } from './helpers';
+import { reviewFormSchema, toReviewFormValues, toSaveBillRequest } from './helpers';
 
 // Hoisted above the imports by vitest: the helpers pull in the native picker and the component barrel.
 vi.mock('expo-document-picker', () => ({ getDocumentAsync: vi.fn() }));
@@ -49,15 +49,29 @@ describe('reviewFormSchema', () => {
   });
 });
 
-describe('billMonthOptions', () => {
-  it('lists the next month back a year, newest first', () => {
-    const months = billMonthOptions('2026-11', '');
-    expect(months).toHaveLength(13);
-    expect(months[0]).toBe('2026-12');
-    expect(months.at(-1)).toBe('2025-12');
+describe('Current Charges required', () => {
+  it('is an error when empty', () => {
+    const result = reviewFormSchema.safeParse({ ...toReviewFormValues(READ), currentChargesCents: null });
+    expect(result.error?.issues.map((i) => [i.path.join('.'), i.message])).toEqual([
+      ['currentChargesCents', 'Enter Current Charges'],
+    ]);
+  });
+});
+
+describe('bill month text', () => {
+  it('shows the month read from the bill as its short name and year', () => {
+    expect(toReviewFormValues(READ).billMonth).toBe('Nov 2026');
   });
 
-  it('adds the month read from the bill when it is outside the list', () => {
-    expect(billMonthOptions('2026-11', '2024-05').at(-1)).toBe('2024-05');
+  it('turns what is typed back into a month key', () => {
+    const values = { ...toReviewFormValues(READ), billMonth: ' Oct 2026 ' };
+    expect(toSaveBillRequest(values).billMonth).toBe('2026-10');
+  });
+
+  it('accepts an empty bill month but not text that is not a month', () => {
+    const values = toReviewFormValues(READ);
+    expect(reviewFormSchema.safeParse({ ...values, billMonth: '' }).success).toBe(true);
+    const result = reviewFormSchema.safeParse({ ...values, billMonth: 'Octo 2026' });
+    expect(result.error?.issues.map((i) => i.path.join('.'))).toEqual(['billMonth']);
   });
 });

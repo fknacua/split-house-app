@@ -1,4 +1,5 @@
 import { useMutation } from '@tanstack/react-query';
+import { File } from 'expo-file-system';
 
 import { apiFetch } from '@/lib/api';
 import type { BillDraftResponse } from '@splithouse/shared';
@@ -22,8 +23,12 @@ export function useUploadBillDraft(month: string) {
   return useMutation({
     mutationFn: (file: PickedPdf) => {
       const formData = new FormData();
-      // React Native's FormData sends a `{ uri, name, type }` part as the file's bytes.
-      formData.append('file', { uri: file.uri, name: file.name, type: 'application/pdf' } as unknown as Blob);
+      const cached = new File(file.uri);
+      formData.append('file', {
+        name: file.name,
+        type: 'application/pdf',
+        bytes: () => cached.bytes(),
+      } as unknown as Blob);
       return apiFetch<BillDraftResponse>(`/api/months/${month}/bill-draft`, { method: 'POST', formData });
     },
   });

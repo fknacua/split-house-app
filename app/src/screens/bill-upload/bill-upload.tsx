@@ -10,8 +10,8 @@ import { useSaveBill, useUploadBillDraft } from '@/hooks';
 import { ServerUnreachableError } from '@/lib/api';
 import { formatMonthLabel, formatMonthName, type BillDraftResponse } from '@splithouse/shared';
 import { PickStep } from './components/pick-step';
-import { ReadingStep } from './components/reading-step';
 import { ReviewForm } from './components/review-form';
+import { ReviewSkeleton } from './components/review-skeleton';
 import { UploadFooter } from './components/upload-footer';
 import {
   pickBillPdf,
@@ -40,12 +40,18 @@ export function BillUpload() {
   const [filename, setFilename] = useState('');
   const [draft, setDraft] = useState<BillDraftResponse | null>(null);
   const [problem, setProblem] = useState<PickedPdfProblem | null>(null);
-  // Cancel during reading makes the pending upload's answer stale, so it is ignored.
+  // Cancel while the server reads the file makes the pending upload's answer stale, so it is ignored.
   const uploadId = useRef(0);
+  // Review bill is on screen but the server has not answered yet: the form shows as a skeleton.
+  const reading = step === 'review' && draft === null;
 
   const upload = useUploadBillDraft(month);
   const save = useSaveBill(month);
-  const { control, handleSubmit, reset } = useForm<ReviewFormValues>({ resolver: zodResolver(reviewFormSchema) });
+  // Checked as it changes, so clearing Current Charges turns the field red straight away.
+  const { control, handleSubmit, reset } = useForm<ReviewFormValues>({
+    resolver: zodResolver(reviewFormSchema),
+    mode: 'onChange',
+  });
   const currentCharges = useWatch({ control, name: 'currentChargesCents' });
 
   const choosePdf = async () => {
@@ -60,7 +66,8 @@ export function BillUpload() {
     save.reset();
     const id = ++uploadId.current;
     setFilename(picked.file.name);
-    setStep('reading');
+    setDraft(null);
+    setStep('review');
     upload.mutate(picked.file, {
       onSuccess: (read) => {
         if (id !== uploadId.current) return;
@@ -92,16 +99,15 @@ export function BillUpload() {
       <SubpageHeader
         title={step === 'review' ? 'Review bill' : 'Utilities bill'}
         subtitle={formatMonthLabel(month)}
-        onBack={step === 'reading' ? cancelReading : undefined}
+        onBack={reading ? cancelReading : undefined}
       />
       <ScrollView keyboardShouldPersistTaps="handled" contentContainerClassName="gap-4 px-4 pb-5 pt-2">
         {step === 'pick' ? (
           <PickStep monthName={formatMonthName(month)} problem={problem} error={messageOf(upload.error)} />
         ) : null}
-        {step === 'reading' ? <ReadingStep filename={filename} /> : null}
+        {reading ? <ReviewSkeleton filename={filename} /> : null}
         {step === 'review' && draft ? (
           <ReviewForm
-            month={month}
             draft={draft}
             control={control}
             onChooseAnother={choosePdf}
@@ -111,11 +117,11 @@ export function BillUpload() {
       </ScrollView>
       <UploadFooter>
         {step === 'pick' ? <Button label="Choose PDF" icon={FileText} onPress={choosePdf} /> : null}
-        {step === 'reading' ? <Button label="Cancel" variant="outline" onPress={cancelReading} /> : null}
-        {step === 'review' ? (
+        {reading ? <Button label="Cancel" variant="outline" onPress={cancelReading} /> : null}
+        {step === 'review' && draft ? (
           <>
             {currentCharges === null ? (
-              <Text className="px-1 pb-1 text-center font-manrope-semibold text-caption text-on-surface-variant">
+              <Text className="px-1 pb-1 text-center font-manrope-semibold text-caption text-danger">
                 Enter Current Charges to save
               </Text>
             ) : null}

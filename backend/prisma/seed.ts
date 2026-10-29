@@ -23,6 +23,9 @@ if (process.env.NODE_ENV === "production") {
  * steps add their scenarios here.
  */
 const SCENARIOS = {
+  // October is not created and only Aug and Sep are seeded: Home's first request on 1 Oct opens
+  // October, so a bill for October can be uploaded.
+  uploadOct: { devNow: "2026-10-01T09:00:00+08:00" },
   // November is not created: Home's first request on 1 Nov opens it.
   upload: { devNow: "2026-11-01T09:00:00+08:00" },
   // November is not created either; it has an unsaved bill draft waiting.
@@ -200,6 +203,71 @@ async function seedMonthlyMessage(month: string, personId: string, chargeId: str
   });
 }
 
+/**
+ * October 2026: one short-paid charge, one unpaid, plus September's correction. Left out of the
+ * `uploadOct` scenario, where it is 1 Oct and Home opens October itself.
+ */
+async function seedOctober(versionAId: string) {
+  await prisma.month.create({ data: { month: "2026-10", householdVersionId: versionAId, openedAt: new Date("2026-10-01T09:00:00+08:00") } });
+  const oct = await seedPastMonth("2026-10", versionAId, {
+    start: "2026-09-16",
+    end: "2026-10-15",
+    dueDate: "2026-10-25",
+    currentChargesCents: 42800,
+  });
+  const samRent = oct.rentAndRecurring.find((c) => c.personId === PERSON_IDS.sam)!;
+  await markPaid(samRent.id, PERSON_IDS.sam, "2026-10-29", samRent.amountCents - 2000); // short by $20, history only, no carry
+  const jordanRent = oct.rentAndRecurring.find((c) => c.personId === PERSON_IDS.jordan)!;
+  // left unpaid on purpose
+  for (const charge of [...oct.rentAndRecurring, ...oct.utilities]) {
+    if (charge.id === samRent.id || charge.id === jordanRent.id) continue;
+    await markPaid(charge.id, payerFor(charge), "2026-10-18");
+  }
+  for (const personId of [PERSON_IDS.priya, PERSON_IDS.sam, PERSON_IDS.jordan]) {
+    const charge = [...oct.rentAndRecurring, ...oct.utilities].find((c) => c.personId === personId);
+    if (charge) await seedMonthlyMessage("2026-10", personId, charge.id, "2026-10-02T10:00:00+08:00");
+  }
+  await prisma.messageEvent.create({
+    data: {
+      month: "2026-10",
+      personId: PERSON_IDS.jordan,
+      kind: "NUDGE",
+      chargeId: jordanRent.id,
+      renderedText: `Hi ${PERSON_NAMES[PERSON_IDS.jordan]}! Paalala lang, yung Rent for 2026-10 ay due na. (seed placeholder text)`,
+      openedAt: new Date("2026-10-27T18:00:00+08:00"),
+    },
+  });
+  // A shortfall found later in Jordan's September utilities, corrected in October.
+  await insertCharge({
+    personId: PERSON_IDS.jordan,
+    category: "CORRECTION",
+    label: "Correction: September utilities",
+    amountCents: 1500,
+    payViaPersonId: null,
+    dueDate: null,
+    month: "2026-10",
+    correctsMonth: "2026-09",
+    correctsCategory: "UTILITIES",
+    createdAt: "2026-10-05T10:00:00+08:00",
+    householdVersionId: versionAId,
+  });
+  // Sam overpaid September's utilities by $5.00: a credit, added on 2 Oct and paid out on 12 Oct.
+  const samCredit = await insertCharge({
+    personId: PERSON_IDS.sam,
+    category: "CORRECTION",
+    label: "Correction: September utilities",
+    amountCents: -500,
+    payViaPersonId: null,
+    dueDate: null,
+    month: "2026-10",
+    correctsMonth: "2026-09",
+    correctsCategory: "UTILITIES",
+    createdAt: "2026-10-02T10:00:00+08:00",
+    householdVersionId: versionAId,
+  });
+  await markPaid(samCredit.id, PERSON_IDS.alex, "2026-10-12");
+}
+
 async function main() {
   await wipeDomainTables();
   await seedPeople();
@@ -245,65 +313,7 @@ async function main() {
     if (charge) await seedMonthlyMessage("2026-09", personId, charge.id, "2026-09-02T10:00:00+08:00");
   }
 
-  // --- October 2026: one short-paid charge, one unpaid, plus Sep's correction. ---
-  await prisma.month.create({ data: { month: "2026-10", householdVersionId: versionA.id, openedAt: new Date("2026-10-01T09:00:00+08:00") } });
-  const oct = await seedPastMonth("2026-10", versionA.id, {
-    start: "2026-09-16",
-    end: "2026-10-15",
-    dueDate: "2026-10-25",
-    currentChargesCents: 42800,
-  });
-  const samRent = oct.rentAndRecurring.find((c) => c.personId === PERSON_IDS.sam)!;
-  await markPaid(samRent.id, PERSON_IDS.sam, "2026-10-29", samRent.amountCents - 2000); // short by $20, history only, no carry
-  const jordanRent = oct.rentAndRecurring.find((c) => c.personId === PERSON_IDS.jordan)!;
-  // left unpaid on purpose
-  for (const charge of [...oct.rentAndRecurring, ...oct.utilities]) {
-    if (charge.id === samRent.id || charge.id === jordanRent.id) continue;
-    await markPaid(charge.id, payerFor(charge), "2026-10-18");
-  }
-  for (const personId of [PERSON_IDS.priya, PERSON_IDS.sam, PERSON_IDS.jordan]) {
-    const charge = [...oct.rentAndRecurring, ...oct.utilities].find((c) => c.personId === personId);
-    if (charge) await seedMonthlyMessage("2026-10", personId, charge.id, "2026-10-02T10:00:00+08:00");
-  }
-  await prisma.messageEvent.create({
-    data: {
-      month: "2026-10",
-      personId: PERSON_IDS.jordan,
-      kind: "NUDGE",
-      chargeId: jordanRent.id,
-      renderedText: `Hi ${PERSON_NAMES[PERSON_IDS.jordan]}! Paalala lang, yung Rent for 2026-10 ay due na. (seed placeholder text)`,
-      openedAt: new Date("2026-10-27T18:00:00+08:00"),
-    },
-  });
-  // A shortfall found later in Jordan's September utilities, corrected in October.
-  await insertCharge({
-    personId: PERSON_IDS.jordan,
-    category: "CORRECTION",
-    label: "Correction: September utilities",
-    amountCents: 1500,
-    payViaPersonId: null,
-    dueDate: null,
-    month: "2026-10",
-    correctsMonth: "2026-09",
-    correctsCategory: "UTILITIES",
-    createdAt: "2026-10-05T10:00:00+08:00",
-    householdVersionId: versionA.id,
-  });
-  // Sam overpaid September's utilities by $5.00: a credit, added on 2 Oct and paid out on 12 Oct.
-  const samCredit = await insertCharge({
-    personId: PERSON_IDS.sam,
-    category: "CORRECTION",
-    label: "Correction: September utilities",
-    amountCents: -500,
-    payViaPersonId: null,
-    dueDate: null,
-    month: "2026-10",
-    correctsMonth: "2026-09",
-    correctsCategory: "UTILITIES",
-    createdAt: "2026-10-02T10:00:00+08:00",
-    householdVersionId: versionA.id,
-  });
-  await markPaid(samCredit.id, PERSON_IDS.alex, "2026-10-12");
+  if (scenario !== "uploadOct") await seedOctober(versionA.id);
 
   // --- November 2026: no month, charges or bill are created. Home opens it on the first
   // request on or after 1 Nov (version B), with rent and recurring charges only and no bill. ---
@@ -388,7 +398,7 @@ async function main() {
     }
   }
 
-  console.log(`Seeded Aug-Oct 2026 (history), scenario "${scenario}".`);
+  console.log(`Seeded ${scenario === "uploadOct" ? "Aug-Sep" : "Aug-Oct"} 2026 (history), scenario "${scenario}".`);
   console.log(`Run the backend with DEV_NOW=${SCENARIOS[scenario].devNow}`);
 }
 

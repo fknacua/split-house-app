@@ -112,6 +112,31 @@ export function parseDisplayMonth(text: string): string | null {
 }
 
 /**
+ * Formats a month key as its short name and year, for a small field.
+ *
+ * @param key A month key, e.g. `2026-10`.
+ * @returns e.g. `Oct 2026`.
+ * @throws {RangeError} When `key` is not a valid month key.
+ */
+export function formatMonthShortLabel(key: string): string {
+  return format(monthKeyToDate(key), 'MMM yyyy');
+}
+
+/**
+ * Parses a short month name and a four-digit year in the `MMM yyyy` format, such as someone
+ * types into a field. The reverse of {@link formatMonthShortLabel}.
+ *
+ * @param text e.g. `Oct 2026`.
+ * @returns e.g. `2026-10`, or `null` when `text` isn't a valid month in that shape.
+ */
+export function parseShortDisplayMonth(text: string): string | null {
+  const trimmed = text.trim();
+  if (!/^[A-Za-z]{3} \d{4}$/.test(trimmed)) return null;
+  const date = parse(trimmed, 'MMM yyyy', new Date());
+  return isValid(date) ? format(date, MONTH_KEY_FORMAT) : null;
+}
+
+/**
  * Moves a month key forward or back.
  *
  * @param key A month key, e.g. `2026-11`.

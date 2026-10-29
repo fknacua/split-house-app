@@ -5,14 +5,13 @@ import type { BillDraftResponse } from '@splithouse/shared';
 import type { PickedPdfProblem, ReviewFormValues } from './helpers';
 
 /** Which board of Bill upload is showing. */
-export type UploadStep = 'pick' | 'reading' | 'review';
+export type UploadStep = 'pick' | 'review';
 
 /** Props for {@link FileCard}. */
 export interface FileCardProps {
   filename: string;
   /** e.g. `2 pages · 214 KB`. Left out while the file is still uploading. */
   meta?: string;
-  /** `large` on the reading board, `small` on Review bill. */
   size: 'large' | 'small';
   /** Drawn under the file row, such as the Spinner or Choose another file. */
   children?: ReactNode;
@@ -28,15 +27,14 @@ export interface PickStepProps {
   error: string | null;
 }
 
-/** Props for {@link ReadingStep}. */
-export interface ReadingStepProps {
+/** Props for {@link ReviewSkeleton}. */
+export interface ReviewSkeletonProps {
+  /** The picked file's name, shown while the server reads it. */
   filename: string;
 }
 
 /** Props for {@link ReviewForm}. */
 export interface ReviewFormProps {
-  /** The month the upload started from, `YYYY-MM`. */
-  month: string;
   draft: BillDraftResponse;
   control: Control<ReviewFormValues>;
   /** Opens the picker again; the new file replaces this draft. */

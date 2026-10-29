@@ -21,8 +21,10 @@ export function PickStep({ monthName, problem, error }: PickStepProps) {
           {`Add ${monthName}’s utilities bill`}
         </Text>
         <Text className="font-manrope text-body text-on-surface-variant">
-          Choose the PDF from your files. Current Charges are read from it, then you check everything before
-          anything is saved.
+          Choose the PDF from your files.
+        </Text>
+        <Text className="font-manrope text-body text-on-surface-variant">
+          Values will be read from the bill and you can review them before saving.
         </Text>
       </View>
       {message ? <Alert variant="danger" message={message} /> : null}
@@ -39,10 +41,6 @@ export function PickStep({ monthName, problem, error }: PickStepProps) {
           ))}
         </View>
       </Card>
-      <Text className="px-1 font-manrope text-caption text-on-surface-variant">
-        Shares use <Text className="font-manrope-bold text-on-surface">Current Charges</Text>, not Total Amount
-        Payable, which can include old balances.
-      </Text>
     </>
   );
 }

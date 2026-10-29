@@ -2,8 +2,7 @@ import { Plus, RefreshCw } from 'lucide-react-native';
 import { useFieldArray, useWatch } from 'react-hook-form';
 import { Text, View } from 'react-native';
 
-import { Alert, Button, Card, DateField, DateRangeField, MoneyInput, MonthSelectField } from '@/components';
-import { billMonthOptions } from '../helpers';
+import { Alert, Button, Card, DateField, DateRangeField, MoneyInput, TextInput } from '@/components';
 import type { ReviewFormProps } from '../types';
 import { FileCard } from './file-card';
 import { LineRow } from './line-row';
@@ -13,7 +12,7 @@ import { LineRow } from './line-row';
  * the utility lines, filled from what the server read and all editable. Save and Cancel are in
  * the footer.
  */
-export function ReviewForm({ month, draft, control, onChooseAnother, saveError }: ReviewFormProps) {
+export function ReviewForm({ draft, control, onChooseAnother, saveError }: ReviewFormProps) {
   const { fields, remove } = useFieldArray({ control, name: 'lines' });
   const lines = useWatch({ control, name: 'lines' });
   const hasLines = fields.length > 0;
@@ -40,21 +39,18 @@ export function ReviewForm({ month, draft, control, onChooseAnother, saveError }
             name: 'currentChargesCents',
             label: 'Current Charges (SGD)',
             required: true,
-            // The per-share text ("Split into 5 shares of $82.46") comes from the server's check in 6.3.
-            helper: 'Required. The split uses this number.',
           }}
         />
       </Card>
 
       <Card className="gap-4">
         <View className="flex-row gap-3">
-          <MonthSelectField
-            months={billMonthOptions(month, draft.fields.billMonth ?? '')}
-            placeholder="Nov 2026"
+          {/* Free text until a month picker exists. */}
+          <TextInput
+            placeholder="Oct 2026"
             fieldControlProps={{ control, name: 'billMonth', label: 'Bill month', className: 'min-w-0 flex-1' }}
           />
           <DateField
-            placeholder="16 Nov 2026"
             clearable={false}
             fieldControlProps={{ control, name: 'dueDate', label: 'Due date', className: 'min-w-0 flex-1' }}
           />

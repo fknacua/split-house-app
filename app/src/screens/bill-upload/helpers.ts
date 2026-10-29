@@ -4,10 +4,10 @@ import { z } from 'zod';
 import { EMPTY_DATE_RANGE } from '@/components';
 import type { PickedPdf } from '@/hooks';
 import {
-  addMonths,
   cents,
+  formatMonthShortLabel,
   MAX_BILL_PDF_BYTES,
-  monthRange,
+  parseShortDisplayMonth,
   positiveCents,
   requiredText,
   type BillDraftFields,
@@ -41,14 +41,24 @@ export async function pickBillPdf(): Promise<PickResult | null> {
  * name on each line); every other check is the server's.
  */
 export const reviewFormSchema = z.object({
-  currentChargesCents: positiveCents.nullable(),
-  billMonth: z.string(),
+  // `null` while the field is empty (or the PDF had no Current Charges); that is an error, not a pass.
+  // The `boolean` return keeps TypeScript from narrowing the form's value type to `number`.
+  currentChargesCents: positiveCents
+    .nullable()
+    .refine((value): boolean => value !== null, 'Enter Current Charges'),
+  // Free text such as `Oct 2026`; empty is allowed, anything else must read as a month.
+  billMonth: z.string().refine((text) => text.trim() === '' || parseShortDisplayMonth(text) !== null, {
+    message: 'Use a month like Oct 2026',
+  }),
   dueDate: z.string(),
   billingPeriod: z.object({ start: z.string(), end: z.string() }),
   lines: z.array(z.object({ label: requiredText, cents: cents.nullable() })),
 });
 
-/** The Review bill form's values. Empty dates and months are `''`, as the fields hold them. */
+/**
+ * The Review bill form's values. Empty dates and months are `''`, as the fields hold them; the
+ * bill month is the text the user types (`Oct 2026`), not a month key.
+ */
 export type ReviewFormValues = z.infer<typeof reviewFormSchema>;
 
 /**
@@ -60,7 +70,7 @@ export type ReviewFormValues = z.infer<typeof reviewFormSchema>;
 export function toReviewFormValues(fields: BillDraftFields): ReviewFormValues {
   return {
     currentChargesCents: fields.currentChargesCents,
-    billMonth: fields.billMonth ?? '',
+    billMonth: fields.billMonth ? formatMonthShortLabel(fields.billMonth) : '',
     dueDate: fields.dueDate ?? '',
     billingPeriod:
       fields.billingPeriodStart && fields.billingPeriodEnd
@@ -81,24 +91,10 @@ export function toSaveBillRequest(values: ReviewFormValues): SaveBillRequest {
   return {
     // The footer only offers Save once Current Charges is filled in.
     currentChargesCents: values.currentChargesCents ?? 0,
-    billMonth: values.billMonth || null,
+    billMonth: parseShortDisplayMonth(values.billMonth),
     dueDate: values.dueDate || null,
     billingPeriodStart: start || null,
     billingPeriodEnd: end || null,
     lines: values.lines.map((line) => ({ label: line.label.trim(), cents: line.cents })),
   };
-}
-
-/**
- * The months the Bill month list offers: the month after the upload's, back a year, plus the
- * month read from the bill when it falls outside that.
- *
- * @param month `YYYY-MM`, the month the upload started from.
- * @param read The bill month read from the PDF, or `''`.
- * @returns Month keys, newest first.
- */
-export function billMonthOptions(month: string, read: string): string[] {
-  const months = monthRange(addMonths(month, 1), 13, 'back');
-  if (read && !months.includes(read)) months.push(read);
-  return months.sort().reverse();
 }

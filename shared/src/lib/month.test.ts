@@ -6,10 +6,12 @@ import {
   formatMonthLabel,
   formatMonthName,
   formatMonthShort,
+  formatMonthShortLabel,
   isValidMonthKey,
   monthKeyOf,
   monthRange,
   parseDisplayMonth,
+  parseShortDisplayMonth,
 } from './month';
 
 describe('isMonthKey', () => {
@@ -38,6 +40,24 @@ describe('parseDisplayMonth', () => {
 
   it.each(['October', 'not a month', ''])('rejects %j', (text) => {
     expect(parseDisplayMonth(text)).toBeNull();
+  });
+});
+
+describe('formatMonthShortLabel and parseShortDisplayMonth', () => {
+  it('formats a month key as short name and year', () => {
+    expect(formatMonthShortLabel('2026-10')).toBe('Oct 2026');
+  });
+
+  it.each([
+    ['Oct 2026', '2026-10'],
+    [' jan 2026 ', '2026-01'],
+    ['May 2027', '2027-05'],
+  ])('parses %j as %j', (text, expected) => {
+    expect(parseShortDisplayMonth(text)).toBe(expected);
+  });
+
+  it.each(['October 2026', 'Oct 26', 'Oct', 'Octo 2026', 'Xyz 2026', ''])('rejects %j', (text) => {
+    expect(parseShortDisplayMonth(text)).toBeNull();
   });
 });
 
