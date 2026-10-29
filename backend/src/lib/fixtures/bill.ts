@@ -9,8 +9,8 @@ import type { ParsedBill } from "../bill/bill-parser";
  */
 export const BILL_FIXTURE: ParsedBill = {
   currentChargesCents: 38150,
-  billingPeriodStart: "2026-10-01",
-  billingPeriodEnd: "2026-10-31",
+  billingPeriodStart: "2026-10-03",
+  billingPeriodEnd: "2026-11-02",
   billMonth: "2026-11",
   dueDate: "2026-11-16",
   lines: [
@@ -33,7 +33,7 @@ export const BILL_FIXTURE_TEXT_LINES = [
   "Tax Invoice",
   "Account Number: 1234567890",
   "Billing Period Bill Date Account Type Deposit",
-  "01 Oct 2026 - 31 Oct 2026 01 Nov 2026 Domestic $120.00",
+  "03 Oct 2026 - 02 Nov 2026 01 Nov 2026 Domestic $120.00",
   "",
   "Current Charges Consumption Trend Total",
   "Usage",

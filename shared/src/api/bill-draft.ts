@@ -45,6 +45,39 @@ export const billDraftResponseSchema = z.object({
 export type BillDraftResponse = z.infer<typeof billDraftResponseSchema>;
 
 /**
+ * `POST /api/months/:month/bill-draft/check`: the form's values as they are right now, before they
+ * are all valid. A field the user has not filled in, or typed text that is not a month, is null.
+ */
+export const checkBillRequestSchema = billDraftFieldsSchema;
+
+/** `POST /api/months/:month/bill-draft/check`: the form's values as they are right now. */
+export type CheckBillRequest = z.infer<typeof checkBillRequestSchema>;
+
+/** Something that stops Save: the field to mark red and the Alert text above the form. */
+export const billBlockerSchema = z.object({
+  /** The form field the problem is on. */
+  field: z.enum(['billMonth', 'billingPeriod']),
+  /** Alert title, e.g. `Did you attach the wrong bill?`. */
+  title: z.string(),
+  /** Alert text, display-ready. */
+  message: z.string(),
+  /** The short error under the red field, e.g. `Should be November 2026`. */
+  fieldMessage: z.string(),
+});
+
+/** Something that stops Save: the field to mark red and the Alert text above the form. */
+export type BillBlocker = z.infer<typeof billBlockerSchema>;
+
+/** `POST /api/months/:month/bill-draft/check`: what the server finds wrong with the values. */
+export const checkBillResponseSchema = z.object({
+  /** Problems that disable Save. Save checks them again and answers 422. */
+  blockers: z.array(billBlockerSchema),
+});
+
+/** `POST /api/months/:month/bill-draft/check`: what the server finds wrong with the values. */
+export type CheckBillResponse = z.infer<typeof checkBillResponseSchema>;
+
+/**
  * `POST /api/months/:month/bill`: the reviewed values. The file is the month's stored draft, so it
  * is not sent again. Current Charges, the bill month and the billing period are required: the bill
  * is the source of truth for the month it covers.

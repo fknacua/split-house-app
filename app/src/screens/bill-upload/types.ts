@@ -1,7 +1,7 @@
 import type { ReactNode } from 'react';
 import type { Control } from 'react-hook-form';
 
-import type { BillDraftResponse } from '@splithouse/shared';
+import type { BillBlocker, BillDraftResponse } from '@splithouse/shared';
 import type { PickedPdfProblem, ReviewFormValues } from './helpers';
 
 /** Which board of Bill upload is showing. */
@@ -39,6 +39,8 @@ export interface ReviewFormProps {
   control: Control<ReviewFormValues>;
   /** Opens the picker again; the new file replaces this draft. */
   onChooseAnother: () => void;
+  /** What the server's check says stops Save; empty while all is well (or before the first answer). */
+  blockers: BillBlocker[];
   /** The server's message when Save failed, or null. */
   saveError: string | null;
 }
