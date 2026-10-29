@@ -7,6 +7,7 @@ import type { BillBlocker } from '@splithouse/shared';
 import type { ReviewFormProps } from '../types';
 import { FileCard } from './file-card';
 import { LineRow } from './line-row';
+import { NoLinesBox } from './no-lines-box';
 import { SubtotalRow } from './subtotal-row';
 
 /**
@@ -113,7 +114,9 @@ export function ReviewForm({ draft, control, onChooseAnother, blockers, linesNot
               <Alert variant="warning" title={linesNote.title} message={linesNote.message} />
             ) : null}
           </>
-        ) : null}
+        ) : (
+          <NoLinesBox />
+        )}
         {/* Add line appends an inline row in 6.3; until then it does nothing. */}
         <Button label="Add line" icon={Plus} variant="ghost" size="small" className="self-start pl-1 pr-2" />
       </Card>
