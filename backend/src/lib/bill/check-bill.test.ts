@@ -9,6 +9,7 @@ const FIELDS: CheckBillRequest = {
   dueDate: "2026-11-16",
   billingPeriodStart: "2026-10-03",
   billingPeriodEnd: "2026-11-02",
+  subtotalCents: null,
   lines: [],
 };
 
@@ -17,7 +18,7 @@ const periodBlocker = (fields: Partial<CheckBillRequest>) =>
 
 describe("checkBill: bill month", () => {
   it("has no blockers when the bill is for the month the upload started from", () => {
-    expect(checkBill("2026-11", FIELDS)).toEqual({ blockers: [] });
+    expect(checkBill("2026-11", FIELDS).blockers).toEqual([]);
   });
 
   it("blocks a bill for another month and names both months", () => {
@@ -33,7 +34,7 @@ describe("checkBill: bill month", () => {
   });
 
   it("does not block an empty or unreadable bill month (the form shows its own error)", () => {
-    expect(checkBill("2026-11", { ...FIELDS, billMonth: null })).toEqual({ blockers: [] });
+    expect(checkBill("2026-11", { ...FIELDS, billMonth: null }).blockers).toEqual([]);
   });
 });
 
@@ -48,7 +49,7 @@ describe("checkBill: billing period", () => {
     ] as const;
     for (const [billMonth, start, end] of standard) {
       const fields = { ...FIELDS, billMonth, billingPeriodStart: start, billingPeriodEnd: end };
-      expect(checkBill(billMonth, fields)).toEqual({ blockers: [] });
+      expect(checkBill(billMonth, fields).blockers).toEqual([]);
     }
   });
 
@@ -102,5 +103,14 @@ describe("checkBill: billing period", () => {
   it("does not flag a good period just because the bill month is wrong", () => {
     const fields = { ...FIELDS, billMonth: "2026-09" };
     expect(checkBill("2026-11", fields).blockers.map((b) => b.field)).toEqual(["billMonth"]);
+  });
+});
+
+describe("checkBill: lines note", () => {
+  it("returns the note about the lines next to the blockers, and never blocks on it", () => {
+    const lines = [{ label: "Electricity", cents: 26845 }];
+    const result = checkBill("2026-11", { ...FIELDS, subtotalCents: 35000, lines });
+    expect(result.linesNote?.title).toBe("Lines don’t add up to the Subtotal");
+    expect(result.blockers).toEqual([]);
   });
 });

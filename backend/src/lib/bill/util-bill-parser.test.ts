@@ -43,6 +43,7 @@ describe("utilBillParser", () => {
       billingPeriodEnd: "2026-10-31",
       billMonth: "2026-11",
       dueDate: "2026-11-16",
+      subtotalCents: null,
       lines: [
         { label: "Electricity", cents: 28150 },
         { label: "Gas", cents: 1890 },
@@ -78,6 +79,7 @@ describe("utilBillParser", () => {
       billingPeriodEnd: null,
       billMonth: null,
       dueDate: null,
+      subtotalCents: null,
       lines: [],
     });
   });
@@ -100,6 +102,66 @@ describe("utilBillParser", () => {
   it("reads a due date written as 'Payment Due:' with no 'Date' word", () => {
     const text = "Current Charges $100.00\nPayment Due: 25 Nov 2026";
     expect(utilBillParser.parse(text)?.dueDate).toBe("2026-11-25");
+  });
+});
+
+// The breakdown table on the bill's second page: every row ends in its total, with no `$`.
+const BREAKDOWN_TEXT = `
+Current Charges due on 16 Nov 2026 (Mon) $381.50
+Breakdown of Current Charges Usage Rate ($) Amount ($) Total ($)
+Refuse Removal by Example Waste Pte Ltd 1 Qty 20.00 20.00 20.00
+Subtotal 350.00 350.00
+GST $350.00 9% 31.50 31.50
+Current Charges:
+(Inclusive of GST) $381.50
+`;
+
+describe("utilBillParser: Refuse Removal and Subtotal", () => {
+  it("reads the Refuse Removal line and the Subtotal from the breakdown table", () => {
+    const parsed = utilBillParser.parse(BREAKDOWN_TEXT);
+    expect(parsed?.subtotalCents).toBe(35000);
+    expect(parsed?.lines).toEqual([{ label: "Refuse Removal", cents: 2000 }]);
+  });
+
+  it("puts Refuse Removal after the services", () => {
+    const text = `${SAMPLE_BILL_TEXT}${BREAKDOWN_TEXT}`;
+    expect(utilBillParser.parse(text)?.lines.map((line) => line.label)).toEqual([
+      "Electricity",
+      "Gas",
+      "Water",
+      "Refuse Removal",
+    ]);
+  });
+
+  it("reads the total column when the row has a quantity and more amounts", () => {
+    const text = `${BREAKDOWN_TEXT}Refuse Removal by Another Waste Pte Ltd 2 Qty 9.45 18.90 18.90`;
+    expect(utilBillParser.parse(text)?.lines).toEqual([{ label: "Refuse Removal", cents: 2000 }]);
+    expect(utilBillParser.parse(text.replace(/Refuse Removal by Example[^\n]*\n/, ""))?.lines).toEqual([
+      { label: "Refuse Removal", cents: 1890 },
+    ]);
+  });
+
+  it("reads a total with a thousands separator", () => {
+    expect(utilBillParser.parse("Current Charges $100.00\nSubtotal 1,350.00 1,350.00")?.subtotalCents).toBe(135000);
+  });
+
+  it("does not read the page 1 heading, whose amount is on the next line, or a footnote", () => {
+    const text = [
+      "Current Charges $100.00",
+      "Refuse Removal",
+      "by Example Waste Pte Ltd $20.00",
+      "- Refuse removal fee for Example Waste Pte Ltd",
+      "Subtotals are shown before GST",
+    ].join("\n");
+    const parsed = utilBillParser.parse(text);
+    expect(parsed?.lines).toEqual([]);
+    expect(parsed?.subtotalCents).toBeNull();
+  });
+
+  it("leaves them out when the bill has no such rows", () => {
+    const parsed = utilBillParser.parse("Current Charges $100.00");
+    expect(parsed?.subtotalCents).toBeNull();
+    expect(parsed?.lines).toEqual([]);
   });
 });
 

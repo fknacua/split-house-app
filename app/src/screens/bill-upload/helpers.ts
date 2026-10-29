@@ -40,7 +40,7 @@ export async function pickBillPdf(): Promise<PickResult | null> {
 
 /**
  * The Review bill form's checks. The device checks required fields only (Current Charges, Bill
- * month, Billing period and a name on each line); every other check is the server's.
+ * month, Due date, Billing period and a name on each line); every other check is the server's.
  */
 export const reviewFormSchema = z.object({
   // `null` while the field is empty (or the PDF had no Current Charges); that is an error, not a pass.
@@ -55,7 +55,7 @@ export const reviewFormSchema = z.object({
     .refine((text) => text.trim() === '' || parseShortDisplayMonth(text) !== null, {
       message: 'Use a month like Oct 2026',
     }),
-  dueDate: z.string(),
+  dueDate: z.string().refine((text) => text !== '', { message: 'Enter the due date' }),
   // The field only sets a span once both days are picked, and the end cannot be before the start.
   billingPeriod: z
     .object({ start: z.string(), end: z.string() })
@@ -93,10 +93,16 @@ export function toReviewFormValues(fields: BillDraftFields): ReviewFormValues {
  * fields, and a bill month that is not a month, are null; nothing has to be valid yet.
  *
  * @param values The form values, unchecked and possibly partial.
+ * @param subtotalCents The bill's Subtotal as read from the PDF, or null. It is not a form field
+ * (it cannot be edited), so it comes from the draft.
  * @returns The `POST /api/months/:month/bill-draft/check` body.
  */
-export function toCheckBillRequest(values: DeepPartial<ReviewFormValues>): CheckBillRequest {
+export function toCheckBillRequest(
+  values: DeepPartial<ReviewFormValues>,
+  subtotalCents: number | null,
+): CheckBillRequest {
   return {
+    subtotalCents,
     currentChargesCents: values.currentChargesCents ?? null,
     billMonth: values.billMonth ? parseShortDisplayMonth(values.billMonth) : null,
     dueDate: values.dueDate || null,
@@ -118,7 +124,7 @@ export function toSaveBillRequest(values: ReviewFormValues): SaveBillRequest {
     // Save is only enabled once the form passes `reviewFormSchema`.
     currentChargesCents: values.currentChargesCents ?? 0,
     billMonth: parseShortDisplayMonth(values.billMonth) ?? '',
-    dueDate: values.dueDate || null,
+    dueDate: values.dueDate,
     billingPeriodStart: start,
     billingPeriodEnd: end,
     lines: values.lines.map((line) => ({ label: line.label.trim(), cents: line.cents })),

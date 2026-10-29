@@ -56,7 +56,7 @@ describe("uploadBillDraft", () => {
       readOk: true,
       fields: { currentChargesCents: BILL_FIXTURE.currentChargesCents },
     });
-    expect(response.file.meta).toMatch(/^1 page · \d+ KB$/);
+    expect(response.file.meta).toMatch(/^2 pages · \d+ KB$/);
     expect(rows.get("2026-11")).toMatchObject({ parseOk: true, parsedJson: BILL_FIXTURE });
   });
 

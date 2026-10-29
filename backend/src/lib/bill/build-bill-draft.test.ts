@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import { billDraftResponseSchema } from "@splithouse/shared";
 import { BILL_FIXTURE } from "../fixtures/bill";
 import { isPdf } from "./bill-file-store";
+import type { ParsedBill } from "./bill-parser";
 import { buildBillDraftResponse } from "./build-bill-draft";
 
 describe("buildBillDraftResponse", () => {
@@ -23,6 +24,7 @@ describe("buildBillDraftResponse", () => {
         dueDate: "2026-11-16",
         billingPeriodStart: "2026-10-03",
         billingPeriodEnd: "2026-11-02",
+        subtotalCents: 35000,
         lines: BILL_FIXTURE.lines,
       },
     });
@@ -44,8 +46,22 @@ describe("buildBillDraftResponse", () => {
       dueDate: null,
       billingPeriodStart: null,
       billingPeriodEnd: null,
+      subtotalCents: null,
       lines: [],
     });
+  });
+
+  it("gives no Subtotal for a draft stored before it was read", () => {
+    const stored: Partial<ParsedBill> = { ...BILL_FIXTURE };
+    delete stored.subtotalCents;
+    const response = buildBillDraftResponse({
+      month: "2026-11",
+      filename: "old.pdf",
+      sizeBytes: 2048,
+      pageCount: 1,
+      parsed: stored as ParsedBill,
+    });
+    expect(billDraftResponseSchema.parse(response).fields.subtotalCents).toBeNull();
   });
 });
 

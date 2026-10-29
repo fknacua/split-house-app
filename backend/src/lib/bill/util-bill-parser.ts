@@ -1,4 +1,10 @@
-import { UTIL_BILL_LINE_LABELS, parseDisplayDate, parseDisplayMonth, parseMoneyToCents } from "@splithouse/shared";
+import {
+  REFUSE_REMOVAL_LABEL,
+  UTIL_BILL_LINE_LABELS,
+  parseDisplayDate,
+  parseDisplayMonth,
+  parseMoneyToCents,
+} from "@splithouse/shared";
 import type { BillParser, ParsedBill, ParsedBillLine } from "./bill-parser";
 
 const DATE = /(\d{1,2}\s+[A-Za-z]{3,}\s+\d{4})/;
@@ -60,6 +66,24 @@ function findLines(text: string): ParsedBillLine[] {
 }
 
 /**
+ * The amount at the end of the breakdown table row that starts with `label` (a regex source), e.g.
+ * `Subtotal 350.00 350.00`: the table's last column is the row's total. The row has to start the
+ * line and end in an amount, so the same words elsewhere (the page 1 heading that has its amount
+ * on the next line, a footnote) are not read. Amounts in this table have no `$`.
+ */
+function findTableRowTotal(text: string, label: string): number | null {
+  const regex = new RegExp(`^${label}\\b[^\\n]*[ \\t]\\$?(\\d[\\d,]*\\.\\d{2})[ \\t\\r]*$`, "im");
+  const match = regex.exec(text);
+  return match ? parseMoneyToCents(match[1]) : null;
+}
+
+/** The refuse removal charge: the breakdown table's one-line row, read after the services. */
+function findRefuseRemoval(text: string): ParsedBillLine[] {
+  const cents = findTableRowTotal(text, "Refuse[ \\t]+Removal");
+  return cents === null ? [] : [{ label: REFUSE_REMOVAL_LABEL, cents }];
+}
+
+/**
  * The two billing-period dates sit on the line after the `Billing Period` table header, not
  * next to the label itself, followed by the bill date, account type and deposit columns.
  */
@@ -98,7 +122,8 @@ export const utilBillParser: BillParser = {
       billingPeriodEnd: period.end,
       billMonth: findBillMonth(text),
       dueDate,
-      lines: findLines(text),
+      subtotalCents: findTableRowTotal(text, "Subtotal"),
+      lines: [...findLines(text), ...findRefuseRemoval(text)],
     };
   },
 };

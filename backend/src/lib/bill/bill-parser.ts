@@ -25,6 +25,8 @@ export type ParsedBill = {
   billMonth: string | null;
   /** `YYYY-MM-DD`, or `null` when not found. */
   dueDate: string | null;
+  /** The bill's Subtotal (the charges before GST), or `null` when not found. The lines should add up to it. */
+  subtotalCents: number | null;
   lines: ParsedBillLine[];
 };
 
