@@ -77,13 +77,14 @@ const BLOCKER_CHECKS: readonly BlockerCheck[] = [checkBillMonth, checkBillingPer
 
 /**
  * Checks the Review bill values against the month the upload started from. Pure; the same
- * function answers the check endpoint and guards Save.
+ * function answers the check endpoint and guards Save. The warnings that compare with earlier
+ * bills need the database, so the check service adds them.
  *
  * @param month - `YYYY-MM`, the month the upload started from.
  * @param fields - The form's values as they are right now.
  * @returns The problems that stop Save, in form order, and the note under the lines.
  */
-export function checkBill(month: string, fields: CheckBillRequest): CheckBillResponse {
+export function checkBill(month: string, fields: CheckBillRequest): Omit<CheckBillResponse, "warnings"> {
   const blockers = BLOCKER_CHECKS.map((check) => check(month, fields)).filter(
     (blocker): blocker is BillBlocker => blocker !== null,
   );
