@@ -129,6 +129,28 @@ Source: `Main.dc.html`. Contract (to be built in 5.1): `shared/src/api/home.ts`.
 | Q10 | Plan 5.7: seed scenario `settled-oct`; `nextMonthAction` only when "the next is not open and a household version covers it"; `DEV_NOW=2026-10-28` | No new scenario: review with the 5.6 `settled` scenario at `DEV_NOW=2026-11-29T09:00:00+08:00`, so the dialog reads "Close November?" as in the design (plan text updated at Francis's request). `nextMonthAction` is returned when the status is `settled` and nothing more: the newest opened month is by definition the last, so the next is never open, and a version that covers the newest month covers the next. The endpoint still returns 409 `month_already_open` and `no_household` as guards. `startNextMonth` reads the newest month through `getHome`, so "settled" is the one rule. | Decided (5.7). |
 | Q11 | Neither the plan nor the design has pull-down refresh | Home and History pull down to refetch (`usePullToRefresh` and React Native's `RefreshControl`, platform spinner colours). Not wrapped in a component: on Android `ScrollView` hands its refresh control the layout `style`, and a wrapper that does not forward it collapses the list. | Decided (5.7 side trip, Francis). |
 
+## Phase 6: Bill upload, View bill, Mark bill paid (logged 2026-10-28, during planning)
+
+Sources: `BillUpload.dc.html`, `Bill.dc.html`, `PayBill.dc.html`. Contracts (to be built): `shared/src/api/bill-draft.ts` and `shared/src/api/bill.ts`. Same backend-for-frontend principle as Phases 4 and 5. Each row is what the plan now says; confirm or correct it as its step is built.
+
+| # | Design shows | Built | Why |
+|---|---|---|---|
+| B1 | `period` board: Save bill is disabled until the period or file is fixed | Same. A mismatch blocks Save. The old plan (6A.2) called it a warning. | Decided: the design wins. |
+| B2 | Dates with a weekday (`Mon 16 Nov 2026`, `Today, Wed 4 Nov`) | No weekday: `16 Nov 2026`. | Assumed: same rule as Home and History. |
+| B3 | View bill has `collecting`, `paid`, `loading` only | Adds `unsent`: the collecting layout, everyone `Waiting`, no Mark bill paid button. | Assumed: Home offers Mark bill paid only while collecting, and its `View bill` link exists in `unsent` (H19). |
+| B4 | The Mark bill paid sheet has Amount paid and Paid on | No note field; `paidNote` stays unused. The old plan listed a note. | Assumed: not in the design. |
+| B5 | The sheet's alert: "You've collected $123.69 so far. You're covering $288.61" or "All $412.30 is collected" | Same text, from the bill response. The old plan said the alert shows the difference between the amount paid and the bill. | Follows the design. |
+| B6 | `addLine` shows an inline row with the name field focused | Same. The old plan said a sheet. | Follows the design. |
+| B7 | `readingFail` | Not a state of its own: the `reading` board whose next screen is `failed`. The old plan said the failure shows inline. | Follows the design. |
+| B8 | The reading board has a progress bar at 62% | A Spinner on the file card. | Assumed: `fetch` gives no real upload progress, and the mapping doc names a Spinner. |
+| B9 | `unread` shows a custom number pad | Not built; the normal numeric keyboard. | The mapping doc says the pad only mocks Android's keyboard. |
+| B10 | No board for a bill with no file | Deferred. `MANUAL` stays in the enum; save accepts a draft only. | Decided. |
+| B11 | No board or copy for an unusual bill in upload | A third line in the "Save with warnings?" dialog; threshold and wording agreed at 6.3. The 9B notification reuses the rule. | Decided: keep it in upload. The Tech Stack lists it as a backend check. |
+| B12 | No board for a picked file that is not a PDF or is too large | Open: ask at 6.2. | Plan rule: do not invent copy or states. |
+| B13 | Old plan: `MAX_BILL_PDF_BYTES` starts at 5 MB | 4 MB. | Vercel rejects request bodies over 4.5 MB before the route runs (current docs, checked 2026-10-28). |
+| B14 | Checks (period, lines, "Split into 5 shares of $82.46") appear as you edit | The device checks required fields only. The server does every other check, after a pause in typing, and checks again at save. The `noLines` box is shown by the app whenever there are no lines. | Decided: a shared helper cannot do the checks that need database or engine data. |
+| B15 | The Bill month field shows the month read from the bill (Oct on the `period` board) | Filled from the PDF and can be changed. Save is blocked when it, or the period, does not match the month the upload started from. | Decided. How the month is read is confirmed from the real bill at 6.3. |
+
 ## Still to decide or carry forward
 
 - Phase 11 (Add charge): code-side validation of the correction fields (P1); how a credit is marked paid (P5).
