@@ -90,6 +90,27 @@ describe("utilBillParser", () => {
     expect(parsed?.lines).toEqual([{ label: "Electricity", cents: 5000 }]);
   });
 
+  it("keeps a service whose heading is on the bill but whose amount is not, with no amount", () => {
+    const text = "Current Charges $50.00\nElectricity Services\nUsage: 10 kWh\n$50.00\nWater Services\nby Example Water Board";
+    expect(utilBillParser.parse(text)?.lines).toEqual([
+      { label: "Electricity", cents: 5000 },
+      { label: "Water", cents: null },
+    ]);
+  });
+
+  it("does not give a service with no amount the next block's amount", () => {
+    const text = [
+      "Current Charges $50.00",
+      "Water Services",
+      "by Example Water Board",
+      "Usage: 20.5 Cu M",
+      "(Cu M)",
+      "Refuse Removal",
+      "by Example Waste Pte Ltd $20.00",
+    ].join("\n");
+    expect(utilBillParser.parse(text)?.lines).toEqual([{ label: "Water", cents: null }]);
+  });
+
   it("reads Current Charges and the due date from the bill's own 'due on' sentence, with a date in between", () => {
     // Real bills write this as one sentence, not a label immediately followed by the amount:
     // the due date sits between "Current Charges" and the "$" amount.

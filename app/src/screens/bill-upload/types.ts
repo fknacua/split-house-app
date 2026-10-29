@@ -47,6 +47,13 @@ export interface ReviewFormProps {
   saveError: string | null;
 }
 
+/** Props for {@link AddAmountButton}. */
+export interface AddAmountButtonProps {
+  /** The line's name, for the button's accessibility label. */
+  lineName: string;
+  onPress: () => void;
+}
+
 /** Props for {@link SubtotalRow}. */
 export interface SubtotalRowProps {
   subtotalCents: number;

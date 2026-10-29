@@ -23,6 +23,15 @@ export const BILL_FIXTURE: ParsedBill = {
 };
 
 /**
+ * What `utilBillParser` should read from {@link BILL_FIXTURE_PARTIAL_PAGES}: the same bill, with the
+ * Water amount missing on page 1, so Review bill shows "1 line not found".
+ */
+export const BILL_FIXTURE_PARTIAL: ParsedBill = {
+  ...BILL_FIXTURE,
+  lines: BILL_FIXTURE.lines.map((line) => (line.label === "Water" ? { ...line, cents: null } : line)),
+};
+
+/**
  * The lines of text drawn onto the fixture PDF, one array per page, top to bottom. Mirrors the
  * real bill's two pages. Page 1: the billing period's dates sit on the line below the "Billing
  * Period" table header, then the summary where each service's total sits a few lines below its
@@ -95,3 +104,9 @@ export const BILL_FIXTURE_PAGES = [
     "- Refuse removal fee for Example Waste Pte Ltd",
   ],
 ];
+
+/**
+ * {@link BILL_FIXTURE_PAGES} without the Water amount on page 1 (the page 2 table still has it, but
+ * the parser reads the services from page 1). For device-testing the "line not found" state.
+ */
+export const BILL_FIXTURE_PARTIAL_PAGES = BILL_FIXTURE_PAGES.map((page) => page.filter((line) => line !== "$70.00"));

@@ -73,22 +73,22 @@ export const billBlockerSchema = z.object({
 /** Something that stops Save: the field to mark red and the Alert text above the form. */
 export type BillBlocker = z.infer<typeof billBlockerSchema>;
 
-/** The warning under the lines when they do not add up to the bill's Subtotal. It never stops Save. */
+/** The warning under the lines: some have no amount, or they do not add up to the Subtotal. It never stops Save. */
 export const billLinesNoteSchema = z.object({
-  /** Bold first line, e.g. `Lines don’t add up to the Subtotal`. */
+  /** Bold first line, e.g. `2 lines not found` or `Lines don’t add up to the Subtotal`. */
   title: z.string(),
   /** Second line, display-ready, e.g. `Lines total $335.50, which is $14.50 less than the Subtotal. …`. */
   message: z.string(),
 });
 
-/** The warning under the lines when they do not add up to the bill's Subtotal. It never stops Save. */
+/** The warning under the lines: some have no amount, or they do not add up to the Subtotal. It never stops Save. */
 export type BillLinesNote = z.infer<typeof billLinesNoteSchema>;
 
 /** `POST /api/months/:month/bill-draft/check`: what the server finds wrong with the values. */
 export const checkBillResponseSchema = z.object({
   /** Problems that disable Save. Save checks them again and answers 422. */
   blockers: z.array(billBlockerSchema),
-  /** The warning under the lines, or null when they match the Subtotal or there is nothing to compare (no lines, no Subtotal, or a line without an amount). */
+  /** The warning under the lines, or null when they match the Subtotal or there is nothing to say (no lines, or all have amounts and there is no Subtotal). */
   linesNote: billLinesNoteSchema.nullable(),
 });
 

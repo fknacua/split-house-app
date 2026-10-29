@@ -38,7 +38,17 @@ describe("buildLinesNote", () => {
     expect(buildLinesNote(SUBTOTAL, [])).toBeNull();
   });
 
-  it("has nothing to say while a line has no amount (the missing-amount note covers that)", () => {
-    expect(buildLinesNote(SUBTOTAL, [...LINES, { label: "Gas", cents: null }])).toBeNull();
+  it("says how many lines have no amount, and does not compare the sum until they have", () => {
+    const message = "Fill them in or leave them empty. You can still save; the split uses Current Charges.";
+    expect(buildLinesNote(SUBTOTAL, [LINES[0]!, { label: "Gas", cents: null }])).toEqual({
+      title: "1 line not found",
+      message,
+    });
+    const two = [LINES[0]!, { label: "Gas", cents: null }, { label: "Water", cents: null }];
+    expect(buildLinesNote(SUBTOTAL, two)?.title).toBe("2 lines not found");
+  });
+
+  it("says lines are not found even without a Subtotal", () => {
+    expect(buildLinesNote(null, [{ label: "Gas", cents: null }])?.title).toBe("1 line not found");
   });
 });
