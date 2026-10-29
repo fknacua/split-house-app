@@ -43,9 +43,17 @@ function findCurrentCharges(text: string): { cents: number; dueDate: string | nu
 }
 
 /**
+ * The start of the next block on page 1: a `Usage` line on its own, the next service's heading, or
+ * the Refuse Removal heading. Reading a service's amount stops here, so a service with no amount
+ * does not take the next one's.
+ */
+const NEXT_BLOCK = /^(?:Usage|(?:Electricity|Gas|Water)\s+Services\b.*|Refuse\s+Removal\b.*)$/i;
+
+/**
  * A utility's amount sits a few lines below its `<Label> Services` header, after a `Usage:
  * ...` line (and sometimes a `by <company>` line) — never on the header's own line, so
- * `findAmountAfterLabel` can't read it.
+ * `findAmountAfterLabel` can't read it. A header whose amount is not found gives a line with a
+ * `null` amount; a service with no header gives no line.
  */
 function findLines(text: string): ParsedBillLine[] {
   const textLines = text.split("\n");
@@ -54,13 +62,17 @@ function findLines(text: string): ParsedBillLine[] {
     const headerIndex = textLines.findIndex((line) => new RegExp(`^${label}\\s+Services`, "i").test(line.trim()));
     if (headerIndex === -1) continue;
 
+    // A heading with no readable amount is still a line, so the form can ask for the amount.
+    let cents: number | null = null;
     for (let i = headerIndex + 1; i < Math.min(textLines.length, headerIndex + 8); i++) {
+      // The next block's amount is not this one's.
+      if (NEXT_BLOCK.test(textLines[i].trim())) break;
       const match = /\$(\d[\d,]*\.\d{2})/.exec(textLines[i]);
       if (!match) continue;
-      const cents = parseMoneyToCents(match[1]);
-      if (cents !== null) result.push({ label, cents });
+      cents = parseMoneyToCents(match[1]);
       break;
     }
+    result.push({ label, cents });
   }
   return result;
 }

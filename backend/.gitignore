@@ -45,3 +45,4 @@ next-env.d.ts
 
 # generated on demand by `npm run generate:bill-fixture`, never committed
 /src/lib/fixtures/bill.pdf
+/src/lib/fixtures/bill-partial.pdf

@@ -75,6 +75,15 @@ describe("POST /api/months/:month/bill-draft/check", () => {
     expect(check.linesNote?.title).toBe("Lines don’t add up to the Subtotal");
   });
 
+  it("returns how many lines have no amount, parsing with the shared schema", async () => {
+    const lines = [
+      { label: "Electricity", cents: 21000 },
+      { label: "Water", cents: null },
+    ];
+    const check = checkBillResponseSchema.parse(await (await post("2026-11", { ...fields, lines })).json());
+    expect(check.linesNote?.title).toBe("1 line not found");
+  });
+
   it("returns a billing period blocker for a period that starts in the wrong month", async () => {
     const late = { ...fields, billMonth: "2026-11", billingPeriodStart: "2026-11-03", billingPeriodEnd: "2026-12-02" };
     const check = checkBillResponseSchema.parse(await (await post("2026-11", late)).json());
