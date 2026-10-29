@@ -235,7 +235,7 @@ Phases 0 to 3 are done and keep their numbers. From Phase 4 the phases run in th
 |---|---|---|
 | 4 | History | 9B |
 | 5 | Home | 5 |
-| 6 | Bill upload, View bill, Mark bill paid | 6, without Share |
+| 6 | Bill upload, View bill, Mark bill paid (reorganized 2026-10-28) | 6, without Share |
 | 7 | Payments (7A), then Recipient and Share (7B) | 8, 7 and 6C.3 |
 | 8 | Household, Confirmations | 4B and 10B (the shared package was done earlier as Phase 3.5) |
 | 9 | Settings (9A), Notifications (9B) | 10A and 11 |
@@ -244,7 +244,7 @@ Phases 0 to 3 are done and keep their numbers. From Phase 4 the phases run in th
 | 12 | Hardening and release | 12, without 12.5e |
 
 Old step IDs map to new ones as follows. Older entries in `docs/plans/implementation-plan_progress.md` use the old numbers.
-- 9B.1 to 9B.3 are now 4.1 to 4.3. Phase 5 and Phase 6 steps keep their IDs, except 6C.3, which is now 7B.6.
+- 9B.1 to 9B.3 are now 4.1 to 4.3. Phase 5 steps keep their IDs. Phase 6 was renumbered on 2026-10-28: 6A.1 is now 6.1 and 6.2, 6A.2 is 6.3, 6A.3 is 6.2 and 6.4, 6A.4 is 6.2, 6B.1 to 6B.3 are 6.2, 6B.4 is 6.3 and 6.4, 6B.5 is 6.5, 6B.6 is in the Phase 6 intro (Replace bill is out of v1), 6C.1 is 6.6 and 6.7, 6C.2 is 6.8, and 6C.3 is now 7B.6.
 - 8.1 to 8.5 are now 7A.1 to 7A.5. 7.1 to 7.5 are now 7B.1 to 7B.5.
 - 4B.1 to 4B.6 are now 8.1 to 8.6 (10B is folded into 8.5). 12.5e is now 8.0.
 - 10A.1 to 10A.5 are now 9A.1 to 9A.5. 11.1 to 11.6 are now 9B.1 to 9B.6.
@@ -327,26 +327,63 @@ Exit: each seeded scenario renders its design state on device, starting the next
 
 ## Phase 6: Bill upload, View bill, Mark bill paid
 
-### 6A. Backend bill pipeline
-Start with 6A.1: the parser depends on the real bill's layout and is the riskiest unknown, so find problems before the UI is built on it.
-- **6A.1** `POST /api/months/:month/bill-draft` (multipart PDF): check PDF magic bytes + size limit (single constant `MAX_BILL_PDF_BYTES`, starts at 5 MB; Francis checks his real bill size and we adjust), store in `BillDraft` (one per month, replaces prior, lazy purge), parse with `unpdf` -> provider-neutral `BillParser` interface -> `SpGroupParser`; return `{ parseOk, fields, lines, warnings }`. Develop parser against the real bill in `assets-old/` locally only; **never print contents or copy the file**; unit tests use synthetic text fixtures only.
-- **6A.2** Validations: current charges required; billing period vs month -> `period` warning; lines vs current charges -> `sum` warning only; unusual vs recent months -> warning.
-- **6A.3** `POST /api/months/:month/bill` (save): one transaction moves draft to `Bill` + `BillFile` and creates utilities charges via the engine; Rejects a save when the month already has a bill (no Replace path in v1). `POST .../bill-draft/discard`, `GET .../bill/file` (stream PDF), `POST .../bill/paid` (Mark bill paid: amount, date, note).
-- **6A.4** `BillFile` storage behind `save/get/delete` interface.
+Sources `BillUpload.dc.html` (13 steps), `Bill.dc.html` (`collecting`, `paid`, `loading`) and `PayBill.dc.html` (`collected` partial or full, `save` idle, saving, failed). Reorganized 2026-10-28 the way Phases 4 and 5 were. Upload comes first: the parser is the riskiest piece, and a saved bill is what View bill and Mark bill paid are about. Each step is one group of states, building on the last. 6.2 builds the base for upload; 6.6 builds the base for the bill screens and is reviewed on the seeded months and on the bill saved in 6.2. Replace bill stays out of v1 (a wrong bill is fixed with a correction charge, Phase 11): Bill upload is offered only when the month has no saved bill, and saving returns 409 if one exists.
 
-### 6B. Bill upload (13 states)
-Source `BillUpload.dc.html`. Steps: `pick`, `reading`, `review`, `discard`, `period`, `sum`, `confirm`, `partial`, `addLine`, `noLines`, `readingFail`, `failed`, `unread`.
-- **6B.1** `pick`: `expo-document-picker` (PDF only, check size on device), Card with file name.
-- **6B.2** `reading`: Spinner + copy; `readingFail` shows the failure inline.
-- **6B.3** `review`: FormControls Bill month (MonthSelect), Current Charges (MoneyField, required, helper "Required. The split uses this number."), Billing period (two DateFields), Due date, lines list with editable amounts, Choose another file link. Nothing saved until Save.
-- **6B.4** Warning Alerts for `period`, `sum`, `partial`, `noLines`, `unread`; `confirm` = AlertDialog "Save with warnings?" (Go back and fix filled / Save anyway neutral outline); `discard` = AlertDialog; `addLine` = sheet with label + amount.
-- **6B.5** `failed` screen "Is this the right bill?": Card + Alert + Yes (keep file, NOT_PARSED, type amounts) / No (discard, pick again). Manual entry with no file also supported.
-- **6B.6** **Replace bill is out of scope for v1 (Francis's decision).** It stays in the design and Data Model but is not built: no Replace button on View bill, no replace endpoint, no per-person difference dialog. Bill upload is offered only when the month has no saved bill. A wrong bill is fixed with a correction charge (Add charge, Phase 11).
+Both bill screens are backends-for-frontend, as Home and History are: the API returns display-ready text, tones and badges, and the app renders and navigates. The month is in the path (`/api/months/:month/...`) because Home's targets (`bill-view`, `mark-bill-paid`, `bill-upload`, `bill-draft-continue`, `bill-draft-discard`) already carry it. Layers: route -> `services/bill/` (reads and writes) -> pure code in `lib/bill/`. Contracts: `shared/src/api/bill-draft.ts` and `shared/src/api/bill.ts`. A screen that needs the same facts as Home (collected so far) calls the same lib, not `/api/home`.
 
-### 6C. View bill and Mark bill paid
-- **6C.1** `Bill` (`loading`, `collecting`, `paid`): Card with period/due/total, lines, Open PDF row (**decided: external viewer, no in-app PDF library**: the Open button downloads `GET /api/months/:month/bill/file` to the cache folder, then fires Android's open-file intent (e.g. `expo-sharing` or `expo-intent-launcher` with a `FileProvider` content URI; check current Expo docs), so Android shows its "open with" app chooser; the Bill screen's custom "PDF viewer" piece is just this handoff; show a Spinner on the row while downloading and a danger Alert if it fails or no PDF app exists), Progress for collected vs bill, Mark paid button (hidden when paid). No Replace bill button in v1.
-- **6C.2** `PayBill` sheet: `collected=partial|full`, amount, Paid on DateField, note; partial shows info Alert of difference; no carry Radio. States idle/saving/failed.
-- **6C.3** The Share sheet moved to Recipient, its only entry point: see 7B.6.
+**Rules for every step**
+- Each step ends with Francis's review on device (light and dark) after reseeding its scenario: `npx prisma db seed -- --scenario <name>` from `backend/`.
+- Every action the design shows is rendered. Actions to screens not built yet (Recipient, Phase 7, or a later Phase 6 step) are visible and do nothing.
+- Each step lists what it changes in earlier steps' code, as a **refactor** or a **simple addition**.
+- Tests: pure builders on fake rows from the Nov 2026 fixtures; a contract test that parses the real response with the shared schema; route tests for every 4xx a step adds.
+- Dates show as day and month with no weekday (`16 Nov 2026`), as on Home and History.
+- Differences from the design go in `docs/plans/design-deviations.md`, Phase 6 section.
+- **The real bill in `assets-old/` is used only locally, only against the parser (6.1) and in the go-live dry run (12.7).** Never print its values, copy it, or upload it to the dev database. Device testing uses a synthetic PDF. Tests and fixtures use invented values.
+
+- ☐ **6.1** Parser (backend only, no UI). Isolated, so it is built and tested before any upload UI depends on it.
+  - `lib/bill/bill-parser.ts`: provider-neutral `BillParser` (text in, `ParsedBill | null` out). `lib/bill/sp-group-parser.ts`: `SpGroupParser`. Output: provider, `currentChargesCents` (required; lines without Current Charges count as a failed read), bill month, billing period, due date, best-effort lines as label and cents.
+  - `services/bill/read-bill.service.ts`: bytes -> text with unpdf -> parser. unpdf only extracts text.
+  - Fixture: a synthetic PDF that copies the real bill's labels and layout with invented values, generated by a script and committed, so tests run unpdf for real. It is also the PDF Francis puts on the phone for device testing, and the valid PDF the seed uses in 6.7. Francis checks the real bill locally with a throwaway uncommitted script that prints only which fields were found, never their values.
+  - Changes to earlier steps: none.
+- ☐ **6.2** Upload base: `pick`, `reading`, `review` (a clean read), and save. `DEV_NOW=2026-11-01T09:00:00+08:00`, `upload` scenario.
+  - Shared: `shared/src/api/bill-draft.ts` (the draft, the save request and response).
+  - Backend: `lib/bill/bill-file-store.ts` (storage interface `save`, `get`, `delete` over `BillFile`, built here before it is used); `POST /api/months/:month/bill-draft` (multipart; PDF magic bytes; `MAX_BILL_PDF_BYTES` = 4 MB, because Vercel rejects request bodies over 4.5 MB before the route runs; one draft per month, replacing the old one; lazy purge); `GET /api/months/:month/bill-draft`; `POST /api/months/:month/bill` (one transaction moves the draft into `Bill` and `BillFile`, creates the utilities charges with `buildUtilitiesCharges`, deletes the draft; 409 if the month has a bill; Current Charges required). Saving moves the month to `unsent` on Home. Check the current Vercel limit in the docs before fixing the constant.
+  - App: add `expo-document-picker`, `expo-file-system` and `expo-intent-launcher` together (native modules: **needs a new EAS development build**, so ask Francis and commit first; one build covers 6.2 and 6.7; check the current Expo docs for the SDK 57 file API); route `bill/[month]/upload`; `screens/bill-upload/` (components/, types.ts, main file, index.ts barrel). `pick` (the three "What happens next" steps, Choose PDF), `reading` (a Spinner on the file card, since `fetch` gives no real upload progress; Cancel), `review` (file card with Choose another file, Current Charges, Bill month, Due date, Billing period, Utility lines with editable name and amount and a remove button, Save bill, Cancel). `apiFetch` already takes `formData`. The device checks PDF type and size before sending and shows the required error when Current Charges is empty; every other check is on the server (6.3).
+  - Seed: the `draft` scenario's `parsedJson` becomes the parser's output shape.
+  - Undrawn, so ask before building: what the user sees when the picked file is not a PDF or is over the limit.
+  - Changes to earlier steps: refactor (the 5.2 seed draft); simple additions (`bill-upload` case in `open-target.ts`, Home refetch after save). After saving, Home's `View bill` link does nothing until 6.6.
+- ☐ **6.3** Checks: `period`, `sum`, `partial`, `noLines`, `unusual`, `confirm`, `addLine`. The device checks required fields only; the server does every other check, sends back display-ready text, and checks again at save.
+  - Stops Save: the billing period or bill month does not match the month the upload started from (the `period` board: red fields, danger Alert naming the expected month, disabled Save bill with "Fix the billing period or choose another file to save"); Current Charges is not an amount above zero. Warns but allows Save, listed in the "Save with warnings?" dialog: the lines don't add up to Current Charges (`sum`); a line has no amount (`partial`); Current Charges is unusually far from recent bills (`unusual`).
+  - Backend: `lib/bill/check-bill.ts` (pure, table-tested); `lib/bill/unusual-bill.ts` (pure: Current Charges against the average of the last saved bills; the service reads the last 3 saved bills before the month, and the seeded Aug to Oct bills are enough to test it; no warning when there is no history); `POST /api/months/:month/bill-draft/check`, which adds the per-share text ("Split into 5 shares of $82.46") from the split engine and the pinned config. Save runs the same checks again and returns 422 on a blocker. **Which period counts as matching the month, and how the bill month is read from the PDF**, are decided here from the real bill's pattern, with no values printed (the board has a November bill covering 1 to 31 Oct; the old seed draft has 16 Oct to 15 Nov).
+  - App: debounced check call after typing pauses; the period Alert and red fields; the lines note (match or don't add up); the "N lines not found" note; the "No lines found" box whenever there are no lines; Add line appends an inline row with the name focused (the `addLine` board, not a sheet); `confirm` = AlertDialog "Save with warnings?" (Go back and fix filled, Save anyway neutral outline).
+  - Undrawn, so ask before building: the wording of the unusual-bill line in the dialog, and the threshold (proposed: more than 25% above or below the average of the last 3 saved bills; the docs define neither "unusual" nor "recent").
+  - Changes to earlier steps: simple additions (the check result on the draft response; the footer depends on whether Save is allowed).
+- ☐ **6.4** `discard` and the Home draft. `draft` scenario, `DEV_NOW=2026-11-01T09:00:00+08:00`.
+  - Backend: `POST /api/months/:month/bill-draft/discard`.
+  - App: `discard` = AlertDialog "Discard this bill?" (Keep editing filled, Discard red outline), from Back and Cancel on `review` and when the form is dirty. Home's Continue (`bill-draft-continue`) opens review with the stored draft (the parsed values; edits are not stored); Discard draft (`bill-draft-discard`) deletes it; both refetch Home. Cancel during `reading` aborts the request and discards a stored draft.
+  - Changes to earlier steps: simple additions (two `open-target.ts` cases, Home refetch). Resolves Q5 in `design-deviations.md` (`GET bill-draft` exists from 6.2).
+- ☐ **6.5** Unreadable bill: `readingFail`, `failed`, `unread`. `readingFail` is the `reading` board whose next screen is `failed`, not a state of its own.
+  - Backend: when the parser returns nothing, the draft is still stored, with `parseOk` false, so "Is this the right bill?" survives the app closing, and the response says so. Saving such a draft stores `NOT_PARSED` and keeps the file; "No, choose another file" discards it. A bill with no file (`MANUAL`) is deferred: no board has an entry point, so `MANUAL` stays in the enum and save accepts a draft only.
+  - App: `failed` screen "Is this the right bill?" (danger Alert, file card, Yes and No; a screen of Card, Alert and Buttons, not an AlertDialog). Yes opens the empty review form with the info Alert "Typed, not read." and the normal numeric keyboard (the board's number pad only mocks Android's keyboard and is not built); No discards and returns to `pick`. Home's Continue on a draft with `parseOk` false goes to `failed`.
+  - Changes to earlier steps: simple addition (read status on the draft).
+- ☐ **6.6** View bill: `loading`, `collecting`, `paid`, plus `unsent`. Reviewed on seed data (`unsent` at `DEV_NOW=2026-11-01T09:00:00+08:00`, `collecting` at `2026-11-03T09:00:00+08:00`, `settled` for the paid state at `2026-11-29T09:00:00+08:00`) and on the bill saved in 6.2.
+  - Shared: `shared/src/api/bill.ts`: header month name; hero card (Current Charges, badge, lines); collection card (title, note, percent, one row per person with name, shares, amount, badge); facts (Bill month, Billing period, Due date, and "You paid" when paid); file (`filename`, meta line) or null; footer action or null. Reuse `badgeSchema`.
+  - Backend: `lib/bill/build-bill-view.ts` (pure, takes `today`); `lib/bill/bill-coverage.ts` (collected so far = Francis's own utilities share plus utilities charges paid, capped at the bill; **moved out of `lib/home/build-home.ts`** so Home and View bill read one function); chips follow Home's precedence, added to the central badge map in `lib/home/badges.ts`; `services/bill/bill-view.service.ts` (reads the bill without `BillFile.bytes`, the month's utilities charges, the pinned household version for share counts); `app/api/months/[month]/bill/route.ts` (thin, 404 `no_bill`); README endpoint row.
+  - App: route `app/src/app/bill/[month].tsx` outside the tabs, like `history/[month]`; `useBill(month)` and `queryKeys.bill(month)`; `screens/bill/` (components/, types.ts, main file, index.ts barrel); skeleton from the `loading` board; the PDF row is drawn and Open does nothing until 6.7; the `bill-view` case in `open-target.ts`; History's `View bill` link (U4) drawn and wired.
+  - Assumed, to log: `unsent` is not drawn. It uses the collecting layout with "Waiting" for everyone and no Mark bill paid button, matching Home (the bill row offers Mark bill paid only while collecting). The name for Francis is `You`, as drawn.
+  - Changes to earlier steps: refactor (coverage out of `build-home.ts`, badge map gains bill badges); simple additions (History link, `open-target.ts` case, query key).
+- ☐ **6.7** Open the PDF (View bill's Open row; external viewer, no in-app PDF library).
+  - Backend: `GET /api/months/:month/bill/file` streams the stored PDF (`application/pdf`, inline), 404 when the bill has no file. The seed's placeholder PDF is not a valid PDF (`%PDF-1.4` plus a comment), so the seed uses the valid synthetic PDF from 6.1.
+  - App: uses `expo-file-system` and `expo-intent-launcher` from the 6.2 build (check the FileProvider content URI in the current Expo docs). Download to the cache folder with the session, then fire Android's open-file intent so the "open with" chooser appears. A Spinner on the row while downloading; a danger Alert if the download fails or no PDF app exists; hide the row when the bill has no file.
+  - Changes to earlier steps: simple addition (Open on the 6.6 row).
+- ☐ **6.8** Mark bill paid sheet: `collected=partial|full`, `save=idle|saving|failed`. It records that Francis paid the utility company; it pays nothing. Last because it is the last thing that happens to a bill. New seed scenario `fullyCollected` (everyone paid, bill not marked paid), `DEV_NOW=2026-11-10T09:00:00+08:00`, for the full note; `collecting` (`2026-11-03`) gives the partial note.
+  - Shared: the bill response gains the sheet's display text (amount prefilled, due text, alert text and tone, button label), so the sheet needs no endpoint of its own. The alert is about what has been collected ("You've collected $123.69 so far. You're covering $288.61 until the others pay" or "All $412.30 is collected"), not about the amount typed. There is no note field (the sheet has Amount paid and Paid on only); `paidNote` stays unused.
+  - Backend: `POST /api/months/:month/bill/paid` sets `paidCents` and `paidOn`. 404 without a bill, 409 when already paid, 400 for a future date or an amount of zero or less. The amount may differ from the bill. Home's `settled` rule already reads `paidCents` (5.6).
+  - App: `PayBillSheet` on the `AppSheet` scaffold (MoneyInput, DateField, Alert). Opened from View bill's footer and Home's bill row (`mark-bill-paid`), so both screens mount it. **How a Home action opens a sheet is decided here**, and Mark paid and Record payment (7A) reuse it. On success invalidate Home, History and the bill; the mutation stays pending until the refetch finishes (`query-keys.ts` pattern).
+  - Changes to earlier steps: simple additions (`mark-bill-paid` case, invalidations, the footer button on 6.6); possible refactor of how Home hosts sheets.
+- ☐ **6.9** Phase pass. Walk every state by reseeding each scenario, light and dark, on device; hex grep and 44px targets; one end-to-end run with the synthetic PDF: Home (upload) -> pick -> review -> save -> Home (unsent) -> View bill -> Open PDF -> payments -> Mark bill paid -> Home (settled); remove dead code left by earlier steps; full type check, lint and tests in `app`, `backend` and `shared`; deviations list complete.
+
+Exit: each seeded scenario renders its design state on device, a synthetic bill can be uploaded and saved from Home and moves the month to `unsent`, and View bill, Open PDF and Mark bill paid work for every status.
 
 ---
 
@@ -428,7 +465,7 @@ Exit: from an empty dev database, First run takes a household from nothing to Ho
 
 ## Phase 11: Add charge (5 states)
 
-Source `AddCharge.dc.html`. Last of the feature screens because it is a nice to have: a wrong bill is rare, and a correction charge is its only must-have use (6B.6).
+Source `AddCharge.dc.html`. Last of the feature screens because it is a nice to have: a wrong bill is rare, and a correction charge is its only must-have use (Replace bill is out of v1, see the Phase 6 intro).
 
 - **11.1** (was 9A.1) Backend: `POST /api/charges/preview` (mode, split method, total, who, custom amounts, month) -> per-person cents via engine; `POST /api/charges` creates `ChargeGroup` + charges in one transaction (amounts stored, never recalculated). `Correction` = personal charge with `correctsMonth`, signed amount.
 - **11.2** (was 9A.2) UI sheet: ConnectedButtonGroup Shared / Personal (Add charge is not final), single-select chips for split method (Per share, Per unit, Custom) and Who, Label, Amount (MoneyField), Month being fixed (MonthSelect, corrections), Due date, Note. Live preview card from the preview endpoint (debounced, Spinner while loading); `error` state (custom split doesn't add up) = danger Alert + Save disabled; Saving/Failed via scaffold. Replaces spike `add-charge-sheet.tsx`. Switch on the Home Add charge entry (hidden in Phase 5) and the History link to correction charges (4.2).
@@ -470,3 +507,4 @@ Source `AddCharge.dc.html`. Last of the feature screens because it is a nice to 
 2. View bill PDF: decided, external viewer via Android's app chooser.
 3. Backup destination: decided, encrypted weekly dump to an object-storage bucket (Cloudflare R2, steps 12.5a-d).
 4. Replace bill: decided, not built in v1 (design stays, feature deferred).
+5. Phase 6: still to decide at build: the message for a non-PDF or oversized file (6.2); which billing period counts as matching a month and how the bill month is read from the PDF (6.3); the unusual-bill threshold and wording (6.3).
