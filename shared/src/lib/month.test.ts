@@ -9,6 +9,7 @@ import {
   isValidMonthKey,
   monthKeyOf,
   monthRange,
+  parseDisplayMonth,
 } from './month';
 
 describe('isMonthKey', () => {
@@ -24,6 +25,19 @@ describe('isMonthKey', () => {
     ['', false],
   ])('%s -> %s', (value, expected) => {
     expect(isValidMonthKey(value)).toBe(expected);
+  });
+});
+
+describe('parseDisplayMonth', () => {
+  it.each([
+    ['October 2026', '2026-10'],
+    ['January 2026', '2026-01'],
+  ])('parses %j as %j', (text, expected) => {
+    expect(parseDisplayMonth(text)).toBe(expected);
+  });
+
+  it.each(['October', 'not a month', ''])('rejects %j', (text) => {
+    expect(parseDisplayMonth(text)).toBeNull();
   });
 });
 

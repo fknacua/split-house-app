@@ -1,31 +1,14 @@
 /**
- * Helpers for the money text input: parsing what is typed, cleaning it, and
- * rendering cents as editable text. Amounts are integer cents, SGD. Only the
- * input control uses these; the backend takes cents, so they stay in the app.
+ * Helpers for the money text input: cleaning what is typed and rendering
+ * cents as editable text. Amounts are integer cents, SGD. Only the input
+ * control uses these, so they stay in the app; parsing typed text to cents
+ * is `parseMoneyToCents` from `@splithouse/shared`, re-exported here so call
+ * sites don't need a second import.
  */
 
-import { formatCents } from '@splithouse/shared';
+import { formatCents, parseMoneyToCents } from '@splithouse/shared';
 
-/**
- * Parses typed money text to integer cents, e.g. `1,862.86` -> `186286`.
- * Accepts an optional leading `-` (before the `$`, as `formatCents` writes
- * it), a `$`, thousands commas, and up to 2 decimals. Works on the digits as
- * text, so there is no float rounding.
- *
- * @param text What the user typed.
- * @returns Integer cents, or `null` when the text is empty or not a valid
- * amount (letters, more than 2 decimals, more than one point).
- */
-export function parseMoneyToCents(text: string): number | null {
-  const match = /^(-?)\$?(\d{1,3}(?:,\d{3})+|\d*)(?:\.(\d{0,2}))?$/.exec(text.trim().replace(/\s/g, ''));
-  if (!match) return null;
-  const [, sign, whole, fraction = ''] = match;
-  if (whole === '' && fraction === '') return null;
-  const dollars = Number(whole.replace(/,/g, '') || '0');
-  const cents = dollars * 100 + Number(fraction.padEnd(2, '0'));
-  if (!Number.isSafeInteger(cents)) return null;
-  return sign ? -cents : cents;
-}
+export { parseMoneyToCents };
 
 /**
  * Renders integer cents as plain editable text, with no `$` or thousands

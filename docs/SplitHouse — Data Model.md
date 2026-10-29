@@ -38,7 +38,7 @@ Stack it assumes: Postgres on Neon, Prisma, Next.js route handlers on Vercel, Be
 `month` (unique `YYYY-MM`), `householdVersionId` (the version pinned when the month opened), `openedAt`. Status (bill missing, messages unsent, collecting, settled) is derived, not stored.
 
 ### Bill, BillFile, BillDraft
-- **Bill:** `month` (unique), `provider`, `currentChargesCents`, `billingPeriodStart`, `billingPeriodEnd`, `dueDate`, `lines` (JSON list of label and cents), `parseStatus` (`PARSED`, `NOT_PARSED`, `MANUAL`), `paidCents`, `paidOn`, `paidNote`.
+- **Bill:** `month` (unique), `currentChargesCents`, `billingPeriodStart`, `billingPeriodEnd`, `dueDate`, `lines` (JSON list of label and cents), `parseStatus` (`PARSED`, `NOT_PARSED`, `MANUAL`), `paidCents`, `paidOn`, `paidNote`. No `provider` column: v1 reads one bill layout and nothing displays which provider issued it, so it would only ever be dead data (decided 2026-10-29, step 6.1).
 - **BillFile:** `billId` (unique), `filename`, `mimeType`, `sizeBytes`, `bytes`. A separate table so bill lists never load file bytes. Behind a small storage interface (save, get, delete).
 - **BillDraft:** `month` (unique), `filename`, `bytes`, `parsedJson`, `parseOk`, `expiresAt` (filled, not enforced in v1). Save moves the draft into Bill and BillFile in one transaction. Lazy purge runs when a draft is promoted or a new one is uploaded.
 

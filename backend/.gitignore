@@ -42,3 +42,6 @@ yarn-error.log*
 next-env.d.ts
 
 /src/generated/prisma
+
+# generated on demand by `npm run generate:bill-fixture`, never committed
+/src/lib/fixtures/bill.pdf

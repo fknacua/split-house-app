@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 
-import { formatCents } from './money';
+import { formatCents, parseMoneyToCents } from './money';
 
 describe('formatCents', () => {
   it.each([
@@ -19,5 +19,31 @@ describe('formatCents', () => {
 
   it('throws on non-integer cents', () => {
     expect(() => formatCents(1.5)).toThrow(RangeError);
+  });
+});
+
+describe('parseMoneyToCents', () => {
+  it.each([
+    ['1862.86', 186286],
+    ['$1,862.86', 186286],
+    ['1862', 186200],
+    ['1862.5', 186250],
+    ['.5', 50],
+    ['5.', 500],
+    ['0.07', 7],
+    ['-15', -1500],
+    ['-$15.00', -1500],
+  ])('parses %j as %i', (text, expected) => {
+    expect(parseMoneyToCents(text)).toBe(expected);
+  });
+
+  it.each(['1.005', 'abc', '', '.', '1,86', '--1', '$-15', '1.2.3'])('rejects %j', (text) => {
+    expect(parseMoneyToCents(text)).toBeNull();
+  });
+
+  it('round-trips with formatCents', () => {
+    for (const cents of [0, 1, 99, 100, 186286, -1500]) {
+      expect(parseMoneyToCents(formatCents(cents))).toBe(cents);
+    }
   });
 });

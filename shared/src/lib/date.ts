@@ -110,6 +110,18 @@ export function daysUntil(to: string, from: string): number {
 }
 
 /**
+ * Parses a day, abbreviated month and year in the `dd MMM yyyy` international date format
+ * (e.g. `16 Nov 2026`), to a date key.
+ *
+ * @param text e.g. `16 Nov 2026`.
+ * @returns e.g. `2026-11-16`, or `null` when `text` isn't a valid date in that shape.
+ */
+export function parseDisplayDate(text: string): string | null {
+  const date = parse(text.trim(), 'dd MMM yyyy', new Date());
+  return isValid(date) ? format(date, DATE_KEY_FORMAT) : null;
+}
+
+/**
  * Turns a due day from the household config into a date key in one month.
  *
  * @param month A month key, e.g. `2026-11`.
