@@ -164,7 +164,6 @@ model Month {
 model Bill {
   id                  String      @id @default(cuid())
   month               String      @unique
-  provider            String
   currentChargesCents Int
   billingPeriodStart  DateTime?   @db.Date
   billingPeriodEnd    DateTime?   @db.Date

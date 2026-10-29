@@ -3,6 +3,7 @@ export * from './api/error';
 export * from './api/history';
 export * from './api/home';
 export * from './api/me';
+export * from './lib/bill';
 export * from './lib/date';
 export * from './lib/money';
 export * from './lib/month';

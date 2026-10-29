@@ -138,7 +138,6 @@ async function seedPastMonth(
   const bill = await prisma.bill.create({
     data: {
       month,
-      provider: "SP Group",
       currentChargesCents: billingPeriod.currentChargesCents,
       billingPeriodStart: new Date(billingPeriod.start),
       billingPeriodEnd: new Date(billingPeriod.end),
@@ -314,7 +313,6 @@ async function main() {
         filename: "2026-11-sample-bill.pdf",
         bytes: PLACEHOLDER_PDF,
         parsedJson: {
-          provider: "SP Group",
           billingPeriodStart: "2026-10-16",
           billingPeriodEnd: "2026-11-15",
           dueDate: "2026-11-25",
@@ -333,7 +331,6 @@ async function main() {
     const bill = await prisma.bill.create({
       data: {
         month: "2026-11",
-        provider: "SP Group",
         currentChargesCents: 41230,
         billingPeriodStart: new Date("2026-10-01"),
         billingPeriodEnd: new Date("2026-10-31"),
