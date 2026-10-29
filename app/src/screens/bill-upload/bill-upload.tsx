@@ -1,14 +1,19 @@
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useLocalSearchParams, useRouter } from 'expo-router';
-import { FileText } from 'lucide-react-native';
+import { FileText, TriangleAlert } from 'lucide-react-native';
 import { useRef, useState } from 'react';
 import { useForm, useWatch } from 'react-hook-form';
 import { KeyboardAvoidingView, ScrollView } from 'react-native';
 
-import { Button, Screen, SubpageHeader } from '@/components';
-import { useCheckBill, useDebouncedValue, useSaveBill, useUploadBillDraft } from '@/hooks';
+import { Button, ConfirmDialog, Screen, SubpageHeader } from '@/components';
+import { useCheckBill, useCheckBillNow, useDebouncedValue, useSaveBill, useUploadBillDraft } from '@/hooks';
 import { ServerUnreachableError } from '@/lib/api';
-import { formatMonthLabel, formatMonthName, type BillDraftResponse } from '@splithouse/shared';
+import {
+  formatMonthLabel,
+  formatMonthName,
+  type BillDraftResponse,
+  type SaveBillRequest,
+} from '@splithouse/shared';
 import { PickStep } from './components/pick-step';
 import { ReviewForm } from './components/review-form';
 import { ReviewSkeleton } from './components/review-skeleton';
@@ -51,13 +56,16 @@ export function BillUpload() {
 
   const upload = useUploadBillDraft(month);
   const save = useSaveBill(month);
+  const checkNow = useCheckBillNow(month);
+  // What "Save with warnings?" is asking about: the request to save and the warnings to list; null while closed.
+  const [confirming, setConfirming] = useState<{ request: SaveBillRequest; warnings: string[] } | null>(null);
   // Checked as it changes, so clearing Current Charges turns the field red straight away.
   const {
     control,
     handleSubmit,
     reset,
     trigger,
-    formState: { isValid },
+    formState: { isValid, isSubmitting },
   } = useForm<ReviewFormValues>({
     resolver: zodResolver(reviewFormSchema),
     mode: 'onChange',
@@ -111,7 +119,32 @@ export function BillUpload() {
     else router.replace('/');
   };
 
-  const onSave = handleSubmit((values) => save.mutate(toSaveBillRequest(values), { onSuccess: leave }));
+  const onSave = handleSubmit(async (formValues) => {
+    const request = toSaveBillRequest(formValues);
+    let warnings: string[] = [];
+    try {
+      // The check on screen can be a typing pause behind, so ask again for exactly these values.
+      const fresh = await checkNow(toCheckBillRequest(formValues, draft?.fields.subtotalCents ?? null));
+      // A blocker shows as an Alert once the check on screen catches up, and the server would refuse the save.
+      if (fresh.blockers.length > 0) return;
+      warnings = fresh.warnings;
+    } catch (error) {
+      // An unreachable server has the app's own prompt. Any other failure of the check must not stop
+      // the save, which checks the blockers itself.
+      if (error instanceof ServerUnreachableError) return;
+    }
+    if (warnings.length > 0) setConfirming({ request, warnings });
+    else save.mutate(request, { onSuccess: leave });
+  });
+
+  const closeConfirm = () => {
+    setConfirming(null);
+    save.reset();
+  };
+
+  const saveAnyway = () => {
+    if (confirming) save.mutate(confirming.request, { onSuccess: leave });
+  };
 
   return (
     <Screen>
@@ -146,8 +179,8 @@ export function BillUpload() {
           <>
             <Button
               label={save.isPending ? 'Saving' : 'Save bill'}
-              loading={save.isPending}
-              disabled={!isValid || blockers.length > 0}
+              loading={save.isPending || isSubmitting}
+              disabled={!isValid || blockers.length > 0 || isSubmitting}
               onPress={onSave}
             />
             {/* Cancel asks "Discard this bill?" in 6.4; until then it does nothing. */}
@@ -155,6 +188,21 @@ export function BillUpload() {
           </>
         ) : null}
       </UploadFooter>
+      <ConfirmDialog
+        open={confirming !== null}
+        tone="warning"
+        icon={TriangleAlert}
+        title="Save with warnings?"
+        body="Check these before you continue:"
+        items={confirming?.warnings}
+        itemStyle="bullet"
+        cancelLabel="Go back and fix"
+        onCancel={closeConfirm}
+        confirmLabel="Save anyway"
+        onConfirm={saveAnyway}
+        loading={save.isPending}
+        error={messageOf(save.error) ?? undefined}
+      />
     </Screen>
   );
 }
