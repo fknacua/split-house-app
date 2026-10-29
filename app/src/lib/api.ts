@@ -61,6 +61,45 @@ export class RequestCancelledError extends Error {
  * @throws {RequestCancelledError} When `signal` aborts before the response arrives.
  */
 export async function apiFetch<T>(path: string, options: ApiFetchOptions = {}): Promise<T> {
+  return request(path, options, async (response) => {
+    const text = await response.text();
+    const isJson = (response.headers.get('content-type') ?? '').includes('json');
+    // A success that carries a body but is not JSON did not come from our API (a captive
+    // portal, a gateway page, a followed redirect), so it must not pass as data.
+    if (response.ok && text && !isJson) throw new ServerUnreachableError();
+    if (!response.ok) throw requestError(response.status, text);
+    return parseJson(text) as T;
+  });
+}
+
+/**
+ * Downloads a file from the backend with the Better Auth session cookie attached, such as a
+ * bill's PDF.
+ *
+ * @param path Path starting with `/api/`.
+ * @param contentType The type the file must have, e.g. `application/pdf`.
+ * @returns The file's bytes.
+ * @throws {ServerUnreachableError} On network failure, timeout, a 502/503/504, or a success
+ *   response of another type (a captive portal or gateway page).
+ * @throws {ApiRequestError} When the backend returns its error shape (a 401 means the session ended).
+ */
+export async function apiFetchFile(path: string, contentType: string): Promise<Uint8Array> {
+  return request(path, {}, async (response) => {
+    if (!response.ok) throw requestError(response.status, await response.text());
+    if (!(response.headers.get('content-type') ?? '').includes(contentType)) throw new ServerUnreachableError();
+    return new Uint8Array(await response.arrayBuffer());
+  });
+}
+
+/**
+ * Sends a request with the session cookie and a timeout, and reads its response with `read`
+ * while the timeout still runs, so a body that stalls also counts as unreachable.
+ */
+async function request<T>(
+  path: string,
+  options: ApiFetchOptions,
+  read: (response: Response) => Promise<T>,
+): Promise<T> {
   const { method = 'GET', body, formData, signal } = options;
   if (signal?.aborted) throw new RequestCancelledError();
   const headers: Record<string, string> = {};
@@ -89,29 +128,24 @@ export async function apiFetch<T>(path: string, options: ApiFetchOptions = {}): 
     }
 
     if (UNREACHABLE_STATUSES.includes(response.status)) throw new ServerUnreachableError();
-
-    const text = await response.text();
-    const isJson = (response.headers.get('content-type') ?? '').includes('json');
-    // A success that carries a body but is not JSON did not come from our API (a captive
-    // portal, a gateway page, a followed redirect), so it must not pass as data.
-    if (response.ok && text && !isJson) throw new ServerUnreachableError();
-    let json: unknown = null;
-    try {
-      json = text ? JSON.parse(text) : null;
-    } catch {
-      json = null;
-    }
-    if (!response.ok) {
-      const error = (json as Partial<ApiErrorBody> | null)?.error;
-      throw new ApiRequestError(
-        response.status,
-        error?.code ?? 'unknown',
-        error?.message ?? 'Something went wrong.',
-      );
-    }
-    return json as T;
+    return await read(response);
   } finally {
     clearTimeout(timer);
     signal?.removeEventListener('abort', cancel);
+  }
+}
+
+/** The error for a failed response, from the backend's error shape when the body has it. */
+function requestError(status: number, text: string): ApiRequestError {
+  const error = (parseJson(text) as Partial<ApiErrorBody> | null)?.error;
+  return new ApiRequestError(status, error?.code ?? 'unknown', error?.message ?? 'Something went wrong.');
+}
+
+/** The body as JSON, or null when it is empty or not JSON. */
+function parseJson(text: string): unknown {
+  try {
+    return text ? JSON.parse(text) : null;
+  } catch {
+    return null;
   }
 }

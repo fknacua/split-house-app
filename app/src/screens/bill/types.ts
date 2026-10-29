@@ -32,6 +32,8 @@ export interface FactsCardProps {
 
 /** Props for {@link FileRow}. */
 export interface FileRowProps {
+  /** `YYYY-MM` key of the bill's month, for the download. */
+  month: string;
   /** The stored PDF's name and meta line. */
   file: BillViewFile;
 }
