@@ -5,6 +5,8 @@ import { openMonthIfNeeded } from "@/lib/month-open";
 import { HOUSEHOLD_SCHEMA_VERSION } from "@splithouse/shared";
 import { NOV_2026_CONFIG, PERSON_IDS, VERSION_A_CONFIG } from "@/lib/fixtures/household";
 import { buildMonthCharges, buildUtilitiesCharges, type EngineCharge } from "@/lib/split/engine";
+import { BILL_FIXTURE } from "@/lib/fixtures/bill";
+import { generateBillFixturePdf } from "@/lib/fixtures/generate-bill-pdf";
 
 // Fictional household (see docs/SplitHouse — Data Model.md "Fixtures"). Dev
 // branch only: refuses to run against production. Always wipes the domain
@@ -306,18 +308,13 @@ async function main() {
   // --- November 2026: no month, charges or bill are created. Home opens it on the first
   // request on or after 1 Nov (version B), with rent and recurring charges only and no bill. ---
   if (scenario === "draft") {
-    // Synthetic parsed fields and the placeholder PDF; nothing from a real bill.
+    // The synthetic bill PDF and what the parser reads from it (`ParsedBill`); nothing from a real bill.
     await prisma.billDraft.create({
       data: {
         month: "2026-11",
         filename: "2026-11-sample-bill.pdf",
-        bytes: PLACEHOLDER_PDF,
-        parsedJson: {
-          billingPeriodStart: "2026-10-16",
-          billingPeriodEnd: "2026-11-15",
-          dueDate: "2026-11-25",
-          currentChargesCents: 41200,
-        },
+        bytes: new Uint8Array(await generateBillFixturePdf()),
+        parsedJson: BILL_FIXTURE,
         parseOk: true,
       },
     });

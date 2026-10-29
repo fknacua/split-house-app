@@ -5,7 +5,7 @@ import { Pressable, View } from 'react-native';
 
 import { type BareInputProps, withFormControlledField } from '@/components/form-field/';
 import { Input, InputField, InputIcon, InputSlot } from '@/components/ui/input';
-import { dateKeyOf, dateKeyToValue, formatDateLabel, todayKey } from '@splithouse/shared';
+import { dateKeyOf, dateKeyToValue, formatDateLabel, formatDateMedium, todayKey } from '@splithouse/shared';
 
 /** The props only the date field has, on top of the shared input props. */
 export interface DateFieldOwnProps {
@@ -17,6 +17,8 @@ export interface DateFieldOwnProps {
   maxDate?: string;
   /** Shows an × button to clear a picked date. On by default; pass `false` to opt out. */
   clearable?: boolean;
+  /** Shows the weekday (`Mon, 16 Nov 2026` instead of `16 Nov 2026`). Off by default; pass `true` to opt in. */
+  showWeekday?: boolean;
 }
 
 /**
@@ -39,6 +41,7 @@ export const BareDateField = forwardRef<
     minDate,
     maxDate,
     clearable = true,
+    showWeekday = false,
   },
   ref
 ) {
@@ -69,7 +72,7 @@ export const BareDateField = forwardRef<
             editable={false}
             pointerEvents="none"
             placeholder={placeholder}
-            value={value === '' ? '' : formatDateLabel(value)}
+            value={value === '' ? '' : showWeekday ? formatDateLabel(value) : formatDateMedium(value)}
             className={disabled ? 'text-on-disabled' : undefined}
           />
           {clearable && value !== '' && !disabled && (
@@ -103,6 +106,7 @@ export const BareDateField = forwardRef<
  * @param minDate - Earliest pickable date, `YYYY-MM-DD`.
  * @param maxDate - Latest pickable date, `YYYY-MM-DD`.
  * @param clearable - Shows an × button to clear the date. Defaults to `true`; pass `false` to hide it.
+ * @param showWeekday - Shows the weekday (`Mon, 16 Nov 2026`). Defaults to `false` (`16 Nov 2026`).
  * @param value - The picked date as `YYYY-MM-DD`, or `''` (standalone only).
  * @param onChange - Called with the picked date key, or `''` on clear (standalone only).
  * @param fieldControlProps - Binds the field to a form field (form-controlled only).

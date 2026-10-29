@@ -1,3 +1,4 @@
+export * from './api/bill-draft';
 export * from './api/bootstrap';
 export * from './api/error';
 export * from './api/history';

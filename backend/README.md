@@ -66,9 +66,10 @@ Written as each screen needs them. Update the status here when an endpoint is bu
 | `POST /api/people` | Add a person | 8.1 | planned |
 | `DELETE /api/household/versions/:id` | Remove a not-yet-started future version only | 8.1 | planned |
 | `GET /api/months/:month/summary` | Home: status, hero totals, person rows, alerts, draft info | 5.1 | planned |
-| `POST /api/months/:month/bill-draft` | Upload a PDF, parse it, return fields, lines, warnings | 6A.1 | planned |
+| `POST /api/months/:month/bill-draft` | Upload the bill PDF (multipart, field `file`) as the month's draft, replacing any old one and purging drafts left for earlier months; read it and return the file line (`2 pages · 214 KB`), `readOk` and the fields read (Current Charges, bill month, due date, billing period, lines). An unreadable PDF is still stored, with `readOk: false`. 413 `file_too_large` over 4 MB, 415 `not_pdf` without the PDF signature, 409 `month_not_open` or `bill_exists` | 6.2 | built |
+| `GET /api/months/:month/bill-draft` | The month's stored draft, same shape as the upload. 404 `no_draft` | 6.2 | built |
 | `POST /api/months/:month/bill-draft/discard` | Discard the month's draft | 6A.3 | planned |
-| `POST /api/months/:month/bill` | Save the bill and create the utilities charges | 6A.3 | planned |
+| `POST /api/months/:month/bill` | Save the bill from the month's draft with the reviewed values, in one transaction: `Bill`, `BillFile`, the utilities charges from the split engine, draft deleted; returns `{ month }`. 400 when Current Charges is not above zero, 404 `no_draft`, 409 `bill_exists` or `month_not_open` | 6.2 | built |
 | `GET /api/months/:month/bill/file` | Stream the stored PDF | 6A.3 | planned |
 | `POST /api/months/:month/bill/paid` | Mark bill paid (amount, date, note) | 6A.3 | planned |
 | `GET /api/months/:month/recipients/:personId` | Breakdown, rendered message, corrections, message events | 7B.1 | planned |

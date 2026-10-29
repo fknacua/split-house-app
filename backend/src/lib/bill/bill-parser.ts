@@ -1,8 +1,8 @@
 /** One best-effort line read from a bill, e.g. `{ label: "Electricity", cents: 28150 }`. */
-export interface ParsedBillLine {
+export type ParsedBillLine = {
   label: string;
   cents: number;
-}
+};
 
 /**
  * The fields a {@link BillParser} reads from a bill's text. `currentChargesCents` is the
@@ -10,7 +10,7 @@ export interface ParsedBillLine {
  * still counts as failed (the parser returns `null`, not a `ParsedBill` with a zero amount).
  * Every other field is best-effort and `null` when not found.
  */
-export interface ParsedBill {
+export type ParsedBill = {
   currentChargesCents: number;
   /** `YYYY-MM-DD`, or `null` when not found. */
   billingPeriodStart: string | null;
@@ -26,7 +26,7 @@ export interface ParsedBill {
   /** `YYYY-MM-DD`, or `null` when not found. */
   dueDate: string | null;
   lines: ParsedBillLine[];
-}
+};
 
 /** Reads one bill layout: text in, fields out, or `null` on an unreadable bill. */
 export interface BillParser {
