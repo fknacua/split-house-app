@@ -2,13 +2,14 @@ import { ArrowRight } from 'lucide-react-native';
 import { Pressable, Text, View } from 'react-native';
 
 import { Icon } from '@/components';
-import { openTarget } from '../open-target';
+import { useOpenTarget } from '../use-open-target';
 import type { HomeRowProps } from '../types';
 import { HomeActionButton } from './home-action-button';
 
 /** What an open charge row shows: its note, its buttons and a link to more. Lines up under the title. */
 export function HomeRowContent({ row }: HomeRowProps) {
   const { target } = row.link;
+  const { openTarget } = useOpenTarget();
 
   return (
     <View className="gap-2.5 pl-12.5">

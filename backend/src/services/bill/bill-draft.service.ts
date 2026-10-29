@@ -1,4 +1,9 @@
-import { formatMonthName, MAX_BILL_PDF_BYTES, type BillDraftResponse } from "@splithouse/shared";
+import {
+  formatMonthName,
+  MAX_BILL_PDF_BYTES,
+  type BillDraftResponse,
+  type DiscardBillDraftResponse,
+} from "@splithouse/shared";
 import { ApiError } from "@/lib/api";
 import { isPdf } from "@/lib/bill/bill-file-store";
 import type { ParsedBill } from "@/lib/bill/bill-parser";
@@ -32,7 +37,7 @@ export interface BillDraftDb {
       select: { filename: true; bytes: true; parsedJson: true };
     }): Promise<{ filename: string; bytes: Uint8Array; parsedJson: unknown } | null>;
     create(args: { data: DraftWrite & { month: string } }): Promise<unknown>;
-    deleteMany(args: { where: { month: { lte: string } } }): Promise<unknown>;
+    deleteMany(args: { where: { month: string | { lte: string } } }): Promise<unknown>;
   };
 }
 
@@ -123,4 +128,17 @@ export async function getBillDraft(db: BillDraftDb, month: string): Promise<Bill
     // Written only by `uploadBillDraft` (and the seed) in the parser's shape.
     parsed: (draft.parsedJson as ParsedBill | null) ?? null,
   });
+}
+
+/**
+ * Deletes the month's draft, file and all. A month with no draft answers the same, so Cancel while
+ * the upload is still on its way can discard whatever the server stored.
+ *
+ * @param db - The Prisma client, or a fake in tests.
+ * @param month - `YYYY-MM`.
+ * @returns The month.
+ */
+export async function discardBillDraft(db: BillDraftDb, month: string): Promise<DiscardBillDraftResponse> {
+  await db.billDraft.deleteMany({ where: { month } });
+  return { month };
 }

@@ -9,7 +9,8 @@ export type UploadStep = 'pick' | 'review';
 
 /** Props for {@link FileCard}. */
 export interface FileCardProps {
-  filename: string;
+  /** The file's name, or null while it is not known yet (a stored draft loading): a placeholder then. */
+  filename: string | null;
   /** e.g. `2 pages · 214 KB`. Left out while the file is still uploading. */
   meta?: string;
   size: 'large' | 'small';
@@ -29,8 +30,8 @@ export interface PickStepProps {
 
 /** Props for {@link ReviewSkeleton}. */
 export interface ReviewSkeletonProps {
-  /** The picked file's name, shown while the server reads it. */
-  filename: string;
+  /** The picked file's name, shown while the server reads it; null while a stored draft loads. */
+  filename: string | null;
 }
 
 /** Props for {@link ReviewForm}. */

@@ -10,6 +10,7 @@ import { checkBillResponseSchema } from "@splithouse/shared";
 import { POST as saveBill } from "./route";
 import { GET as getDraft, POST as uploadDraft } from "../bill-draft/route";
 import { POST as checkDraft } from "../bill-draft/check/route";
+import { POST as discardDraft } from "../bill-draft/discard/route";
 
 const params = (month: string) => ({ params: Promise.resolve({ month }) });
 
@@ -112,5 +113,13 @@ describe("/api/months/:month/bill-draft", () => {
   it("GET returns 400 for a bad month", async () => {
     const response = await getDraft(new Request("http://localhost"), params("Nov"));
     expect(response.status).toBe(400);
+  });
+});
+
+describe("POST /api/months/:month/bill-draft/discard", () => {
+  it("returns 400 for a bad month", async () => {
+    const response = await discardDraft(new Request("http://localhost", { method: "POST" }), params("2026-13"));
+    expect(response.status).toBe(400);
+    expect((await response.json()).error.code).toBe("invalid_request");
   });
 });
