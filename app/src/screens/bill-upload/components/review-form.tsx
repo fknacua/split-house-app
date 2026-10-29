@@ -16,7 +16,7 @@ import { SubtotalRow } from './subtotal-row';
  * the footer.
  */
 export function ReviewForm({ draft, control, onChooseAnother, blockers, linesNote, saveError }: ReviewFormProps) {
-  const { fields, remove } = useFieldArray({ control, name: 'lines' });
+  const { fields, append, remove } = useFieldArray({ control, name: 'lines' });
   const lines = useWatch({ control, name: 'lines' });
   const hasLines = fields.length > 0;
   const blockerOn = (field: BillBlocker['field']) => blockers.find((blocker) => blocker.field === field);
@@ -117,8 +117,15 @@ export function ReviewForm({ draft, control, onChooseAnother, blockers, linesNot
         ) : (
           <NoLinesBox />
         )}
-        {/* Add line appends an inline row in 6.3; until then it does nothing. */}
-        <Button label="Add line" icon={Plus} variant="ghost" size="small" className="self-start pl-1 pr-2" />
+        {/* The new row is inline, not a sheet; react-hook-form focuses its name field. */}
+        <Button
+          label="Add line"
+          icon={Plus}
+          variant="ghost"
+          size="small"
+          onPress={() => append({ label: '', cents: null })}
+          className="self-start pl-1 pr-2"
+        />
       </Card>
     </>
   );
