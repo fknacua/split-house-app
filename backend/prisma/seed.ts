@@ -7,6 +7,7 @@ import { NOV_2026_CONFIG, PERSON_IDS, VERSION_A_CONFIG } from "@/lib/fixtures/ho
 import { buildMonthCharges, buildUtilitiesCharges, type EngineCharge } from "@/lib/split/engine";
 import { BILL_FIXTURE } from "@/lib/fixtures/bill";
 import { generateBillFixturePdf } from "@/lib/fixtures/generate-bill-pdf";
+import { countPdfPages } from "@/services/bill/read-bill.service";
 
 // Fictional household (see docs/SplitHouse — Data Model.md "Fixtures"). Dev
 // branch only: refuses to run against production. Always wipes the domain
@@ -61,7 +62,10 @@ const PERSON_NAMES: Record<string, string> = {
   [PERSON_IDS.jordan]: "Jordan",
 };
 
-const PLACEHOLDER_PDF = Buffer.from("%PDF-1.4\n% placeholder bill, seed data only\n%%EOF\n");
+// Every saved bill gets the synthetic two-page fixture PDF (invented values, nothing from a real
+// bill), so Open on View bill shows a real document. Its values do not match each month's bill.
+const SAMPLE_PDF = new Uint8Array(await generateBillFixturePdf());
+const SAMPLE_PDF_PAGES = await countPdfPages(SAMPLE_PDF);
 
 async function wipeDomainTables() {
   await prisma.messageEvent.deleteMany();
@@ -165,8 +169,9 @@ async function seedPastMonth(
         create: {
           filename: `${month}-sample-bill.pdf`,
           mimeType: "application/pdf",
-          sizeBytes: PLACEHOLDER_PDF.byteLength,
-          bytes: PLACEHOLDER_PDF,
+          sizeBytes: SAMPLE_PDF.byteLength,
+          pageCount: SAMPLE_PDF_PAGES,
+          bytes: SAMPLE_PDF,
         },
       },
     },
@@ -335,7 +340,7 @@ async function main() {
       data: {
         month: "2026-11",
         filename: "2026-11-sample-bill.pdf",
-        bytes: new Uint8Array(await generateBillFixturePdf()),
+        bytes: SAMPLE_PDF,
         parsedJson: BILL_FIXTURE,
         parseOk: true,
       },
@@ -366,8 +371,9 @@ async function main() {
           create: {
             filename: "2026-11-sample-bill.pdf",
             mimeType: "application/pdf",
-            sizeBytes: PLACEHOLDER_PDF.byteLength,
-            bytes: PLACEHOLDER_PDF,
+            sizeBytes: SAMPLE_PDF.byteLength,
+            pageCount: SAMPLE_PDF_PAGES,
+            bytes: SAMPLE_PDF,
           },
         },
       },

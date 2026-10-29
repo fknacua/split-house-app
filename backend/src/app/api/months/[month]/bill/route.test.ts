@@ -10,6 +10,7 @@ import { billViewResponseSchema, checkBillResponseSchema, HOUSEHOLD_SCHEMA_VERSI
 import { NOV_2026_CONFIG, PERSON_IDS } from "@/lib/fixtures/household";
 import { prisma } from "@/lib/prisma";
 import { GET as getBill, POST as saveBill } from "./route";
+import { GET as getBillFile } from "./file/route";
 import { GET as getDraft, POST as uploadDraft } from "../bill-draft/route";
 import { POST as checkDraft } from "../bill-draft/check/route";
 import { POST as discardDraft } from "../bill-draft/discard/route";
@@ -182,6 +183,48 @@ describe("GET /api/months/:month/bill", () => {
 
   it("returns 400 for a bad month", async () => {
     const response = await getBill(new Request("http://localhost"), params("2026-13"));
+    expect(response.status).toBe(400);
+  });
+});
+
+describe("GET /api/months/:month/bill/file", () => {
+  const BYTES = new TextEncoder().encode("%PDF-1.4 sample");
+
+  /** Points the mocked Prisma client at a November bill with the given file, or no bill. */
+  function useNovember(bill: { id: string } | null, filename = "Utilities Bill Nov.pdf") {
+    Object.assign(prisma, {
+      bill: { findUnique: async () => bill },
+      billFile: {
+        findUnique: async () => ({
+          filename,
+          mimeType: "application/pdf",
+          sizeBytes: BYTES.byteLength,
+          pageCount: 1,
+          bytes: BYTES,
+        }),
+      },
+    });
+  }
+
+  it("streams the PDF inline with its name", async () => {
+    useNovember({ id: "bill-1" });
+    const response = await getBillFile(new Request("http://localhost"), params("2026-11"));
+    expect(response.status).toBe(200);
+    expect(response.headers.get("Content-Type")).toBe("application/pdf");
+    expect(response.headers.get("Content-Length")).toBe(String(BYTES.byteLength));
+    expect(response.headers.get("Content-Disposition")).toBe("inline; filename*=UTF-8''Utilities%20Bill%20Nov.pdf");
+    expect(new Uint8Array(await response.arrayBuffer())).toEqual(BYTES);
+  });
+
+  it("returns 404 no_bill when the month has no saved bill", async () => {
+    useNovember(null);
+    const response = await getBillFile(new Request("http://localhost"), params("2026-11"));
+    expect(response.status).toBe(404);
+    expect((await response.json()).error.code).toBe("no_bill");
+  });
+
+  it("returns 400 for a bad month", async () => {
+    const response = await getBillFile(new Request("http://localhost"), params("2026-13"));
     expect(response.status).toBe(400);
   });
 });

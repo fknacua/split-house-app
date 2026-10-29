@@ -34,7 +34,7 @@ export function Bill() {
             <BillHeroCard hero={data.hero} />
             <CollectionCard collection={data.collection} />
             <FactsCard facts={data.facts} />
-            {data.file ? <FileRow file={data.file} /> : null}
+            {data.file ? <FileRow month={data.month} file={data.file} /> : null}
           </>
         ) : null}
       </ScrollView>

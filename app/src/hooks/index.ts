@@ -9,6 +9,7 @@ export * from './use-history';
 export * from './use-history-month';
 export * from './use-home';
 export * from './use-load-bill-draft';
+export * from './use-open-bill-pdf';
 export * from './use-me';
 export * from './use-pull-to-refresh';
 export * from './use-save-bill';
