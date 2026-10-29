@@ -146,10 +146,16 @@ Sources: `BillUpload.dc.html`, `Bill.dc.html`, `PayBill.dc.html`. Contracts (to 
 | B9 | `unread` shows a custom number pad | Not built; the normal numeric keyboard. | The mapping doc says the pad only mocks Android's keyboard. |
 | B10 | No board for a bill with no file | Deferred. `MANUAL` stays in the enum; save accepts a draft only. | Decided. |
 | B11 | No board or copy for an unusual bill in upload | A third line in the "Save with warnings?" dialog; threshold and wording agreed at 6.3. The 9B notification reuses the rule. | Decided: keep it in upload. The Tech Stack lists it as a backend check. |
-| B12 | No board for a picked file that is not a PDF or is too large | Open: ask at 6.2. | Plan rule: do not invent copy or states. |
+| B12 | No board for a picked file that is not a PDF or is too large | Built in 6.2 with placeholder copy (a danger Alert on `pick`: "The file is not a PDF." / "The file is over 4 MB."), to be replaced when Francis's design lands. | Francis is drawing it (2026-10-29). |
 | B13 | Old plan: `MAX_BILL_PDF_BYTES` starts at 5 MB | 4 MB. | Vercel rejects request bodies over 4.5 MB before the route runs (current docs, checked 2026-10-28). |
 | B14 | Checks (period, lines, "Split into 5 shares of $82.46") appear as you edit | The device checks required fields only. The server does every other check, after a pause in typing, and checks again at save. The `noLines` box is shown by the app whenever there are no lines. | Decided: a shared helper cannot do the checks that need database or engine data. |
 | B15 | The Bill month field shows the month read from the bill (Oct on the `period` board) | Filled from the PDF and can be changed. Save is blocked when it, or the period, does not match the month the upload started from. | Decided. How the month is read is confirmed from the real bill at 6.3. |
+| B16 | Billing period is one field (`1–31 Oct 2026`) with a calendar icon | Same field; a tap opens Android's date dialog twice, first day then last day, and the span changes only once both are picked. | Assumed (6.2): the mapping doc names DateTimePicker, which picks one date. |
+| B17 | Bill month shows `Nov 2026` | The month list shows `November 2026` (the shared MonthSelectField) and offers the month after the upload's, back a year, plus the month read from the bill if outside that. | Assumed (6.2). |
+| B18 | Current Charges helper reads "Split into 5 shares of $82.46…" | Until 6.3 adds the server check, the helper is the `unread` board's "Required. The split uses this number." The "Lines match Current Charges" note also waits for 6.3. | Plan: per-share text and the lines note come from the 6.3 check. |
+| B19 | Lazy purge (Tech Stack) does not say which drafts it removes | A new upload or a save deletes the month's draft and any draft for an earlier month (one that can no longer be saved). `expiresAt` is filled with upload time + 15 minutes and not enforced. | Assumed (6.2). |
+| B20 | Plan: `lib/bill/bill-file-store.ts` holds the storage over `BillFile`; CLAUDE.md keeps `lib/` pure | The `BillFileStore` interface (and `isPdf`) is in `lib/bill/bill-file-store.ts`; the Postgres implementation is `services/bill/bill-file-store.service.ts`. | Assumed (6.2), to keep both rules. |
+| B21 | Back and Cancel on `review` open "Discard this bill?" | Until 6.4, Back leaves the screen (the draft stays stored, so Home shows it as a draft) and Cancel does nothing. Add line also does nothing until 6.3. | Plan: actions for later steps are drawn and do nothing. |
 
 ## Still to decide or carry forward
 
