@@ -1,6 +1,7 @@
 import {
   CHARGE_TYPES,
   dateKeyOf,
+  daysUntil,
   formatCents,
   formatDateShort,
   formatMonthShortLabel,
@@ -8,12 +9,15 @@ import {
   type HouseholdConfig,
   type RecipientAction,
   type RecipientAmountCard,
+  type RecipientChargeRow as RecipientChargeRowView,
+  type RecipientNudgeTarget,
   type RecipientResponse,
 } from "@splithouse/shared";
-import type { MessageKind } from "@/generated/prisma/enums";
-import { HOME_BADGES } from "@/lib/home/badges";
+import type { ChargeCategory, MessageKind } from "@/generated/prisma/enums";
+import { chargeBadge, HOME_BADGES } from "@/lib/home/badges";
+import { chargeDueDate } from "@/lib/home/due-dates";
 import type { BreakdownCharge } from "@/lib/messages/build-breakdown";
-import { renderMonthlyMessage, type MonthlyMessage } from "@/lib/messages/render";
+import { renderMonthlyMessage, renderNudgeMessage, type MonthlyMessage } from "@/lib/messages/render";
 import { whatsappLink } from "@/lib/messages/whatsapp-link";
 
 /** A charge row, as much of it as Recipient needs. */
@@ -44,6 +48,11 @@ export interface RecipientInput {
   charges: RecipientChargeRow[];
   /** The person's message events for the month. The latest MONTHLY one makes the layout `sent`. */
   messages: RecipientMessageEvent[];
+  /**
+   * The charge Home's Nudge opened the screen for. Used when it is one of the person's overdue
+   * charges; otherwise the earliest-due overdue charge is chosen.
+   */
+  chargeId?: string | null;
 }
 
 // How a charge type reads in the sub line, e.g. "utilities and aircon via Priya".
@@ -116,20 +125,20 @@ function notSentAmountCard(input: RecipientInput, message: MonthlyMessage, names
 }
 
 /**
- * The amount card once the monthly message was opened: when it went out and when it is due.
+ * The amount card once the monthly message was opened: when it went out and when it is due. Nothing
+ * is overdue here; that is the overdue layout.
  *
  * @param sentOn - The date key of the latest monthly message.
  */
 function sentAmountCard(input: RecipientInput, message: MonthlyMessage, sentOn: string): RecipientAmountCard {
   const { dueDate } = message.breakdown;
-  const overdue = dueDate !== null && dueDate < input.today;
   const parts = [`Sent ${formatDateShort(sentOn)}`];
-  if (dueDate) parts.push(overdue ? `overdue since ${formatDateShort(dueDate)}` : `due ${formatDateShort(dueDate)}`);
+  if (dueDate) parts.push(`due ${formatDateShort(dueDate)}`);
   return {
     label: `${formatMonthShortLabel(input.month)} total`,
     amount: formatCents(message.breakdown.totalCents),
     chip: HOME_BADGES.recipientSentUnpaid,
-    statusLine: { text: parts.join(" · "), tone: overdue ? "danger" : "default" },
+    statusLine: { text: parts.join(" · "), tone: "default" },
   };
 }
 
@@ -157,14 +166,168 @@ function lastSentOn(messages: RecipientMessageEvent[]): string | null {
   return times.length > 0 ? dateKeyOf(new Date(Math.max(...times))) : null;
 }
 
+// Charges due on the same day go: rent, recurring, utilities, aircon, then the rest.
+const CATEGORY_RANK: Partial<Record<ChargeCategory, number>> = { RENT: 0, RECURRING: 1, UTILITIES: 2, AIRCON: 3 };
+
+/** An unpaid charge with what the overdue layout works out about it. */
+interface OpenCharge {
+  charge: RecipientChargeRow;
+  /** e.g. `Rent`, or `Utilities · Sam` for a charge paid through the person. */
+  title: string;
+  /** Date key; null when no due day is known. */
+  dueDate: string | null;
+  overdue: boolean;
+  /** Date key of the latest nudge about it, or null. */
+  nudgedOn: string | null;
+  /** Null unless overdue. */
+  nudge: RecipientNudgeTarget | null;
+}
+
+/** The person's unpaid charges by due date, each with its nudge when overdue. */
+function openCharges(input: RecipientInput, names: Map<string, string>): OpenCharge[] {
+  const nudgedOn = new Map<string, string>();
+  for (const m of [...input.messages].sort((a, b) => a.openedAt.getTime() - b.openedAt.getTime())) {
+    if (m.kind === "NUDGE" && m.chargeId) nudgedOn.set(m.chargeId, dateKeyOf(m.openedAt));
+  }
+  const { person } = input;
+  return input.charges
+    .filter((c) => c.paidCents === null)
+    .map((charge) => {
+      const dueDate = chargeDueDate(charge.month, input.config, charge);
+      const overdue = dueDate !== null && dueDate < input.today;
+      let nudge: RecipientNudgeTarget | null = null;
+      if (overdue) {
+        const text = renderNudgeMessage({ recipientId: person.id, recipientName: person.name, config: input.config, charge });
+        nudge = {
+          kind: "nudge-whatsapp",
+          month: input.month,
+          personId: person.id,
+          chargeId: charge.id,
+          url: person.whatsappE164 ? whatsappLink(person.whatsappE164, text) : null,
+        };
+      }
+      return {
+        charge,
+        title: charge.payViaPersonId ? `${charge.label} · ${names.get(charge.personId) ?? "Someone"}` : charge.label,
+        dueDate,
+        overdue,
+        nudgedOn: nudgedOn.get(charge.id) ?? null,
+        nudge,
+      };
+    })
+    .sort(
+      (a, b) =>
+        (a.dueDate ?? "9999").localeCompare(b.dueDate ?? "9999") ||
+        (CATEGORY_RANK[a.charge.category] ?? 4) - (CATEGORY_RANK[b.charge.category] ?? 4),
+    );
+}
+
+/** A charge row: Home's chip, and the due date with the latest nudge or the monthly message's date. */
+function chargeRowView(open: OpenCharge, today: string, sentOn: string): RecipientChargeRowView {
+  const { charge, dueDate, nudgedOn } = open;
+  const parts = dueDate ? [`Due ${formatDateShort(dueDate)}`] : [];
+  parts.push(nudgedOn ? `nudged ${formatDateShort(nudgedOn)}` : `sent ${formatDateShort(sentOn)}`);
+  return {
+    chargeId: charge.id,
+    title: open.title,
+    amount: formatCents(charge.amountCents),
+    detail: parts.join(" · "),
+    chip: chargeBadge({
+      paid: false,
+      messageUnsent: false,
+      days: dueDate === null ? null : daysUntil(dueDate, today),
+      sent: true,
+    }),
+    nudge: open.nudge,
+  };
+}
+
+/** `Mark rent paid`, `Mark Sam’s utilities paid`, `Mark Starhub paid`. */
+function markChargePaidLabel(open: OpenCharge, names: Map<string, string>): string {
+  const { charge } = open;
+  const fixed = charge.category === "RENT" || charge.category === "UTILITIES" || charge.category === "AIRCON";
+  const what = fixed ? ROUTE_WORDS[charge.category as ChargeType] : charge.label;
+  const whose = charge.payViaPersonId ? `${names.get(charge.personId) ?? "Someone"}’s ` : "";
+  return `Mark ${whose}${what} paid`;
+}
+
+/**
+ * The overdue layout: once the monthly message is out and a charge is past its due date. The chosen
+ * charge (Home's Nudge, else the earliest due) drives the status line, the nudge in the message
+ * card and Mark paid. Nudge again nudges it, or asks which when none was chosen and two or more are
+ * overdue.
+ */
+function overdueRecipient(
+  input: RecipientInput,
+  message: MonthlyMessage,
+  open: OpenCharge[],
+  sentOn: string,
+  names: Map<string, string>,
+  header: RecipientResponse["header"],
+): RecipientResponse {
+  const { month, person } = input;
+  const overdue = open.filter((o) => o.overdue);
+  const picked = overdue.find((o) => o.charge.id === input.chargeId);
+  const chosen = picked ?? overdue[0];
+  const nudgeText = renderNudgeMessage({
+    recipientId: person.id,
+    recipientName: person.name,
+    config: input.config,
+    charge: chosen.charge,
+  });
+  const status = [`${chosen.title} overdue since ${formatDateShort(chosen.dueDate!)}`];
+  if (chosen.nudgedOn) status.push(`nudged ${formatDateShort(chosen.nudgedOn)}`);
+  const askWhich = !picked && overdue.length > 1;
+
+  return {
+    month,
+    personId: person.id,
+    header,
+    amountCard: {
+      label: "Outstanding",
+      amount: formatCents(message.breakdown.totalCents),
+      chip: HOME_BADGES.recipientOverdue,
+      statusLine: { text: status.join(" · "), tone: "danger" },
+    },
+    charges: open.map((o) => chargeRowView(o, input.today, sentOn)),
+    message: {
+      label: chosen.nudgedOn ? "Last nudge" : "Nudge",
+      meta: chosen.nudgedOn ? `Sent ${formatDateShort(chosen.nudgedOn)}` : "Nudge template",
+      intro: nudgeText,
+      sections: [],
+      outro: [],
+      text: nudgeText,
+      editTemplate: { label: "Edit template", icon: null, enabled: true, target: { kind: "edit-template", template: "NUDGE" } },
+    },
+    note: person.whatsappE164 ? null : `No WhatsApp number is set up for ${person.name}.`,
+    primaryAction: {
+      label: markChargePaidLabel(chosen, names),
+      icon: "check",
+      enabled: true,
+      target: { kind: "record-payment", month, personId: person.id, chargeId: chosen.charge.id },
+    },
+    secondaryActions: [
+      {
+        label: chosen.nudgedOn ? "Nudge again" : "Nudge",
+        icon: null,
+        enabled: person.whatsappE164 !== null,
+        target: askWhich ? { kind: "choose-nudge", month, personId: person.id } : chosen.nudge!,
+      },
+    ],
+  };
+}
+
 /**
  * Builds one person's Recipient screen. Built so far: `notSent` (no monthly message opened yet),
  * which before the bill is saved previews the charges so far with Send and Share bill disabled, and
- * `sent` (a monthly message opened), with Mark paid, Share bill and Send again. The nudged and paid
- * layouts come in 7.8 and 7.9; until then those people show `sent` or `notSent`. Send is disabled
- * when the person has no WhatsApp number.
+ * `sent` (a monthly message opened), with Mark paid, Share bill and Send again, and the overdue
+ * layout (`nudged`: a monthly message opened and a charge past its due date), with the charge rows,
+ * the nudge, Mark paid for the chosen charge and Nudge again. The paid layouts come in 7.9; until
+ * then those people show `sent` or `notSent`. Sending is disabled when the person has no WhatsApp
+ * number.
  *
- * @param input - The month, today, config, person, people, bill, charges and message events.
+ * @param input - The month, today, config, person, people, bill, charges, message events and the
+ * charge Home's Nudge chose.
  * @returns The Recipient response.
  */
 export function buildRecipient(input: RecipientInput): RecipientResponse {
@@ -173,6 +336,11 @@ export function buildRecipient(input: RecipientInput): RecipientResponse {
   const message = recipientMonthlyMessage(input);
   const hasBill = input.billCents !== null;
   const sentOn = lastSentOn(input.messages);
+  const header = { name: person.name, sub: recipientSubLine(input.config, person.id, names) };
+  if (sentOn) {
+    const open = openCharges(input, names);
+    if (open.some((o) => o.overdue)) return overdueRecipient(input, message, open, sentOn, names, header);
+  }
   const url = person.whatsappE164 ? whatsappLink(person.whatsappE164, message.text) : null;
 
   const editTemplate: RecipientAction = {
@@ -192,7 +360,7 @@ export function buildRecipient(input: RecipientInput): RecipientResponse {
   return {
     month,
     personId: person.id,
-    header: { name: person.name, sub: recipientSubLine(input.config, person.id, names) },
+    header,
     amountCard: sentOn ? sentAmountCard(input, message, sentOn) : notSentAmountCard(input, message, names),
     charges: [],
     message: {

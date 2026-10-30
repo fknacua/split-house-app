@@ -380,7 +380,7 @@ describe("buildHome, collecting on 3 Nov", () => {
         label: "Nudge again",
         tone: "warning",
         icon: "bell",
-        target: { kind: "recipient", month: "2026-11", personId: PERSON_IDS.jordan },
+        target: { kind: "recipient", month: "2026-11", personId: PERSON_IDS.jordan, chargeId: jordanRent.id },
       },
       { label: "Mark paid", tone: "outline", icon: "check", target: { kind: "mark-paid", chargeId: jordanRent.id } },
     ]);
@@ -391,6 +391,13 @@ describe("buildHome, collecting on 3 Nov", () => {
     const rent = noNudge.rows.find((r) => r.title === "Rent · Jordan")!;
     expect(rent.detail).toBe("Sent 2 Nov");
     expect(rent.actions.map((a) => a.label)).toEqual(["Nudge", "Mark paid"]);
+  });
+
+  it("holds Nudge back until the payer's monthly message is out", () => {
+    const unsentJordan = collecting({ messages: monthly(PERSON_IDS.priya) });
+    const rent = unsentJordan.rows.find((r) => r.title === "Rent · Jordan")!;
+    expect(rent.badge).toEqual({ label: "Overdue 2 days", tone: "danger" });
+    expect(rent.actions.map((a) => a.label)).toEqual(["Mark paid"]);
   });
 
   it("shows tomorrow's utilities as Due tomorrow, sent, closed", () => {

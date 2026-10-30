@@ -269,11 +269,149 @@ describe("buildRecipient: sent", () => {
     expect(r.amountCard.chip.label).toBe("Not sent");
   });
 
-  it("says overdue in danger once the earliest due date has passed", () => {
+});
+
+describe("buildRecipient: overdue (nudged)", () => {
+  const sent = { kind: "MONTHLY" as const, chargeId: null, openedAt: new Date("2026-11-02T10:00:00+08:00") };
+  const rentNudge = { kind: "NUDGE" as const, chargeId: `${jordan}-RENT`, openedAt: new Date("2026-11-02T18:00:00+08:00") };
+  const RENT_NUDGE = "Hi Jordan! Paalala lang, yung Rent for Nov 2026 ($950.00) ay due nung 1 Nov. Salamat! 🙏";
+  const nudgeTarget = (personId: string, chargeId: string, text: string) => ({
+    kind: "nudge-whatsapp",
+    month: "2026-11",
+    personId,
+    chargeId,
+    url: whatsappLink(PHONE, text),
+  });
+
+  it("builds Jordan's page on 3 Nov as on the board, without the savings note", () => {
+    const r = buildRecipient(input(jordan, JORDAN_CHARGES, { today: "2026-11-03", messages: [sent, rentNudge] }));
+
+    expect(() => recipientResponseSchema.parse(r)).not.toThrow();
+    expect(r.amountCard).toEqual({
+      label: "Outstanding",
+      amount: "$1,050.79",
+      chip: { label: "Overdue", tone: "danger" },
+      statusLine: { text: "Rent overdue since 1 Nov · nudged 2 Nov", tone: "danger" },
+    });
+    expect(r.charges).toEqual([
+      {
+        chargeId: `${jordan}-RENT`,
+        title: "Rent",
+        amount: "$950.00",
+        detail: "Due 1 Nov · nudged 2 Nov",
+        chip: { label: "Overdue 2 days", tone: "danger" },
+        nudge: nudgeTarget(jordan, `${jordan}-RENT`, RENT_NUDGE),
+      },
+      {
+        chargeId: `${jordan}-UTILITIES`,
+        title: "Utilities",
+        amount: "$82.46",
+        detail: "Due 4 Nov · sent 2 Nov",
+        chip: { label: "Due tomorrow", tone: "info" },
+        nudge: null,
+      },
+      {
+        chargeId: `${jordan}-AIRCON`,
+        title: "Aircon",
+        amount: "$18.33",
+        detail: "Due 4 Nov · sent 2 Nov",
+        chip: { label: "Due tomorrow", tone: "info" },
+        nudge: null,
+      },
+    ]);
+    expect(r.message).toEqual({
+      label: "Last nudge",
+      meta: "Sent 2 Nov",
+      intro: RENT_NUDGE,
+      sections: [],
+      outro: [],
+      text: RENT_NUDGE,
+      editTemplate: { label: "Edit template", icon: null, enabled: true, target: { kind: "edit-template", template: "NUDGE" } },
+    });
+    expect(r.note).toBeNull();
+    expect(r.primaryAction).toEqual({
+      label: "Mark rent paid",
+      icon: "check",
+      enabled: true,
+      target: { kind: "record-payment", month: "2026-11", personId: jordan, chargeId: `${jordan}-RENT` },
+    });
+    expect(r.secondaryActions).toEqual([
+      { label: "Nudge again", icon: null, enabled: true, target: nudgeTarget(jordan, `${jordan}-RENT`, RENT_NUDGE) },
+    ]);
+  });
+
+  it("previews the nudge and offers plain Nudge before any nudge", () => {
+    const r = buildRecipient(input(jordan, JORDAN_CHARGES, { today: "2026-11-03", messages: [sent] }));
+
+    expect(r.amountCard.statusLine).toEqual({ text: "Rent overdue since 1 Nov", tone: "danger" });
+    expect(r.charges[0].detail).toBe("Due 1 Nov · sent 2 Nov");
+    expect(r.message).toMatchObject({ label: "Nudge", meta: "Nudge template", text: RENT_NUDGE });
+    expect(r.secondaryActions.map((a) => a.label)).toEqual(["Nudge"]);
+  });
+
+  it("stays notSent while the monthly message is not out, overdue or not", () => {
+    const r = buildRecipient(input(jordan, JORDAN_CHARGES, { today: "2026-11-03", messages: [rentNudge] }));
+
+    expect(r.amountCard.chip.label).toBe("Not sent");
+    expect(r.charges).toEqual([]);
+  });
+
+  it("asks which charge to nudge when none was chosen and two are overdue", () => {
+    const r = buildRecipient(input(jordan, JORDAN_CHARGES, { today: "2026-11-05", messages: [sent, rentNudge] }));
+
+    expect(r.amountCard.statusLine?.text).toBe("Rent overdue since 1 Nov · nudged 2 Nov");
+    expect(r.charges.map((c) => c.chip.label)).toEqual(["Overdue 4 days", "Overdue 1 day", "Overdue 1 day"]);
+    expect(r.charges.every((c) => c.nudge !== null)).toBe(true);
+    expect(r.primaryAction?.target).toMatchObject({ chargeId: `${jordan}-RENT` });
+    expect(r.secondaryActions).toEqual([
+      { label: "Nudge again", icon: null, enabled: true, target: { kind: "choose-nudge", month: "2026-11", personId: jordan } },
+    ]);
+  });
+
+  it("uses the charge Home's Nudge chose", () => {
     const r = buildRecipient(
-      input(jordan, JORDAN_CHARGES, { today: "2026-11-03", messages: [sentOn("2026-11-02T09:00:00+08:00")] }),
+      input(jordan, JORDAN_CHARGES, { today: "2026-11-05", messages: [sent, rentNudge], chargeId: `${jordan}-UTILITIES` }),
+    );
+    const text = "Hi Jordan! Paalala lang, yung Utilities bill for Nov 2026 ($82.46) ay due nung 4 Nov. Salamat! 🙏";
+
+    expect(r.amountCard.statusLine?.text).toBe("Utilities overdue since 4 Nov");
+    expect(r.message).toMatchObject({ label: "Nudge", meta: "Nudge template", text });
+    expect(r.primaryAction).toMatchObject({ label: "Mark utilities paid", target: { chargeId: `${jordan}-UTILITIES` } });
+    expect(r.secondaryActions).toEqual([
+      { label: "Nudge", icon: null, enabled: true, target: nudgeTarget(jordan, `${jordan}-UTILITIES`, text) },
+    ]);
+  });
+
+  it("ignores a chosen charge that is not overdue", () => {
+    const r = buildRecipient(
+      input(jordan, JORDAN_CHARGES, { today: "2026-11-03", messages: [sent, rentNudge], chargeId: `${jordan}-UTILITIES` }),
     );
 
-    expect(r.amountCard.statusLine).toEqual({ text: "Sent 2 Nov · overdue since 1 Nov", tone: "danger" });
+    expect(r.primaryAction?.target).toMatchObject({ chargeId: `${jordan}-RENT` });
+    expect(r.secondaryActions[0].target.kind).toBe("nudge-whatsapp");
+  });
+
+  it("names whose charge it is when it is paid through the person", () => {
+    const r = buildRecipient(
+      input(priya, PRIYA_CHARGES, { today: "2026-11-08", messages: [sent], chargeId: `${sam}-UTILITIES` }),
+    );
+
+    expect(r.charges.map((c) => c.title)).toEqual(["Rent", "Starhub", "Utilities", "Utilities · Sam", "Aircon", "Aircon · Sam"]);
+    expect(r.amountCard.statusLine?.text).toBe("Utilities · Sam overdue since 7 Nov");
+    expect(r.primaryAction?.label).toBe("Mark Sam’s utilities paid");
+  });
+
+  it("disables Nudge and says why without a WhatsApp number", () => {
+    const r = buildRecipient(
+      input(jordan, JORDAN_CHARGES, {
+        today: "2026-11-03",
+        messages: [sent],
+        person: { id: jordan, name: "Jordan", whatsappE164: null },
+      }),
+    );
+
+    expect(r.note).toBe("No WhatsApp number is set up for Jordan.");
+    expect(r.secondaryActions[0]).toMatchObject({ label: "Nudge", enabled: false, target: { url: null } });
+    expect(r.charges[0].nudge?.url).toBeNull();
   });
 });

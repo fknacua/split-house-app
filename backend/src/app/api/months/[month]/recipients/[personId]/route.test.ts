@@ -65,6 +65,26 @@ describe("GET /api/months/:month/recipients/:personId", () => {
     });
   });
 
+  it("chooses the overdue charge named by ?chargeId", async () => {
+    useNovember(true);
+    vi.stubEnv("DEV_NOW", "2026-11-08T09:00:00+08:00");
+    Object.assign(prisma, {
+      messageEvent: {
+        findMany: async () => [{ kind: "MONTHLY", chargeId: null, openedAt: new Date("2026-11-02T10:00:00+08:00") }],
+      },
+    });
+    const samUtilities = `${PERSON_IDS.sam}-UTILITIES`;
+    const response = await GET(
+      new Request(`http://localhost?chargeId=${samUtilities}`),
+      params("2026-11", PERSON_IDS.priya),
+    );
+    expect(response.status).toBe(200);
+    const recipient = recipientResponseSchema.parse(await response.json());
+    expect(recipient.amountCard.statusLine?.text).toBe("Utilities · Sam overdue since 7 Nov");
+    expect(recipient.primaryAction?.target).toMatchObject({ kind: "record-payment", chargeId: samUtilities });
+    expect(recipient.secondaryActions[0].target).toMatchObject({ kind: "nudge-whatsapp", chargeId: samUtilities });
+  });
+
   it("returns 400 for a month that is not YYYY-MM", async () => {
     useNovember(true);
     const response = await GET(new Request("http://localhost"), params("Nov", PERSON_IDS.priya));
