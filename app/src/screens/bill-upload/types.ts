@@ -34,12 +34,6 @@ export interface FailedStepProps {
   draft: BillDraftResponse;
 }
 
-/** Props for {@link NoLinesBox}. */
-export interface NoLinesBoxProps {
-  /** The line under "No lines found". */
-  note: string;
-}
-
 /** Props for {@link ReviewSkeleton}. */
 export interface ReviewSkeletonProps {
   /** The picked file's name, shown while the server reads it; null while a stored draft loads. */

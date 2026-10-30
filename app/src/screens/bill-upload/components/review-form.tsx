@@ -2,12 +2,11 @@ import { Plus, RefreshCw } from 'lucide-react-native';
 import { useFieldArray, useWatch } from 'react-hook-form';
 import { Text, View } from 'react-native';
 
-import { Alert, Button, Card, DateField, DateRangeField, MoneyInput, TextInput } from '@/components';
+import { Alert, Button, Card, DateField, DateRangeField, EmptyBox, MoneyInput, TextInput } from '@/components';
 import type { BillBlocker } from '@splithouse/shared';
 import type { ReviewFormProps } from '../types';
 import { FileCard } from './file-card';
 import { LineRow } from './line-row';
-import { NoLinesBox } from './no-lines-box';
 import { SubtotalRow } from './subtotal-row';
 
 /**
@@ -124,7 +123,8 @@ export function ReviewForm({ draft, control, onChooseAnother, blockers, linesNot
             ) : null}
           </>
         ) : (
-          <NoLinesBox
+          <EmptyBox
+            title="No lines found"
             note={
               typed ? 'Add them if you want them on View bill.' : 'Optional. Current Charges is all the split needs.'
             }

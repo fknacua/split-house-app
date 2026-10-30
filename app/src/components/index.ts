@@ -14,6 +14,7 @@ export * from './confirm-dialog';
 export * from './connected-button-group';
 export * from './date-field';
 export * from './date-range-field';
+export * from './empty-box';
 export * from './external-link';
 export * from './form-field';
 export * from './google-button';
