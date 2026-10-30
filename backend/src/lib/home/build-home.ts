@@ -76,6 +76,11 @@ export interface HomeInput {
   bill: HomeBill | null;
   /** The month's message events, monthly messages and nudges. */
   messages: HomeMessage[];
+  /**
+   * Whether an earlier month still has an unpaid charge above zero of someone other than the
+   * owner: a late payment Record payment can take, so its footer stays.
+   */
+  earlierUnpaid: boolean;
 }
 
 /** When each chat was opened, as date keys: a payer's monthly message, and the latest nudge per charge. */
@@ -505,6 +510,15 @@ function buildHero(
   }
 }
 
+/** Whether anyone but the owner has an unpaid charge above zero, this month or an earlier one. */
+function hasPaymentToRecord(input: HomeInput): boolean {
+  const ownerIds = new Set(input.people.filter((p) => p.isOwner).map((p) => p.id));
+  return (
+    input.earlierUnpaid ||
+    input.charges.some((c) => c.paidCents === null && c.amountCents > 0 && !ownerIds.has(c.personId))
+  );
+}
+
 function buildPrimaryAction(input: HomeInput): HomePrimaryAction {
   switch (input.status) {
     case "bill_missing":
@@ -526,7 +540,10 @@ function buildPrimaryAction(input: HomeInput): HomePrimaryAction {
       // Nothing is left to do this month.
       return null;
     case "collecting":
-      return { label: "Record payment", icon: "banknote", target: { kind: "record-payment", month: input.month } };
+      // Only while Record payment has something to list: the bill may be all that is left.
+      return hasPaymentToRecord(input)
+        ? { label: "Record payment", icon: "banknote", target: { kind: "record-payment", month: input.month } }
+        : null;
   }
 }
 

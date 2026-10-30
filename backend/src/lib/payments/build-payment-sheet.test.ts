@@ -80,4 +80,18 @@ describe("buildPaymentSheet", () => {
       "Rent · Jordan · October",
     );
   });
+
+  it("words Record payment by the charge's month, with the amount on the button", () => {
+    expect(buildPaymentSheet({ today: "2026-11-03", config: NOV_2026_CONFIG, charge: JORDAN_RENT, mode: "record" })).toMatchObject({
+      title: "Record payment",
+      subtitle: "Money you received for November",
+      actionLabel: "Record $950.00",
+      expected: "$950.00",
+      due: { text: "Overdue since 1 Nov", tone: "danger" },
+    });
+    const late = { ...JORDAN_RENT, month: "2026-10", dueDate: new Date("2026-10-01") };
+    expect(buildPaymentSheet({ today: "2026-11-03", config: NOV_2026_CONFIG, charge: late, mode: "record" }).subtitle).toBe(
+      "Money you received for October",
+    );
+  });
 });

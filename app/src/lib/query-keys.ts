@@ -29,4 +29,8 @@ export const queryKeys = {
   billCheck: (month: string, request: unknown) => ['bill-check', month, request] as const,
   /** @param chargeId The charge whose Mark paid sheet this is. */
   chargePayment: (chargeId: string) => ['charge-payment', chargeId] as const,
+  /** Every month's Record payment lists. The prefix of `paymentOptions`, so a payment refreshes them all. */
+  allPaymentOptions: ['payment-options'] as const,
+  /** @param month `YYYY-MM` key of the month Record payment is opened for. */
+  paymentOptions: (month: string) => ['payment-options', month] as const,
 };

@@ -64,6 +64,7 @@ function input(overrides: Partial<HomeInput> = {}): HomeInput {
     charges: novemberCharges(),
     bill: null,
     messages: [],
+    earlierUnpaid: false,
     ...overrides,
   };
 }
@@ -485,6 +486,16 @@ describe("buildHome, collecting on 3 Nov", () => {
       icon: "banknote",
       target: { kind: "record-payment", month: "2026-11" },
     });
+  });
+
+  it("drops the footer once nobody but Francis has anything left to pay", () => {
+    const allPaid = novemberChargesWithBill().map((c) => ({ ...c, paidCents: c.amountCents, paidOn: new Date("2026-11-03") }));
+    expect(collecting({ charges: allPaid }).primaryAction).toBeNull();
+  });
+
+  it("keeps the footer for a late payment from an earlier month", () => {
+    const allPaid = novemberChargesWithBill().map((c) => ({ ...c, paidCents: c.amountCents, paidOn: new Date("2026-11-03") }));
+    expect(collecting({ charges: allPaid, earlierUnpaid: true }).primaryAction).toMatchObject({ label: "Record payment" });
   });
 
   it("marks the bill overdue once its due date passes", () => {

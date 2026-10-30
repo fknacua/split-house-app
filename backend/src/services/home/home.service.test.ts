@@ -55,6 +55,7 @@ function fakeDb(
     charge: {
       createMany: async () => undefined,
       findMany: async () => (allPaid ? paidCharges : hasBill ? CHARGES_WITH_BILL : CHARGES),
+      count: async () => 0,
     },
     person: {
       findMany: async () => [

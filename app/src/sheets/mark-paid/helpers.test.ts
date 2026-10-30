@@ -1,7 +1,15 @@
-import type { ChargePaymentResponse } from '@splithouse/shared';
+import type { ChargePaymentResponse, PaymentOptionsResponse } from '@splithouse/shared';
 import { describe, expect, it } from 'vitest';
 
-import { markPaidFormSchema, toAmountState, toMarkPaidFormValues, toSavePaymentRequest } from './helpers';
+import {
+  choosePayment,
+  markPaidFormSchema,
+  toAmountState,
+  toForOptions,
+  toFromOptions,
+  toMarkPaidFormValues,
+  toSavePaymentRequest,
+} from './helpers';
 
 const SHEET: ChargePaymentResponse = {
   chargeId: 'charge-jordan-rent',
@@ -79,5 +87,96 @@ describe('toSavePaymentRequest', () => {
       paidCents: 90000,
       paidOn: '2026-11-02',
     });
+  });
+});
+
+describe('toAmountState on Record payment', () => {
+  const record = { ...SHEET, title: 'Record payment', actionLabel: 'Record $950.00' };
+
+  it('keeps the sheet button for the expected amount', () => {
+    expect(toAmountState(record, 95000, 'Record').actionLabel).toBe('Record $950.00');
+  });
+
+  it('names the amount typed with Record', () => {
+    expect(toAmountState(record, 90000, 'Record').actionLabel).toBe('Record $900.00');
+  });
+});
+
+// Jordan owes rent and utilities; Priya pays her utilities and Sam's.
+const sheet = (chargeId: string, expected: string, due: ChargePaymentResponse['due']): ChargePaymentResponse => ({
+  ...SHEET,
+  chargeId,
+  title: 'Record payment',
+  expected,
+  due,
+});
+const OPTIONS: PaymentOptionsResponse = {
+  month: '2026-11',
+  people: [
+    {
+      personId: 'jordan',
+      name: 'Jordan',
+      detail: '2 unpaid · $1,050.79',
+      charges: [
+        { label: 'Rent · Nov', sheet: sheet('jordan-rent', '$950.00', { text: 'Overdue since 1 Nov', tone: 'danger' }) },
+        { label: 'Utilities · Nov', sheet: sheet('jordan-utilities', '$100.79', { text: '4 Nov', tone: 'default' }) },
+      ],
+    },
+    {
+      personId: 'priya',
+      name: 'Priya',
+      detail: '2 unpaid · $202.46',
+      charges: [
+        { label: 'Utilities · Nov', sheet: sheet('priya-utilities', '$120.00', { text: '7 Nov', tone: 'default' }) },
+        { label: 'Utilities · Sam · Nov', sheet: sheet('sam-utilities', '$82.46', null) },
+      ],
+    },
+  ],
+};
+
+describe('choosePayment', () => {
+  const ids = (pick: Parameters<typeof choosePayment>[1]) => {
+    const choice = choosePayment(OPTIONS, pick);
+    return choice && [choice.person.personId, choice.charge.sheet.chargeId];
+  };
+
+  it('has nothing while the lists load or nobody owes', () => {
+    expect(choosePayment(undefined, {})).toBeNull();
+    expect(choosePayment({ month: '2026-11', people: [] }, {})).toBeNull();
+  });
+
+  it('opens on the most urgent person and their first charge', () => {
+    expect(ids({})).toEqual(['jordan', 'jordan-rent']);
+  });
+
+  it("opens on a person's first charge", () => {
+    expect(ids({ personId: 'priya' })).toEqual(['priya', 'priya-utilities']);
+  });
+
+  it('opens on a charge with its payer chosen, even a charge paid through them', () => {
+    expect(ids({ chargeId: 'sam-utilities' })).toEqual(['priya', 'sam-utilities']);
+  });
+
+  it('falls back to the first when the chosen ones are gone', () => {
+    expect(ids({ personId: 'sam', chargeId: 'paid-already' })).toEqual(['jordan', 'jordan-rent']);
+  });
+});
+
+describe('toFromOptions and toForOptions', () => {
+  it('lists people with their detail line', () => {
+    expect(toFromOptions(OPTIONS)[0]).toEqual({ label: 'Jordan', value: 'jordan', detail: '2 unpaid · $1,050.79' });
+    expect(toFromOptions(undefined)).toEqual([]);
+  });
+
+  it('lists charges with the amount on the right and the due line, red while overdue', () => {
+    expect(toForOptions(OPTIONS.people[0])[0]).toEqual({
+      label: 'Rent · Nov',
+      value: 'jordan-rent',
+      trailing: '$950.00',
+      detail: 'Overdue since 1 Nov',
+      detailTone: 'danger',
+    });
+    expect(toForOptions(OPTIONS.people[1])[1]).toMatchObject({ detail: undefined, detailTone: undefined });
+    expect(toForOptions(null)).toEqual([]);
   });
 });

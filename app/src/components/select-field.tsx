@@ -13,11 +13,15 @@ import {
   SelectItem,
   SelectPortal,
   SelectTrigger,
+  type SelectItemExtras,
 } from '@/components/ui/select';
 import { withFormControlledField, BareInputProps } from './form-field/';
 
-/** One choice in a `SelectField`. */
-export interface SelectOption {
+/**
+ * One choice in a `SelectField`. The optional `detail`, `detailTone` and `trailing` show only in
+ * the list, as a second line and a figure on the right; the field shows the label alone.
+ */
+export interface SelectOption extends SelectItemExtras {
   /** What the user sees in the field and in the list. */
   label: string;
   /** What the field's value becomes when this choice is picked. */
@@ -90,14 +94,22 @@ export const BareSelectField = forwardRef<
           <SelectDragIndicatorWrapper>
             <SelectDragIndicator />
           </SelectDragIndicatorWrapper>
-          {options.map((option) => (
-            <SelectItem
-              key={option.value}
-              label={option.label}
-              value={option.value}
-              textStyle={option.value === value ? { className: 'font-manrope-extrabold' } : undefined}
-            />
-          ))}
+          {options.map(({ label, value: optionValue, detail, detailTone, trailing }) => {
+            const extras: SelectItemExtras = { detail, detailTone, trailing };
+            const twoLine = detail !== undefined;
+            return (
+              <SelectItem
+                key={optionValue}
+                label={label}
+                value={optionValue}
+                className={twoLine ? 'py-2' : undefined}
+                textStyle={{
+                  ...extras,
+                  className: optionValue === value ? 'font-manrope-extrabold' : twoLine ? 'font-manrope-bold' : undefined,
+                }}
+              />
+            );
+          })}
         </SelectContent>
       </SelectPortal>
     </Select>
@@ -109,7 +121,7 @@ export const BareSelectField = forwardRef<
  * `onChange`. Inside a form, pass `fieldControlProps` instead: the select is then bound to that
  * react-hook-form field and wrapped in the label-above form field. The look lives in `ui/select`.
  *
- * @param options - The choices.
+ * @param options - The choices, each optionally with a detail line and a trailing figure in the list.
  * @param placeholder - Shown while nothing is picked.
  * @param clearable - Shows an × button to clear the choice. Defaults to `false`; pass `true` to show it.
  * @param value - The picked option's value, or `''` (standalone only).

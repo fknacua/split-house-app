@@ -31,6 +31,14 @@ const MESSAGE_SELECT = { personId: true, kind: true, chargeId: true, openedAt: t
 // The bill's PDF lives in `BillFile`, which is never read here.
 const BILL_SELECT = { currentChargesCents: true, dueDate: true, paidCents: true, paidOn: true } as const;
 
+/** Unpaid charges above zero of someone other than the owner, in months before the given one. */
+interface EarlierUnpaidWhere {
+  month: { lt: string };
+  paidCents: null;
+  amountCents: { gt: 0 };
+  person: { isOwner: false };
+}
+
 /** The newest opened month with the household version it is pinned to. */
 interface OpenedMonthRow {
   month: string;
@@ -50,6 +58,7 @@ export type HomeDb = MonthOpenDb & {
   };
   charge: {
     findMany(args: { where: { month: string }; select: typeof CHARGE_SELECT }): Promise<HomeChargeRow[]>;
+    count(args: { where: EarlierUnpaidWhere }): Promise<number>;
   };
   bill: {
     findUnique(args: { where: { month: string }; select: typeof BILL_SELECT }): Promise<HomeBill | null>;
@@ -79,12 +88,16 @@ export async function getHome(db: HomeDb): Promise<HomeResponse> {
   if (!opened) throw new ApiError(409, "no_household", "Set up the household first.");
 
   // The draft is looked up by id only: its PDF bytes stay in the database.
-  const [people, charges, bill, draft, messages] = await Promise.all([
+  const [people, charges, bill, draft, messages, earlierUnpaid] = await Promise.all([
     db.person.findMany({ select: { id: true, name: true, isOwner: true } }),
     db.charge.findMany({ where: { month: opened.month }, select: CHARGE_SELECT }),
     db.bill.findUnique({ where: { month: opened.month }, select: BILL_SELECT }),
     db.billDraft.findUnique({ where: { month: opened.month }, select: { id: true } }),
     db.messageEvent.findMany({ where: { month: opened.month }, select: MESSAGE_SELECT }),
+    // A late payment Record payment can still take keeps its footer.
+    db.charge.count({
+      where: { month: { lt: opened.month }, paidCents: null, amountCents: { gt: 0 }, person: { isOwner: false } },
+    }),
   ]);
 
   const ownerIds = new Set(people.filter((p) => p.isOwner).map((p) => p.id));
@@ -107,5 +120,6 @@ export async function getHome(db: HomeDb): Promise<HomeResponse> {
     charges,
     bill,
     messages,
+    earlierUnpaid: earlierUnpaid > 0,
   });
 }
