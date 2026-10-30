@@ -3,11 +3,14 @@ import {
   formatPaymentDifference,
   positiveCents,
   type ChargePaymentResponse,
+  type PaymentOptionPerson,
+  type PaymentOptionsResponse,
   type SavePaymentRequest,
 } from '@splithouse/shared';
 import { z } from 'zod';
 
-import type { AmountState, PaymentVerb } from './types';
+import type { SelectOption } from '@/components';
+import type { AmountState, PaymentChoice, PaymentPick, PaymentVerb } from './types';
 
 /** The Mark paid form: the amount received and the day. The day picker stops at today. */
 export const markPaidFormSchema = z.object({
@@ -66,4 +69,52 @@ export function toAmountState(
  */
 export function toSavePaymentRequest(values: MarkPaidFormValues): SavePaymentRequest {
   return { paidCents: values.paidCents ?? 0, paidOn: values.paidOn };
+}
+
+/**
+ * The person and charge Record payment shows. A chosen charge wins (opened from a charge, or
+ * picked in For), then a chosen person with their first charge; with neither, the most urgent
+ * person (the server lists them first) and their first charge.
+ *
+ * @param options The lists from `GET /api/months/:month/payment-options`, or undefined while they load.
+ * @param pick What was chosen so far.
+ * @returns The person and charge, or `null` while loading or when nobody has anything to pay.
+ */
+export function choosePayment(options: PaymentOptionsResponse | undefined, pick: PaymentPick): PaymentChoice | null {
+  if (!options) return null;
+  const byCharge = pick.chargeId
+    ? options.people.find((p) => p.charges.some((c) => c.sheet.chargeId === pick.chargeId))
+    : undefined;
+  const byPerson = options.people.find((p) => p.personId === pick.personId);
+  const person = byCharge ?? byPerson ?? options.people[0];
+  if (!person) return null;
+  const charge = person.charges.find((c) => c.sheet.chargeId === pick.chargeId) ?? person.charges[0];
+  return { person, charge };
+}
+
+/**
+ * The From list: each person's name, with their detail line under it.
+ *
+ * @param options The lists, or undefined while they load (an empty list).
+ * @returns One option per person, valued by their id.
+ */
+export function toFromOptions(options: PaymentOptionsResponse | undefined): SelectOption[] {
+  return (options?.people ?? []).map((p) => ({ label: p.name, value: p.personId, detail: p.detail }));
+}
+
+/**
+ * The For list: the person's charges, each with its expected amount on the right and its due line
+ * under it, in red while overdue.
+ *
+ * @param person The chosen person, or null while loading (an empty list).
+ * @returns One option per charge, valued by its id.
+ */
+export function toForOptions(person: PaymentOptionPerson | null): SelectOption[] {
+  return (person?.charges ?? []).map(({ label, sheet }) => ({
+    label,
+    value: sheet.chargeId,
+    trailing: sheet.expected,
+    detail: sheet.due?.text,
+    detailTone: sheet.due?.tone,
+  }));
 }

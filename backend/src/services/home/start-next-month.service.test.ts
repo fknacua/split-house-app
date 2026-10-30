@@ -66,6 +66,7 @@ function fakeDb(settled: boolean, opened: string[] = ["2026-11"]) {
       },
       findMany: async ({ where }: { where: { month: string } }) =>
         where.month === "2026-11" ? november : (created.get(where.month) ?? []),
+      count: async () => 0,
     },
     person: {
       findMany: async () => [

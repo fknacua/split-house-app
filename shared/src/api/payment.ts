@@ -57,3 +57,44 @@ export const savePaymentResponseSchema = z.object({
 
 /** `POST /api/charges/:id/payment`: the charge that was paid and its month, so the app can refetch that month. */
 export type SavePaymentResponse = z.infer<typeof savePaymentResponseSchema>;
+
+/** One charge in Record payment's For list. */
+export const paymentOptionChargeSchema = z.object({
+  /** e.g. `Rent · Nov`, or `Utilities · Sam · Nov` for a charge paid through the From person. */
+  label: z.string(),
+  /**
+   * The sheet for this charge in Record payment's words: title `Record payment`, subtitle `Money
+   * you received for November` (the charge's own month), button `Record $950.00`. Choosing the
+   * charge swaps the sheet's text to this.
+   */
+  sheet: chargePaymentResponseSchema,
+});
+
+/** One charge in Record payment's For list. */
+export type PaymentOptionCharge = z.infer<typeof paymentOptionChargeSchema>;
+
+/** One person in Record payment's From list, with what they still have to pay. */
+export const paymentOptionPersonSchema = z.object({
+  personId: z.string(),
+  name: z.string(),
+  /** e.g. `2 unpaid · $1,050.79`, or `1 upcoming · $950.00` when none is overdue or due within 7 days. */
+  detail: z.string(),
+  /**
+   * Their unpaid charges and the unpaid charges paid through them: the newest opened month's
+   * first, then earlier months', each by due date. Never empty.
+   */
+  charges: z.array(paymentOptionChargeSchema).min(1),
+});
+
+/** One person in Record payment's From list, with what they still have to pay. */
+export type PaymentOptionPerson = z.infer<typeof paymentOptionPersonSchema>;
+
+/** `GET /api/months/:month/payment-options`: Record payment's From and For lists. */
+export const paymentOptionsResponseSchema = z.object({
+  month: monthKey,
+  /** Most urgent first (the earliest due date among their charges), then by name. Empty when nothing is unpaid. */
+  people: z.array(paymentOptionPersonSchema),
+});
+
+/** `GET /api/months/:month/payment-options`: Record payment's From and For lists. */
+export type PaymentOptionsResponse = z.infer<typeof paymentOptionsResponseSchema>;

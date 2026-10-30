@@ -23,7 +23,55 @@ import {
   ActionsheetSectionList,
   ActionsheetSectionHeaderText,
 } from './select-actionsheet';
-import { Pressable, View, TextInput } from 'react-native';
+import { Pressable, Text, View, TextInput } from 'react-native';
+
+/**
+ * Extra lines a SelectItem can show, passed through its `textStyle` (gluestack spreads `textStyle`
+ * onto the item text and renders the label as its children).
+ */
+export interface SelectItemExtras {
+  /** A second line under the label, e.g. `2 unpaid · $1,050.79`. */
+  detail?: string;
+  /** `danger` turns the detail line red, e.g. `Overdue since 1 Nov`. */
+  detailTone?: 'default' | 'danger';
+  /** A bold figure at the right of the label, e.g. `$950.00`. */
+  trailing?: string;
+}
+
+type ISelectItemTextProps = React.ComponentProps<typeof ActionsheetItemText> & SelectItemExtras;
+
+// App change to the copied component: the item text can carry a detail line and a trailing
+// figure (Record payment's From and For rows). Without them it is gluestack's one-line text.
+const SelectItemText = React.forwardRef<
+  React.ComponentRef<typeof ActionsheetItemText>,
+  ISelectItemTextProps
+>(function SelectItemText({ detail, detailTone = 'default', trailing, children, ...props }, ref) {
+  if (detail === undefined && trailing === undefined) {
+    return <ActionsheetItemText ref={ref} {...props}>{children}</ActionsheetItemText>;
+  }
+  return (
+    <View className="flex-1 gap-px">
+      <View className="flex-row items-center gap-2">
+        <ActionsheetItemText ref={ref} {...props}>{children}</ActionsheetItemText>
+        {trailing !== undefined ? (
+          <Text
+            className="font-manrope-bold text-body text-on-surface"
+            style={{ fontVariant: ['tabular-nums'] }}
+          >
+            {trailing}
+          </Text>
+        ) : null}
+      </View>
+      {detail !== undefined ? (
+        <Text
+          className={`font-manrope-semibold text-caption ${detailTone === 'danger' ? 'text-danger' : 'text-on-surface-variant'}`}
+        >
+          {detail}
+        </Text>
+      ) : null}
+    </View>
+  );
+});
 
 const SelectTriggerWrapper = React.forwardRef<
   React.ComponentRef<typeof Pressable>,
@@ -68,7 +116,7 @@ const UISelect = createSelect(
     DragIndicator: ActionsheetDragIndicator,
     DragIndicatorWrapper: ActionsheetDragIndicatorWrapper,
     Item: ActionsheetItem,
-    ItemText: ActionsheetItemText,
+    ItemText: SelectItemText,
     ScrollView: ActionsheetScrollView,
     VirtualizedList: ActionsheetVirtualizedList,
     FlatList: ActionsheetFlatList,

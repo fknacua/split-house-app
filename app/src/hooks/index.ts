@@ -13,6 +13,7 @@ export * from './use-load-bill-draft';
 export * from './use-open-bill-pdf';
 export * from './use-mark-bill-paid';
 export * from './use-me';
+export * from './use-payment-options';
 export * from './use-pull-to-refresh';
 export * from './use-save-bill';
 export * from './use-save-payment';
