@@ -1,4 +1,4 @@
-import { HOUSEHOLD_SCHEMA_VERSION } from "@splithouse/shared";
+import { HOUSEHOLD_SCHEMA_VERSION, type RecipientResponse } from "@splithouse/shared";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { NOV_2026_CONFIG, PERSON_IDS } from "@/lib/fixtures/household";
 import { renderNudgeMessage } from "@/lib/messages/render";
@@ -25,6 +25,12 @@ const JORDAN_RENT: RecipientChargeRow = {
 };
 
 /** A database with November open and its bill saved, unless told otherwise, that keeps what is created. */
+/** The message card, failing the test with a clear error when the layout has none (the paid layouts). */
+function messageOf(r: RecipientResponse): NonNullable<RecipientResponse["message"]> {
+  if (!r.message) throw new Error("expected a message");
+  return r.message;
+}
+
 function fakeDb({ open = true, bill = true } = {}) {
   const created: unknown[] = [];
   const db: MessageEventDb = {
@@ -63,7 +69,7 @@ describe("createMessageEvent", () => {
         personId: PERSON_IDS.jordan,
         kind: "MONTHLY",
         chargeId: null,
-        renderedText: preview.message.text,
+        renderedText: messageOf(preview).text,
         openedAt: new Date("2026-11-02T10:00:00+08:00"),
       },
     ]);

@@ -30,7 +30,7 @@ export const HOME_BADGES = {
 } as const satisfies Record<string, BadgeContent>;
 
 /** A charge due within this many days shows `Due in N days`. Further out it is `Sent, unpaid` or `Upcoming`. */
-export const DUE_SOON_DAYS = 3;
+const DUE_SOON_DAYS = 3;
 
 /**
  * The chip for something past its due date.
@@ -49,7 +49,7 @@ export function overdueBadge(daysLate: number): BadgeContent {
  * @returns `Overdue N days`, `Due today`, `Due tomorrow` or `Due in N days` (up to `DUE_SOON_DAYS`),
  * or null when the due date is further out and the caller picks `Sent, unpaid` or `Upcoming`.
  */
-export function chargeDueBadge(days: number): BadgeContent | null {
+function chargeDueBadge(days: number): BadgeContent | null {
   if (days < 0) return overdueBadge(-days);
   if (days === 0) return HOME_BADGES.dueToday;
   if (days === 1) return HOME_BADGES.dueTomorrow;

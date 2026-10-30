@@ -1,4 +1,4 @@
-import { recipientResponseSchema } from "@splithouse/shared";
+import { recipientResponseSchema, type RecipientResponse } from "@splithouse/shared";
 import { describe, expect, it } from "vitest";
 import { NOV_2026_CONFIG, PERSON_IDS } from "@/lib/fixtures/household";
 import { whatsappLink } from "@/lib/messages/whatsapp-link";
@@ -12,8 +12,14 @@ const PEOPLE = [
   { id: sam, name: "Sam" },
   { id: jordan, name: "Jordan" },
 ];
-const NAMES = new Map(PEOPLE.map((p) => [p.id, p.name]));
+const NAMES = new Map<string, string>(PEOPLE.map((p) => [p.id, p.name]));
 const PHONE = "+6580000000";
+
+/** The message card, failing the test with a clear error when the layout has none (the paid layouts). */
+function messageOf(r: RecipientResponse): NonNullable<RecipientResponse["message"]> {
+  if (!r.message) throw new Error("expected a message");
+  return r.message;
+}
 
 /** An unpaid November charge. */
 function charge(
@@ -101,7 +107,7 @@ describe("buildRecipient: notSent", () => {
       ],
       editTemplate: { label: "Edit template", enabled: true, target: { kind: "edit-template", template: "MONTHLY" } },
     });
-    expect(r.message.sections).toEqual([
+    expect(messageOf(r).sections).toEqual([
       {
         title: "Yours:",
         lines: [
@@ -121,15 +127,15 @@ describe("buildRecipient: notSent", () => {
         subtotal: "$100.79",
       },
     ]);
-    expect(r.message.text).toContain("Yours:\nRent $1,675.00");
-    expect(r.message.text).toContain("*Subtotal $1,862.86*");
-    expect(r.message.text).toContain("*Total: $1,963.65*");
+    expect(messageOf(r).text).toContain("Yours:\nRent $1,675.00");
+    expect(messageOf(r).text).toContain("*Subtotal $1,862.86*");
+    expect(messageOf(r).text).toContain("*Total: $1,963.65*");
     expect(r.note).toBeNull();
     expect(r.primaryAction).toEqual({
       label: "Send on WhatsApp",
       icon: "send",
       enabled: true,
-      target: { kind: "send-whatsapp", month: "2026-11", personId: priya, url: whatsappLink(PHONE, r.message.text) },
+      target: { kind: "send-whatsapp", month: "2026-11", personId: priya, url: whatsappLink(PHONE, messageOf(r).text) },
     });
     expect(r.secondaryActions).toEqual([
       { label: "Share bill", icon: null, enabled: true, target: { kind: "share-bill", month: "2026-11" } },
@@ -144,8 +150,8 @@ describe("buildRecipient: notSent", () => {
       amount: "$1,050.79",
       statusLine: { text: "Due 1 Nov", tone: "default" },
     });
-    expect(r.message.sections).toHaveLength(1);
-    expect(r.message.sections[0].title).toBeNull();
+    expect(messageOf(r).sections).toHaveLength(1);
+    expect(messageOf(r).sections[0].title).toBeNull();
   });
 
   it("says overdue in danger once the earliest due date has passed", () => {
@@ -159,7 +165,7 @@ describe("buildRecipient: notSent", () => {
 
     expect(r.header.sub).toBe("Own room · utilities and aircon via Priya");
     expect(r.amountCard).toMatchObject({ amount: "$950.00", statusLine: { text: "Due 28 Nov", tone: "default" } });
-    expect(r.message.sections).toEqual([{ title: null, lines: [{ label: "Rent", amount: "$950.00" }], subtotal: null }]);
+    expect(messageOf(r).sections).toEqual([{ title: null, lines: [{ label: "Rent", amount: "$950.00" }], subtotal: null }]);
     expect(r.primaryAction?.enabled).toBe(true);
   });
 
@@ -172,7 +178,7 @@ describe("buildRecipient: notSent", () => {
       chip: { label: "Needs bill", tone: "neutral" },
       statusLine: { text: "Utilities are worked out once the bill is uploaded", tone: "default" },
     });
-    expect(r.message.sections[0].lines).toEqual([{ label: "Rent", amount: "$950.00" }]);
+    expect(messageOf(r).sections[0].lines).toEqual([{ label: "Rent", amount: "$950.00" }]);
     expect(r.primaryAction?.enabled).toBe(false);
     expect(r.secondaryActions.map((a) => a.enabled)).toEqual([false]);
   });
@@ -182,7 +188,7 @@ describe("buildRecipient: notSent", () => {
     const r = buildRecipient(input(jordan, [...JORDAN_CHARGES, correction]));
 
     expect(r.amountCard.amount).toBe("$1,065.79");
-    expect(r.message.sections[0].lines.at(-1)).toEqual({ label: "Correction: September utilities", amount: "$15.00" });
+    expect(messageOf(r).sections[0].lines.at(-1)).toEqual({ label: "Correction: September utilities", amount: "$15.00" });
   });
 });
 
@@ -227,7 +233,7 @@ describe("buildRecipient: sent", () => {
       statusLine: { text: "Sent 2 Nov · due 7 Nov", tone: "default" },
     });
     expect(r.message).toMatchObject({ label: "Sent message", meta: "Sent 2 Nov" });
-    expect(r.message.sections).toHaveLength(2);
+    expect(messageOf(r).sections).toHaveLength(2);
     expect(r.primaryAction).toEqual({
       label: "Mark paid",
       icon: "check",
@@ -240,7 +246,7 @@ describe("buildRecipient: sent", () => {
         label: "Send again",
         icon: null,
         enabled: true,
-        target: { kind: "send-whatsapp", month: "2026-11", personId: priya, url: whatsappLink(PHONE, r.message.text) },
+        target: { kind: "send-whatsapp", month: "2026-11", personId: priya, url: whatsappLink(PHONE, messageOf(r).text) },
       },
     ]);
   });
@@ -258,7 +264,7 @@ describe("buildRecipient: sent", () => {
     );
 
     expect(r.amountCard.statusLine?.text).toBe("Sent 4 Nov · due 7 Nov");
-    expect(r.message.meta).toBe("Sent 4 Nov");
+    expect(messageOf(r).meta).toBe("Sent 4 Nov");
   });
 
   it("stays notSent with only a nudge", () => {
