@@ -4,6 +4,7 @@ import { ScrollView, View } from 'react-native';
 import { Alert, Screen, SkeletonBlock, SubpageFooter, SubpageHeader } from '@/components';
 import { useRecipient } from '@/hooks';
 import { AmountCard } from './components/amount-card';
+import { ChargeRowsCard } from './components/charge-rows-card';
 import { MessageCard } from './components/message-card';
 import { RecipientFooter } from './components/recipient-footer';
 import { RecipientSkeleton } from './components/recipient-skeleton';
@@ -12,12 +13,13 @@ import { RecipientSheetsProvider } from './recipient-sheets';
 /**
  * Recipient: one person's month, what they owe, the message they get and the buttons to send it.
  * Every string comes from `GET /api/months/:month/recipients/:personId`. Built so far: `notSent`,
- * `sent` and loading. Opened from Home, so the bottom navigation is hidden. Mounts its own sheets
- * (Record payment).
+ * `sent`, the overdue layout (`nudged`, with the charge rows) and loading. Home's Nudge passes
+ * `chargeId` to choose the charge to nudge. Opened from Home, so the bottom navigation is hidden.
+ * Mounts its own sheets (Record payment, Nudge about which charge?).
  */
 export function Recipient() {
-  const { month, personId } = useLocalSearchParams<{ month: string; personId: string }>();
-  const { data, error, isPending } = useRecipient(month, personId);
+  const { month, personId, chargeId } = useLocalSearchParams<{ month: string; personId: string; chargeId?: string }>();
+  const { data, error, isPending } = useRecipient(month, personId, chargeId ?? null);
 
   return (
     <RecipientSheetsProvider>
@@ -29,6 +31,7 @@ export function Recipient() {
           {data ? (
             <>
               <AmountCard card={data.amountCard} />
+              {data.charges.length > 0 ? <ChargeRowsCard rows={data.charges} /> : null}
               <MessageCard message={data.message} />
             </>
           ) : null}
@@ -42,7 +45,12 @@ export function Recipient() {
           </SubpageFooter>
         ) : null}
         {data ? (
-          <RecipientFooter note={data.note} primary={data.primaryAction} secondary={data.secondaryActions} />
+          <RecipientFooter
+            note={data.note}
+            primary={data.primaryAction}
+            secondary={data.secondaryActions}
+            charges={data.charges}
+          />
         ) : null}
       </Screen>
     </RecipientSheetsProvider>

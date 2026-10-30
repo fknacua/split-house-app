@@ -10,7 +10,8 @@ export type HomeStatus = z.infer<typeof homeStatusSchema>;
 
 /** Where a tap on a row link, a row action or the footer goes. Carries only the ids the target screen needs. */
 export const homeTargetSchema = z.discriminatedUnion('kind', [
-  z.object({ kind: z.literal('recipient'), month: monthKey, personId: z.string() }),
+  /** Opens Recipient. Nudge passes the overdue charge it is about, so Recipient's Nudge again nudges that one. */
+  z.object({ kind: z.literal('recipient'), month: monthKey, personId: z.string(), chargeId: z.string().optional() }),
   z.object({ kind: z.literal('mark-paid'), chargeId: z.string() }),
   z.object({ kind: z.literal('bill-upload'), month: monthKey }),
   z.object({ kind: z.literal('bill-draft-continue'), month: monthKey }),

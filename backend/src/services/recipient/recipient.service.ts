@@ -121,9 +121,16 @@ export async function loadRecipientInput(db: RecipientDb, month: string, personI
  * @param db - The Prisma client, or a fake in tests.
  * @param month - The month key, e.g. `2026-11`.
  * @param personId - Who the screen is for.
+ * @param chargeId - The overdue charge Home's Nudge chose, or null. Ignored unless it is one of the
+ * person's overdue charges.
  * @returns The Recipient screen.
  * @throws {ApiError} 404 `no_month` or `no_person`, as `loadRecipientInput`.
  */
-export async function getRecipient(db: RecipientDb, month: string, personId: string): Promise<RecipientResponse> {
-  return buildRecipient(await loadRecipientInput(db, month, personId));
+export async function getRecipient(
+  db: RecipientDb,
+  month: string,
+  personId: string,
+  chargeId: string | null = null,
+): Promise<RecipientResponse> {
+  return buildRecipient({ ...(await loadRecipientInput(db, month, personId)), chargeId });
 }

@@ -10,10 +10,14 @@ import type { RecipientResponse } from '@splithouse/shared';
  *
  * @param month `YYYY-MM` key.
  * @param personId The person the screen is for.
+ * @param chargeId The overdue charge Home's Nudge chose, or null.
  */
-export function useRecipient(month: string, personId: string) {
+export function useRecipient(month: string, personId: string, chargeId: string | null) {
   return useQuery({
-    queryKey: queryKeys.recipient(month, personId),
-    queryFn: () => apiFetch<RecipientResponse>(`/api/months/${month}/recipients/${personId}`),
+    queryKey: queryKeys.recipient(month, personId, chargeId),
+    queryFn: () =>
+      apiFetch<RecipientResponse>(
+        `/api/months/${month}/recipients/${personId}${chargeId ? `?chargeId=${encodeURIComponent(chargeId)}` : ''}`
+      ),
   });
 }

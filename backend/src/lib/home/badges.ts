@@ -21,6 +21,8 @@ export const HOME_BADGES = {
   waiting: { label: "Waiting", tone: "neutral" },
   /** Recipient: the monthly message is out and nothing is paid. Its board writes it with a dot, unlike Home's. */
   recipientSentUnpaid: { label: "Sent · unpaid", tone: "neutral" },
+  /** Recipient: a charge is past its due date; the rows below say which and by how long. */
+  recipientOverdue: { label: "Overdue", tone: "danger" },
 } as const satisfies Record<string, BadgeContent>;
 
 /** A charge due within this many days shows `Due in N days`. Further out it is `Sent, unpaid` or `Upcoming`. */
@@ -49,6 +51,30 @@ export function chargeDueBadge(days: number): BadgeContent | null {
   if (days === 1) return HOME_BADGES.dueTomorrow;
   if (days <= DUE_SOON_DAYS) return { label: `Due in ${days} days`, tone: "neutral" };
   return null;
+}
+
+/**
+ * The chip for a charge, first match wins: Paid, Not sent, Overdue N days, Due today, Due tomorrow,
+ * Due in N days (up to three), Sent unpaid, Upcoming. Home's rows and Recipient's charge rows use it.
+ *
+ * @param flags - Where the charge stands.
+ * @param flags.paid - The charge is paid.
+ * @param flags.messageUnsent - A utilities charge whose payer has no monthly message yet.
+ * @param flags.days - Whole days to the due date, negative once past. Null when no due day is known.
+ * @param flags.sent - The payer's monthly message has been opened.
+ * @returns The chip.
+ */
+export function chargeBadge(flags: {
+  paid: boolean;
+  messageUnsent: boolean;
+  days: number | null;
+  sent: boolean;
+}): BadgeContent {
+  if (flags.paid) return HOME_BADGES.paid;
+  if (flags.messageUnsent) return HOME_BADGES.notSent;
+  const due = flags.days === null ? null : chargeDueBadge(flags.days);
+  if (due) return due;
+  return flags.sent ? HOME_BADGES.sentUnpaid : HOME_BADGES.upcoming;
 }
 
 /**

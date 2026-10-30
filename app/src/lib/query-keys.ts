@@ -38,6 +38,8 @@ export const queryKeys = {
   /**
    * @param month `YYYY-MM` key of the month the Recipient screen shows.
    * @param personId The person it is for.
+   * @param chargeId The overdue charge Home's Nudge chose, or null.
    */
-  recipient: (month: string, personId: string) => ['recipient', month, personId] as const,
+  recipient: (month: string, personId: string, chargeId: string | null) =>
+    ['recipient', month, personId, chargeId] as const,
 };

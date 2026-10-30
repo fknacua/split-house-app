@@ -50,7 +50,12 @@ export function useOpenTarget() {
       case 'recipient':
         router.push({
           pathname: '/recipient/[month]/[personId]',
-          params: { month: target.month, personId: target.personId },
+          // Nudge passes the charge it is about; the other links open the person's page.
+          params: {
+            month: target.month,
+            personId: target.personId,
+            ...(target.chargeId ? { chargeId: target.chargeId } : {}),
+          },
         });
         return;
     }

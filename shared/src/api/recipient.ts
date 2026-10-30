@@ -3,9 +3,22 @@ import { monthKey } from '../schemas/primitives';
 import { badgeSchema } from './history';
 
 /**
- * Where a Recipient button goes. Carries only what the target needs. Later steps add the nudge
- * target.
+ * Opens the person's WhatsApp chat with a nudge about one charge, then records a NUDGE message event
+ * on it. `url` is the `https://wa.me/...` link with the nudge filled in; null when the person has no
+ * WhatsApp number, and the button is then disabled.
  */
+export const recipientNudgeTargetSchema = z.object({
+  kind: z.literal('nudge-whatsapp'),
+  month: monthKey,
+  personId: z.string(),
+  chargeId: z.string(),
+  url: z.url().nullable(),
+});
+
+/** Opens WhatsApp with a nudge about one charge, then records it. */
+export type RecipientNudgeTarget = z.infer<typeof recipientNudgeTargetSchema>;
+
+/** Where a Recipient button goes. Carries only what the target needs. */
 export const recipientTargetSchema = z.discriminatedUnion('kind', [
   /**
    * Opens the person's WhatsApp chat with the monthly message, then records a MONTHLY message event.
@@ -13,8 +26,14 @@ export const recipientTargetSchema = z.discriminatedUnion('kind', [
    * WhatsApp number, and the button is then disabled.
    */
   z.object({ kind: z.literal('send-whatsapp'), month: monthKey, personId: z.string(), url: z.url().nullable() }),
-  /** Opens Record payment (7.3) with this person chosen. */
-  z.object({ kind: z.literal('record-payment'), month: monthKey, personId: z.string() }),
+  recipientNudgeTargetSchema,
+  /**
+   * Opens the "Nudge about which charge?" sheet, listing the charge rows that carry a `nudge`. Used by
+   * Nudge again when no charge was chosen and two or more are overdue.
+   */
+  z.object({ kind: z.literal('choose-nudge'), month: monthKey, personId: z.string() }),
+  /** Opens Record payment (7.3) with this person chosen, and with `chargeId` chosen when given. */
+  z.object({ kind: z.literal('record-payment'), month: monthKey, personId: z.string(), chargeId: z.string().optional() }),
   /** Opens the Share bill sheet (7.10). */
   z.object({ kind: z.literal('share-bill'), month: monthKey }),
   /** Opens the template in Settings (9A). */
@@ -59,17 +78,19 @@ export const recipientAmountCardSchema = z.object({
 /** The amount card at the top. */
 export type RecipientAmountCard = z.infer<typeof recipientAmountCardSchema>;
 
-/** One charge row in the overdue layout (filled from 7.8; empty before). */
+/** One unpaid charge in the overdue layout, ordered by due date. */
 export const recipientChargeRowSchema = z.object({
   chargeId: z.string(),
-  /** e.g. `Rent`. */
+  /** e.g. `Rent`, or `Utilities · Sam` for a charge paid through this person. */
   title: z.string(),
   /** e.g. `$950.00`. */
   amount: z.string(),
-  /** e.g. `Due 1 Nov`. */
+  /** e.g. `Due 1 Nov · nudged 2 Nov` or `Due 4 Nov · sent 2 Nov`. */
   detail: z.string(),
-  /** e.g. `Overdue 2 days`. */
+  /** Home's chip, e.g. `Overdue 2 days` or `Due tomorrow`. */
   chip: badgeSchema,
+  /** For an overdue charge, the nudge about it (a row of the "Nudge about which charge?" sheet); null otherwise. */
+  nudge: recipientNudgeTargetSchema.nullable(),
 });
 
 /** One charge row in the overdue layout. */
@@ -108,11 +129,11 @@ export type RecipientMessageOutroLine = z.infer<typeof recipientMessageOutroLine
 
 /** The message card: a preview in parts, and the exact text that is sent and copied. */
 export const recipientMessageSchema = z.object({
-  /** e.g. `Message`, or `Sent message` once the chat was opened. */
+  /** e.g. `Message`, `Sent message` once the chat was opened, or `Nudge` / `Last nudge` in the overdue layout. */
   label: z.string(),
-  /** e.g. `Monthly breakdown template`, or `Sent 2 Nov`. */
+  /** e.g. `Monthly breakdown template`, `Nudge template`, or `Sent 2 Nov`. */
   meta: z.string(),
-  /** The template's text before the sections, e.g. `Hi Priya! Eto na yung breakdown for Nov 2026 😊`. */
+  /** The template's text before the sections, e.g. `Hi Priya! Eto na yung breakdown for Nov 2026 😊`; a nudge is all intro. */
   intro: z.string(),
   /** Empty when the message has no lines, e.g. a nudge. */
   sections: z.array(recipientMessageSectionSchema),
@@ -138,7 +159,7 @@ export const recipientResponseSchema = z.object({
     sub: z.string(),
   }),
   amountCard: recipientAmountCardSchema,
-  /** The overdue layout's charge rows; empty in the other layouts. */
+  /** The overdue layout's rows, one per unpaid charge; empty in the other layouts. */
   charges: z.array(recipientChargeRowSchema),
   message: recipientMessageSchema,
   /** A line of text under the message, e.g. why a payment is short. Null when there is none. */

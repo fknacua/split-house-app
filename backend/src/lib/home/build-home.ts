@@ -7,7 +7,6 @@ import {
   formatDateShort,
   formatMonthLabel,
   formatMonthName,
-  type BadgeContent,
   type HomeAction,
   type HomeHero,
   type HomeNextMonthAction,
@@ -20,7 +19,7 @@ import {
 } from "@splithouse/shared";
 import type { ChargeCategory, MessageKind } from "@/generated/prisma/enums";
 import { billCoverage, coveragePercent } from "@/lib/bill/bill-coverage";
-import { billDueBadge, chargeDueBadge, HOME_BADGES } from "./badges";
+import { billDueBadge, chargeBadge, HOME_BADGES } from "./badges";
 import { billDueDateKey, chargeDueDate } from "./due-dates";
 import { messageRecipientIds, monthlyMessagedIds, unsentRecipientIds } from "./message-recipients";
 
@@ -112,25 +111,6 @@ function messageDates(messages: HomeMessage[]): MessageDates {
 }
 
 /**
- * The chip for a charge, first match wins: Paid, Not sent, Overdue N days, Due today, Due tomorrow,
- * Due in N days (up to three), Sent unpaid, Upcoming.
- */
-function chargeBadge(flags: {
-  paid: boolean;
-  messageUnsent: boolean;
-  /** Whole days to the due date, negative once past. Null when no due day is known. */
-  days: number | null;
-  /** The payer's monthly message has been opened. */
-  sent: boolean;
-}): BadgeContent {
-  if (flags.paid) return HOME_BADGES.paid;
-  if (flags.messageUnsent) return HOME_BADGES.notSent;
-  const due = flags.days === null ? null : chargeDueBadge(flags.days);
-  if (due) return due;
-  return flags.sent ? HOME_BADGES.sentUnpaid : HOME_BADGES.upcoming;
-}
-
-/**
  * The detail line: a route via someone else, then where the charge stands (`Paid 3 Nov`,
  * `Nudged 2 Nov` or `Sent 2 Nov`). Paying direct is the default, so it is not said.
  */
@@ -165,7 +145,8 @@ function routeDetail(viaPersonId: string | null | undefined, names: Map<string, 
  * and has no Mark paid, since the message comes before any payment. When the person pays for
  * themselves the row starts open with a Review message link; a charge paid via someone else has
  * no message of its own, so it stays closed with the usual View details link. An unpaid charge
- * past its due date is shaded, starts open and offers Nudge (or Nudge again) beside Mark paid.
+ * past its due date is shaded and starts open; once the payer's monthly message is out it offers
+ * Nudge (or Nudge again) beside Mark paid, which opens Recipient with that charge.
  */
 function chargeRow(
   input: HomeInput,
@@ -199,8 +180,10 @@ function chargeRow(
     label: dates.nudgedOn.has(charge.id) ? "Nudge again" : "Nudge",
     tone: "warning",
     icon: "bell",
-    target: { kind: "recipient", month: input.month, personId: payerId },
+    target: { kind: "recipient", month: input.month, personId: payerId, chargeId: charge.id },
   };
+  // A nudge follows the monthly message, so it waits until the payer's message is out.
+  const nudgeable = overdue && dates.sentOn.has(payerId);
   return {
     rank: CATEGORY_RANK[charge.category] ?? 0,
     row: {
@@ -213,7 +196,7 @@ function chargeRow(
       tint: dueToday ? "info" : overdue ? "warning" : "none",
       expanded: dueToday || overdue || ownMessage,
       note: dueToday && input.status === "collecting" ? "You’ll get a payment check tonight if it’s still unpaid." : null,
-      actions: unpaid && !messageUnsent ? (overdue ? [nudge, markPaid] : [markPaid]) : [],
+      actions: unpaid && !messageUnsent ? (nudgeable ? [nudge, markPaid] : [markPaid]) : [],
       link: {
         label: ownMessage ? "Review message" : "View details",
         target: { kind: "recipient", month: input.month, personId: payerId },

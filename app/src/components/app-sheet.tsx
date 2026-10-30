@@ -50,7 +50,8 @@ function Grabber() {
  * @param subtitle - Optional one-line caption under the title, such as "Money you received for November".
  * @param cancelLabel - The text button under the action. Defaults to "Cancel".
  * @param children - The body content, placed in a padded column that scrolls.
- * @param actionLabel - The main action's label, for example "Add charge".
+ * @param actionLabel - The main action's label, for example "Add charge". Leave it out for a sheet that
+ *   acts on a tap in its body (Nudge about which charge?): then only Cancel shows.
  * @param onAction - Called when the action is tapped. Not called while `saving` or `disabled`.
  * @param saving - Show the spinner on the action and lock the sheet.
  * @param failed - Show the failed-save Alert and turn the action into "Retry".
@@ -66,7 +67,7 @@ export const AppSheet = forwardRef<
     subtitle?: string;
     cancelLabel?: string;
     children: ReactNode;
-    actionLabel: string;
+    actionLabel?: string;
     onAction?: () => void;
     saving?: boolean;
     failed?: boolean;
@@ -143,12 +144,14 @@ export const AppSheet = forwardRef<
 
           <View className="gap-3 px-4 pt-3" style={{ paddingBottom: insets.bottom + 16 }}>
             {failed ? <Alert variant="danger" message={failedMessage} /> : null}
-            <Button
-              label={failed ? 'Retry' : actionLabel}
-              loading={saving}
-              disabled={disabled}
-              onPress={onAction}
-            />
+            {actionLabel ? (
+              <Button
+                label={failed ? 'Retry' : actionLabel}
+                loading={saving}
+                disabled={disabled}
+                onPress={onAction}
+              />
+            ) : null}
             <Button
               variant="ghost"
               label={cancelLabel}
