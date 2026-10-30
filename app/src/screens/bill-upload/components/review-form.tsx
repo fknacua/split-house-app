@@ -2,10 +2,9 @@ import { Plus, RefreshCw } from 'lucide-react-native';
 import { useFieldArray, useWatch } from 'react-hook-form';
 import { Text, View } from 'react-native';
 
-import { Alert, Button, Card, DateField, DateRangeField, EmptyBox, MoneyInput, TextInput } from '@/components';
+import { Alert, Button, Card, DateField, DateRangeField, EmptyBox, FileCard, MoneyInput, TextInput } from '@/components';
 import type { BillBlocker } from '@splithouse/shared';
 import type { ReviewFormProps } from '../types';
-import { FileCard } from './file-card';
 import { LineRow } from './line-row';
 import { SubtotalRow } from './subtotal-row';
 

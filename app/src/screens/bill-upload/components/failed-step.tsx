@@ -1,8 +1,7 @@
 import { Text, View } from 'react-native';
 
-import { Alert } from '@/components';
+import { Alert, FileCard } from '@/components';
 import type { FailedStepProps } from '../types';
-import { FileCard } from './file-card';
 
 /**
  * The `failed` board: the server found no Current Charges in the file, so it asks whether this is

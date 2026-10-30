@@ -335,6 +335,7 @@
 
   /* Shape */
   --radius-field: 12px;
+  --radius-option: 14px;
   --radius-alert: 16px;
   --radius-card: 20px;
   --radius-dialog: 24px;

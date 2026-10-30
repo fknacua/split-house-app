@@ -14,7 +14,7 @@ const BILL: BillViewBillRow = {
   paidCents: null,
   paidOn: null,
   createdAt: new Date("2026-11-02T10:00:00+08:00"),
-  file: { filename: "bill.pdf", pageCount: 2 },
+  file: { filename: "bill.pdf", sizeBytes: 219136, pageCount: 2 },
 };
 
 const PEOPLE = [
@@ -86,7 +86,7 @@ describe("getBillView", () => {
     const { db, queries } = fakeDb(BILL);
     await getBillView(db, "2026-11");
     expect(queries).toEqual([
-      expect.objectContaining({ select: expect.objectContaining({ file: { select: { filename: true, pageCount: true } } }) }),
+      expect.objectContaining({ select: expect.objectContaining({ file: { select: { filename: true, sizeBytes: true, pageCount: true } } }) }),
     ]);
   });
 

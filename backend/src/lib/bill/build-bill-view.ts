@@ -10,6 +10,7 @@ import {
   formatMonthName,
   type BadgeContent,
   type BillPaySheet,
+  type BillShare,
   type BillViewFact,
   type BillViewLine,
   type BillViewPerson,
@@ -22,6 +23,7 @@ import { billDueInBadge, HOME_BADGES, overdueBadge, paidOnBadge } from "@/lib/ho
 import { billDueDateKey, chargeDueDate } from "@/lib/home/due-dates";
 import { messageRecipientIds, monthlyMessagedIds, unsentRecipientIds } from "@/lib/home/message-recipients";
 import { billCoverage, coveragePercent, type BillCoverage } from "./bill-coverage";
+import { buildBillShare } from "./build-bill-share";
 
 /** A person, as much of them as View bill needs. */
 export interface BillViewPersonRow {
@@ -52,7 +54,7 @@ export interface BillViewBillRow {
   paidCents: number | null;
   paidOn: Date | null;
   createdAt: Date;
-  file: { filename: string; pageCount: number | null } | null;
+  file: { filename: string; sizeBytes: number; pageCount: number | null } | null;
 }
 
 /** Everything `buildBillView` works from. */
@@ -126,25 +128,45 @@ function personBadge(
   return days !== null && days < 0 ? overdueBadge(-days) : HOME_BADGES.waiting;
 }
 
-/** One row per utilities charge: the user first, then everyone else in household order. */
-function people(input: BillViewInput, ownerIds: Set<string>, unsentIds: Set<string>): BillViewPerson[] {
-  const shares = utilityShares(input.config);
+/** The utilities charges: the user's first, then everyone else's in household order. */
+function utilitiesCharges(input: BillViewInput, ownerIds: Set<string>): BillViewChargeRow[] {
   const order = new Map(input.config.people.map((p, i) => [p.personId, i]));
-  const names = new Map(input.people.map((p) => [p.id, p.name]));
   const rank = (personId: string) => (ownerIds.has(personId) ? -1 : (order.get(personId) ?? input.people.length));
   return input.charges
     .filter((c) => c.category === "UTILITIES")
-    .sort((a, b) => rank(a.personId) - rank(b.personId))
-    .map((c) => {
-      const isOwner = ownerIds.has(c.personId);
-      return {
-        id: c.personId,
-        name: isOwner ? "You" : (names.get(c.personId) ?? ""),
-        shares: sharesText(shares.get(c.personId) ?? 0),
-        amount: formatCents(c.amountCents),
-        badge: personBadge(input, c, isOwner, unsentIds),
-      };
-    });
+    .sort((a, b) => rank(a.personId) - rank(b.personId));
+}
+
+/** One row per utilities charge: the user first, then everyone else in household order. */
+function people(input: BillViewInput, ownerIds: Set<string>, unsentIds: Set<string>): BillViewPerson[] {
+  const shares = utilityShares(input.config);
+  const names = new Map(input.people.map((p) => [p.id, p.name]));
+  return utilitiesCharges(input, ownerIds).map((c) => {
+    const isOwner = ownerIds.has(c.personId);
+    return {
+      id: c.personId,
+      name: isOwner ? "You" : (names.get(c.personId) ?? ""),
+      shares: sharesText(shares.get(c.personId) ?? 0),
+      amount: formatCents(c.amountCents),
+      badge: personBadge(input, c, isOwner, unsentIds),
+    };
+  });
+}
+
+/** The Share bill text. The user is named, not `You`, since the summary goes to someone else. */
+function share(input: BillViewInput, ownerIds: Set<string>, dueDate: string | null, lines: BillViewLine[]): BillShare {
+  const names = new Map(input.people.map((p) => [p.id, p.name]));
+  return buildBillShare({
+    month: input.month,
+    currentChargesCents: input.bill.currentChargesCents,
+    dueDate,
+    lines,
+    file: input.bill.file,
+    shares: utilitiesCharges(input, ownerIds).map((c) => ({
+      name: names.get(c.personId) ?? "",
+      amountCents: c.amountCents,
+    })),
+  });
 }
 
 /** Bill month, Billing period and Due date when known, then the day the user paid it. */
@@ -174,7 +196,7 @@ function fileMeta(pageCount: number | null, createdAt: Date): string {
 /**
  * Builds View bill: the bill card with its due or paid chip and lines, how much is collected with a
  * row per person, the facts, the stored file, the footer, and the Mark bill paid sheet's text while
- * the bill is unpaid. The Mark bill paid button is offered only on the month Home shows, while
+ * the bill is unpaid, and the Share bill sheet's text. The Mark bill paid button is offered only on the month Home shows, while
  * every message is out and the bill is unpaid (Home's `collecting`).
  *
  * @param input - The month, today's date key, the pinned config and what was read.
@@ -189,6 +211,7 @@ export function buildBillView(input: BillViewInput): BillViewResponse {
   const billPaid = bill.paidCents !== null;
   const dueDate = billDueDateKey(input.month, input.config, bill.dueDate);
   const coverage = billCoverage(input.charges, ownerIds, bill.currentChargesCents);
+  const lines = billLines(bill.lines);
 
   const badge = billPaid
     ? paidOnBadge(bill.paidOn ? dateKeyOf(bill.paidOn) : null)
@@ -199,7 +222,7 @@ export function buildBillView(input: BillViewInput): BillViewResponse {
   return {
     month: input.month,
     monthName: formatMonthLabel(input.month),
-    hero: { amount: formatCents(bill.currentChargesCents), badge, lines: billLines(bill.lines) },
+    hero: { amount: formatCents(bill.currentChargesCents), badge, lines },
     collection: {
       title: coverage.coveredCents >= coverage.totalCents ? "Fully collected" : "Collected so far",
       note: `${formatCents(coverage.coveredCents)} of ${formatCents(coverage.totalCents)}`,
@@ -213,6 +236,7 @@ export function buildBillView(input: BillViewInput): BillViewResponse {
         ? { label: "Mark bill paid", target: { kind: "mark-bill-paid", month: input.month } }
         : null,
     paySheet: billPaid ? null : paySheet(input, dueDate, coverage),
+    share: share(input, ownerIds, dueDate, lines),
   };
 }
 

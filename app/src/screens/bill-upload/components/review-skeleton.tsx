@@ -1,8 +1,7 @@
 import { View, type DimensionValue } from 'react-native';
 
-import { Card, SkeletonBlock } from '@/components';
+import { Card, FileCard, SkeletonBlock } from '@/components';
 import type { ReviewSkeletonProps } from '../types';
-import { FileCard } from './file-card';
 
 /** One label-above-field placeholder: the label, then the 48px input. */
 function FieldSkeleton({ labelWidth, className }: { labelWidth: DimensionValue; className?: string }) {
