@@ -719,3 +719,173 @@ At Francis's request the phase pass covers only dead code, the full checks and t
 ## 2026-10-30: 6.9 ✅, Phase 6 ✅
 
 Francis approved the phase pass (dead code, full checks, deviations list; the device walk, end-to-end run, and hex and 44px checks skipped at his request). Phase 6 is done: commits cc9ca27 (6.5), ded950b (6.6), f81a376 (6.7) and eb94ade (6.8) on top of the earlier 6.1 to 6.4 commits, all on `phase-6-bill-mgmt`. Open: the Metro typed-routes pollution (proposed fix: a `resolver.blockList` for `backend/` in `app/metro.config.js`, not applied).
+
+## 2026-10-30: Phase 7 reorganized (planning only)
+
+Rewrote the Phase 7 section of `implementation-plan.md` as twelve smaller steps, because Phase 6's base steps (6.2, 6.3, 6.6) grew too big to build and review comfortably: 7.0 native modules (`expo-clipboard`, `expo-sharing`, one EAS build up front), 7.1 Mark paid `full` with saving and failed, 7.2 `different`, 7.3 Record payment, 7.4 message rendering (backend only), 7.5 Recipient backend, 7.6 Recipient UI `notSent` and loading with Copy as plain text, 7.7 Send on WhatsApp and `sent`, 7.8 `nudged`, 7.9 `paid` and `paidDifferent` with Edit payment, 7.10 Share sheet, 7.11 phase pass with a fixed scope. New step rule: under about 15 changed files, refactors committed on their own first, and a new screen with a new endpoint is split into a backend step and an app step. Old IDs map in the build-order notes. No code changed.
+
+Decided with Francis: no `SAVINGS_TRANSFER` Task in Phase 7 and no savings note on Recipient; one charge per payment through `POST /api/charges/:id/payment` (`POST /api/payments` dropped), with Recipient's Mark paid opening Record payment for that person; Edit payment overwrites the stored payment, with no clear, delete or undo; payments in a month before the newest opened month can be recorded for the first time (late payments, listed in Record payment's For list) but not changed (409, no Edit payment); Mark paid uses the board's single prefilled amount field, not a Full/Different choice.
+
+Also agreed: the difference Alert copy (7.2, reusing Recipient's `paidDifferent` wording, plus an overpayment line) and Record payment's subtitle following the chosen charge's month (7.3). Checked Phases 8 to 12 for native modules: only `expo-clipboard` and `expo-sharing` are needed, both in 7.0. Then four more, found on a second read: Recipient's sub line is built from the config's `role` and `routes` (no room field; Jordan's "Room 3 · subtenant" becomes "Own room · pays you directly"); charges paid through someone appear in that person's Record payment For list and are saved as paid by them; message section titles use WhatsApp's `*bold*` markers, tested by hand on the phone in 7.6 and 7.7; nudges are about one charge and always go through Recipient, with Home's Nudge passing its charge, and Recipient asking which charge when opened without one and two or more are overdue (the picker's form is proposed in 7.8 and confirmed before building). Nothing left to decide before 7.0.
+
+## 2026-10-30: 7.0 🔄
+
+Installed `expo-clipboard` (~57.0.2) and `expo-sharing` (~57.0.24) with `npx expo install`. Checked against the Expo docs, which now show SDK 58: neither module needs config for our use. `expo install` still added the `expo-sharing` config plugin to `app.json`, and that plugin only adds share-into intent filters when `android.enabled` is set (default off), so it changes nothing. At Francis's request, the component test page gained a "Send on WhatsApp" section: a textarea with a simple sample message (bold titles, line breaks, emoji) and a button that opens `https://wa.me/?text=…` (no number, so WhatsApp asks which chat), with a danger Alert if it cannot open. Lint and diagnostics are clean on the page (diagnostics only). The Metro blockList fix is left out of this step. Not committed yet: the commit was blocked by a permission check. Next: commit, a new EAS development build, then a check on the phone (the app starts, sign-in works, the WhatsApp test).
+
+## 2026-10-30: 7.0 ✅
+
+Francis committed the modules (a6155a3), ran the new development build and approved the step. The `build-eas` script now uses `npx eas-cli`, because npm's `cmd.exe` could not find the global `eas` on his machine. Francis added a phone field to the WhatsApp test section, so the link opens a chat with that number, and the section's comment and caption were updated to match. The test section is committed on its own.
+
+## 2026-10-30: 7.1 🔄 (backend done, app next)
+
+At Francis's request 7.1 stays one step, built backend first for his review. Shared `api/payment.ts` (the sheet, request and response). Backend: pure `lib/payments/build-payment-sheet.ts` (subtitle `Rent · Jordan · November`, Due `7 Nov` or `Overdue since 1 Nov` in danger, both agreed with Francis; a paid charge prefills the stored payment); `services/payments/` (read, and save with the payer set to the via person or the person); `GET` and `POST /api/charges/:id/payment` with 400, 404 `no_charge`, 409 `payment_locked` (changing a payment in a month before the active one) and 409 `nothing_to_pay` (a credit; my call, flagged). README rows updated (`POST /api/payments` removed); deviations M1 to M3 added.
+
+Backend 348 tests and shared 110 tests pass; ESLint is clean on the new files; editor diagnostics are clean (diagnostics only, the full type check runs at the phase pass). App part not started.
+
+## 2026-10-30: 7.1 🔄 (app built, device review next)
+
+Francis approved the backend, including 409 `nothing_to_pay` for a credit. App: `sheets/mark-paid/` (`MarkPaidSheet` on `AppSheet` with the Expected and Due summary, Amount received and Received on, filled in from the server; a refused load shows its message in a danger Alert), `useChargePayment` and `useSavePayment` (refetches Home, History, the charge month's bill and the charge's sheet before the sheet closes), the `chargePayment` query key, the `mark-paid` case in `useOpenTarget`, and the sheet in `HomeSheetsProvider`. Deviation M4 (field copy) added, M3 updated.
+
+App 50 tests pass; ESLint clean on the changed files; editor diagnostics clean (diagnostics only); no hex values. Not run on a device yet.
+
+## 2026-10-30: 7.1 ✅
+
+Francis approved Mark paid and kept Received on open with no earliest day (only "not after today"). Committed as cfd43ad on `phase-7-payments-recipient`, with docs/plans left out.
+
+## 2026-10-30: 7.2 🔄
+
+Added `formatPaymentDifference` in `shared/src/lib/payment.ts` (with tests) for the agreed short and over wording, using the charge's own month. The sheet response gains `month` and `expectedCents` (a simple addition to 7.1's contract and builder), and the app's `toAmountState` switches the helper to "Expected $X" and the button to "Save $X", and shows an info Alert below Received on while the amount differs. Francis agreed the app does this comparison. Deviation M5 added. Shared 115, backend payment 17 and Mark paid 11 tests pass; ESLint clean; editor diagnostics clean (diagnostics only). Device review next.
+
+Review change (same day): at Francis's request the amount field's helper is hidden while the amount differs, instead of switching to "Expected $X", since the Alert already says it. M5 updated. Mark paid tests and ESLint pass again.
+
+## 2026-10-30: 7.2 ✅
+
+Francis approved the `different` state on device, with the helper hidden while the amount differs. Not committed yet.
+
+## 2026-10-30: 7.3 🔄 (backend done, app next)
+
+Built backend first, as in 7.1, because the step was well over 15 files. The `collecting` seed already has unpaid October charges (Jordan's rent and his September-utilities correction), so no seed change was needed. Shared: Record payment's options schemas on `api/payment.ts`. Backend: `buildPaymentSheet` gains a `record` mode (`Record payment`, `Money you received for November`, `Record $950.00`); pure `lib/payments/build-payment-options.ts` groups unpaid charges by payer (via person or the person), most urgent first, newest month first within a person; `services/payments/payment-options.service.ts`; `GET /api/months/:month/payment-options` (400 bad month, 404 `no_month`). Home's `Record payment` footer now hides when nobody but the owner has anything unpaid this month or earlier (a new `earlierUnpaid` count in the Home service). README rows and deviations M6 to M8 added.
+
+Decided with Francis: "upcoming" when nothing is overdue or due within 7 days; the button reads "Record $X" with the amount typed; most urgent person first, preselected; Home hides the footer rather than showing an empty sheet. Backend 362 and shared 115 tests pass; ESLint clean; editor diagnostics clean (diagnostics only). App part not started.
+
+## 2026-10-30: 7.3 🔄 (app built, device review next)
+
+Francis went ahead without a separate backend review (Postman needs a session cookie; the endpoint is reviewed through the app instead). Refactor first: Mark paid's form moved into a shared `PaymentSheet` (`sheets/mark-paid/components/`), with `MarkPaidSheet` now a thin wrapper, so Record payment reuses it; not committed separately yet. Then `RecordPaymentSheet` (From and For above the summary, `choosePayment` picks the given charge, then person, then the most urgent), `PaymentPickers`, `usePaymentOptions` and its query keys, the save refetching Record payment's lists, `toAmountState` taking the button's verb ("Record $X"), Home's `openRecordPayment` and the `record-payment` case in `useOpenTarget`. Francis chose two-line Select rows: the copied `ui/select` item text and `SelectOption` gained an optional detail line, tone and trailing figure. Deviation M9 added.
+
+App 64 tests pass; ESLint clean on the changed files; editor diagnostics clean (diagnostics only); no hex values. Not run on a device yet.
+
+## 2026-10-30: 7.3 ✅
+
+Francis approved Record payment on device. Committed in two parts: the shared `PaymentSheet` refactor on its own, then the rest of 7.3.
+
+## 2026-10-30: 7.4 🔄
+
+Built `lib/messages/render.ts` (fills placeholders in one pass and leaves unknown or unused ones as typed, picks the per-person override, renders the monthly message with its parts around `{lines}`, and the nudge), `lib/messages/build-breakdown.ts` (sections, working such as "1.5 of 5 shares of $412.30", `*bold*` titles, subtotals, total, earliest due date) and `lib/messages/line-label.ts`. Decided with Francis: unpaid charges only plus earlier unpaid corrections, design default labels with lineLabels overriding rent, utilities and aircon, a lone own section untitled, `{charge}` as the label as is. Deviation M10 added.
+
+21 new tests pass (including the Brief's Tagalog monthly and nudge defaults on the Nov 2026 fixtures); ESLint clean; editor diagnostics clean (diagnostics only, the full type check runs at the phase pass). Review next.
+
+## 2026-10-30: 7.4 ✅
+
+Francis approved the message rendering after reading the printed November messages (Priya, Jordan and Jordan's rent nudge). The section words stay fixed English for v1; his end goal is a fully customisable message builder, noted for 9A in the deviations carry-forward list. Not committed yet.
+
+## 2026-10-30: 7.4 committed, 7.5 🔄
+
+Committed 7.4 as 43358d7. For 7.5, built `shared/src/api/recipient.ts` (header, amount card, charge rows, message card with intro, sections, outro and the sent text, note, primary and secondary actions as targets with `enabled`), pure `lib/recipient/build-recipient.ts` (`notSent` only; later states fall back to it until 7.7 to 7.9), `services/recipient/recipient.service.ts` and `GET /api/months/:month/recipients/:personId` (400 bad month, 404 `no_month`, 404 `no_person` for unknown, the owner or someone not in the month's version), README row and deviation M11. Decided with Francis: owner 404 and Sam gets the normal page; before the bill the preview shows with Send and Share bill disabled; status line "Due 7 Nov · includes Sam’s share"; the chip reuses Home's primary `Not sent` badge.
+
+Backend 401 and shared 115 tests pass; ESLint clean on the new files; editor diagnostics clean (diagnostics only). Samples were printed from the builder with the `unsent` seed's rows, because reseeding was blocked by the permission check; the dev DB is still on `settled`, where every page reads $0.00 (the `paid` layout is 7.9). Review next.
+
+## 2026-10-30: 7.6 🔄 (built, device test next; 7.5 stays 🔄 at Francis's request)
+
+Built the route `recipient/[month]/[personId]` (registered in the root Stack), `useRecipient` with `recipient` and `allRecipients` query keys, and `screens/recipient/` (amount card, message card with sections, Edit template and Copy as plain text via `expo-clipboard`, footer with the primary and outline buttons, skeleton). Send on WhatsApp, Share bill and Edit template are drawn and do nothing yet (`useOpenRecipientTarget`). Simple additions: Home's `recipient` case in `useOpenTarget` now opens the screen, and `useSavePayment` also refetches any open Recipient. Deviation M12 logged (outro as plain template text, Android's own copy notice, skeleton).
+
+App 64 tests pass; ESLint clean on the changed files; no hex values; editor diagnostics clean (diagnostics only). Not run on a device yet; the `unsent` reseed is Francis's to run.
+
+Review change (same day): Francis found the total weaker than the subtotals. `renderMonthlyMessage` now also returns `afterLines`, flagging the line whose template holds `{total}`; Recipient's `message.outro` became those lines (a 7.5 contract change, still open), and the app draws the total line as the board's Total row (extra bold 15px, rule above). M12 updated. Message, Recipient and route tests (39) pass; ESLint clean; diagnostics clean.
+
+## 2026-10-30: 7.5 ✅, 7.6 ✅
+
+Francis approved the Recipient screen on device with the bolder total line, which also closes the 7.5 backend review. Committed separately: cb55020 (7.5, the endpoint, contract and the `{total}` line flag) and 494d2df (7.6, the app), with docs/plans left out. Open for 7.9: with nothing unpaid and no monthly message, the page shows an empty message ("Total: $0.00", `{dueDate}` unfilled); proposed that the `paid` layout covers it.
+
+## 2026-10-30: 7.7 🔄 (backend built, review next; app half not started)
+
+Francis decided the WhatsApp number always comes from the Person row (he puts his own number in after seeding; the seed is unchanged). Backend: Send's target now carries the server-built `https://wa.me/...` link (`lib/messages/whatsapp-link.ts`), null with Send disabled when there is no number; the builder adds `sent` (latest MONTHLY event, `Sent · unpaid`, `Sent 2 Nov · due 7 Nov`, Mark paid as a new `record-payment` target, Share bill, Send again); `loadRecipientInput` split out of the service; new `POST /api/months/:month/recipients/:personId/message-events` renders and stores the text itself (409 `no_bill`, 404 `no_charge` for a nudge). README rows and deviation M13 added.
+
+Backend 419 and shared 115 tests pass; ESLint clean on the changed backend files; editor diagnostics clean (diagnostics only, the full type check runs at the phase pass).
+
+## 2026-10-30: 7.7 🔄 (app built, device test next)
+
+Francis asked to build the app half without a separate backend review. App: `useRecordMessageEvent` (refetches Home, the bill and Recipient), Recipient's own `RecipientSheetsProvider` with Record payment, and `useOpenRecipientTarget` opening the `wa.me` link with `Linking`, then recording a MONTHLY event; the footer shows a danger Alert (copy from Francis: "Error encountered", "WhatsApp couldn’t be opened. No message is sent.") and spins the send button while recording. Francis also asked for a reason when Send is disabled for lack of a number: the builder's note now reads "No WhatsApp number is set up for Priya.". Deviation M14 added, M13 updated.
+
+App 64 and builder 13 tests pass (backend 419 earlier in this run); ESLint clean on the changed files; no hex values; editor diagnostics clean (diagnostics only). Not run on a device yet.
+
+Device review change (same day): Francis found the bold inconsistent (the preview bolded titles, subtotals and the total; WhatsApp only the titles) and chose to bold only the subtotal and total rows. The sent text now wraps `*Subtotal $X*` and the `{total}` line after `{lines}` in WhatsApp markers, titles are plain in the message and the preview. Deviation M15 added, M10 updated. Backend 420 tests pass; ESLint clean on the changed files.
+
+Open for 7.9 (Francis, device test, same day): a fully paid person who was sent a message shows the `sent` layout ($0.00, `Sent · unpaid`, Mark paid and Send again); the `paid` layout must replace it. When nothing is left unpaid the preview is empty (`Total: $0.00`, `{dueDate}` unfilled): Francis leans towards hiding the message card, though the `paid` board keeps the sent message; decide in 7.9. Also: Record payment opened with a person who has nothing unpaid silently picks the most urgent person instead (unreachable from Recipient once `paid` hides Mark paid, but worth guarding).
+
+## 2026-10-30: 7.7 ✅
+
+Francis approved Send on WhatsApp and the `sent` layout on device, with subtotal and total bold in both the preview and WhatsApp. The paid-up cases noted above move to 7.9. Not committed yet.
+
+## 2026-10-30: 7.7 committed, 7.8 🔄 (built, device test next)
+
+Committed 7.7 as 3338a4a. Francis decided: the overdue layout shows only once the monthly message is out (Home now holds Nudge back until then), an overdue charge never nudged shows a `Nudge` preview and a plain `Nudge` button, one row per unpaid charge, and the "Nudge about which charge?" sheet as proposed. Built: Home's chip precedence moved to `badges.ts` (`chargeBadge`, a refactor to commit on its own), Home's Nudge passes `chargeId`, `?chargeId=` on the Recipient endpoint, the builder's overdue layout (rows with a nudge target on each overdue one, `Last nudge`, `Mark rent paid` with the charge, Nudge again or `choose-nudge`), and in the app the charge rows card, the which-charge sheet (`AppSheet`'s action made optional), and nudges through 7.7's `wa.me` flow. Deviation M16 added, M13 updated, README row.
+
+Backend 429, shared 115 and app 64 tests pass; ESLint clean on the changed app and backend files; no hex values; editor diagnostics clean (diagnostics only). Not run on a device yet; the `collecting` reseed is Francis's to run.
+
+## 2026-10-30: 7.8 ✅
+
+Francis approved 7.8 and asked to commit the `chargeBadge` refactor together with the step instead of on its own (a one-off exception to the phase rule). Committed with docs/plans left out.
+
+## 2026-10-30: 7.9 🚫
+
+Read the `paid` and `paidDifferent` boards, the Recipient builder, the message breakdown, the payment sheet and the seed. No code changed yet. Francis asked to see the recommendation before building. Open questions: when the paid layouts apply, what the message card shows once nothing is unpaid (the breakdown lists only unpaid charges), how Edit payment picks a charge when the person pays several, an overpayment, the sheet's title when editing, and the `shortPaid` seed.
+
+## 2026-10-30: 7.9 🔄 (decisions agreed, building)
+
+Francis agreed, one point at a time: the paid layouts show once every charge the person pays has a payment, `paid` when the totals match, `paidDifferent` when less (`Paid less`) or more (`Paid more`, not drawn); the amount card as the board, with the 7.2 helper's wording; no message card in either (an oversight on the board), instead a "No lines found" style block, `All payments done` / `Nothing left to send for November.` for `paid` and `No messages to send` / `Every charge for November has a payment.` for `paidDifferent`; footer as drawn, Edit payment left out in an older month; Edit payment is one `Edit payment` form with a For Select of the person's paid charges (left out with one charge), opening on the differing charge; a `shortPaid` scenario only (an overpayment is checked by hand); the Record payment guard waits for 7.11, and the 7.9 device review checks a paid person has no Mark paid.
+
+## 2026-10-30: 7.9 🔄 (built, device test next)
+
+Refactor first (to commit on its own): Bill upload's "No lines found" box moved to `components/empty-box.tsx` as `EmptyBox`. Built: the contract (`message` nullable, `allPaid`, `edit-payment` and `add-correction` targets, `recipientPaidCharge`), the builder's paid layouts, `Paid less` and `Paid more` in the badge map, `paymentsEditable` from the active month in the Recipient service, the payment sheet titled `Edit payment` with `Save $X` for a paid charge, the `shortPaid` seed, and in the app `EditPaymentSheet` (For Select when two or more charges) mounted by Recipient's provider and the box in place of the message. Deviation M17 added. Carried to 7.11: the Record payment guard (a person with nothing unpaid falls back to someone else).
+
+Backend 437 (plus the new sheet case), shared 115 and app 65 tests pass; ESLint clean on the changed app and backend files; no hex values; editor diagnostics clean (diagnostics only). Not run on a device yet; the `settled` and `shortPaid` reseeds are Francis's to run.
+
+Device review (same day): `shortPaid` works. In `settled` Jordan still showed `sent` with only October's +$15 correction unpaid and `{dueDate}` unfilled. The seed now marks that correction paid on 27 Nov in `settled` and `shortPaid` (kept, not removed, since History and the other scenarios use it). Francis chose to leave out the template lines holding `{dueDate}` when nothing in the message has a due date (M10 updated). Backend 438 tests pass; ESLint clean on the changed files.
+
+## 2026-10-30: 7.9 ✅
+
+Francis approved the `paid` and `paidDifferent` layouts and Edit payment on device, after the seed and `{dueDate}` fixes. Not committed yet; the `EmptyBox` move is a refactor to commit on its own first.
+
+## 2026-10-30: 7.10 🔄 (built, device test next)
+
+Francis decided: the shares line names the user, the due line has no weekday, a bill without a PDF disables the Bill PDF card and chooses Summary, and the PDF keeps the board's meta and is shared under its stored name. Refactor first (to commit on its own): 6.7's download moved to `lib/bill-pdf.ts` (`downloadBillPdf`) and `openPdf` now takes the cached file. Built: the bill response's `share` block (`lib/bill/build-bill-share.ts`, summary lines with a tone and the plain text, with and without shares), a `RadioCardGroup` wrapper, `useShareBill` (`expo-sharing` for the PDF, `Share.share` for the summary), `sheets/share-bill/`, and Recipient's Share bill opening it. Deviation M18 added, README row updated.
+
+Backend 443, shared 115 and app 65 tests pass; ESLint clean on the changed files; no new hex values; editor diagnostics clean (diagnostics only). Not run on a device yet.
+
+Device review (same day, on a fresh `uploadOct` reseed with Francis's mock bill): the radio cards were broken and square. Rebuilt `RadioCardGroup` on `Pressable` as `ChipGroup` is (no gluestack `Radio`); the arbitrary classes compile from source, so the squared corners point to a stale Metro CSS cache (restart with `npm run start-clear`). Francis moved the Switch above the summary preview and changed the radio details to "The original file uploaded for this month" and "Extracted values from the month’s bill". M18 updated; ESLint clean on the changed files.
+
+Second device review (same day): the corners were still square after a restart, so arbitrary radius classes don't round on device even though they compile. Added a `--radius-option: 14px` token (`rounded-option`) for the radio cards, PDF row, preview and skeleton, and the chosen card's padding uses quarter steps (`px-3.25 py-2.25`). Francis asked for the shares one per line: the summary now ends with `Shares:` and a bulleted line per person. M18 updated; bill tests (89) pass, ESLint clean.
+
+Same review: the bill lines in the summary now follow the shares, `Charges:` then one bulleted line each. M18 updated.
+
+Same review: the PDF row is now Bill upload's `FileCard` (moved to `components/`, a small refactor inside the step), and its meta is the upload's `2 pages · 214 KB` (`formatBillFileMeta`, the service now reads `sizeBytes`) in place of "the original, unchanged". `PdfRow` removed. M18 and the README row updated.
+
+Same review: the `Card` vanished on the white sheet in light mode, so `FileCard` gained `tone="container"`, the summary preview's grey box (`bg-container`, `border-outline-variant`, `rounded-option`); Bill upload keeps the `Card`.
+
+## 2026-10-30: 7.10 ✅
+
+Francis approved the Share bill sheet on device in light and dark. Committed as two commits: the PDF download refactor first, then the step; docs/plans left out.
+
+## 2026-10-30: 7.11 🚫
+
+Started the phase pass with the full type check: `shared` and `app` are clean (ignoring the known `components/ui` errors), but `backend` has 15 errors, all in tests: 14 `'r.message' is possibly 'null'` in `build-recipient.test.ts` and one in `message-event.service.test.ts` (Recipient's `message` became nullable in 7.9; the tests run, so vitest never flagged it), plus one `NAMES.get(personId)` typed too narrowly in `build-recipient.test.ts`. Asked Francis how to fix them; nothing changed yet.
+
+## 2026-10-30: 7.11 🔄 (checks done, review next)
+
+Francis approved the fix. The 15 backend type errors were in tests only: a `messageOf` helper (throws when a layout has no message) replaces the direct `r.message` reads in `build-recipient.test.ts` and `message-event.service.test.ts`, and the names map is typed `Map<string, string>`. Dead code: no unused locals or parameters in any package; `DUE_SOON_DAYS` and `chargeDueBadge` in `lib/home/badges.ts` lost their `export` (only used in that file since 7.8). Hex grep: only the three earlier hits (an issue number in a comment, the icon defaults). Deviations M1 to M18 cover the phase.
+
+Full type check clean in `shared`, `backend` and `app` (ignoring `components/ui`); backend 443, shared 115 and app 65 tests pass; lint has no errors, with two older warnings left alone (an unused disable in `backend/src/lib/prisma.ts` from the scaffold, and the generated `.expo/types/router.d.ts`); `shared` has no lint script. Francis decided: the Record payment fallback stays as is (unreachable from Recipient now), the dev page's WhatsApp demo stays, and the end-to-end run is dropped.
+
+## 2026-10-30: 7.11 ✅
+
+Francis approved the phase pass; Phase 7 is done. Committed the test typing fixes and the private `badges.ts` names, docs/plans left out.
