@@ -1,6 +1,6 @@
 import { useMutation } from '@tanstack/react-query';
 
-import { apiFetchFile } from '@/lib/api';
+import { downloadBillPdf } from '@/lib/bill-pdf';
 import { openPdf } from '@/lib/open-pdf';
 
 /**
@@ -13,8 +13,7 @@ import { openPdf } from '@/lib/open-pdf';
 export function useOpenBillPdf(month: string) {
   return useMutation({
     mutationFn: async () => {
-      const bytes = await apiFetchFile(`/api/months/${month}/bill/file`, 'application/pdf');
-      await openPdf(bytes, `bill-${month}.pdf`);
+      await openPdf(await downloadBillPdf(month, `bill-${month}.pdf`));
     },
   });
 }
