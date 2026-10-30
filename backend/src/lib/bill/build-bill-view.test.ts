@@ -53,7 +53,7 @@ const BILL: BillViewBillRow = {
   paidCents: null,
   paidOn: null,
   createdAt: new Date("2026-11-02T10:00:00+08:00"),
-  file: { filename: "Utilities_Bill_Nov2026.pdf", pageCount: 2 },
+  file: { filename: "Utilities_Bill_Nov2026.pdf", sizeBytes: 219136, pageCount: 2 },
 };
 
 /** Priya's and Jordan's monthly messages, opened on 2 Nov: Sam's utilities ride in Priya's. */
@@ -242,9 +242,9 @@ describe("buildBillView, edge cases", () => {
   });
 
   it("shows only the day added when the page count is unknown, and no row without a file", () => {
-    const unknown = buildBillView(input({ bill: { ...BILL, file: { filename: "bill.pdf", pageCount: null } } }));
+    const unknown = buildBillView(input({ bill: { ...BILL, file: { filename: "bill.pdf", sizeBytes: 219136, pageCount: null } } }));
     expect(unknown.file).toEqual({ filename: "bill.pdf", meta: "added 2 Nov" });
-    const single = buildBillView(input({ bill: { ...BILL, file: { filename: "bill.pdf", pageCount: 1 } } }));
+    const single = buildBillView(input({ bill: { ...BILL, file: { filename: "bill.pdf", sizeBytes: 219136, pageCount: 1 } } }));
     expect(single.file!.meta).toBe("1 page · added 2 Nov");
     expect(buildBillView(input({ bill: { ...BILL, file: null } })).file).toBeNull();
   });
@@ -277,5 +277,54 @@ describe("buildBillView, the Mark bill paid sheet", () => {
   it("is null once the bill is paid", () => {
     const paid = { ...BILL, paidCents: 41230, paidOn: new Date("2026-11-16") };
     expect(buildBillView(input({ bill: paid })).paySheet).toBeNull();
+  });
+});
+
+describe("buildBillView, the Share bill sheet", () => {
+  const { share } = buildBillView(input());
+
+  it("titles the sheet and shows the stored PDF with its pages and size", () => {
+    expect(share.title).toBe("Utilities bill · November 2026");
+    expect(share.file).toEqual({ filename: "Utilities_Bill_Nov2026.pdf", meta: "2 pages · 214 KB" });
+  });
+
+  it("summarises the bill totals, with no weekday on the due date", () => {
+    expect(share.summary.lines).toEqual([
+      { text: "Utilities bill · Nov 2026", tone: "title" },
+      { text: "Current Charges: $412.30", tone: "body" },
+      { text: "Due: 16 Nov 2026", tone: "body" },
+      { text: "Charges:", tone: "muted" },
+      { text: "• Electricity $268.45", tone: "muted" },
+      { text: "• Gas $41.20", tone: "muted" },
+      { text: "• Water $102.65", tone: "muted" },
+    ]);
+    expect(share.summary.text).toBe(
+      "Utilities bill · Nov 2026\nCurrent Charges: $412.30\nDue: 16 Nov 2026\nCharges:\n• Electricity $268.45\n• Gas $41.20\n• Water $102.65",
+    );
+  });
+
+  it("adds each person's share by name on its own bulleted line, the user first", () => {
+    const shares = ["Shares:", "• Alex $123.69", "• Priya $123.69", "• Sam $82.46", "• Jordan $82.46"];
+    const count = share.summary.lines.length;
+    expect(share.summaryWithShares.lines.slice(0, count)).toEqual(share.summary.lines);
+    expect(share.summaryWithShares.lines.slice(count)).toEqual(shares.map((text) => ({ text, tone: "muted" })));
+    expect(share.summaryWithShares.text).toBe(`${share.summary.text}\n${shares.join("\n")}`);
+  });
+
+  it("leaves out the charges line without lines, and has no file without one", () => {
+    const view = buildBillView(input({ bill: { ...BILL, lines: [], file: null } }));
+    expect(view.share.summary.lines.map((l) => l.text)).toEqual([
+      "Utilities bill · Nov 2026",
+      "Current Charges: $412.30",
+      "Due: 16 Nov 2026",
+    ]);
+    expect(view.share.file).toBeNull();
+  });
+
+  it("shows only the size when the page count is unknown", () => {
+    const view = buildBillView(input({ bill: { ...BILL, file: { filename: "bill.pdf", sizeBytes: 219136, pageCount: 1 } } }));
+    expect(view.share.file!.meta).toBe("1 page · 214 KB");
+    const unknown = buildBillView(input({ bill: { ...BILL, file: { filename: "bill.pdf", sizeBytes: 219136, pageCount: null } } }));
+    expect(unknown.share.file!.meta).toBe("214 KB");
   });
 });

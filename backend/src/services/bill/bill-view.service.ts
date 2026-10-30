@@ -20,7 +20,7 @@ const BILL_SELECT = {
   paidCents: true,
   paidOn: true,
   createdAt: true,
-  file: { select: { filename: true, pageCount: true } },
+  file: { select: { filename: true, sizeBytes: true, pageCount: true } },
 } as const;
 
 const CHARGE_SELECT = {

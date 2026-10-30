@@ -110,6 +110,47 @@ export const billPaySheetSchema = z.object({
 /** The Mark bill paid sheet's text, so the sheet needs no request of its own. */
 export type BillPaySheet = z.infer<typeof billPaySheetSchema>;
 
+/** One line of the Share bill summary's preview: `title` bold, `body` plain, `muted` in the variant colour. */
+export const billShareLineSchema = z.object({
+  text: z.string(),
+  tone: z.enum(['title', 'body', 'muted']),
+});
+
+/** One line of the Share bill summary's preview: `title` bold, `body` plain, `muted` in the variant colour. */
+export type BillShareLine = z.infer<typeof billShareLineSchema>;
+
+/** One version of the Share bill summary: its preview lines and the plain text that is shared. */
+export const billShareSummarySchema = z.object({
+  /** e.g. `Utilities bill · Nov 2026`, `Current Charges: $412.30`, `Due: 16 Nov 2026`, then `Charges:` and a bulleted line per bill line. */
+  lines: z.array(billShareLineSchema),
+  /** The lines' text joined with line breaks, with no WhatsApp markers. */
+  text: z.string(),
+});
+
+/** One version of the Share bill summary: its preview lines and the plain text that is shared. */
+export type BillShareSummary = z.infer<typeof billShareSummarySchema>;
+
+/** The Share bill sheet's text, so the sheet needs no request of its own. */
+export const billShareSchema = z.object({
+  /** e.g. `Utilities bill · November 2026`. */
+  title: z.string(),
+  /** The stored PDF, shared under its own name. Null when the bill has no stored file. */
+  file: z
+    .object({
+      filename: z.string(),
+      /** e.g. `2 pages · 214 KB`, or `214 KB` when the page count is not known, as on Bill upload. */
+      meta: z.string(),
+    })
+    .nullable(),
+  /** The summary with the bill totals only. */
+  summary: billShareSummarySchema,
+  /** The summary followed by `Shares:` and a bulleted line per person, e.g. `• Alex $123.69`. */
+  summaryWithShares: billShareSummarySchema,
+});
+
+/** The Share bill sheet's text, so the sheet needs no request of its own. */
+export type BillShare = z.infer<typeof billShareSchema>;
+
 /** `POST /api/months/:month/bill/paid`: what the user paid the utility company, and when. */
 export const markBillPaidRequestSchema = z.object({
   /** May differ from Current Charges. */
@@ -143,6 +184,8 @@ export const billViewResponseSchema = z.object({
   action: billViewActionSchema.nullable(),
   /** The Mark bill paid sheet's text while the bill is unpaid; null once it is paid. */
   paySheet: billPaySheetSchema.nullable(),
+  /** The Share bill sheet's text, opened from Recipient. */
+  share: billShareSchema,
 });
 
 /** `GET /api/months/:month/bill`: the month's saved utilities bill, ready to render. */

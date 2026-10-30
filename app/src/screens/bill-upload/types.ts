@@ -1,4 +1,3 @@
-import type { ReactNode } from 'react';
 import type { Control } from 'react-hook-form';
 
 import type { BillBlocker, BillDraftResponse, BillLinesNote } from '@splithouse/shared';
@@ -6,17 +5,6 @@ import type { PickedPdfProblem, ReviewFormValues } from './helpers';
 
 /** Which board of Bill upload is showing. `failed` is "Is this the right bill?", after a read that found nothing. */
 export type UploadStep = 'pick' | 'failed' | 'review';
-
-/** Props for {@link FileCard}. */
-export interface FileCardProps {
-  /** The file's name, or null while it is not known yet (a stored draft loading): a placeholder then. */
-  filename: string | null;
-  /** e.g. `2 pages · 214 KB`. Left out while the file is still uploading. */
-  meta?: string;
-  size: 'large' | 'small';
-  /** Drawn under the file row, such as the Spinner or Choose another file. */
-  children?: ReactNode;
-}
 
 /** Props for {@link PickStep}. */
 export interface PickStepProps {
