@@ -18,6 +18,7 @@ const post = (body: unknown) => new Request("http://localhost", { method: "POST"
 function useNovember() {
   Object.assign(prisma, {
     month: {
+      findFirst: async () => ({ month: "2026-11" }),
       findUnique: async () => ({
         householdVersion: { schemaVersion: HOUSEHOLD_SCHEMA_VERSION, config: NOV_2026_CONFIG },
       }),
@@ -41,6 +42,7 @@ function useNovember() {
           dueDate: new Date("2026-11-07T00:00:00+08:00"),
           payViaPersonId: null,
           paidCents: null,
+          paidOn: null,
         },
       ],
     },

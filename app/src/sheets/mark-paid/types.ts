@@ -5,6 +5,7 @@ import type {
   PaymentOptionCharge,
   PaymentOptionPerson,
   PaymentOptionsResponse,
+  RecipientPaidCharge,
 } from '@splithouse/shared';
 
 /** The word the button uses for an amount that differs: Mark paid's `Save $X`, Record payment's `Record $X`. */
@@ -56,6 +57,14 @@ export interface RecordPaymentSheetProps {
   personId?: string;
   /** The charge to choose first in For (Recipient's overdue rows, 7.8); its payer is chosen in From. */
   chargeId?: string;
+}
+
+/** Props for {@link EditPaymentSheet}. */
+export interface EditPaymentSheetProps {
+  /** The payment to open on: the one that differs, else the first. */
+  chargeId: string;
+  /** The person's paid charges; with two or more, a For list picks which payment to edit. */
+  charges: RecipientPaidCharge[];
 }
 
 /** What has been chosen in Record payment so far; anything left out falls back to the first. */

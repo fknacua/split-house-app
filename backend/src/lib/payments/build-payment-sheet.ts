@@ -37,8 +37,9 @@ export interface PaymentSheetInput {
 
 /**
  * The payment sheet for one charge. An unpaid charge is filled in with its expected amount and
- * today; a paid one with the stored amount and day, so Edit payment (7.9) opens on what was saved.
- * Record payment words the title, subtitle and button its own way; the rest is the same.
+ * today; a paid one with the stored amount and day, and titled `Edit payment` with a `Save $X`
+ * button, so Edit payment (7.9) opens on what was saved. Record payment words the title, subtitle
+ * and button its own way; the rest is the same.
  *
  * @param input - Today, the pinned config, the charge with its person's name, and the mode.
  * @returns The sheet, ready to render.
@@ -59,9 +60,10 @@ export function buildPaymentSheet(input: PaymentSheetInput): ChargePaymentRespon
           actionLabel: `Record ${formatCents(amountCents)}`,
         }
       : {
-          title: "Mark paid",
+          title: stored ? "Edit payment" : "Mark paid",
           subtitle: `${charge.label} · ${charge.person.name} · ${monthName}`,
-          actionLabel: "Mark as paid",
+          // The app shows this only while the amount matches the expected one, so it names that amount.
+          actionLabel: stored ? `Save ${formatCents(charge.amountCents)}` : "Mark as paid",
         };
   return {
     chargeId: charge.id,

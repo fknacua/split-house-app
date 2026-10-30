@@ -4,13 +4,16 @@ import {
   daysUntil,
   formatCents,
   formatDateShort,
+  formatMonthName,
   formatMonthShortLabel,
+  formatPaymentDifference,
   type ChargeType,
   type HouseholdConfig,
   type RecipientAction,
   type RecipientAmountCard,
   type RecipientChargeRow as RecipientChargeRowView,
   type RecipientNudgeTarget,
+  type RecipientPaidCharge,
   type RecipientResponse,
 } from "@splithouse/shared";
 import type { ChargeCategory, MessageKind } from "@/generated/prisma/enums";
@@ -21,7 +24,7 @@ import { renderMonthlyMessage, renderNudgeMessage, type MonthlyMessage } from "@
 import { whatsappLink } from "@/lib/messages/whatsapp-link";
 
 /** A charge row, as much of it as Recipient needs. */
-export type RecipientChargeRow = BreakdownCharge & { id: string };
+export type RecipientChargeRow = BreakdownCharge & { id: string; paidOn: Date | null };
 
 /** A message event of the person's, for the month. */
 export interface RecipientMessageEvent {
@@ -48,6 +51,8 @@ export interface RecipientInput {
   charges: RecipientChargeRow[];
   /** The person's message events for the month. The latest MONTHLY one makes the layout `sent`. */
   messages: RecipientMessageEvent[];
+  /** False for a month before the newest opened one, where a stored payment can't be changed. */
+  paymentsEditable: boolean;
   /**
    * The charge Home's Nudge opened the screen for. Used when it is one of the person's overdue
    * charges; otherwise the earliest-due overdue charge is chosen.
@@ -208,18 +213,30 @@ function openCharges(input: RecipientInput, names: Map<string, string>): OpenCha
       }
       return {
         charge,
-        title: charge.payViaPersonId ? `${charge.label} · ${names.get(charge.personId) ?? "Someone"}` : charge.label,
+        title: chargeTitle(charge, names),
         dueDate,
         overdue,
         nudgedOn: nudgedOn.get(charge.id) ?? null,
         nudge,
       };
     })
-    .sort(
-      (a, b) =>
-        (a.dueDate ?? "9999").localeCompare(b.dueDate ?? "9999") ||
-        (CATEGORY_RANK[a.charge.category] ?? 4) - (CATEGORY_RANK[b.charge.category] ?? 4),
-    );
+    .sort(byDueDate);
+}
+
+/** `Rent`, or `Utilities · Sam` for a charge paid through the person. */
+function chargeTitle(charge: RecipientChargeRow, names: Map<string, string>): string {
+  return charge.payViaPersonId ? `${charge.label} · ${names.get(charge.personId) ?? "Someone"}` : charge.label;
+}
+
+/** Orders charges by due date (none last), then rent, recurring, utilities, aircon and the rest. */
+function byDueDate(
+  a: { charge: RecipientChargeRow; dueDate: string | null },
+  b: { charge: RecipientChargeRow; dueDate: string | null },
+): number {
+  return (
+    (a.dueDate ?? "9999").localeCompare(b.dueDate ?? "9999") ||
+    (CATEGORY_RANK[a.charge.category] ?? 4) - (CATEGORY_RANK[b.charge.category] ?? 4)
+  );
 }
 
 /** A charge row: Home's chip, and the due date with the latest nudge or the monthly message's date. */
@@ -299,6 +316,7 @@ function overdueRecipient(
       text: nudgeText,
       editTemplate: { label: "Edit template", icon: null, enabled: true, target: { kind: "edit-template", template: "NUDGE" } },
     },
+    allPaid: null,
     note: person.whatsappE164 ? null : `No WhatsApp number is set up for ${person.name}.`,
     primaryAction: {
       label: markChargePaidLabel(chosen, names),
@@ -317,26 +335,106 @@ function overdueRecipient(
   };
 }
 
+/** `$63.65 short` or `$20.00 over` for a payment that differs from its charge; null when it matches. */
+function chargeGap(charge: RecipientChargeRow): string | null {
+  const paid = charge.paidCents ?? charge.amountCents;
+  if (paid === charge.amountCents) return null;
+  return `${formatCents(Math.abs(charge.amountCents - paid))} ${paid < charge.amountCents ? "short" : "over"}`;
+}
+
 /**
- * Builds one person's Recipient screen. Built so far: `notSent` (no monthly message opened yet),
- * which before the bill is saved previews the charges so far with Send and Share bill disabled, and
- * `sent` (a monthly message opened), with Mark paid, Share bill and Send again, and the overdue
- * layout (`nudged`: a monthly message opened and a charge past its due date), with the charge rows,
- * the nudge, Mark paid for the chosen charge and Nudge again. The paid layouts come in 7.9; until
- * then those people show `sent` or `notSent`. Sending is disabled when the person has no WhatsApp
- * number.
+ * The paid layouts, once every charge the person pays has a payment: `paid` when the totals match,
+ * `paidDifferent` when less or more came in (`Paid less` or `Paid more`, the 7.2 wording). There is
+ * no message left to send, so a box stands in for it. Edit payment opens on the charge that differs
+ * (else the first), with every paid charge in its For list; it is left out in an earlier month,
+ * where a stored payment can't be changed. Add correction does nothing until Phase 11.
+ */
+function paidRecipient(input: RecipientInput, names: Map<string, string>, header: RecipientResponse["header"]): RecipientResponse {
+  const { month, person } = input;
+  const paid = input.charges
+    .map((charge) => ({ charge, dueDate: chargeDueDate(charge.month, input.config, charge) }))
+    .sort(byDueDate)
+    .map((p) => p.charge);
+  const expectedCents = paid.reduce((sum, c) => sum + c.amountCents, 0);
+  const receivedCents = paid.reduce((sum, c) => sum + (c.paidCents ?? 0), 0);
+  const lastPaidOn = formatDateShort(
+    dateKeyOf(new Date(Math.max(...paid.map((c) => c.paidOn?.getTime() ?? 0)))),
+  );
+  const difference = formatPaymentDifference(expectedCents, receivedCents, month);
+  const monthName = formatMonthName(month);
+
+  const charges: RecipientPaidCharge[] = paid.map((c) => {
+    const gap = chargeGap(c);
+    const on = c.paidOn ? `Paid ${formatDateShort(dateKeyOf(c.paidOn))}` : "Paid";
+    return {
+      chargeId: c.id,
+      title: chargeTitle(c, names),
+      received: formatCents(c.paidCents ?? 0),
+      detail: gap ? `${on} · ${gap}` : on,
+    };
+  });
+  const editPayment: RecipientAction = {
+    label: "Edit payment",
+    icon: null,
+    enabled: true,
+    target: { kind: "edit-payment", chargeId: (paid.find((c) => chargeGap(c)) ?? paid[0]).id, charges },
+  };
+
+  return {
+    month,
+    personId: person.id,
+    header,
+    amountCard: difference
+      ? {
+          label: `Received ${lastPaidOn}`,
+          amount: formatCents(receivedCents),
+          chip: difference.kind === "short" ? HOME_BADGES.recipientPaidLess : HOME_BADGES.recipientPaidMore,
+          statusLine: { text: difference.title, tone: difference.kind === "short" ? "warning" : "default" },
+        }
+      : {
+          label: `${formatMonthShortLabel(month)} total`,
+          amount: formatCents(expectedCents),
+          chip: HOME_BADGES.paid,
+          statusLine: { text: `Paid in full ${lastPaidOn}`, tone: "default" },
+        },
+    charges: [],
+    message: null,
+    allPaid: difference
+      ? { title: "No messages to send", note: `Every charge for ${monthName} has a payment.` }
+      : { title: "All payments done", note: `Nothing left to send for ${monthName}.` },
+    note: difference?.text ?? null,
+    primaryAction: difference
+      ? { label: "Add correction", icon: "plus", enabled: true, target: { kind: "add-correction", month, personId: person.id } }
+      : null,
+    secondaryActions: input.paymentsEditable ? [editPayment] : [],
+  };
+}
+
+/**
+ * Builds one person's Recipient screen: `notSent` (no monthly message opened yet), which before the
+ * bill is saved previews the charges so far with Send and Share bill disabled; `sent` (a monthly
+ * message opened), with Mark paid, Share bill and Send again; the overdue layout (`nudged`: a
+ * monthly message opened and a charge past its due date), with the charge rows, the nudge, Mark paid
+ * for the chosen charge and Nudge again; and the paid layouts (`paid`, `paidDifferent`) once every
+ * charge has a payment, whether or not a message went out. Sending is disabled when the person has
+ * no WhatsApp number.
  *
- * @param input - The month, today, config, person, people, bill, charges, message events and the
- * charge Home's Nudge chose.
+ * @param input - The month, today, config, person, people, bill, charges, message events, whether
+ * payments can still be edited, and the charge Home's Nudge chose.
  * @returns The Recipient response.
  */
 export function buildRecipient(input: RecipientInput): RecipientResponse {
   const { month, person } = input;
   const names = new Map(input.people.map((p) => [p.id, p.name]));
+  const header = { name: person.name, sub: recipientSubLine(input.config, person.id, names) };
+  // Credits can't be marked paid yet (Phase 11), so an unpaid one doesn't hold the page back.
+  const toPay = input.charges.filter((c) => c.amountCents > 0);
+  if (input.billCents !== null && toPay.length > 0 && toPay.every((c) => c.paidCents !== null)) {
+    return paidRecipient({ ...input, charges: toPay }, names, header);
+  }
   const message = recipientMonthlyMessage(input);
   const hasBill = input.billCents !== null;
   const sentOn = lastSentOn(input.messages);
-  const header = { name: person.name, sub: recipientSubLine(input.config, person.id, names) };
   if (sentOn) {
     const open = openCharges(input, names);
     if (open.some((o) => o.overdue)) return overdueRecipient(input, message, open, sentOn, names, header);
@@ -376,6 +474,7 @@ export function buildRecipient(input: RecipientInput): RecipientResponse {
       text: message.text,
       editTemplate,
     },
+    allPaid: null,
     // Says why Send on WhatsApp and Send again are disabled.
     note: url === null ? `No WhatsApp number is set up for ${person.name}.` : null,
     primaryAction: sentOn

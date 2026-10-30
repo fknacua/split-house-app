@@ -7,6 +7,7 @@ import {
   type RecipientInput,
   type RecipientMessageEvent,
 } from "@/lib/recipient/build-recipient";
+import { getActiveMonth, type ActiveMonthDb } from "@/services/months/active-month.service";
 
 const CHARGE_SELECT = {
   id: true,
@@ -18,6 +19,7 @@ const CHARGE_SELECT = {
   dueDate: true,
   payViaPersonId: true,
   paidCents: true,
+  paidOn: true,
 } as const;
 
 const MESSAGE_SELECT = { kind: true, chargeId: true, openedAt: true } as const;
@@ -33,8 +35,8 @@ interface RecipientChargesWhere {
 }
 
 /** The slice of the Prisma client this service uses, so tests can pass an in-memory fake. */
-export interface RecipientDb {
-  month: {
+export interface RecipientDb extends ActiveMonthDb {
+  month: ActiveMonthDb["month"] & {
     findUnique(args: {
       where: { month: string };
       select: { householdVersion: { select: { schemaVersion: true; config: true } } };
@@ -75,7 +77,7 @@ export interface RecipientDb {
  * person, the owner, or someone not in the month's household version.
  */
 export async function loadRecipientInput(db: RecipientDb, month: string, personId: string): Promise<RecipientInput> {
-  const [opened, people, bill, charges, messages] = await Promise.all([
+  const [opened, people, bill, charges, messages, activeMonth] = await Promise.all([
     db.month.findUnique({
       where: { month },
       select: { householdVersion: { select: { schemaVersion: true, config: true } } },
@@ -92,6 +94,7 @@ export async function loadRecipientInput(db: RecipientDb, month: string, personI
       select: CHARGE_SELECT,
     }),
     db.messageEvent.findMany({ where: { month, personId }, select: MESSAGE_SELECT }),
+    getActiveMonth(db),
   ]);
   if (!opened) throw new ApiError(404, "no_month", "This month isn’t open.");
 
@@ -111,6 +114,8 @@ export async function loadRecipientInput(db: RecipientDb, month: string, personI
     billCents: bill?.currentChargesCents ?? null,
     charges,
     messages,
+    // The save endpoint refuses to change a stored payment in an earlier month, so Edit payment hides.
+    paymentsEditable: month >= activeMonth,
   };
 }
 

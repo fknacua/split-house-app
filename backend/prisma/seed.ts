@@ -42,6 +42,8 @@ const SCENARIOS = {
   fullyCollected: { devNow: "2026-11-10T09:00:00+08:00" },
   // As collecting, but every charge is paid and the bill is marked paid.
   settled: { devNow: "2026-11-29T09:00:00+08:00" },
+  // As settled, but Priya's rent came in $63.65 short, so her Recipient page shows `paidDifferent`.
+  shortPaid: { devNow: "2026-11-29T09:00:00+08:00" },
 } as const;
 
 type ScenarioName = keyof typeof SCENARIOS;
@@ -355,7 +357,8 @@ async function main() {
     scenario === "collecting" ||
     scenario === "dueToday" ||
     scenario === "fullyCollected" ||
-    scenario === "settled"
+    scenario === "settled" ||
+    scenario === "shortPaid"
   ) {
     // Opened through the same function Home uses, so November has version B's rent and recurring
     // charges. The bill is synthetic, with the Nov 2026 fixture total and the View bill board's
@@ -391,7 +394,13 @@ async function main() {
       await insertCharge({ ...c, month: "2026-11", householdVersionId: november.householdVersionId, billId: bill.id });
     }
 
-    if (scenario === "collecting" || scenario === "dueToday" || scenario === "fullyCollected" || scenario === "settled") {
+    if (
+      scenario === "collecting" ||
+      scenario === "dueToday" ||
+      scenario === "fullyCollected" ||
+      scenario === "settled" ||
+      scenario === "shortPaid"
+    ) {
       const charges = await prisma.charge.findMany({ where: { month: "2026-11" } });
       const find = (personId: string, category: string) => {
         const charge = charges.find((c) => c.personId === personId && c.category === category);
@@ -424,7 +433,7 @@ async function main() {
         await markPaid(find(PERSON_IDS.jordan, "UTILITIES").id, PERSON_IDS.jordan, "2026-11-04");
         await markPaid(find(PERSON_IDS.sam, "UTILITIES").id, PERSON_IDS.priya, "2026-11-08");
       }
-      if (scenario === "settled") {
+      if (scenario === "settled" || scenario === "shortPaid") {
         // Jordan's rent came late, the rest of what was left came on the 27th, and the bill went on
         // its due date. The owner's own charges are not payments to anyone.
         await markPaid(jordanRent.id, PERSON_IDS.jordan, "2026-11-05");
@@ -432,6 +441,16 @@ async function main() {
           where: { month: "2026-11", paidCents: null, personId: { not: PERSON_IDS.alex } },
         });
         for (const c of unpaid) await markPaid(c.id, c.payViaPersonId ?? c.personId, "2026-11-27");
+        // Jordan's $15 correction from October came in with the rest, so nothing he pays is left open.
+        const correction = await prisma.charge.findFirstOrThrow({
+          where: { month: "2026-10", personId: PERSON_IDS.jordan, category: "CORRECTION" },
+        });
+        await markPaid(correction.id, PERSON_IDS.jordan, "2026-11-27");
+        if (scenario === "shortPaid") {
+          // Priya sent $63.65 less than her rent, so her total reads $1,900.00 of $1,963.65.
+          const priyaRent = find(PERSON_IDS.priya, "RENT");
+          await markPaid(priyaRent.id, PERSON_IDS.priya, "2026-11-27", priyaRent.amountCents - 6365);
+        }
         await markBillPaid(bill.id, "2026-11-16");
       }
     }

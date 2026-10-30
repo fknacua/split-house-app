@@ -84,10 +84,20 @@ function boldTotalLine(template: string): string {
     .join("\n");
 }
 
+/** Leaves out each template line holding `{dueDate}` (but not `{lines}`), and the blank lines it leaves at the end. */
+function withoutDueDateLines(template: string): string {
+  return template
+    .split("\n")
+    .filter((line) => !line.includes("{dueDate}") || line.includes("{lines}"))
+    .join("\n")
+    .replace(/\n+$/, "");
+}
+
 /**
  * Renders a person's monthly breakdown message from their template (or override). `{lines}` is the
  * breakdown's sections, `{month}` reads `Nov 2026`, `{total}` the breakdown's total and `{dueDate}`
- * the earliest due date in it (`7 Nov`). In the sent text a line after `{lines}` holding `{total}` is
+ * the earliest due date in it (`7 Nov`). When nothing in it has a due date (only a correction is
+ * left), the template lines holding `{dueDate}` are left out. In the sent text a line after `{lines}` holding `{total}` is
  * wrapped in WhatsApp's `*bold*` markers, like the subtotals; `before`, `after` and `afterLines` stay plain.
  *
  * @param input - The month, recipient, config, bill, people and charges.
@@ -102,7 +112,8 @@ export function renderMonthlyMessage(input: MonthlyMessageInput): MonthlyMessage
     total: formatCents(breakdown.totalCents),
     ...(breakdown.dueDate ? { dueDate: formatDateShort(breakdown.dueDate) } : {}),
   };
-  const template = templateFor(input.config, input.recipientId, "MONTHLY");
+  const own = templateFor(input.config, input.recipientId, "MONTHLY");
+  const template = breakdown.dueDate ? own : withoutDueDateLines(own);
   const [head, ...rest] = template.split("{lines}");
   const tail = rest.join("{lines}").replace(/^\n+/, "");
   // Only the text after {lines} is bolded: those are the lines the preview stresses (`afterLines`).

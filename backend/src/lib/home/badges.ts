@@ -23,6 +23,10 @@ export const HOME_BADGES = {
   recipientSentUnpaid: { label: "Sent · unpaid", tone: "neutral" },
   /** Recipient: a charge is past its due date; the rows below say which and by how long. */
   recipientOverdue: { label: "Overdue", tone: "danger" },
+  /** Recipient: every charge has a payment, but less came in than was asked. */
+  recipientPaidLess: { label: "Paid less", tone: "warning" },
+  /** Recipient: every charge has a payment, and more came in than was asked (not drawn). */
+  recipientPaidMore: { label: "Paid more", tone: "info" },
 } as const satisfies Record<string, BadgeContent>;
 
 /** A charge due within this many days shows `Due in N days`. Further out it is `Sent, unpaid` or `Upcoming`. */

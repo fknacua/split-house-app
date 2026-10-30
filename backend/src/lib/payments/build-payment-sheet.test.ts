@@ -65,9 +65,11 @@ describe("buildPaymentSheet", () => {
     expect(build({ ...JORDAN_RENT, category: "RECURRING", dueDate: null }).due).toBeNull();
   });
 
-  it("fills a paid charge with the stored amount and day, and is no longer overdue", () => {
+  it("fills a paid charge with the stored amount and day as Edit payment, and is no longer overdue", () => {
     const sheet = build({ ...JORDAN_RENT, paidCents: 90000, paidOn: new Date("2026-11-02") });
     expect(sheet).toMatchObject({
+      title: "Edit payment",
+      actionLabel: "Save $950.00",
       expected: "$950.00",
       amountCents: 90000,
       paidOn: "2026-11-02",

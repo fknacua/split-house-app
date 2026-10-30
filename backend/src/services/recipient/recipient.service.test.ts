@@ -21,6 +21,7 @@ const JORDAN_RENT: RecipientChargeRow = {
   dueDate: new Date("2026-11-01T00:00:00+08:00"),
   payViaPersonId: null,
   paidCents: null,
+  paidOn: null,
 };
 
 /** A database with November open and its bill saved, unless told otherwise. */
@@ -28,6 +29,7 @@ function fakeDb({ open = true, bill = true } = {}) {
   const queries: Record<string, unknown> = {};
   const db: RecipientDb = {
     month: {
+      findFirst: async () => ({ month: "2026-11" }),
       findUnique: async () =>
         open ? { householdVersion: { schemaVersion: HOUSEHOLD_SCHEMA_VERSION, config: NOV_2026_CONFIG } } : null,
     },
@@ -65,6 +67,7 @@ describe("getRecipient", () => {
         billCents: 41230,
         charges: [JORDAN_RENT],
         messages: [],
+        paymentsEditable: true,
       }),
     );
   });

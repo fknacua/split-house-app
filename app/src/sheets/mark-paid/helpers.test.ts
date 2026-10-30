@@ -8,6 +8,7 @@ import {
   toForOptions,
   toFromOptions,
   toMarkPaidFormValues,
+  toPaidChargeOptions,
   toSavePaymentRequest,
 } from './helpers';
 
@@ -178,5 +179,19 @@ describe('toFromOptions and toForOptions', () => {
     });
     expect(toForOptions(OPTIONS.people[1])[1]).toMatchObject({ detail: undefined, detailTone: undefined });
     expect(toForOptions(null)).toEqual([]);
+  });
+});
+
+describe('toPaidChargeOptions', () => {
+  it('lists each paid charge with what was received and its paid line', () => {
+    expect(
+      toPaidChargeOptions([
+        { chargeId: 'priya-rent', title: 'Rent', received: '$1,611.35', detail: 'Paid 27 Nov · $63.65 short' },
+        { chargeId: 'sam-utilities', title: 'Utilities · Sam', received: '$82.46', detail: 'Paid 27 Nov' },
+      ])
+    ).toEqual([
+      { label: 'Rent', value: 'priya-rent', trailing: '$1,611.35', detail: 'Paid 27 Nov · $63.65 short' },
+      { label: 'Utilities · Sam', value: 'sam-utilities', trailing: '$82.46', detail: 'Paid 27 Nov' },
+    ]);
   });
 });

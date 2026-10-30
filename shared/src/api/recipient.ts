@@ -18,6 +18,20 @@ export const recipientNudgeTargetSchema = z.object({
 /** Opens WhatsApp with a nudge about one charge, then records it. */
 export type RecipientNudgeTarget = z.infer<typeof recipientNudgeTargetSchema>;
 
+/** One paid charge in Edit payment's For list. */
+export const recipientPaidChargeSchema = z.object({
+  chargeId: z.string(),
+  /** e.g. `Rent`, or `Utilities · Sam` for a charge paid through this person. */
+  title: z.string(),
+  /** What was received, e.g. `$1,611.35`. */
+  received: z.string(),
+  /** e.g. `Paid 27 Nov`, or `Paid 27 Nov · $63.65 short` when it differs from what was asked. */
+  detail: z.string(),
+});
+
+/** One paid charge in Edit payment's For list. */
+export type RecipientPaidCharge = z.infer<typeof recipientPaidChargeSchema>;
+
 /** Where a Recipient button goes. Carries only what the target needs. */
 export const recipientTargetSchema = z.discriminatedUnion('kind', [
   /**
@@ -34,6 +48,17 @@ export const recipientTargetSchema = z.discriminatedUnion('kind', [
   z.object({ kind: z.literal('choose-nudge'), month: monthKey, personId: z.string() }),
   /** Opens Record payment (7.3) with this person chosen, and with `chargeId` chosen when given. */
   z.object({ kind: z.literal('record-payment'), month: monthKey, personId: z.string(), chargeId: z.string().optional() }),
+  /**
+   * Opens Edit payment on `chargeId`, filled in with its stored payment (7.1's sheet). With two or
+   * more `charges`, a For list picks which payment to edit.
+   */
+  z.object({
+    kind: z.literal('edit-payment'),
+    chargeId: z.string(),
+    charges: z.array(recipientPaidChargeSchema).min(1),
+  }),
+  /** Opens Add charge as a correction for the person (Phase 11); does nothing until then. */
+  z.object({ kind: z.literal('add-correction'), month: monthKey, personId: z.string() }),
   /** Opens the Share bill sheet (7.10). */
   z.object({ kind: z.literal('share-bill'), month: monthKey }),
   /** Opens the template in Settings (9A). */
@@ -59,17 +84,20 @@ export type RecipientAction = z.infer<typeof recipientActionSchema>;
 
 /** The amount card at the top. */
 export const recipientAmountCardSchema = z.object({
-  /** e.g. `Nov 2026 total`, or `Nov 2026 so far` before the bill is saved. */
+  /** e.g. `Nov 2026 total`, `Nov 2026 so far` before the bill is saved, or `Received 27 Nov` when a payment differs. */
   label: z.string(),
   /** e.g. `$1,963.65`. */
   amount: z.string(),
   /** e.g. `Not sent`. */
   chip: badgeSchema,
-  /** e.g. `Due 7 Nov · includes Sam’s share`, or `Overdue since 1 Nov`. Null when there is nothing to say. */
+  /**
+   * e.g. `Due 7 Nov · includes Sam’s share`, `Overdue since 1 Nov`, `Paid in full 27 Nov` or
+   * `$63.65 short of $1,963.65`. Null when there is nothing to say.
+   */
   statusLine: z
     .object({
       text: z.string(),
-      /** `danger` once the earliest due date has passed. */
+      /** `danger` once the earliest due date has passed, `warning` for a short payment. */
       tone: z.enum(['default', 'warning', 'danger']),
     })
     .nullable(),
@@ -161,8 +189,18 @@ export const recipientResponseSchema = z.object({
   amountCard: recipientAmountCardSchema,
   /** The overdue layout's rows, one per unpaid charge; empty in the other layouts. */
   charges: z.array(recipientChargeRowSchema),
-  message: recipientMessageSchema,
-  /** A line of text under the message, e.g. why a payment is short. Null when there is none. */
+  /** Null once every charge the person pays has a payment (`paid`, `paidDifferent`); `allPaid` shows instead. */
+  message: recipientMessageSchema.nullable(),
+  /** Stands in for the message once every charge has a payment. Null while a message shows. */
+  allPaid: z
+    .object({
+      /** e.g. `All payments done`, or `No messages to send` when a payment differs. */
+      title: z.string(),
+      /** e.g. `Nothing left to send for November.` */
+      note: z.string(),
+    })
+    .nullable(),
+  /** A line of text under the message or in its place, e.g. why a payment is short. Null when there is none. */
   note: z.string().nullable(),
   /** The wide footer button, e.g. `Send on WhatsApp`. Null when there is none (`paid`). */
   primaryAction: recipientActionSchema.nullable(),
