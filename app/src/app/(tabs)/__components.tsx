@@ -4,7 +4,7 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import { useRef, useState } from 'react';
 import { type Control, useForm, useWatch } from 'react-hook-form';
 import { z } from 'zod';
-import { KeyboardAvoidingView, ScrollView, Text, View } from 'react-native';
+import { KeyboardAvoidingView, Linking, ScrollView, Text, View } from 'react-native';
 
 import {
   Bell,
@@ -990,6 +990,64 @@ function ServerPromptDemo() {
   );
 }
 
+// Fictional names and sample amounts. Section titles use WhatsApp's *bold* markers.
+const SAMPLE_WHATSAPP_MESSAGE = `Hi Priya! 👋
+
+*November 2026*
+Rent: $950.00
+Starhub: $25.00
+Utilities: $82.46
+
+*Total: $1,057.46*
+Due 7 Nov. Thanks! 🙏`;
+
+/**
+ * Sends a sample message through a `wa.me` link, to check on the phone how WhatsApp shows bold
+ * text, line breaks and emoji before Phase 7 builds the real flow. The chat opens to the number
+ * typed in the phone field.
+ */
+function WhatsAppDemo() {
+  const [message, setMessage] = useState(SAMPLE_WHATSAPP_MESSAGE);
+  const [failed, setFailed] = useState(false);
+  const [phone, setPhone] = useState('+65');
+
+  const send = async () => {
+    setFailed(false);
+    try {
+      await Linking.openURL(`https://wa.me/${phone}?text=${encodeURIComponent(message)}`);
+    } catch {
+      setFailed(true);
+    }
+  };
+
+  return (
+    <View className="gap-3">
+      <Text className="font-manrope-bold text-sheet-title text-on-surface">Send on WhatsApp</Text>
+      <Text className="font-manrope-medium text-caption text-on-surface-variant">
+        Opens a WhatsApp chat with this number and text. Check how it looks, then send or discard.
+      </Text>
+      <PhoneInput value={phone} onChange={setPhone} />
+      <TextareaInput
+        value={message}
+        onChange={setMessage}
+        accessibilityLabel="Message"
+        lines={8}
+        maxLines={12}
+      />
+      {failed ? (
+        <Alert variant="danger" title="Couldn’t open WhatsApp" message="Check it is installed." />
+      ) : null}
+      <Button label="Send on WhatsApp" icon={Send} onPress={() => void send()} />
+      <Button
+        size="small"
+        variant="ghost"
+        label="Reset message"
+        onPress={() => setMessage(SAMPLE_WHATSAPP_MESSAGE)}
+      />
+    </View>
+  );
+}
+
 /**
  * Dev-only component test page (plan 2.3). Every shared component gets a section here.
  * Absent from release builds: redirects home when `__DEV__` is false.
@@ -1300,6 +1358,7 @@ export default function ComponentTestPage() {
           <SheetDemo />
           <DialogsDemo />
           <ServerPromptDemo />
+          <WhatsAppDemo />
           {showSkeletons ? <SkeletonDemo /> : null}
           <SurfacesDemo />
           <HeadersDemo />
