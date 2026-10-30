@@ -23,9 +23,9 @@ export interface BreakdownInput {
   recipientId: string;
   /** The config pinned to `month`, for the working and the due days. */
   config: HouseholdConfig;
-  /** The month's saved bill's Current Charges, shown on the first utilities line; null without a bill. */
+  /** The month's saved bill's Current Charges, shown on every utilities line; null without a bill. */
   billCents: number | null;
-  /** Names for the "please collect" titles. */
+  /** Names for the default "please collect" titles. */
   people: { id: string; name: string }[];
   /** The month's charges and earlier months' corrections; the rules below pick the ones that belong. */
   charges: BreakdownCharge[];
@@ -33,17 +33,19 @@ export interface BreakdownInput {
 
 /** One line of a breakdown. */
 export interface BreakdownLine {
-  /** e.g. `Utilities bill (1.5 of 5 shares of $412.30)`. */
+  /** e.g. `Utilities bill`, without the colon. */
   label: string;
   amountCents: number;
   /** e.g. `$123.69`; a credit reads `-$5.00`. */
   amount: string;
+  /** The working after the amount, e.g. `(total bill $412.30)` or `(1/6 units)`; null for other lines. */
+  working: string | null;
 }
 
 /** The lines of one person in a breakdown. */
 export interface BreakdownSection {
   personId: string;
-  /** `Yours:` or `Sam’s (please collect):`; null when the message has one untitled section. */
+  /** The custom section title, else `Yours` or `Sam’s (please collect)`, with a colon; null when the message has one untitled section. */
   title: string | null;
   lines: BreakdownLine[];
   subtotalCents: number;
@@ -58,7 +60,7 @@ export interface Breakdown {
   totalCents: number;
   /** The earliest due date of the charges in it, as a date key; null when none has one. */
   dueDate: string | null;
-  /** The sections as message text, for `{lines}`: subtotals in WhatsApp's `*bold*` markers. */
+  /** The sections as message text, for `{lines}`: labels and subtotals in WhatsApp's `*bold*` markers. */
   text: string;
 }
 
@@ -89,21 +91,20 @@ function partOf(
   return person.role === "PRIMARY" ? primaryPart : remainder - primaryPart;
 }
 
-/** The working shown after a utilities or aircon label, e.g. `(1 of 5 shares)`; null for other lines. */
-function working(input: BreakdownInput, charge: BreakdownCharge, withBill: boolean): string | null {
+/**
+ * The working shown after a line's amount: `(total bill $412.30)` on a utilities line once the bill
+ * is saved, `(1/6 units)` on an aircon line; null for other lines and earlier months' charges.
+ */
+function working(input: BreakdownInput, charge: BreakdownCharge): string | null {
   if (charge.month !== input.month) return null;
-  const { utilities, aircon } = input.config.categories;
   if (charge.category === "UTILITIES") {
-    const shares = partOf(input.config, charge.personId, utilities.totalShares, (p) => p.utilityShares, utilities.primaryBps);
-    if (shares === null) return null;
-    const total = utilities.totalShares / 1000;
-    const bill = withBill && input.billCents !== null ? ` of ${formatCents(input.billCents)}` : "";
-    return `(${formatAmount(shares / 1000)} of ${formatAmount(total)} ${total === 1 ? "share" : "shares"}${bill})`;
+    return input.billCents === null ? null : `(total bill ${formatCents(input.billCents)})`;
   }
   if (charge.category === "AIRCON") {
+    const { aircon } = input.config.categories;
     const units = partOf(input.config, charge.personId, aircon.totalUnits, (p) => p.airconUnits, aircon.primaryBps);
     if (units === null) return null;
-    return `(${formatAmount(units)} of ${aircon.totalUnits} ${aircon.totalUnits === 1 ? "unit" : "units"})`;
+    return `(${formatAmount(units)}/${aircon.totalUnits} ${aircon.totalUnits === 1 ? "unit" : "units"})`;
   }
   return null;
 }
@@ -135,7 +136,6 @@ export function buildBreakdown(input: BreakdownInput): Breakdown {
   const titled = personIds.some((id) => id !== input.recipientId);
   const names = new Map(input.people.map((p) => [p.id, p.name]));
 
-  let billShown = false;
   const sections = personIds.map((personId): BreakdownSection => {
     const charges = [...byPerson.get(personId)!].sort(
       (a, b) =>
@@ -143,22 +143,21 @@ export function buildBreakdown(input: BreakdownInput): Breakdown {
         a.month.localeCompare(b.month) ||
         a.label.localeCompare(b.label),
     );
-    const lines = charges.map((charge): BreakdownLine => {
-      const withBill = charge.category === "UTILITIES" && !billShown;
-      const work = working(input, charge, withBill);
-      if (withBill && work) billShown = true;
-      const label = lineLabel(input.config, charge);
-      return {
-        label: work ? `${label} ${work}` : label,
+    const lines = charges.map(
+      (charge): BreakdownLine => ({
+        label: lineLabel(input.config, charge),
         amountCents: charge.amountCents,
         amount: formatCents(charge.amountCents),
-      };
-    });
+        working: working(input, charge),
+      }),
+    );
     const subtotalCents = lines.reduce((s, l) => s + l.amountCents, 0);
-    const title = personId === input.recipientId ? "Yours:" : `${names.get(personId) ?? "Someone"}’s (please collect):`;
+    const title =
+      input.config.templates.sectionTitles[personId] ??
+      (personId === input.recipientId ? "Yours" : `${names.get(personId) ?? "Someone"}’s (please collect)`);
     return {
       personId,
-      title: titled ? title : null,
+      title: titled ? `${title}:` : null,
       lines,
       subtotalCents,
       subtotal: titled ? formatCents(subtotalCents) : null,
@@ -178,11 +177,14 @@ export function buildBreakdown(input: BreakdownInput): Breakdown {
   };
 }
 
-/** A section as message text: the title, a line per charge, then the subtotal in WhatsApp's `*bold*`. */
+/**
+ * A section as message text: the plain title, then `*Label:* amount (working)` per charge and
+ * `*Subtotal:* amount`, with the labels in WhatsApp's `*bold*` markers.
+ */
 function sectionText(section: BreakdownSection): string {
   return [
     ...(section.title ? [section.title] : []),
-    ...section.lines.map((l) => `${l.label} ${l.amount}`),
-    ...(section.subtotal ? [`*Subtotal ${section.subtotal}*`] : []),
+    ...section.lines.map((l) => `*${l.label}:* ${l.amount}${l.working ? ` ${l.working}` : ""}`),
+    ...(section.subtotal ? [`*Subtotal:* ${section.subtotal}`] : []),
   ].join("\n");
 }

@@ -71,21 +71,36 @@ describe("buildBreakdown", () => {
     ]);
     expect(b.totalCents).toBe(196365);
     expect(b.dueDate).toBe("2026-11-07");
+    // The bill's total shows on every utilities line, Sam's too.
     expect(b.text).toBe(
       [
         "Yours:",
-        "Rent $1,675.00",
-        "Utilities bill (1.5 of 5 shares of $412.30) $123.69",
-        "Aircon servicing (2 of 6 units) $36.67",
-        "Starhub $27.50",
-        "*Subtotal $1,862.86*",
+        "*Rent:* $1,675.00",
+        "*Utilities bill:* $123.69 (total bill $412.30)",
+        "*Aircon servicing:* $36.67 (2/6 units)",
+        "*Starhub:* $27.50",
+        "*Subtotal:* $1,862.86",
         "",
         "Sam’s (please collect):",
-        "Utilities bill (1 of 5 shares) $82.46",
-        "Aircon servicing (1 of 6 units) $18.33",
-        "*Subtotal $100.79*",
+        "*Utilities bill:* $82.46 (total bill $412.30)",
+        "*Aircon servicing:* $18.33 (1/6 units)",
+        "*Subtotal:* $100.79",
       ].join("\n"),
     );
+  });
+
+  it("uses the config's custom section titles, adding the colon", () => {
+    const config = {
+      ...NOV_2026_CONFIG,
+      templates: {
+        ...NOV_2026_CONFIG.templates,
+        sectionTitles: { [priya]: "Master Bedroom Share", [sam]: "Common Room 1" },
+      },
+    };
+    const b = buildBreakdown(input(priya, { config }));
+
+    expect(b.sections.map((s) => s.title)).toEqual(["Master Bedroom Share:", "Common Room 1:"]);
+    expect(b.text.split("\n")).toContain("Common Room 1:");
   });
 
   it("gives a person with no one paying through them one untitled section", () => {
@@ -97,9 +112,9 @@ describe("buildBreakdown", () => {
     expect(b.dueDate).toBe("2026-11-01");
     expect(b.text).toBe(
       [
-        "Rent $950.00",
-        "Utilities bill (1 of 5 shares of $412.30) $82.46",
-        "Aircon servicing (1 of 6 units) $18.33",
+        "*Rent:* $950.00",
+        "*Utilities bill:* $82.46 (total bill $412.30)",
+        "*Aircon servicing:* $18.33 (1/6 units)",
       ].join("\n"),
     );
   });
@@ -110,10 +125,7 @@ describe("buildBreakdown", () => {
     );
     const b = buildBreakdown(input(jordan, { charges }));
 
-    expect(b.sections[0].lines.map((l) => l.label)).toEqual([
-      "Utilities bill (1 of 5 shares of $412.30)",
-      "Aircon servicing (1 of 6 units)",
-    ]);
+    expect(b.sections[0].lines.map((l) => l.label)).toEqual(["Utilities bill", "Aircon servicing"]);
     expect(b.totalCents).toBe(10079);
     expect(b.dueDate).toBe("2026-11-04");
   });
@@ -132,12 +144,13 @@ describe("buildBreakdown", () => {
     ];
     const b = buildBreakdown(input(jordan, { charges }));
 
-    expect(b.sections[0].lines.map((l) => [l.label, l.amount])).toEqual([
-      ["Rent", "$950.00"],
-      ["Utilities bill (1 of 5 shares of $412.30)", "$82.46"],
-      ["Aircon servicing (1 of 6 units)", "$18.33"],
-      ["Correction: August utilities", "-$5.00"],
-      ["Correction: September utilities", "$15.00"],
+    // An earlier month's correction has no working.
+    expect(b.sections[0].lines.map((l) => [l.label, l.amount, l.working])).toEqual([
+      ["Rent", "$950.00", null],
+      ["Utilities bill", "$82.46", "(total bill $412.30)"],
+      ["Aircon servicing", "$18.33", "(1/6 units)"],
+      ["Correction: August utilities", "-$5.00", null],
+      ["Correction: September utilities", "$15.00", null],
     ]);
     expect(b.totalCents).toBe(105079 + 1500 - 500);
     expect(b.dueDate).toBe("2026-11-01");
@@ -157,15 +170,16 @@ describe("buildBreakdown", () => {
     const b = buildBreakdown(input(priya, { charges }));
 
     expect(b.sections.map((s) => [s.title, s.subtotal])).toEqual([["Sam’s (please collect):", "$100.79"]]);
-    expect(b.sections[0].lines[0].label).toBe("Utilities bill (1 of 5 shares of $412.30)");
+    expect(b.sections[0].lines[0]).toMatchObject({ label: "Utilities bill", working: "(total bill $412.30)" });
     // Sam's utilities have no due date of their own, so Priya's due day is used.
     expect(b.dueDate).toBe("2026-11-07");
   });
 
-  it("leaves the bill amount out of the working without a saved bill", () => {
+  it("shows no utilities working without a saved bill", () => {
     const b = buildBreakdown(input(jordan, { billCents: null }));
 
-    expect(b.sections[0].lines[1].label).toBe("Utilities bill (1 of 5 shares)");
+    expect(b.sections[0].lines[1]).toMatchObject({ label: "Utilities bill", working: null });
+    expect(b.text.split("\n")[1]).toBe("*Utilities bill:* $82.46");
   });
 
   it("uses the config's custom line labels", () => {
@@ -175,11 +189,7 @@ describe("buildBreakdown", () => {
     };
     const b = buildBreakdown(input(jordan, { config }));
 
-    expect(b.sections[0].lines.map((l) => l.label)).toEqual([
-      "Upa",
-      "Kuryente at tubig (1 of 5 shares of $412.30)",
-      "Aircon servicing (1 of 6 units)",
-    ]);
+    expect(b.sections[0].lines.map((l) => l.label)).toEqual(["Upa", "Kuryente at tubig", "Aircon servicing"]);
   });
 
   it("is empty when nothing is unpaid", () => {

@@ -143,7 +143,7 @@ Hi {name}! Eto na yung breakdown for {month} 😊
 
 {lines}
 
-Total: {total}
+*Total:* {total}
 Paki-send by {dueDate}. Salamat!
 ```
 

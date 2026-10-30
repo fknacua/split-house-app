@@ -467,7 +467,7 @@ export function buildRecipient(input: RecipientInput): RecipientResponse {
       intro: message.before,
       sections: message.breakdown.sections.map((s) => ({
         title: s.title,
-        lines: s.lines.map((l) => ({ label: l.label, amount: l.amount })),
+        lines: s.lines.map((l) => ({ label: l.label, amount: l.amount, working: l.working })),
         subtotal: s.subtotal,
       })),
       outro: message.afterLines,
