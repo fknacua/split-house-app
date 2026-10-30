@@ -47,3 +47,6 @@ next-env.d.ts
 /src/lib/fixtures/bill.pdf
 /src/lib/fixtures/bill-partial.pdf
 /src/lib/fixtures/bill-unreadable.pdf
+
+# real household data for the dry-run load script (never commit)
+/prisma/local/
