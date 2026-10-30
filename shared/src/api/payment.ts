@@ -15,12 +15,16 @@ export type PaymentSheetDue = z.infer<typeof paymentSheetDueSchema>;
 /** `GET /api/charges/:id/payment`: the Mark paid sheet for one charge, ready to render. */
 export const chargePaymentResponseSchema = z.object({
   chargeId: z.string(),
+  /** The charge's month, for wording a different amount with `formatPaymentDifference`. */
+  month: monthKey,
   /** e.g. `Mark paid`. */
   title: z.string(),
   /** Home's row title and the charge's month, e.g. `Rent · Jordan · November`. */
   subtitle: z.string(),
   /** What the charge asks for, e.g. `$1,963.65`. */
   expected: z.string(),
+  /** `expected` in cents, so the sheet can tell when the amount received differs. */
+  expectedCents: positiveCents,
   /** Null when the charge has no due date. */
   due: paymentSheetDueSchema.nullable(),
   /** Amount received, filled in: the expected amount, or the stored amount once the charge is paid. */

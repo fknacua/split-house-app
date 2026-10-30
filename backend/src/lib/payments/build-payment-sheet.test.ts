@@ -37,9 +37,11 @@ describe("buildPaymentSheet", () => {
   it("fills an unpaid charge with its expected amount and today, parsing with the shared schema", () => {
     expect(chargePaymentResponseSchema.parse(build({ ...JORDAN_RENT, dueDate: new Date("2026-11-07") }))).toEqual({
       chargeId: "charge-jordan-rent",
+      month: "2026-11",
       title: "Mark paid",
       subtitle: "Rent · Jordan · November",
       expected: "$950.00",
+      expectedCents: 95000,
       due: { text: "7 Nov", tone: "default" },
       amountCents: 95000,
       paidOn: "2026-11-03",

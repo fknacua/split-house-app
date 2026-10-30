@@ -1,13 +1,15 @@
 import type { ChargePaymentResponse } from '@splithouse/shared';
 import { describe, expect, it } from 'vitest';
 
-import { markPaidFormSchema, toMarkPaidFormValues, toSavePaymentRequest } from './helpers';
+import { markPaidFormSchema, toAmountState, toMarkPaidFormValues, toSavePaymentRequest } from './helpers';
 
 const SHEET: ChargePaymentResponse = {
   chargeId: 'charge-jordan-rent',
+  month: '2026-11',
   title: 'Mark paid',
   subtitle: 'Rent · Jordan · November',
   expected: '$950.00',
+  expectedCents: 95000,
   due: { text: 'Overdue since 1 Nov', tone: 'danger' },
   amountCents: 95000,
   paidOn: '2026-11-03',
@@ -33,6 +35,41 @@ describe('markPaidFormSchema', () => {
     const result = markPaidFormSchema.safeParse(values);
     expect(result.success).toBe(false);
     expect(result.error?.issues[0].message).toBe(message);
+  });
+});
+
+describe('toAmountState', () => {
+  const opened = { helper: 'Change it if they paid a different amount', actionLabel: 'Mark as paid', difference: null };
+
+  it('reads as the sheet opened for the expected amount', () => {
+    expect(toAmountState(SHEET, 95000)).toEqual(opened);
+  });
+
+  it.each([
+    ['an empty field', null],
+    ['zero', 0],
+  ])('reads as the sheet opened for %s', (_name, paidCents) => {
+    expect(toAmountState(SHEET, paidCents)).toEqual(opened);
+  });
+
+  it('hides the helper, names the amount on the button and words a shortfall', () => {
+    expect(toAmountState(SHEET, 90000)).toEqual({
+      helper: null,
+      actionLabel: 'Save $900.00',
+      difference: {
+        kind: 'short',
+        title: '$50.00 short of $950.00',
+        text: 'November stays $50.00 short until you edit the payment or add a correction.',
+      },
+    });
+  });
+
+  it('words an overpayment', () => {
+    expect(toAmountState(SHEET, 97000)).toMatchObject({
+      helper: null,
+      actionLabel: 'Save $970.00',
+      difference: { kind: 'over', title: '$20.00 over $950.00' },
+    });
   });
 });
 
