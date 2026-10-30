@@ -7,7 +7,7 @@ import {
 } from '@splithouse/shared';
 import { z } from 'zod';
 
-import type { AmountState } from './types';
+import type { AmountState, PaymentVerb } from './types';
 
 /** The Mark paid form: the amount received and the day. The day picker stops at today. */
 export const markPaidFormSchema = z.object({
@@ -38,9 +38,14 @@ export function toMarkPaidFormValues(sheet: ChargePaymentResponse): MarkPaidForm
  *
  * @param sheet The sheet from `GET /api/charges/:id/payment`.
  * @param paidCents The amount typed, or `null` while the field is empty or not yet valid.
+ * @param verb The button's word while the amount differs: `Save` on Mark paid, `Record` on Record payment.
  * @returns The helper text (or `null`), the button label and the difference (or `null` for no Alert).
  */
-export function toAmountState(sheet: ChargePaymentResponse, paidCents: number | null): AmountState {
+export function toAmountState(
+  sheet: ChargePaymentResponse,
+  paidCents: number | null,
+  verb: PaymentVerb = 'Save',
+): AmountState {
   const opened: AmountState = {
     helper: 'Change it if they paid a different amount',
     actionLabel: sheet.actionLabel,
@@ -50,7 +55,7 @@ export function toAmountState(sheet: ChargePaymentResponse, paidCents: number | 
   if (paidCents === null || paidCents <= 0) return opened;
   const difference = formatPaymentDifference(sheet.expectedCents, paidCents, sheet.month);
   if (difference === null) return opened;
-  return { helper: null, actionLabel: `Save ${formatCents(paidCents)}`, difference };
+  return { helper: null, actionLabel: `${verb} ${formatCents(paidCents)}`, difference };
 }
 
 /**
