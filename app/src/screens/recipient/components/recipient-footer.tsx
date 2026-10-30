@@ -1,15 +1,20 @@
 import { Check, Plus, Send } from 'lucide-react-native';
 import { Text, View } from 'react-native';
 
-import { Button, SubpageFooter } from '@/components';
+import { Alert, Button, SubpageFooter } from '@/components';
 import { useOpenRecipientTarget } from '../use-open-recipient-target';
 import type { RecipientFooterProps } from '../types';
+import type { RecipientAction } from '@splithouse/shared';
 
 const ICONS = { send: Send, check: Check, plus: Plus } as const;
 
-/** The sticky footer: an optional note, the wide filled button, then the outline buttons side by side. */
+/**
+ * The sticky footer: an optional note, the danger Alert when a send failed, the wide filled button,
+ * then the outline buttons side by side. A send button spins while its event is recorded.
+ */
 export function RecipientFooter({ note, primary, secondary }: RecipientFooterProps) {
-  const { openTarget } = useOpenRecipientTarget();
+  const { openTarget, sending, sendError } = useOpenRecipientTarget();
+  const isSend = (action: RecipientAction) => action.target.kind === 'send-whatsapp';
 
   return (
     <SubpageFooter>
@@ -17,11 +22,13 @@ export function RecipientFooter({ note, primary, secondary }: RecipientFooterPro
         {note ? (
           <Text className="px-1 font-manrope-semibold text-caption text-on-surface-variant">{note}</Text>
         ) : null}
+        {sendError ? <Alert variant="danger" title="Error encountered" message={sendError} /> : null}
         {primary ? (
           <Button
             label={primary.label}
             icon={primary.icon ? ICONS[primary.icon] : undefined}
             disabled={!primary.enabled}
+            loading={sending && isSend(primary)}
             onPress={() => openTarget(primary.target)}
           />
         ) : null}
@@ -34,6 +41,7 @@ export function RecipientFooter({ note, primary, secondary }: RecipientFooterPro
                 variant="outline"
                 icon={action.icon ? ICONS[action.icon] : undefined}
                 disabled={!action.enabled}
+                loading={sending && isSend(action)}
                 onPress={() => openTarget(action.target)}
                 className="flex-1"
               />

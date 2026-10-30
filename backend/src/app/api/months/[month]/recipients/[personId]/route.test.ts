@@ -33,9 +33,9 @@ function useNovember(open: boolean) {
     },
     person: {
       findMany: async () => [
-        { id: PERSON_IDS.alex, name: "Alex", isOwner: true },
-        { id: PERSON_IDS.priya, name: "Priya", isOwner: false },
-        { id: PERSON_IDS.sam, name: "Sam", isOwner: false },
+        { id: PERSON_IDS.alex, name: "Alex", isOwner: true, whatsappE164: null },
+        { id: PERSON_IDS.priya, name: "Priya", isOwner: false, whatsappE164: "+6580000000" },
+        { id: PERSON_IDS.sam, name: "Sam", isOwner: false, whatsappE164: "+6580000000" },
       ],
     },
     bill: { findUnique: async () => ({ currentChargesCents: 41230 }) },

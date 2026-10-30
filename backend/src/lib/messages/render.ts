@@ -76,10 +76,19 @@ export interface MonthlyMessageInput extends BreakdownInput {
   recipientName: string;
 }
 
+/** Wraps each template line holding `{total}` in WhatsApp's `*bold*` markers, trimmed so the markers touch the text. */
+function boldTotalLine(template: string): string {
+  return template
+    .split("\n")
+    .map((line) => (line.includes("{total}") ? `*${line.trim()}*` : line))
+    .join("\n");
+}
+
 /**
  * Renders a person's monthly breakdown message from their template (or override). `{lines}` is the
  * breakdown's sections, `{month}` reads `Nov 2026`, `{total}` the breakdown's total and `{dueDate}`
- * the earliest due date in it (`7 Nov`).
+ * the earliest due date in it (`7 Nov`). In the sent text a line after `{lines}` holding `{total}` is
+ * wrapped in WhatsApp's `*bold*` markers, like the subtotals; `before`, `after` and `afterLines` stay plain.
  *
  * @param input - The month, recipient, config, bill, people and charges.
  * @returns The message, its two template parts and the breakdown.
@@ -96,8 +105,10 @@ export function renderMonthlyMessage(input: MonthlyMessageInput): MonthlyMessage
   const template = templateFor(input.config, input.recipientId, "MONTHLY");
   const [head, ...rest] = template.split("{lines}");
   const tail = rest.join("{lines}").replace(/^\n+/, "");
+  // Only the text after {lines} is bolded: those are the lines the preview stresses (`afterLines`).
+  const sent = rest.length > 0 ? `${head}{lines}${boldTotalLine(rest.join("{lines}"))}` : template;
   return {
-    text: fillTemplate(template, values),
+    text: fillTemplate(sent, values),
     before: fillTemplate(head, values).replace(/\n+$/, ""),
     after: fillTemplate(tail, values),
     afterLines: tail

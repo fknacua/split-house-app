@@ -3,19 +3,25 @@ import { monthKey } from '../schemas/primitives';
 import { badgeSchema } from './history';
 
 /**
- * Where a Recipient button goes. Carries only the ids the target needs. Later steps add the payment
- * and nudge targets.
+ * Where a Recipient button goes. Carries only what the target needs. Later steps add the nudge
+ * target.
  */
 export const recipientTargetSchema = z.discriminatedUnion('kind', [
-  /** Opens the person's WhatsApp chat with the message (7.7). */
-  z.object({ kind: z.literal('send-whatsapp'), month: monthKey, personId: z.string() }),
+  /**
+   * Opens the person's WhatsApp chat with the monthly message, then records a MONTHLY message event.
+   * `url` is the `https://wa.me/...` link with the message filled in; null when the person has no
+   * WhatsApp number, and the button is then disabled.
+   */
+  z.object({ kind: z.literal('send-whatsapp'), month: monthKey, personId: z.string(), url: z.url().nullable() }),
+  /** Opens Record payment (7.3) with this person chosen. */
+  z.object({ kind: z.literal('record-payment'), month: monthKey, personId: z.string() }),
   /** Opens the Share bill sheet (7.10). */
   z.object({ kind: z.literal('share-bill'), month: monthKey }),
   /** Opens the template in Settings (9A). */
   z.object({ kind: z.literal('edit-template'), template: z.enum(['MONTHLY', 'NUDGE']) }),
 ]);
 
-/** Where a Recipient button goes. Carries only the ids the target needs. */
+/** Where a Recipient button goes. Carries only what the target needs. */
 export type RecipientTarget = z.infer<typeof recipientTargetSchema>;
 
 /** A Recipient button: the footer's primary and secondary buttons, and the message card's Edit template. */
@@ -102,9 +108,9 @@ export type RecipientMessageOutroLine = z.infer<typeof recipientMessageOutroLine
 
 /** The message card: a preview in parts, and the exact text that is sent and copied. */
 export const recipientMessageSchema = z.object({
-  /** e.g. `Message`. */
+  /** e.g. `Message`, or `Sent message` once the chat was opened. */
   label: z.string(),
-  /** e.g. `Monthly breakdown template`. */
+  /** e.g. `Monthly breakdown template`, or `Sent 2 Nov`. */
   meta: z.string(),
   /** The template's text before the sections, e.g. `Hi Priya! Eto na yung breakdown for Nov 2026 😊`. */
   intro: z.string(),
@@ -145,3 +151,27 @@ export const recipientResponseSchema = z.object({
 
 /** `GET /api/months/:month/recipients/:personId`: one person's Recipient screen, ready to render. */
 export type RecipientResponse = z.infer<typeof recipientResponseSchema>;
+
+/** `POST /api/months/:month/recipients/:personId/message-events`: records that a WhatsApp chat was opened. */
+export const createMessageEventRequestSchema = z.discriminatedUnion('kind', [
+  /** The monthly breakdown (Send on WhatsApp, Send again). */
+  z.object({ kind: z.literal('MONTHLY') }),
+  /** A nudge about one of the person's charges (7.8). */
+  z.object({ kind: z.literal('NUDGE'), chargeId: z.string().min(1) }),
+]);
+
+/** `POST /api/months/:month/recipients/:personId/message-events`: records that a WhatsApp chat was opened. */
+export type CreateMessageEventRequest = z.infer<typeof createMessageEventRequestSchema>;
+
+/** The recorded message event. The server renders and stores the message text itself. */
+export const messageEventResponseSchema = z.object({
+  id: z.string(),
+  kind: z.enum(['MONTHLY', 'NUDGE']),
+  /** The nudged charge; null for a monthly message. */
+  chargeId: z.string().nullable(),
+  /** When the chat was opened, as an ISO timestamp. */
+  openedAt: z.iso.datetime({ offset: true }),
+});
+
+/** The recorded message event. The server renders and stores the message text itself. */
+export type MessageEventResponse = z.infer<typeof messageEventResponseSchema>;

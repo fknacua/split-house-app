@@ -16,6 +16,7 @@ export * from './use-me';
 export * from './use-payment-options';
 export * from './use-pull-to-refresh';
 export * from './use-recipient';
+export * from './use-record-message-event';
 export * from './use-save-bill';
 export * from './use-save-payment';
 export * from './use-start-next-month';
