@@ -27,4 +27,6 @@ export const queryKeys = {
    * @param request The values sent to the check.
    */
   billCheck: (month: string, request: unknown) => ['bill-check', month, request] as const,
+  /** @param chargeId The charge whose Mark paid sheet this is. */
+  chargePayment: (chargeId: string) => ['charge-payment', chargeId] as const,
 };
