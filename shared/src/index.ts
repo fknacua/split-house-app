@@ -10,6 +10,7 @@ export * from './lib/bill';
 export * from './lib/date';
 export * from './lib/money';
 export * from './lib/month';
+export * from './lib/payment';
 export * from './schemas/household-config';
 export * from './schemas/primitives';
 export * from './schemas/settings';

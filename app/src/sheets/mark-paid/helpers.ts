@@ -1,5 +1,13 @@
-import { positiveCents, type ChargePaymentResponse, type SavePaymentRequest } from '@splithouse/shared';
+import {
+  formatCents,
+  formatPaymentDifference,
+  positiveCents,
+  type ChargePaymentResponse,
+  type SavePaymentRequest,
+} from '@splithouse/shared';
 import { z } from 'zod';
+
+import type { AmountState } from './types';
 
 /** The Mark paid form: the amount received and the day. The day picker stops at today. */
 export const markPaidFormSchema = z.object({
@@ -21,6 +29,28 @@ export type MarkPaidFormValues = z.infer<typeof markPaidFormSchema>;
  */
 export function toMarkPaidFormValues(sheet: ChargePaymentResponse): MarkPaidFormValues {
   return { paidCents: sheet.amountCents, paidOn: sheet.paidOn };
+}
+
+/**
+ * What the amount field says and what the button reads for the amount typed so far. While it
+ * differs from the expected amount the helper is hidden, the button names the amount and an Alert
+ * words the shortfall or overpayment; an empty or exact amount reads as the sheet opened.
+ *
+ * @param sheet The sheet from `GET /api/charges/:id/payment`.
+ * @param paidCents The amount typed, or `null` while the field is empty or not yet valid.
+ * @returns The helper text (or `null`), the button label and the difference (or `null` for no Alert).
+ */
+export function toAmountState(sheet: ChargePaymentResponse, paidCents: number | null): AmountState {
+  const opened: AmountState = {
+    helper: 'Change it if they paid a different amount',
+    actionLabel: sheet.actionLabel,
+    difference: null,
+  };
+  // An empty or zero amount is the form's error to show, not a difference.
+  if (paidCents === null || paidCents <= 0) return opened;
+  const difference = formatPaymentDifference(sheet.expectedCents, paidCents, sheet.month);
+  if (difference === null) return opened;
+  return { helper: null, actionLabel: `Save ${formatCents(paidCents)}`, difference };
 }
 
 /**

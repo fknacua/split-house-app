@@ -1,18 +1,25 @@
 import { zodResolver } from '@hookform/resolvers/zod';
 import { forwardRef, useEffect, useImperativeHandle, useRef, useState } from 'react';
-import { useForm } from 'react-hook-form';
+import { useForm, useWatch } from 'react-hook-form';
 
 import { Alert, AppSheet, DateField, MoneyInput, type AppSheetRef } from '@/components';
 import { useChargePayment, useSavePayment } from '@/hooks';
 import { ApiRequestError } from '@/lib/api';
 import { todayKey } from '@splithouse/shared';
 import { PaymentSummary } from './components/payment-summary';
-import { markPaidFormSchema, toMarkPaidFormValues, toSavePaymentRequest, type MarkPaidFormValues } from './helpers';
+import {
+  markPaidFormSchema,
+  toAmountState,
+  toMarkPaidFormValues,
+  toSavePaymentRequest,
+  type MarkPaidFormValues,
+} from './helpers';
 import type { MarkPaidSheetProps } from './types';
 
 /**
  * Mark paid: records what was received for one charge, with the amount (the expected amount filled
- * in) and the day (today). The text comes from `GET /api/charges/:id/payment`, so the sheet shows a
+ * in) and the day (today). A different amount renames the button and shows the difference in an
+ * info Alert. The text comes from `GET /api/charges/:id/payment`, so the sheet shows a
  * skeleton until it arrives. Each screen that offers it mounts its own and opens it through the ref.
  * On success Home, History, the bill and the charge are refetched, then the sheet closes.
  */
@@ -31,6 +38,8 @@ export const MarkPaidSheet = forwardRef<AppSheetRef, MarkPaidSheetProps>(functio
     resolver: zodResolver(markPaidFormSchema),
     mode: 'onChange',
   });
+  const paidCents = useWatch({ control, name: 'paidCents' }) ?? null;
+  const amount = sheet ? toAmountState(sheet, paidCents) : null;
 
   // Filled in each time the sheet opens, or as soon as the sheet arrives when it opened before that.
   const filled = useRef(false);
@@ -71,7 +80,7 @@ export const MarkPaidSheet = forwardRef<AppSheetRef, MarkPaidSheetProps>(functio
       ref={sheetRef}
       title={sheet?.title ?? 'Mark paid'}
       subtitle={sheet?.subtitle}
-      actionLabel={sheet?.actionLabel ?? 'Mark as paid'}
+      actionLabel={amount?.actionLabel ?? 'Mark as paid'}
       onAction={save}
       saving={saving}
       failed={savePayment.isError}
@@ -91,7 +100,7 @@ export const MarkPaidSheet = forwardRef<AppSheetRef, MarkPaidSheetProps>(functio
           name: 'paidCents',
           label: 'Amount received',
           required: true,
-          helper: 'Change it if they paid a different amount',
+          helper: amount ? (amount.helper ?? undefined) : 'Change it if they paid a different amount',
           disabled: saving || !sheet,
         }}
       />
@@ -99,6 +108,10 @@ export const MarkPaidSheet = forwardRef<AppSheetRef, MarkPaidSheetProps>(functio
         maxDate={todayKey()}
         fieldControlProps={{ control, name: 'paidOn', label: 'Received on', required: true, disabled: saving || !sheet }}
       />
+      {/* Where the board had the carry Radio: there is no carry, so it only says what the difference means. */}
+      {amount?.difference ? (
+        <Alert variant="info" title={amount.difference.title} message={amount.difference.text} />
+      ) : null}
     </AppSheet>
   );
 });

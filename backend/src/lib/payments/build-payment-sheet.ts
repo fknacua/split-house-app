@@ -48,9 +48,11 @@ export function buildPaymentSheet(input: PaymentSheetInput): ChargePaymentRespon
       : null;
   return {
     chargeId: charge.id,
+    month: charge.month,
     title: "Mark paid",
     subtitle: `${charge.label} · ${charge.person.name} · ${formatMonthName(charge.month)}`,
     expected: formatCents(charge.amountCents),
+    expectedCents: charge.amountCents,
     due: dueRow(chargeDueDate(charge.month, input.config, charge), today, stored !== null),
     amountCents: stored?.cents ?? charge.amountCents,
     paidOn: stored?.on ?? today,
