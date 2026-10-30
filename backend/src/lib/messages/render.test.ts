@@ -133,6 +133,10 @@ describe("renderMonthlyMessage", () => {
     );
     expect(message.before).toBe("Hi Priya! Eto na yung breakdown for Nov 2026 😊");
     expect(message.after).toBe("Total: $1,963.65\nPaki-send by 7 Nov. Salamat!");
+    expect(message.afterLines).toEqual([
+      { text: "Total: $1,963.65", isTotal: true },
+      { text: "Paki-send by 7 Nov. Salamat!", isTotal: false },
+    ]);
     expect(message.breakdown.totalCents).toBe(196365);
   });
 
@@ -148,12 +152,18 @@ describe("renderMonthlyMessage", () => {
     );
     expect(message.before).toBe("Jordan, Nov 2026:");
     expect(message.after).toBe("= $1,050.79");
+    expect(message.afterLines).toEqual([{ text: "= $1,050.79", isTotal: true }]);
   });
 
   it("keeps the whole message in before when the template has no {lines}", () => {
     const message = monthly(jordan, "Jordan", withOverride(jordan, "MONTHLY", "Hi {name}, {total} please"));
 
-    expect(message).toMatchObject({ text: "Hi Jordan, $1,050.79 please", before: "Hi Jordan, $1,050.79 please", after: "" });
+    expect(message).toMatchObject({
+      text: "Hi Jordan, $1,050.79 please",
+      before: "Hi Jordan, $1,050.79 please",
+      after: "",
+      afterLines: [],
+    });
   });
 });
 

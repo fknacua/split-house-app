@@ -59,7 +59,16 @@ export interface MonthlyMessage {
   before: string;
   /** The filled template after `{lines}`, without the blank lines next to it; empty without `{lines}`. */
   after: string;
+  /** `after` line by line, each flagged when its template line holds `{total}`, so a preview can stress it. */
+  afterLines: MessageLine[];
   breakdown: Breakdown;
+}
+
+/** One line of a filled template. */
+export interface MessageLine {
+  text: string;
+  /** True when the template line holds `{total}`. */
+  isTotal: boolean;
 }
 
 /** What `renderMonthlyMessage` reads: the breakdown's input and the recipient's name. */
@@ -86,10 +95,14 @@ export function renderMonthlyMessage(input: MonthlyMessageInput): MonthlyMessage
   };
   const template = templateFor(input.config, input.recipientId, "MONTHLY");
   const [head, ...rest] = template.split("{lines}");
+  const tail = rest.join("{lines}").replace(/^\n+/, "");
   return {
     text: fillTemplate(template, values),
     before: fillTemplate(head, values).replace(/\n+$/, ""),
-    after: fillTemplate(rest.join("{lines}"), values).replace(/^\n+/, ""),
+    after: fillTemplate(tail, values),
+    afterLines: tail
+      ? tail.split("\n").map((line) => ({ text: fillTemplate(line, values), isTotal: line.includes("{total}") }))
+      : [],
     breakdown,
   };
 }
