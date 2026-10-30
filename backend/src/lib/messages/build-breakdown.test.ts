@@ -73,17 +73,17 @@ describe("buildBreakdown", () => {
     expect(b.dueDate).toBe("2026-11-07");
     expect(b.text).toBe(
       [
-        "*Yours:*",
+        "Yours:",
         "Rent $1,675.00",
         "Utilities bill (1.5 of 5 shares of $412.30) $123.69",
         "Aircon servicing (2 of 6 units) $36.67",
         "Starhub $27.50",
-        "Subtotal $1,862.86",
+        "*Subtotal $1,862.86*",
         "",
-        "*Sam’s (please collect):*",
+        "Sam’s (please collect):",
         "Utilities bill (1 of 5 shares) $82.46",
         "Aircon servicing (1 of 6 units) $18.33",
-        "Subtotal $100.79",
+        "*Subtotal $100.79*",
       ].join("\n"),
     );
   });

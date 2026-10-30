@@ -5,10 +5,10 @@ import { buildRecipient, type RecipientChargeRow } from "@/lib/recipient/build-r
 import { getRecipient, type RecipientDb } from "./recipient.service";
 
 const PEOPLE = [
-  { id: PERSON_IDS.alex, name: "Alex", isOwner: true },
-  { id: PERSON_IDS.priya, name: "Priya", isOwner: false },
-  { id: PERSON_IDS.sam, name: "Sam", isOwner: false },
-  { id: PERSON_IDS.jordan, name: "Jordan", isOwner: false },
+  { id: PERSON_IDS.alex, name: "Alex", isOwner: true, whatsappE164: null },
+  { id: PERSON_IDS.priya, name: "Priya", isOwner: false, whatsappE164: "+6580000000" },
+  { id: PERSON_IDS.sam, name: "Sam", isOwner: false, whatsappE164: "+6580000000" },
+  { id: PERSON_IDS.jordan, name: "Jordan", isOwner: false, whatsappE164: "+6580000000" },
 ];
 
 const JORDAN_RENT: RecipientChargeRow = {
@@ -60,7 +60,7 @@ describe("getRecipient", () => {
         month: "2026-11",
         today: "2026-11-01",
         config: NOV_2026_CONFIG,
-        person: { id: PERSON_IDS.jordan, name: "Jordan" },
+        person: { id: PERSON_IDS.jordan, name: "Jordan", whatsappE164: "+6580000000" },
         people: PEOPLE.map((p) => ({ id: p.id, name: p.name })),
         billCents: 41230,
         charges: [JORDAN_RENT],
@@ -108,7 +108,7 @@ describe("getRecipient", () => {
 
   it("throws 404 no_person for someone not in the month's household version", async () => {
     const { db } = fakeDb();
-    db.person.findMany = async () => [...PEOPLE, { id: "person-kim", name: "Kim", isOwner: false }];
+    db.person.findMany = async () => [...PEOPLE, { id: "person-kim", name: "Kim", isOwner: false, whatsappE164: "+6580000000" }];
     await expect(getRecipient(db, "2026-11", "person-kim")).rejects.toMatchObject({ status: 404, code: "no_person" });
   });
 });

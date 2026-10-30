@@ -115,19 +115,19 @@ describe("renderMonthlyMessage", () => {
       [
         "Hi Priya! Eto na yung breakdown for Nov 2026 😊",
         "",
-        "*Yours:*",
+        "Yours:",
         "Rent $1,675.00",
         "Utilities bill (1.5 of 5 shares of $412.30) $123.69",
         "Aircon servicing (2 of 6 units) $36.67",
         "Starhub $27.50",
-        "Subtotal $1,862.86",
+        "*Subtotal $1,862.86*",
         "",
-        "*Sam’s (please collect):*",
+        "Sam’s (please collect):",
         "Utilities bill (1 of 5 shares) $82.46",
         "Aircon servicing (1 of 6 units) $18.33",
-        "Subtotal $100.79",
+        "*Subtotal $100.79*",
         "",
-        "Total: $1,963.65",
+        "*Total: $1,963.65*",
         "Paki-send by 7 Nov. Salamat!",
       ].join("\n"),
     );
@@ -141,14 +141,14 @@ describe("renderMonthlyMessage", () => {
   });
 
   it("uses the earliest due date among the charges in it", () => {
-    expect(monthly(jordan, "Jordan").text).toMatch(/Total: \$1,050\.79\nPaki-send by 1 Nov\. Salamat!$/);
+    expect(monthly(jordan, "Jordan").text).toMatch(/\*Total: \$1,050\.79\*\nPaki-send by 1 Nov\. Salamat!$/);
   });
 
   it("uses the recipient's override", () => {
     const message = monthly(jordan, "Jordan", withOverride(jordan, "MONTHLY", "{name}, {month}:\n{lines}\n= {total}"));
 
     expect(message.text).toBe(
-      "Jordan, Nov 2026:\nRent $950.00\nUtilities bill (1 of 5 shares of $412.30) $82.46\nAircon servicing (1 of 6 units) $18.33\n= $1,050.79",
+      "Jordan, Nov 2026:\nRent $950.00\nUtilities bill (1 of 5 shares of $412.30) $82.46\nAircon servicing (1 of 6 units) $18.33\n*= $1,050.79*",
     );
     expect(message.before).toBe("Jordan, Nov 2026:");
     expect(message.after).toBe("= $1,050.79");

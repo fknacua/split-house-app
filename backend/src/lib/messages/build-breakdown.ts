@@ -43,7 +43,7 @@ export interface BreakdownLine {
 /** The lines of one person in a breakdown. */
 export interface BreakdownSection {
   personId: string;
-  /** `Yours:` or `Sam’s (please collect):`, without WhatsApp's bold markers; null when the message has one untitled section. */
+  /** `Yours:` or `Sam’s (please collect):`; null when the message has one untitled section. */
   title: string | null;
   lines: BreakdownLine[];
   subtotalCents: number;
@@ -58,7 +58,7 @@ export interface Breakdown {
   totalCents: number;
   /** The earliest due date of the charges in it, as a date key; null when none has one. */
   dueDate: string | null;
-  /** The sections as message text, for `{lines}`: titles in WhatsApp's `*bold*` markers. */
+  /** The sections as message text, for `{lines}`: subtotals in WhatsApp's `*bold*` markers. */
   text: string;
 }
 
@@ -178,11 +178,11 @@ export function buildBreakdown(input: BreakdownInput): Breakdown {
   };
 }
 
-/** A section as message text: the bold title, a line per charge, then the subtotal. */
+/** A section as message text: the title, a line per charge, then the subtotal in WhatsApp's `*bold*`. */
 function sectionText(section: BreakdownSection): string {
   return [
-    ...(section.title ? [`*${section.title}*`] : []),
+    ...(section.title ? [section.title] : []),
     ...section.lines.map((l) => `${l.label} ${l.amount}`),
-    ...(section.subtotal ? [`Subtotal ${section.subtotal}`] : []),
+    ...(section.subtotal ? [`*Subtotal ${section.subtotal}*`] : []),
   ].join("\n");
 }

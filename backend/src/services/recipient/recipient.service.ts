@@ -1,7 +1,12 @@
 import { parseHouseholdConfig, todayKey, type RecipientResponse } from "@splithouse/shared";
 import { ApiError } from "@/lib/api";
 import { now } from "@/lib/now";
-import { buildRecipient, type RecipientChargeRow, type RecipientMessageEvent } from "@/lib/recipient/build-recipient";
+import {
+  buildRecipient,
+  type RecipientChargeRow,
+  type RecipientInput,
+  type RecipientMessageEvent,
+} from "@/lib/recipient/build-recipient";
 
 const CHARGE_SELECT = {
   id: true,
@@ -16,6 +21,8 @@ const CHARGE_SELECT = {
 } as const;
 
 const MESSAGE_SELECT = { kind: true, chargeId: true, openedAt: true } as const;
+
+const PERSON_SELECT = { id: true, name: true, isOwner: true, whatsappE164: true } as const;
 
 /** The charges a person pays: the month's and earlier months' unpaid corrections, their own or paid through them. */
 interface RecipientChargesWhere {
@@ -35,8 +42,8 @@ export interface RecipientDb {
   };
   person: {
     findMany(args: {
-      select: { id: true; name: true; isOwner: true };
-    }): Promise<{ id: string; name: string; isOwner: boolean }[]>;
+      select: typeof PERSON_SELECT;
+    }): Promise<{ id: string; name: string; isOwner: boolean; whatsappE164: string | null }[]>;
   };
   bill: {
     findUnique(args: {
@@ -57,22 +64,23 @@ export interface RecipientDb {
 
 /**
  * Reads the month with its pinned household version, the people, the bill's total, the charges the
- * person pays and their message events, and hands them to `buildRecipient`. Read-only.
+ * person pays and their message events: what `buildRecipient` and the message renderers read.
+ * Read-only.
  *
  * @param db - The Prisma client, or a fake in tests.
  * @param month - The month key, e.g. `2026-11`.
  * @param personId - Who the screen is for.
- * @returns The Recipient screen.
+ * @returns The builder's input.
  * @throws {ApiError} 404 `no_month` when the month is not open; 404 `no_person` for an unknown
  * person, the owner, or someone not in the month's household version.
  */
-export async function getRecipient(db: RecipientDb, month: string, personId: string): Promise<RecipientResponse> {
+export async function loadRecipientInput(db: RecipientDb, month: string, personId: string): Promise<RecipientInput> {
   const [opened, people, bill, charges, messages] = await Promise.all([
     db.month.findUnique({
       where: { month },
       select: { householdVersion: { select: { schemaVersion: true, config: true } } },
     }),
-    db.person.findMany({ select: { id: true, name: true, isOwner: true } }),
+    db.person.findMany({ select: PERSON_SELECT }),
     db.bill.findUnique({ where: { month }, select: { currentChargesCents: true } }),
     db.charge.findMany({
       where: {
@@ -94,14 +102,28 @@ export async function getRecipient(db: RecipientDb, month: string, personId: str
     throw new ApiError(404, "no_person", "That person isn’t in this month’s household.");
   }
 
-  return buildRecipient({
+  return {
     month,
     today: todayKey(now()),
     config,
-    person: { id: person.id, name: person.name },
+    person: { id: person.id, name: person.name, whatsappE164: person.whatsappE164 },
     people: people.map((p) => ({ id: p.id, name: p.name })),
     billCents: bill?.currentChargesCents ?? null,
     charges,
     messages,
-  });
+  };
+}
+
+/**
+ * One person's Recipient screen for the month: `loadRecipientInput` handed to `buildRecipient`.
+ * Read-only.
+ *
+ * @param db - The Prisma client, or a fake in tests.
+ * @param month - The month key, e.g. `2026-11`.
+ * @param personId - Who the screen is for.
+ * @returns The Recipient screen.
+ * @throws {ApiError} 404 `no_month` or `no_person`, as `loadRecipientInput`.
+ */
+export async function getRecipient(db: RecipientDb, month: string, personId: string): Promise<RecipientResponse> {
+  return buildRecipient(await loadRecipientInput(db, month, personId));
 }

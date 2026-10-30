@@ -19,6 +19,8 @@ export const HOME_BADGES = {
   covered: { label: "Covered", tone: "success" },
   /** View bill: a share whose message is out and is not paid or overdue. */
   waiting: { label: "Waiting", tone: "neutral" },
+  /** Recipient: the monthly message is out and nothing is paid. Its board writes it with a dot, unlike Home's. */
+  recipientSentUnpaid: { label: "Sent · unpaid", tone: "neutral" },
 } as const satisfies Record<string, BadgeContent>;
 
 /** A charge due within this many days shows `Due in N days`. Further out it is `Sent, unpaid` or `Upcoming`. */

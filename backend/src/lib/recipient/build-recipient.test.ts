@@ -1,6 +1,7 @@
 import { recipientResponseSchema } from "@splithouse/shared";
 import { describe, expect, it } from "vitest";
 import { NOV_2026_CONFIG, PERSON_IDS } from "@/lib/fixtures/household";
+import { whatsappLink } from "@/lib/messages/whatsapp-link";
 import { buildRecipient, recipientSubLine, type RecipientChargeRow, type RecipientInput } from "./build-recipient";
 
 const { alex, priya, sam, jordan } = PERSON_IDS;
@@ -12,6 +13,7 @@ const PEOPLE = [
   { id: jordan, name: "Jordan" },
 ];
 const NAMES = new Map(PEOPLE.map((p) => [p.id, p.name]));
+const PHONE = "+6580000000";
 
 /** An unpaid November charge. */
 function charge(
@@ -57,7 +59,7 @@ function input(personId: string, charges: RecipientChargeRow[], overrides: Parti
     month: "2026-11",
     today: "2026-11-01",
     config: NOV_2026_CONFIG,
-    person: { id: personId, name: NAMES.get(personId)! },
+    person: { id: personId, name: NAMES.get(personId)!, whatsappE164: PHONE },
     people: PEOPLE,
     billCents: 41230,
     charges,
@@ -117,13 +119,15 @@ describe("buildRecipient: notSent", () => {
         subtotal: "$100.79",
       },
     ]);
-    expect(r.message.text).toContain("*Yours:*\nRent $1,675.00");
+    expect(r.message.text).toContain("Yours:\nRent $1,675.00");
+    expect(r.message.text).toContain("*Subtotal $1,862.86*");
+    expect(r.message.text).toContain("*Total: $1,963.65*");
     expect(r.note).toBeNull();
     expect(r.primaryAction).toEqual({
       label: "Send on WhatsApp",
       icon: "send",
       enabled: true,
-      target: { kind: "send-whatsapp", month: "2026-11", personId: priya },
+      target: { kind: "send-whatsapp", month: "2026-11", personId: priya, url: whatsappLink(PHONE, r.message.text) },
     });
     expect(r.secondaryActions).toEqual([
       { label: "Share bill", icon: null, enabled: true, target: { kind: "share-bill", month: "2026-11" } },
@@ -177,5 +181,99 @@ describe("buildRecipient: notSent", () => {
 
     expect(r.amountCard.amount).toBe("$1,065.79");
     expect(r.message.sections[0].lines.at(-1)).toEqual({ label: "Correction: September utilities", amount: "$15.00" });
+  });
+});
+
+describe("buildRecipient: Send on WhatsApp", () => {
+  it("disables Send and says why when the person has no WhatsApp number", () => {
+    const r = buildRecipient(input(priya, PRIYA_CHARGES, { person: { id: priya, name: "Priya", whatsappE164: null } }));
+
+    expect(r.primaryAction).toMatchObject({ enabled: false, target: { kind: "send-whatsapp", url: null } });
+    expect(r.secondaryActions[0].enabled).toBe(true);
+    expect(r.note).toBe("No WhatsApp number is set up for Priya.");
+  });
+
+  it("disables Send again and says why once sent, if the number was removed", () => {
+    const r = buildRecipient(
+      input(priya, PRIYA_CHARGES, {
+        person: { id: priya, name: "Priya", whatsappE164: null },
+        messages: [{ kind: "MONTHLY", chargeId: null, openedAt: new Date("2026-11-01T09:00:00+08:00") }],
+      }),
+    );
+
+    expect(r.secondaryActions.map((a) => [a.label, a.enabled])).toEqual([
+      ["Share bill", true],
+      ["Send again", false],
+    ]);
+    expect(r.note).toBe("No WhatsApp number is set up for Priya.");
+  });
+});
+
+describe("buildRecipient: sent", () => {
+  const sentOn = (openedAt: string) => ({ kind: "MONTHLY" as const, chargeId: null, openedAt: new Date(openedAt) });
+
+  it("builds the primary tenant's page as on the board", () => {
+    const r = buildRecipient(
+      input(priya, PRIYA_CHARGES, { today: "2026-11-03", messages: [sentOn("2026-11-02T10:00:00+08:00")] }),
+    );
+
+    expect(() => recipientResponseSchema.parse(r)).not.toThrow();
+    expect(r.amountCard).toEqual({
+      label: "Nov 2026 total",
+      amount: "$1,963.65",
+      chip: { label: "Sent · unpaid", tone: "neutral" },
+      statusLine: { text: "Sent 2 Nov · due 7 Nov", tone: "default" },
+    });
+    expect(r.message).toMatchObject({ label: "Sent message", meta: "Sent 2 Nov" });
+    expect(r.message.sections).toHaveLength(2);
+    expect(r.primaryAction).toEqual({
+      label: "Mark paid",
+      icon: "check",
+      enabled: true,
+      target: { kind: "record-payment", month: "2026-11", personId: priya },
+    });
+    expect(r.secondaryActions).toEqual([
+      { label: "Share bill", icon: null, enabled: true, target: { kind: "share-bill", month: "2026-11" } },
+      {
+        label: "Send again",
+        icon: null,
+        enabled: true,
+        target: { kind: "send-whatsapp", month: "2026-11", personId: priya, url: whatsappLink(PHONE, r.message.text) },
+      },
+    ]);
+  });
+
+  it("dates it by the latest monthly message in Singapore, ignoring nudges", () => {
+    const r = buildRecipient(
+      input(priya, PRIYA_CHARGES, {
+        today: "2026-11-05",
+        messages: [
+          sentOn("2026-11-02T10:00:00+08:00"),
+          sentOn("2026-11-03T16:30:00Z"), // 4 Nov 00:30 in Singapore
+          { kind: "NUDGE", chargeId: "priya-RENT", openedAt: new Date("2026-11-05T09:00:00+08:00") },
+        ],
+      }),
+    );
+
+    expect(r.amountCard.statusLine?.text).toBe("Sent 4 Nov · due 7 Nov");
+    expect(r.message.meta).toBe("Sent 4 Nov");
+  });
+
+  it("stays notSent with only a nudge", () => {
+    const r = buildRecipient(
+      input(jordan, JORDAN_CHARGES, {
+        messages: [{ kind: "NUDGE", chargeId: "jordan-RENT", openedAt: new Date("2026-11-01T09:00:00+08:00") }],
+      }),
+    );
+
+    expect(r.amountCard.chip.label).toBe("Not sent");
+  });
+
+  it("says overdue in danger once the earliest due date has passed", () => {
+    const r = buildRecipient(
+      input(jordan, JORDAN_CHARGES, { today: "2026-11-03", messages: [sentOn("2026-11-02T09:00:00+08:00")] }),
+    );
+
+    expect(r.amountCard.statusLine).toEqual({ text: "Sent 2 Nov · overdue since 1 Nov", tone: "danger" });
   });
 });
