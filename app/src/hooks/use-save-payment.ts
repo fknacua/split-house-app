@@ -6,7 +6,7 @@ import type { SavePaymentRequest, SavePaymentResponse } from '@splithouse/shared
 
 /**
  * Records what was received for one charge (`POST /api/charges/:id/payment`). Home, History, the
- * charge's month's bill, the charge's own sheet and Record payment's lists show it, so all are refetched; the mutation
+ * charge's month's bill, the charge's own sheet, Record payment's lists and Recipient show it, so all are refetched; the mutation
  * stays pending until they are, so the sheet keeps its spinner until the screens behind it are up
  * to date.
  *
@@ -24,6 +24,7 @@ export function useSavePayment(chargeId: string) {
         queryClient.invalidateQueries({ queryKey: queryKeys.bill(month) }),
         queryClient.invalidateQueries({ queryKey: queryKeys.chargePayment(chargeId) }),
         queryClient.invalidateQueries({ queryKey: queryKeys.allPaymentOptions }),
+        queryClient.invalidateQueries({ queryKey: queryKeys.allRecipients }),
       ]),
   });
 }

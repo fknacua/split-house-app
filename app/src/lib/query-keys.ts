@@ -33,4 +33,11 @@ export const queryKeys = {
   allPaymentOptions: ['payment-options'] as const,
   /** @param month `YYYY-MM` key of the month Record payment is opened for. */
   paymentOptions: (month: string) => ['payment-options', month] as const,
+  /** Every Recipient screen. The prefix of `recipient`, so a payment refreshes whichever is open. */
+  allRecipients: ['recipient'] as const,
+  /**
+   * @param month `YYYY-MM` key of the month the Recipient screen shows.
+   * @param personId The person it is for.
+   */
+  recipient: (month: string, personId: string) => ['recipient', month, personId] as const,
 };
