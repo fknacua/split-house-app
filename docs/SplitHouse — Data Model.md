@@ -32,7 +32,7 @@ Stack it assumes: Postgres on Neon, Prisma, Next.js route handlers on Vercel, Be
 - **Per category (rent, utilities, aircon):** total shares or units, and the remainder split between Francis and Primary tenant in basis points (5000/5000 by default).
 - **Utilities bill due day:** an optional fixed day of the month (1 to 31). Home uses it to place the bill row before a bill exists; the due date of an uploaded bill supersedes it.
 - **Recurring charges:** label, amount in cents, person, optional end month (Starhub $27.50 for Primary tenant).
-- **Message templates:** monthly breakdown and nudge, per-person overrides, custom line labels.
+- **Message templates:** monthly breakdown and nudge, per-person overrides, custom line labels, and optional custom section titles per person (the title of the breakdown section holding that person's lines, without the colon; without one it reads "Yours" or "{name}'s (please collect)"). Template text is sent as written, including any WhatsApp `*bold*` markers in it.
 
 ### Month
 `month` (unique `YYYY-MM`), `householdVersionId` (the version pinned when the month opened), `openedAt`. Status (bill missing, messages unsent, collecting, settled) is derived, not stored.

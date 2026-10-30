@@ -102,7 +102,7 @@ describe("buildRecipient: notSent", () => {
       meta: "Monthly breakdown template",
       intro: "Hi Priya! Eto na yung breakdown for Nov 2026 😊",
       outro: [
-        { text: "Total: $1,963.65", isTotal: true },
+        { text: "*Total:* $1,963.65", isTotal: true },
         { text: "Paki-send by 7 Nov. Salamat!", isTotal: false },
       ],
       editTemplate: { label: "Edit template", enabled: true, target: { kind: "edit-template", template: "MONTHLY" } },
@@ -111,25 +111,25 @@ describe("buildRecipient: notSent", () => {
       {
         title: "Yours:",
         lines: [
-          { label: "Rent", amount: "$1,675.00" },
-          { label: "Utilities bill (1.5 of 5 shares of $412.30)", amount: "$123.69" },
-          { label: "Aircon servicing (2 of 6 units)", amount: "$36.67" },
-          { label: "Starhub", amount: "$27.50" },
+          { label: "Rent", amount: "$1,675.00", working: null },
+          { label: "Utilities bill", amount: "$123.69", working: "(total bill $412.30)" },
+          { label: "Aircon servicing", amount: "$36.67", working: "(2/6 units)" },
+          { label: "Starhub", amount: "$27.50", working: null },
         ],
         subtotal: "$1,862.86",
       },
       {
         title: "Sam’s (please collect):",
         lines: [
-          { label: "Utilities bill (1 of 5 shares)", amount: "$82.46" },
-          { label: "Aircon servicing (1 of 6 units)", amount: "$18.33" },
+          { label: "Utilities bill", amount: "$82.46", working: "(total bill $412.30)" },
+          { label: "Aircon servicing", amount: "$18.33", working: "(1/6 units)" },
         ],
         subtotal: "$100.79",
       },
     ]);
-    expect(messageOf(r).text).toContain("Yours:\nRent $1,675.00");
-    expect(messageOf(r).text).toContain("*Subtotal $1,862.86*");
-    expect(messageOf(r).text).toContain("*Total: $1,963.65*");
+    expect(messageOf(r).text).toContain("Yours:\n*Rent:* $1,675.00");
+    expect(messageOf(r).text).toContain("*Subtotal:* $1,862.86");
+    expect(messageOf(r).text).toContain("*Total:* $1,963.65");
     expect(r.note).toBeNull();
     expect(r.primaryAction).toEqual({
       label: "Send on WhatsApp",
@@ -165,7 +165,9 @@ describe("buildRecipient: notSent", () => {
 
     expect(r.header.sub).toBe("Own room · utilities and aircon via Priya");
     expect(r.amountCard).toMatchObject({ amount: "$950.00", statusLine: { text: "Due 28 Nov", tone: "default" } });
-    expect(messageOf(r).sections).toEqual([{ title: null, lines: [{ label: "Rent", amount: "$950.00" }], subtotal: null }]);
+    expect(messageOf(r).sections).toEqual([
+      { title: null, lines: [{ label: "Rent", amount: "$950.00", working: null }], subtotal: null },
+    ]);
     expect(r.primaryAction?.enabled).toBe(true);
   });
 
@@ -178,7 +180,7 @@ describe("buildRecipient: notSent", () => {
       chip: { label: "Needs bill", tone: "neutral" },
       statusLine: { text: "Utilities are worked out once the bill is uploaded", tone: "default" },
     });
-    expect(messageOf(r).sections[0].lines).toEqual([{ label: "Rent", amount: "$950.00" }]);
+    expect(messageOf(r).sections[0].lines).toEqual([{ label: "Rent", amount: "$950.00", working: null }]);
     expect(r.primaryAction?.enabled).toBe(false);
     expect(r.secondaryActions.map((a) => a.enabled)).toEqual([false]);
   });
@@ -188,7 +190,11 @@ describe("buildRecipient: notSent", () => {
     const r = buildRecipient(input(jordan, [...JORDAN_CHARGES, correction]));
 
     expect(r.amountCard.amount).toBe("$1,065.79");
-    expect(messageOf(r).sections[0].lines.at(-1)).toEqual({ label: "Correction: September utilities", amount: "$15.00" });
+    expect(messageOf(r).sections[0].lines.at(-1)).toEqual({
+      label: "Correction: September utilities",
+      amount: "$15.00",
+      working: null,
+    });
   });
 });
 

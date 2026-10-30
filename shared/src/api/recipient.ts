@@ -126,15 +126,17 @@ export type RecipientChargeRow = z.infer<typeof recipientChargeRowSchema>;
 
 /** One line of a message section. */
 export const recipientMessageLineSchema = z.object({
-  /** e.g. `Utilities bill (1.5 of 5 shares of $412.30)`. */
+  /** e.g. `Utilities bill`, without the colon. */
   label: z.string(),
   /** e.g. `$123.69`; a credit reads `-$5.00`. */
   amount: z.string(),
+  /** The working after the amount, e.g. `(total bill $412.30)` or `(1/6 units)`; null for other lines. */
+  working: z.string().nullable(),
 });
 
 /** One person's lines in the message preview. */
 export const recipientMessageSectionSchema = z.object({
-  /** e.g. `Yours:` or `Sam’s (please collect):`, without WhatsApp's bold markers. Null for a lone own section. */
+  /** e.g. `Yours:`, `Sam’s (please collect):` or a custom title such as `Master Bedroom Share:`. Null for a lone own section. */
   title: z.string().nullable(),
   lines: z.array(recipientMessageLineSchema),
   /** e.g. `$1,862.86`. Null when the section is untitled. */

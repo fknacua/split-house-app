@@ -100,6 +100,10 @@ const templates = z.object({
     .default([]),
   // Custom line labels, e.g. { UTILITIES: "Kuryente at tubig" }.
   lineLabels: chargeTypeRecord(z.string().trim().min(1)).default({}),
+  // Custom breakdown section titles by the person whose lines the section holds, without the
+  // colon, e.g. { "person-priya": "Master Bedroom Share" }. Missing means "Yours" or
+  // "{name}’s (please collect)".
+  sectionTitles: z.record(z.string().min(1), z.string().trim().min(1)).default({}),
 });
 
 /**
@@ -185,6 +189,10 @@ export const householdConfigSchema = z
     config.templates.overrides.forEach((o, i) => {
       if (!ids.has(o.personId)) issue(["templates", "overrides", i, "personId"], "Unknown person");
     });
+
+    for (const personId of Object.keys(config.templates.sectionTitles)) {
+      if (!ids.has(personId)) issue(["templates", "sectionTitles", personId], "Unknown person");
+    }
   });
 
 /** A parsed household config, with defaults filled in. */
