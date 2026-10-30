@@ -34,6 +34,7 @@ function charge(
     dueDate: dueDate ? new Date(`${dueDate}T00:00:00+08:00`) : null,
     payViaPersonId: null,
     paidCents: null,
+    paidOn: null,
     ...extra,
   };
 }
@@ -64,6 +65,7 @@ function input(personId: string, charges: RecipientChargeRow[], overrides: Parti
     billCents: 41230,
     charges,
     messages: [],
+    paymentsEditable: true,
     ...overrides,
   };
 }
@@ -413,5 +415,133 @@ describe("buildRecipient: overdue (nudged)", () => {
     expect(r.note).toBe("No WhatsApp number is set up for Jordan.");
     expect(r.secondaryActions[0]).toMatchObject({ label: "Nudge", enabled: false, target: { url: null } });
     expect(r.charges[0].nudge?.url).toBeNull();
+  });
+});
+
+describe("buildRecipient: paid and paidDifferent", () => {
+  const sent = { kind: "MONTHLY" as const, chargeId: null, openedAt: new Date("2026-11-02T10:05:00+08:00") };
+  const PAID_ON = new Date("2026-11-27");
+
+  /** Priya's charges, each paid in full on 27 Nov, with her rent's amount changed when given. */
+  function priyaPaid(rentPaidCents = 167500): RecipientChargeRow[] {
+    return PRIYA_CHARGES.map((c) => ({
+      ...c,
+      paidCents: c.category === "RENT" && c.personId === priya ? rentPaidCents : c.amountCents,
+      paidOn: PAID_ON,
+    }));
+  }
+
+  it("builds `paid` as on the board, with no message and Edit payment over every charge", () => {
+    const r = buildRecipient(input(priya, priyaPaid(), { today: "2026-11-29", messages: [sent] }));
+
+    expect(() => recipientResponseSchema.parse(r)).not.toThrow();
+    expect(r.amountCard).toEqual({
+      label: "Nov 2026 total",
+      amount: "$1,963.65",
+      chip: { label: "Paid", tone: "success" },
+      statusLine: { text: "Paid in full 27 Nov", tone: "default" },
+    });
+    expect(r.message).toBeNull();
+    expect(r.allPaid).toEqual({ title: "All payments done", note: "Nothing left to send for November." });
+    expect(r.note).toBeNull();
+    expect(r.primaryAction).toBeNull();
+    expect(r.secondaryActions).toHaveLength(1);
+    const edit = r.secondaryActions[0];
+    expect(edit.label).toBe("Edit payment");
+    if (edit.target.kind !== "edit-payment") throw new Error("expected edit-payment");
+    expect(edit.target.chargeId).toBe(`${priya}-RENT`);
+    expect(edit.target.charges.map((c) => c.title)).toEqual([
+      "Rent",
+      "Starhub",
+      "Utilities",
+      "Utilities · Sam",
+      "Aircon",
+      "Aircon · Sam",
+    ]);
+    expect(edit.target.charges[0]).toEqual({
+      chargeId: `${priya}-RENT`,
+      title: "Rent",
+      received: "$1,675.00",
+      detail: "Paid 27 Nov",
+    });
+  });
+
+  it("shows `paid` when everything was paid before any message went out", () => {
+    const r = buildRecipient(input(priya, priyaPaid(), { today: "2026-11-29" }));
+
+    expect(r.amountCard.chip.label).toBe("Paid");
+    expect(r.message).toBeNull();
+  });
+
+  it("builds `paidDifferent` for a short payment as on the board", () => {
+    const r = buildRecipient(input(priya, priyaPaid(161135), { today: "2026-11-29", messages: [sent] }));
+
+    expect(() => recipientResponseSchema.parse(r)).not.toThrow();
+    expect(r.amountCard).toEqual({
+      label: "Received 27 Nov",
+      amount: "$1,900.00",
+      chip: { label: "Paid less", tone: "warning" },
+      statusLine: { text: "$63.65 short of $1,963.65", tone: "warning" },
+    });
+    expect(r.message).toBeNull();
+    expect(r.allPaid).toEqual({ title: "No messages to send", note: "Every charge for November has a payment." });
+    expect(r.note).toBe("November stays $63.65 short until you edit the payment or add a correction.");
+    expect(r.primaryAction).toEqual({
+      label: "Add correction",
+      icon: "plus",
+      enabled: true,
+      target: { kind: "add-correction", month: "2026-11", personId: priya },
+    });
+    expect(r.secondaryActions[0].target).toMatchObject({ kind: "edit-payment", chargeId: `${priya}-RENT` });
+  });
+
+  it("opens Edit payment on the charge that differs and words its gap", () => {
+    const charges = priyaPaid().map((c) => (c.category === "RECURRING" ? { ...c, paidCents: 2000 } : c));
+    const r = buildRecipient(input(priya, charges, { today: "2026-11-29" }));
+
+    const target = r.secondaryActions[0].target;
+    if (target.kind !== "edit-payment") throw new Error("expected edit-payment");
+    expect(target.chargeId).toBe(`${priya}-RECURRING`);
+    expect(target.charges[1]).toMatchObject({ title: "Starhub", received: "$20.00", detail: "Paid 27 Nov · $7.50 short" });
+  });
+
+  it("builds the overpayment as `Paid more` in the info tone", () => {
+    const r = buildRecipient(input(priya, priyaPaid(169500), { today: "2026-11-29" }));
+
+    expect(r.amountCard).toEqual({
+      label: "Received 27 Nov",
+      amount: "$1,983.65",
+      chip: { label: "Paid more", tone: "info" },
+      statusLine: { text: "$20.00 over $1,963.65", tone: "default" },
+    });
+    expect(r.note).toBe("The extra is recorded as received. Add a correction if it should count elsewhere.");
+    expect(r.primaryAction?.label).toBe("Add correction");
+  });
+
+  it("leaves Edit payment out in an earlier month", () => {
+    const paid = buildRecipient(input(priya, priyaPaid(), { today: "2026-12-02", paymentsEditable: false }));
+    const short = buildRecipient(input(priya, priyaPaid(161135), { today: "2026-12-02", paymentsEditable: false }));
+
+    expect(paid.primaryAction).toBeNull();
+    expect(paid.secondaryActions).toEqual([]);
+    expect(short.primaryAction?.label).toBe("Add correction");
+    expect(short.secondaryActions).toEqual([]);
+  });
+
+  it("stays in the unpaid layouts while any charge is unpaid or before the bill", () => {
+    const partly = priyaPaid().map((c) => (c.category === "AIRCON" ? { ...c, paidCents: null, paidOn: null } : c));
+    const beforeBill = SAM_CHARGES.map((c) => ({ ...c, paidCents: c.amountCents, paidOn: PAID_ON }));
+
+    expect(buildRecipient(input(priya, partly, { today: "2026-11-05", messages: [sent] })).amountCard.chip.label).toBe(
+      "Sent · unpaid",
+    );
+    expect(buildRecipient(input(sam, beforeBill, { billCents: null })).amountCard.chip.label).toBe("Needs bill");
+  });
+
+  it("does not wait on an unpaid credit", () => {
+    const credit = charge(priya, "CORRECTION", "Correction", -500, null);
+    const r = buildRecipient(input(priya, [...priyaPaid(), credit], { today: "2026-11-29" }));
+
+    expect(r.amountCard).toMatchObject({ amount: "$1,963.65", chip: { label: "Paid" } });
   });
 });

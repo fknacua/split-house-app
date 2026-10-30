@@ -5,6 +5,7 @@ import {
   type ChargePaymentResponse,
   type PaymentOptionPerson,
   type PaymentOptionsResponse,
+  type RecipientPaidCharge,
   type SavePaymentRequest,
 } from '@splithouse/shared';
 import { z } from 'zod';
@@ -100,6 +101,17 @@ export function choosePayment(options: PaymentOptionsResponse | undefined, pick:
  */
 export function toFromOptions(options: PaymentOptionsResponse | undefined): SelectOption[] {
   return (options?.people ?? []).map((p) => ({ label: p.name, value: p.personId, detail: p.detail }));
+}
+
+/**
+ * Edit payment's For list: each paid charge with what was received on the right and its paid line
+ * under it.
+ *
+ * @param charges The person's paid charges, from Recipient's Edit payment target.
+ * @returns One option per charge, valued by its id.
+ */
+export function toPaidChargeOptions(charges: RecipientPaidCharge[]): SelectOption[] {
+  return charges.map((c) => ({ label: c.title, value: c.chargeId, trailing: c.received, detail: c.detail }));
 }
 
 /**

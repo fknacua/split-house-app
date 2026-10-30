@@ -144,6 +144,23 @@ describe("renderMonthlyMessage", () => {
     expect(monthly(jordan, "Jordan").text).toMatch(/\*Total: \$1,050\.79\*\nPaki-send by 1 Nov\. Salamat!$/);
   });
 
+  it("leaves out the {dueDate} line when nothing in it has a due date", () => {
+    const message = renderMonthlyMessage({
+      month: "2026-11",
+      recipientId: jordan,
+      recipientName: "Jordan",
+      config: NOV_2026_CONFIG,
+      billCents: 41230,
+      people: PEOPLE,
+      charges: [{ ...charge(jordan, "CORRECTION", "Correction: September utilities", 1500, null), month: "2026-10" }],
+    });
+
+    expect(message.text).toBe(
+      "Hi Jordan! Eto na yung breakdown for Nov 2026 😊\n\nCorrection: September utilities $15.00\n\n*Total: $15.00*",
+    );
+    expect(message.afterLines).toEqual([{ text: "Total: $15.00", isTotal: true }]);
+  });
+
   it("uses the recipient's override", () => {
     const message = monthly(jordan, "Jordan", withOverride(jordan, "MONTHLY", "{name}, {month}:\n{lines}\n= {total}"));
 

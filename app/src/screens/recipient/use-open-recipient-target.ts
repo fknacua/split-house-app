@@ -12,15 +12,16 @@ const CANT_OPEN_WHATSAPP = 'WhatsApp couldn’t be opened. No message is sent.';
  * How Recipient opens what a button points at. Send on WhatsApp, Send again and Nudge open the
  * person's chat with the message typed in, one person at a time and only on a tap, then record that
  * it was opened (a nudge on its charge). Nudge again with no chosen charge first asks which one.
- * Mark paid opens Record payment with the person, and the charge when given, chosen
- * (`RecipientSheetsProvider`). Share bill (7.10) and Edit template (9A) do nothing until their steps.
+ * Mark paid opens Record payment with the person, and the charge when given, chosen, and Edit
+ * payment opens the payment sheet on a paid charge (`RecipientSheetsProvider`). Share bill (7.10),
+ * Edit template (9A) and Add correction (Phase 11) do nothing until their steps.
  *
  * @param charges - The screen's charge rows; the overdue ones are offered when Nudge again asks which.
  * @returns `openTarget`, which opens a target; `sending`, true while a send is being recorded; and
  *   `sendError`, the message for the danger Alert when the chat could not be opened or recorded.
  */
 export function useOpenRecipientTarget(charges: RecipientChargeRow[] = []) {
-  const { openRecordPayment, openChooseNudge } = useRecipientSheets();
+  const { openRecordPayment, openChooseNudge, openEditPayment } = useRecipientSheets();
   const recordEvent = useRecordMessageEvent();
   const [sendError, setSendError] = useState<string | null>(null);
 
@@ -59,8 +60,12 @@ export function useOpenRecipientTarget(charges: RecipientChargeRow[] = []) {
       case 'record-payment':
         openRecordPayment(target.month, target.personId, target.chargeId);
         return;
+      case 'edit-payment':
+        openEditPayment(target.chargeId, target.charges);
+        return;
       case 'share-bill': // 7.10
       case 'edit-template': // 9A
+      case 'add-correction': // Phase 11
         return;
     }
   };

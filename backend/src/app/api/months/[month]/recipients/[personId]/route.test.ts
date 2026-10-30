@@ -25,9 +25,11 @@ function useNovember(open: boolean) {
     dueDate: payVia ? null : new Date("2026-11-07T00:00:00+08:00"),
     payViaPersonId: payVia,
     paidCents: null,
+    paidOn: null,
   });
   Object.assign(prisma, {
     month: {
+      findFirst: async () => ({ month: "2026-11" }),
       findUnique: async () =>
         open ? { householdVersion: { schemaVersion: HOUSEHOLD_SCHEMA_VERSION, config: NOV_2026_CONFIG } } : null,
     },

@@ -1,8 +1,8 @@
 import { createContext, useCallback, useContext, useMemo, useRef, useState, type ReactNode } from 'react';
 
 import type { AppSheetRef } from '@/components';
-import { RecordPaymentSheet } from '@/sheets/mark-paid';
-import type { RecipientChargeRow } from '@splithouse/shared';
+import { EditPaymentSheet, RecordPaymentSheet } from '@/sheets/mark-paid';
+import type { RecipientChargeRow, RecipientPaidCharge } from '@splithouse/shared';
 import { NudgeChargeSheet } from './components/nudge-charge-sheet';
 
 /** What Recipient's buttons can open as a sheet. */
@@ -11,22 +11,28 @@ interface RecipientSheetsValue {
   openRecordPayment: (month: string, personId: string, chargeId?: string) => void;
   /** Opens Nudge about which charge? with these rows; `onChoose` gets the tapped one once the sheet closes. */
   openChooseNudge: (rows: RecipientChargeRow[], onChoose: (row: RecipientChargeRow) => void) => void;
+  /** Opens Edit payment on the charge, with the person's paid charges in its For list. */
+  openEditPayment: (chargeId: string, charges: RecipientPaidCharge[]) => void;
 }
 
 const RecipientSheetsContext = createContext<RecipientSheetsValue>({
   openRecordPayment: () => {},
   openChooseNudge: () => {},
+  openEditPayment: () => {},
 });
 
 /**
  * Mounts Recipient's sheets once and lets its buttons open them (`useOpenRecipientTarget` reads
- * this): Record payment and Nudge about which charge?. Home mounts its own in `HomeSheetsProvider`.
+ * this): Record payment, Nudge about which charge? and Edit payment. Home mounts its own in
+ * `HomeSheetsProvider`.
  *
  * @param children - The Recipient screen.
  */
 export function RecipientSheetsProvider({ children }: { children: ReactNode }) {
   const recordPayment = useRef<AppSheetRef>(null);
   const chooseNudge = useRef<AppSheetRef>(null);
+  const editPayment = useRef<AppSheetRef>(null);
+  const [editFor, setEditFor] = useState<{ chargeId: string; charges: RecipientPaidCharge[] } | null>(null);
   const [recordFor, setRecordFor] = useState<{ month: string; personId: string; chargeId?: string } | null>(null);
   const [nudgeChoice, setNudgeChoice] = useState<{
     rows: RecipientChargeRow[];
@@ -45,7 +51,14 @@ export function RecipientSheetsProvider({ children }: { children: ReactNode }) {
     },
     []
   );
-  const value = useMemo(() => ({ openRecordPayment, openChooseNudge }), [openRecordPayment, openChooseNudge]);
+  const openEditPayment = useCallback((chargeId: string, charges: RecipientPaidCharge[]) => {
+    setEditFor({ chargeId, charges });
+    requestAnimationFrame(() => editPayment.current?.open());
+  }, []);
+  const value = useMemo(
+    () => ({ openRecordPayment, openChooseNudge, openEditPayment }),
+    [openRecordPayment, openChooseNudge, openEditPayment]
+  );
 
   return (
     <RecipientSheetsContext.Provider value={value}>
@@ -68,6 +81,7 @@ export function RecipientSheetsProvider({ children }: { children: ReactNode }) {
           }}
         />
       ) : null}
+      {editFor ? <EditPaymentSheet ref={editPayment} chargeId={editFor.chargeId} charges={editFor.charges} /> : null}
     </RecipientSheetsContext.Provider>
   );
 }
