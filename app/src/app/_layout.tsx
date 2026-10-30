@@ -40,6 +40,7 @@ function SessionStack() {
         <Stack.Screen name="history/[month]" />
         <Stack.Screen name="bill/[month]/index" />
         <Stack.Screen name="bill/[month]/upload" />
+        <Stack.Screen name="recipient/[month]/[personId]" />
         <Stack.Screen name="__gallery" />
       </Stack.Protected>
     </Stack>

@@ -47,7 +47,11 @@ export function useOpenTarget() {
       case 'record-payment':
         openRecordPayment(target.month);
         return;
-      case 'recipient': // Phase 7
+      case 'recipient':
+        router.push({
+          pathname: '/recipient/[month]/[personId]',
+          params: { month: target.month, personId: target.personId },
+        });
         return;
     }
   };
