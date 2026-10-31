@@ -889,3 +889,37 @@ Full type check clean in `shared`, `backend` and `app` (ignoring `components/ui`
 ## 2026-10-30: 7.11 ✅
 
 Francis approved the phase pass; Phase 7 is done. Committed the test typing fixes and the private `badges.ts` names, docs/plans left out.
+
+## 2026-10-30: plan reordered for the dry run
+
+Francis decided November 2026 is a dry run on a production backend, starting 31 Oct, with the real go-live in December 2026 or January 2027 on a clean database (checkpoint around 25 Nov). New Phase 8 (dry run: production backend, household load script that also opens November, preview APK, phone check, November log). The old phases move: Household 9, First run 10 (Reminders step to 12.12), go-live prep 11 (dry-run fixes, backups, production; was 12.5 to 12.7), Notifications then Settings 12, Add charge 13, Hardening 14. The ID map is in the plan's "Build order" section. Substeps of Phases 9 onward are only renumbered; restructuring them is next.
+
+## 2026-10-31: 8.1 ✅, 8.2 ✅, 8.2a ✅
+
+8.1: the Neon `production` branch had 3 of 5 migrations and no domain data; the last two were applied. `split-house-api` was already deployed; Vercel does not show the values, so Francis set the three checked variables again (`DATABASE_URL` on the production branch, no `DEV_NOW`, `BETTER_AUTH_URL`) and redeployed; the phone check (8.4) proves which database it uses. Env files are loaded with `DOTENV_CONFIG_PATH` / `tsx --env-file`, never `source` (the `&` in the URLs silently fell back to dev once).
+
+8.2: load script and parser built and tested on dev (wipe, load, refusal, Home on the real date). Francis checked his real config on dev, then dev was reseeded.
+
+8.2a: from a UAT with the housemates: breakdown lines `*Label:* amount`, `(total bill $X)` on every utilities line, `(1/6 units)` on aircon, `*Subtotal:* $X`, per-person `templates.sectionTitles`, no automatic bold on the `{total}` line (the default template bolds its own). App preview deferred to 12.9. Brief and Data Model updated. PR #18 merged (commits "Phase 8.2" and "Phase 8.2a").
+
+Production load: Francis ran it once, then changed the file; production held only that load (no payments, bills or messages), so its household tables were wiped (auth tables kept) and the load rerun: 4 people, the `2026-11` version, November open with 5 charges.
+
+## 2026-10-31: 8.3 ✅, 8.4 ✅, 8.5 🔄
+
+8.3: the EAS variables were first added to the team account's "SplitHouse" project by mistake; the app is linked to the personal `@fknacua/split-house-app`, so they were added there (preview, plaintext). `eas.json` preview profile reads `"environment": "preview"` (PR #19). The keystore SHA-1 matches the Google Android OAuth client. Francis built the preview APK; it replaced the dev build on the phone. Local `app/.env.local` and `backend/.env` are back on the LAN backend and the dev branch; `backend/.env.prod` was deleted (recreate from Neon only when production needs a migration or fix). The production role password is kept (Francis).
+
+8.4: Francis checked on the phone: sign-in, Home with the real household on November, Recipient text, cold start. One finding: History is a blank page with no past months (D1 in `dry-run-log.md`; undrawn, copy to agree).
+
+8.5 starts: November runs in the dry-run app next to the spreadsheet. The next dev step is 9.0, so the dev build can sit next to the dry-run APK. Merges to `main` deploy to the dry run at once; a migration needs `prisma migrate deploy` on production.
+
+## 2026-10-31: plan reorganized, Phase 8A
+
+At Francis's request, the two setup steps moved out of Phase 9 into a new Phase 8A (workflow setup): 9.0a is now 8A.1 (release branch) and 9.0 is 8A.2 (dev build variant). Phase 9 now holds only the Household and Confirmations code. The build order table, the ID map and the 8.5 and Phase 8 references were updated. No code changed.
+
+## 2026-11-01: 8A.1 🔄
+
+Option A chosen (2026-10-31): `release` only fast-forwards to `main` from the git CLI; the `prod-release` skill walks through a ship and Claude only writes the commands. Francis merged PR #19, created `release` from the latest `main` and switched Vercel's production branch to it; Vercel first refused ("No deployments found") because the push made no deployment (the commit touches only `app/`), and a deployment created by hand from `release` fixed it. The flow is recorded in CLAUDE.md's new "Release flow" section; waiting for Francis's review.
+
+## 2026-11-01: 8A.1 ✅
+
+Francis approved the step. The `prod-release` skill is gitignored for now (local only); CLAUDE.md keeps the short "Release flow" section. Nothing committed.

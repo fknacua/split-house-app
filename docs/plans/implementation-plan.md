@@ -223,13 +223,15 @@ Pulled forward from 8.0 so the History response types are written once. npm work
 - ✅ **3.5.1** Workspace spike: single React 19.2.3 / RN 0.86.3 (backend React pinned to match the app), backend `next build`, Metro Android export and device checks pass.
 - ✅ **3.5.2** Moved the schemas, constants, parsers and response types; moved month, date and money (with tests) out of the app; the backend keeps a thin `currentMonth()` over `now()` for `DEV_NOW`.
 - ✅ **3.5.3** Contract tests for `/api/me` and `/api/bootstrap`.
-- ☐ **3.5.4** Still to check with Francis's go-ahead: Vercel preview deploy (Root Directory `backend`, "include source files outside the root directory") and an EAS development build from `app/`. Run `eas build` from `app/`, commit first.
+- ☐ **3.5.4** Moved on 2026-10-30: the Vercel deploy is checked in 8.1 and the EAS build in 8.3.
 
 ---
 
 ## Build order from Phase 4 (set 2026-10-23)
 
-Phases 0 to 3 are done and keep their numbers. From Phase 4 the phases run in the order below, so every screen is built and checked against the seeded dev database before the screens that exist to enter real data. First run is a launcher over other screens, so it comes after them. Add charge is a nice to have (a wrong bill is rare, and a correction charge is its only must-have use), so it comes after First run. Phase 12 stays last as the final cleanup and release.
+Phases 0 to 3 are done and keep their numbers. From Phase 4 the phases run in the order below, so every screen is built and checked against the seeded dev database before the screens that exist to enter real data. First run is a launcher over other screens, so it comes after them. Add charge is a nice to have (a wrong bill is rare, and a correction charge is its only must-have use), so it comes after First run.
+
+**Reordered 2026-10-30 (Francis):** November 2026 becomes a dry run on a production backend, starting 31 Oct (Phase 8), and the real go-live moves to December 2026 or January 2027 on a clean database. After the dry run, only what the go-live needs comes first: Household, First run, then go-live prep (dry-run fixes, backups, production clean slate; was the release part of Phase 12). Notifications, Settings and Add charge follow as extras, and hardening is last.
 
 | Phase | Screens | Was |
 |---|---|---|
@@ -237,11 +239,14 @@ Phases 0 to 3 are done and keep their numbers. From Phase 4 the phases run in th
 | 5 | Home | 5 |
 | 6 | Bill upload, View bill, Mark bill paid (reorganized 2026-10-28) | 6, without Share |
 | 7 | Payments (7.1 to 7.3), then Recipient and Share (7.4 to 7.10), reorganized 2026-10-30 | 8, 7 and 6C.3 |
-| 8 | Household, Confirmations | 4B and 10B (the shared package was done earlier as Phase 3.5) |
-| 9 | Settings (9A), Notifications (9B) | 10A and 11 |
-| 10 | First run | 4A |
-| 11 | Add charge | 9A |
-| 12 | Hardening and release | 12, without 12.5e |
+| 8 | Dry run (November 2026) | new; 3.5.4 |
+| 8A | Workflow setup: release branch, dev build variant | 9.0a, 9.0 |
+| 9 | Household, Confirmations | 8 (4B and 10B) |
+| 10 | First run, without the Reminders step | 10 |
+| 11 | Go-live prep: dry-run fixes, backups, production | 12.5a to 12.5d, 12.6, 12.7 |
+| 12 | Notifications, Settings, First run's Reminders step | 9B, 9A, 10.3 |
+| 13 | Add charge | 11 |
+| 14 | Hardening | 12.1 to 12.4a |
 
 Old step IDs map to new ones as follows. Older entries in `docs/plans/implementation-plan_progress.md` use the old numbers.
 - 9B.1 to 9B.3 are now 4.1 to 4.3. Phase 5 steps keep their IDs. Phase 6 was renumbered on 2026-10-28: 6A.1 is now 6.1 and 6.2, 6A.2 is 6.3, 6A.3 is 6.2 and 6.4, 6A.4 is 6.2, 6B.1 to 6B.3 are 6.2, 6B.4 is 6.3 and 6.4, 6B.5 is 6.5, 6B.6 is in the Phase 6 intro (Replace bill is out of v1), 6C.1 is 6.6 and 6.7, 6C.2 is 6.8, and 6C.3 is now 7B.6.
@@ -249,6 +254,8 @@ Old step IDs map to new ones as follows. Older entries in `docs/plans/implementa
 - 4B.1 to 4B.6 are now 8.1 to 8.6 (10B is folded into 8.5). 12.5e is now 8.0.
 - 10A.1 to 10A.5 are now 9A.1 to 9A.5. 11.1 to 11.6 are now 9B.1 to 9B.6.
 - 4A.1 to 4A.4 are now 10.1 to 10.4. 9A.1 and 9A.2 are now 11.1 and 11.2.
+- Renumbered on 2026-10-30 for the dry run: 8.0 is dropped (done as Phase 3.5); 8.1 to 8.6 are now 9.1 to 9.6, and 9.0 (dev build variant) is new; 10.1 and 10.2 keep their IDs, 10.4 is 10.3, and 10.3 is 12.12; 12.5a to 12.5d are 11.2 to 11.5, 12.6 is 11.6, 12.7 is 11.7, and 11.1 (dry-run fixes) is new; 9B.1 to 9B.6 are 12.1 to 12.6 and 9A.1 to 9A.5 are 12.7 to 12.11; 11.1 and 11.2 are 13.1 and 13.2; 12.1 to 12.4a are 14.1 to 14.4a; 3.5.4 is 8.1 and 8.3; Phase 8 (dry run) is new.
+- Moved on 2026-10-31: 9.0a is now 8A.1 and 9.0 is 8A.2, in their own Phase 8A (workflow setup), so Phase 9 holds only the Household and Confirmations code.
 
 ---
 
@@ -460,80 +467,162 @@ Exit: each seeded scenario renders its Recipient state on device; Mark paid, Rec
 
 ---
 
-## Phase 8: Household, Confirmations and the shared schemas package
+## Phase 8: Dry run (November 2026)
 
-Source `Household.dc.html` (largest file, 48KB; read in full) and `Confirm.dc.html`.
+November 2026 is a dry run on a production backend with the real household: Francis runs the month in the app next to the spreadsheet, and every difference is logged and fixed before the real go-live. Every screen the month needs is built (Phases 4 to 7), so this phase is a deploy and a data load, not new screens. The dry run starts on 31 Oct 2026.
 
-- ✅ **8.0** (was 12.5e) **Shared schemas package. Done early as Phase 3.5 (2026-10-24), before Phase 4; this text is kept for reference.** Original description: replace the hand-mirrored zod schemas in `app/src/lib/schemas/` (and the hand-synced `app/src/lib/api-types.ts`) with one shared package that both `backend/` and `app/` import, so the two sides cannot drift. Household has the largest zod config (1.2), so doing it first avoids mirroring that schema by hand and migrating it later. Start with a short spike: npm workspaces with a `shared/` package that depends only on `zod`, then confirm the backend build and Vercel (root directory), the Expo/Metro bundle and EAS builds all resolve it. Form-only schemas stay app-side, built from the shared pieces. **Candidate: `app/src/lib/month.ts`** (added in 2.11): pure month-key helpers on `date-fns` and `@date-fns/tz`. The backend has its own `backend/src/lib/month.ts` (Intl-based `monthKeyOf`/`currentMonth`), so move the shared logic into the package so both sides use one implementation and cannot drift on the Singapore month; the backend's `DEV_NOW` clock stays backend-side. This reverses the 1.8 and 1.11 "do not add a shared package in v1" decision (Francis, 2026-10-21).
-- **8.1** (was 4B.1) Backend: `GET /api/household` (current version, upcoming version if any, people, per-version history), `POST /api/household/preview` (config draft + starts-from -> per-person amounts via split engine; this is what the edit preview card shows; **the app never calculates**), `POST /api/household/versions` (validates: starts-from must be after current month, except first version; shares add to 100%/totals; creates a new immutable version), `POST /api/people` / person updates go through versions (name and WhatsApp live on `Person`; everything else in config), `DELETE` of a person = a new version excluding them (never hard-delete), plus `removeVersion` for a not-yet-started future version only. The first version's config includes the default message templates from the Brief.
-- **8.2** (was 4B.2) `view` overview: Cards for each person (route chip Directly/Via someone, rent, shares), landlord rent summary, 50/50 split bars (custom two-segment Progress), version/"starts from" badges, Add person button. `loading` skeleton.
-- **8.3** (was 4B.3) Edit screens/sheets by state: `editPerson` (Tenant 2 from Jan 2027 with preview), `editPrimary` (rename, rename applies immediately on Person), `editTenant1` (ConnectedButtonGroup Directly/Via someone per charge type, Applies-to Select), `editHome` (landlord rent from Jan 2027), `addPerson` (empty form, ConnectedButtonGroup for the payment route, PhoneField starting with +65), `splitError` (shares not adding to 100% -> danger Alert + disabled Save).
-- **8.4** (was 4B.4) "Starts from" MonthSelectField lists only months after the current month (first setup: current month allowed). Live preview via debounced call to `/api/household/preview`; show Spinner in the preview card while fetching. **First-setup mode:** the editors take a first-setup flag from the route, so the first version may start at the go-live month (Nov 2026), the only allowed exception. First run (Phase 10) launches the editors in this mode.
-- **8.5** (was 4B.5 and 10B) **Confirmations** (`Confirm.dc.html`): `removePerson`, `removeVersion`, `discard` (back/close with a dirty form). Wire to Household and, later, to every dirty sheet. Filled Cancel, red-outline action, on the Phase 2 `ConfirmDialog`.
-- **8.6** (was 4B.6) Required markers and label-above on every field; verify against FormControls.
+**Decisions (Francis, 2026-10-30)**
+- **Go-live moves to December 2026 or January 2027**, on a clean production database, decided at a checkpoint around 25 Nov (8.5). November is not the go-live cycle any more.
+- **The dry run starts on 31 Oct.** No month exists yet, and "Start next month" (5.7) needs a settled month, so the load script (8.2) opens November itself with `openMonthIfNeeded(prisma, "2026-11")`. Home then shows November as the newest opened month, and `getActiveMonth` treats it as the current month while the calendar still says October. On 1 Nov opening November is a no-op. No backend change.
+- **The real household is loaded by a local script, for the dry run only.** The script is tracked and holds no real data; it reads a gitignored JSON file. The real go-live still enters the household through First run on a wiped database (11.6).
+- **The dry-run app replaces the dev build on the phone.** A preview APK has the same package (`com.splithouse.app`), so it cannot sit next to the dev build. Splitting the dev build into its own package is the first code step after the dry run starts (8A.2).
+- **No backups for the dry run.** Its data is thrown away before go-live; Neon's own restore window is enough. Backups are set up in 11.2 to 11.5.
+- **Not available during the dry run:** household edits (a wrong config is fixed by hand with Claude), correction charges, notifications and Settings.
+- **The spreadsheet stays the source of truth in November.** Whether the app's WhatsApp messages go to the housemates is Francis's call.
 
-Exit: a household can be created from scratch and edited; a version cannot start in the current/past month (API test + UI disables). The Household request and response schemas go in `shared/src/api/household.ts` from the start (the package itself exists since Phase 3.5).
+**Rules for every step**
+- Check the current Vercel, Neon and EAS docs before each console or CLI step; do not rely on memory.
+- No real name, phone number or amount in a tracked file, a log, a commit or the terminal output. The load script prints counts only.
+- Console work (Neon, Vercel, Google Cloud, EAS secrets) is Francis's; Claude writes the checklist and runs the CLI steps Francis approves.
+
+- ✅ **8.1** Production backend (closes the Vercel half of 3.5.4).
+  - Francis: a Neon `prod` branch; the Vercel project `split-house-api` (Root Directory `backend`, "include source files outside the root directory" for `shared/`); env vars `DATABASE_URL`, `DIRECT_URL` if the build needs it, a new `BETTER_AUTH_SECRET`, `BETTER_AUTH_URL` (the Vercel address), `GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET`, `ALLOWED_EMAIL`. No `DEV_NOW`.
+  - Claude: `prisma migrate deploy` against `prod`; smoke test: the deploy builds with `@splithouse/shared`, `/api/me` without a session returns 401. `/api/home` also returns 401 without a session (the session is checked first), so the 409 `no_household` check moves to 8.4.
+  - Done 2026-10-31: the Neon branch is `production` (the default branch, parent of `dev`); it had 3 of 5 migrations and no domain data, and the last two were applied. The Vercel project `split-house-api` already existed and answers with the Phase 7 routes. Load env files with `DOTENV_CONFIG_PATH=.env.prod` (Prisma CLI) or `tsx --env-file=.env.prod`, never by sourcing them in the shell: the connection strings hold `&`, which breaks `source` and silently falls back to dev.
+- ✅ **8.2** Household load script.
+  - `backend/scripts/load-household.ts` (tracked, no data) over `lib/household/household-file.ts` (pure, tested): reads a JSON file from a path argument (kept in the gitignored `backend/prisma/local/`), validates the config with the shared household schema plus a name for everyone, a WhatsApp number for everyone but the owner and rent above zero for every tenant, creates the `Person` rows (name, WhatsApp E.164, owner) and one household version from the file's `startsFromMonth`, then opens that month with `openMonthIfNeeded`. Refuses to run when a person or household version already exists, so it never overwrites. Prints the target host and counts only.
+  - Francis fills in `backend/prisma/local/household.json` (a blank template with a `_readme` block, which the parser ignores).
+  - Tested on dev 2026-10-31 (wipe, load, refusal on a second run, Home on the real date shows November as the active month); dev was then loaded with Francis's file for a UI check.
+  - Run once against `prod` with Francis's go-ahead, **after 8.2a**: the shared schema drops keys it does not know, so a file with `sectionTitles` loaded before 8.2a would lose them, and versions are immutable.
+- ✅ **8.2a** Message format from the housemates' UAT (Francis, 2026-10-31). Before the production load. Only display text changes; the data underneath stays the same.
+  - Breakdown lines (`lib/messages/build-breakdown.ts`), for everyone: every line reads `*Label:* amount` (label and colon bold); every utilities line of the month ends with ` (total bill $X)` after the amount, replacing `(1 of 5 shares of $X)` before it, and shows on every utilities line, not only the first; aircon lines end with ` (1/6 units)` (a fractional part for the owner or primary, e.g. `2.5/6 units`); the subtotal reads `*Subtotal:* $X`; section titles stay plain text.
+  - Section titles: new optional `templates.sectionTitles` in the household config, keyed by the person whose lines the section holds, holding the title only (`"Master Bedroom Share"`); the code adds the colon. Without an entry the title stays "Yours" or "{name}'s (please collect)". Additive, so `HOUSEHOLD_SCHEMA_VERSION` stays 1; the schema checks every key is a known person. Settings (Phase 12) gets a "Section titles" block next to "Line labels" (not drawn: log as a deviation).
+  - Shared: the Recipient message line gains the working as its own field (the label no longer carries it), so the preview can lay out label, amount and working.
+  - The `{total}` line is no longer bolded by the code (Francis, 2026-10-31): the template's own `*…*` markers are sent as written, and the default template reads `*Total:* {total}`.
+  - App preview: **not in 8.2a** (Francis, 2026-10-31); moved to 12.9. Until then Recipient's message card shows each line's label and amount without the working, and template text with its asterisks; the sent and copied text is right.
+  - Config (`household.json`, not code): `lineLabels.UTILITIES = "PUB"` (whole household, and the nudge's `{charge}`); monthly overrides for the primary and tenant 2 without a due date line, with `*Total to transfer:* {total}`; `sectionTitles` for the primary and tenant 1. Tenant 1 stays on the default template. `{dueDate}` stays a placeholder.
+  - Tests: `build-breakdown`, `render` and `build-recipient` expectations move to the new format; schema tests for `sectionTitles`.
+  - Later, not v1: rooms as the base of the config (room names, and rent and utilities per room, as the Household design's "Landlord & rooms" suggests). Recorded in Open items.
+- ✅ **8.3** Dry-run APK (closes the EAS half of 3.5.4).
+  - EAS environment variables for the preview profile: `EXPO_PUBLIC_BACKEND_URL` (the Vercel address) and `EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID` (`.env.local` is not uploaded).
+  - Check that the Google Android OAuth client's SHA-1 matches the keystore the preview build is signed with.
+  - Commit first, ask Francis, then `eas build --profile preview` from `app/`; install over the dev build.
+- ✅ **8.4** Phone check on 31 Oct: sign in; Home shows November with the rows matching the spreadsheet; Recipient's message text for each person; History is empty without errors; the "Can't reach the server" prompt on a cold start.
+- 🔄 **8.5** Run November and log it. Francis records every difference from the spreadsheet, bug or rough edge in `docs/plans/dry-run-log.md` (local only). A blocking issue is fixed at once (on the dev build after 8A.2, then a new preview APK); the rest become 11.1. Checkpoint around 25 Nov: go live in December if Phases 9 to 11 are done and reviewed, otherwise January.
+
+Exit: November runs end to end in the app (bill upload, messages, payments, Mark bill paid, settled) on the production backend, and the dry-run log is triaged.
 
 ---
 
-## Phase 9: Settings and Notifications
+## 🔄 Phase 8A: Workflow setup
 
-### 9A. Settings (5 states)
-Source `Settings.dc.html` (33KB).
-- **9A.1** (was 10A.1) Backend: `GET/PUT /api/settings` (notification toggles per channel/type); message templates are part of the versioned household config, so template edits go through `POST /api/household/versions` (8.1) with "starts from" (Settings "Applies to" Select: everyone / a person).
-- **9A.2** (was 10A.2) `view`: Account Card (signed-in email, Sign out, no confirmation dialog per mapping), Appearance (ConnectedButtonGroup Light/Dark/System bound to the existing `useThemePreference()` from step 2.1a; no new theme logic), Messages (links to template editors), Notifications (Switches per channel/type; they do nothing until 9B lands).
-- **9A.3** (was 10A.3) `template` / `override` / `nudge`: Textarea editors (label above), placeholder chips to insert, preview card with compact ConnectedButtonGroup sample selector (custom), per-person override via Applies-to Select; Save creates a version (starts-from rule applies).
-- **9A.4** (was 10A.4) `blocked`: when notification permission is denied, warning Alert + "Open system settings" (`Linking.openSettings()`, external-link icon); re-check on app foreground.
-- **9A.5** (was 10A.5) Sign out: `authClient.signOut()`, clear query cache, `GoogleSignin.signOut()`, cancel scheduled notifications (9B).
+Setup work that starts once the dry run is running, kept apart from the Phase 9 screen code (Francis, 2026-10-31). The release branch comes first, so merges to `main` stop deploying to the dry run; then the dev build gets its own package so it can sit next to the dry-run APK.
 
-### 9B. Notifications ("Notifications" boards are a copy reference, not screens)
-Source `Notifications.dc.html` (`headsUp`, `shade`) for copy, channel names, action labels, small icon. Tech Stack table defines triggers.
+- ✅ **8A.1** (was 9.0a) Release branch (Francis's preferred flow, decided 2026-10-31, set up first). Create `release` from `main` (what production runs) and push it; Francis changes Vercel's production branch (Project Settings → Environments → Production → Branch Tracking) to `release`; merge PR #19, then bring `release` up to date. From then on: step PRs merge freely into `main` (Vercel preview deployments only; they lack the Production-scoped env vars and are ignored). `release` only ever fast-forwards to `main` from the git CLI (Option A, Francis, 2026-10-31): no PR, never a commit made on `release`, never a force push. Shipping, step by step:
+  1. `git fetch origin`, then `git log --oneline origin/release..origin/main` to see what ships.
+  2. Only if a new migration ships: recreate `backend/.env.prod`, `DOTENV_CONFIG_PATH=.env.prod npx prisma migrate deploy` from `backend/`, delete `.env.prod`. Migrations stay additive, so the old code keeps working until the deploy finishes.
+  3. `git push origin origin/main:release` (git rejects it if it is not a fast-forward; stop and look, never force it). Vercel deploys production.
+  4. Wait for the Vercel deployment to be Ready on that commit, then check Home on the phone.
+  5. Only if the app changed: from a clean working tree, `git switch release`, `git pull`, `eas build --profile preview` from `app/`, install over the dry-run app, then `git switch main`.
+  6. Log the ship (date, commit, migration or not, new APK or not).
+  - Rollback: a backend bug gets Vercel's Instant Rollback while the fix (a revert or a fix on `main`) ships the normal way, then the rollback is undone. An app bug gets the previous APK from the EAS builds page as a stop-gap, then the fix ships with a new build. `release` never moves backwards.
+  - The `prod-release` skill (`.claude/skills/prod-release/SKILL.md`, added 2026-10-31, gitignored for now) walks through these steps: Claude writes each command and Francis runs it; Claude never runs them.
+  - Record the flow in CLAUDE.md's Working agreements, pointing to the skill.
+  - Done 2026-11-01: PR #19 was merged first, so `release` was created from the latest `main` (`b40b2cc`) with nothing to catch up. Vercel refused Branch Tracking on `release` ("No deployments found") because the push made no deployment (that commit touches only `app/`, outside the `backend` Root Directory); a deployment created by hand from `release` fixed it. Production now deploys from `release`. CLAUDE.md got a short "Release flow" section (the ship and rollback details stay in the skill, Francis 2026-11-01).
+- **8A.2** (was 9.0) Dev build variant. Move `app.json` to `app.config.ts` with an `APP_VARIANT` so the development profile builds `com.splithouse.app.dev` (its own name and icon label) and the dry-run APK keeps `com.splithouse.app`. Francis adds a Google Android OAuth client for the `.dev` package and its SHA-1. Check the current Expo docs; ask Francis, commit, then a new development build.
 
-- **9B.1** (was 11.1) `expo-notifications` channels: Action needed (high, heads-up), Payment checks, FYI (low/silent); create on launch.
-- **9B.2** (was 11.2) Action buttons: Paid -> opens Record payment sheet via deep link `splithouse://payments/new?charge=<id>`; Nudge -> opens WhatsApp nudge via Recipient with nudge intent (needs foreground). Register categories with `setNotificationCategoryAsync`.
-- **9B.3** (was 11.3) Scheduler `app/src/lib/notifications/schedule.ts`: input = month summary + settings; cancels all and reschedules (idempotent) on sign-in, launch, and after every mutation (new bill, payment, due-date edit, setting toggle). Date-based: upload bill (about the 2nd, daily until done), collect Tenant 1's rent (last working day before the 1st), Pay utilities bill with live "collected $X of $Y", per-charge "Did {name} pay {charge}?". Event-based immediate: Transfer $950 to savings (when Tenant 2 rent marked received), month settled, unusual bill, aircon due.
-- **9B.4** (was 11.4) Backend `GET /api/notifications/plan` returns computed trigger list so scheduling logic stays server-side/testable (preferred, mirrors "split engine only in backend"); app only schedules.
-- **9B.5** (was 11.5) Tap routing with `expo-router` + `Notifications.useLastNotificationResponse`.
-- **9B.6** (was 11.6) Test on device overnight for delivery delay (Tech Stack "Reminder delay"), no exact-alarm permission.
+Exit: Vercel production tracks `release`, and the dev build and the dry-run APK are both installed on the phone.
+
+---
+
+## Phase 9: Household and Confirmations
+
+Source `Household.dc.html` (largest file, 48KB; read in full) and `Confirm.dc.html`. The shared schemas package (was 8.0) was done as Phase 3.5.
+
+- **9.1** (was 8.1, 4B.1) Backend: `GET /api/household` (current version, upcoming version if any, people, per-version history), `POST /api/household/preview` (config draft + starts-from -> per-person amounts via split engine; this is what the edit preview card shows; **the app never calculates**), `POST /api/household/versions` (validates: starts-from must be after the newest opened month (the 5.7 rule), except the first version; shares add to 100%/totals; creates a new immutable version), `POST /api/people` / person updates go through versions (name and WhatsApp live on `Person`; everything else in config), `DELETE` of a person = a new version excluding them (never hard-delete), plus `removeVersion` for a not-yet-started future version only. The first version's config includes the default message templates from the Brief.
+- **9.2** (was 8.2, 4B.2) `view` overview: Cards for each person (route chip Directly/Via someone, rent, shares), landlord rent summary, 50/50 split bars (custom two-segment Progress), version/"starts from" badges, Add person button. `loading` skeleton.
+- **9.3** (was 8.3, 4B.3) Edit screens/sheets by state: `editPerson` (Tenant 2 from Jan 2027 with preview), `editPrimary` (rename, rename applies immediately on Person), `editTenant1` (ConnectedButtonGroup Directly/Via someone per charge type, Applies-to Select), `editHome` (landlord rent from Jan 2027), `addPerson` (empty form, ConnectedButtonGroup for the payment route, PhoneField starting with +65), `splitError` (shares not adding to 100% -> danger Alert + disabled Save).
+- **9.4** (was 8.4, 4B.4) "Starts from" MonthSelectField lists only months after the newest opened month (first setup: the current or the next month). Live preview via debounced call to `/api/household/preview`; show Spinner in the preview card while fetching. **First-setup mode:** the editors take a first-setup flag from the route, so the first version may start at the current or the next month, the only allowed exception (the next month because setup can happen at the end of a month, as the dry run did on 31 Oct). First run (Phase 10) launches the editors in this mode.
+- **9.5** (was 8.5, 4B.5 and 10B) **Confirmations** (`Confirm.dc.html`): `removePerson`, `removeVersion`, `discard` (back/close with a dirty form). Wire to Household and, later, to every dirty sheet. Filled Cancel, red-outline action, on the Phase 2 `ConfirmDialog`.
+- **9.6** (was 8.6, 4B.6) Required markers and label-above on every field; verify against FormControls.
+
+Exit: a household can be created from scratch and edited; a version cannot start in or before the newest opened month (API test + UI disables). The Household request and response schemas go in `shared/src/api/household.ts`.
 
 ---
 
 ## Phase 10: First run ("Welcome", 3 states)
 
-A launcher over screens built earlier (Household editors, Confirmations, Settings), so it comes after them. The empty-database path is tested by clearing the dev DB with the `seed:reset` wipe, so no extra seed scenario is needed.
+A launcher over the Household editors and Confirmations (Phase 9). The Reminders row is drawn but its step is built with notifications (12.12), so the `notifications` state is reviewed there. The empty-database path is tested by clearing the dev DB with the `seed:reset` wipe, so no extra seed scenario is needed.
 
-- **10.1** (was 4A.1) `Welcome` `state=empty`, `progress`, `notifications`: Card with 4-segment step indicator (custom Progress), "2 of 4 steps done", rows: household/people, rent & shares, recurring charges, reminders (optional). Row detail copy from source.
-- **10.2** (was 4A.2) Each step opens the matching Household editor (Phase 8) in first-setup mode (8.4).
-- **10.3** (was 4A.3) **Reminders step**: explainer then `Notifications.requestPermissionsAsync()`; on grant mark step done; on denial show the blocked state (9A.4) and continue (optional step). Android 13+ runtime permission.
-- **10.4** (was 4A.4) Backend: `GET /api/setup/progress`, derived from household version + settings; `POST /api/setup/complete` not needed (derived). Home is reachable once steps 1-3 are done.
+- **10.1** (was 4A.1) `Welcome` `state=empty`, `progress`: Card with 4-segment step indicator (custom Progress), "2 of 4 steps done", rows: household/people, rent & shares, recurring charges, reminders (optional; does nothing until 12.12). Row detail copy from source.
+- **10.2** (was 4A.2) Each step opens the matching Household editor (Phase 9) in first-setup mode (9.4).
+- **10.3** (was 10.4, 4A.4) Backend: `GET /api/setup/progress`, derived from household version + settings; `POST /api/setup/complete` not needed (derived). Home is reachable once steps 1-3 are done. The app routes to First run when `bootstrap.hasHousehold` is false (the app ignores it today). Saving a first version that starts next month also opens that month (as the 8.2 script does), so Home has a month to show.
 
 Exit: from an empty dev database, First run takes a household from nothing to Home.
 
 ---
 
-## Phase 11: Add charge (5 states)
+## Phase 11: Go-live prep
 
-Source `AddCharge.dc.html`. Last of the feature screens because it is a nice to have: a wrong bill is rare, and a correction charge is its only must-have use (Replace bill is out of v1, see the Phase 6 intro).
+Everything the real go-live (December 2026 or January 2027, decided in 8.5) needs, and nothing else.
 
-- **11.1** (was 9A.1) Backend: `POST /api/charges/preview` (mode, split method, total, who, custom amounts, month) -> per-person cents via engine; `POST /api/charges` creates `ChargeGroup` + charges in one transaction (amounts stored, never recalculated). `Correction` = personal charge with `correctsMonth`, signed amount.
-- **11.2** (was 9A.2) UI sheet: ConnectedButtonGroup Shared / Personal (Add charge is not final), single-select chips for split method (Per share, Per unit, Custom) and Who, Label, Amount (MoneyField), Month being fixed (MonthSelect, corrections), Due date, Note. Live preview card from the preview endpoint (debounced, Spinner while loading); `error` state (custom split doesn't add up) = danger Alert + Save disabled; Saving/Failed via scaffold. Replaces spike `add-charge-sheet.tsx`. Switch on the Home Add charge entry (hidden in Phase 5) and the History link to correction charges (4.2).
+- **11.1** Dry-run fixes: each open item in `docs/plans/dry-run-log.md` becomes a step here (split as the Phase 7 rules say), or is moved to a later phase with Francis's agreement.
+- **11.2** (was 12.5a) **Backup bucket account setup (Francis, by hand; add as a new section to `docs/SplitHouse — Account Setup Guide.md`)**: create a free Cloudflare account and enable R2 (**decided: Cloudflare R2**; chosen over Backblaze B2 for free egress so restores cost nothing, a 10 GB free tier that includes 1M writes and 10M reads a month, and S3-compatible tooling; B2 is the fallback). R2 enabling goes through a checkout flow for an R2 subscription; the docs do not say whether a card is required, so check at signup and confirm Francis is fine with that. Create a private bucket named `split-house-backups` (no public access, no custom domain). Create an API token scoped to that single bucket with write/read only (no account-wide key, no delete rights if the provider allows). Note the endpoint URL, access key ID and secret in a password manager. Set a lifecycle rule to expire objects after about 60 days (or the job prunes to the last 8).
+- **11.3** (was 12.5b) **GitHub secrets (Francis, in the repo's Settings > Secrets and variables > Actions)**: `NEON_DIRECT_URL` (direct, not pooled, read-only role if Neon allows), `BACKUP_PASSPHRASE` (also saved in the password manager; without it backups can't be restored), `BACKUP_BUCKET`, `BACKUP_ENDPOINT`, `BACKUP_ACCESS_KEY_ID`, `BACKUP_SECRET_ACCESS_KEY`. Add the names (no values) to `.env.example` or the setup guide.
+- **11.4** (was 12.5c) **Workflow** `.github/workflows/backup.yml`: weekly cron plus manual `workflow_dispatch`; steps: install the Postgres client matching Neon's major version, `pg_dump --format=custom`, encrypt with `age`/`gpg` using the passphrase, upload to the bucket with an S3-compatible CLI, prune older than the last 8, fail the job (GitHub emails Francis) on any error. No dump or secret is ever printed to logs or kept as a public artifact.
+- **11.5** (was 12.5d) **Restore test, once before go-live**: download the latest object, decrypt, `pg_restore` into a scratch Neon branch, check row counts for `Charge`, `Bill`, `BillFile` and that a bill PDF opens; delete the scratch branch. Write the restore steps in `backend/README.md` (no secrets).
+- **11.6** (was 12.6) Production clean slate: wipe the dry-run data from `prod` (or start a fresh `prod` branch and point Vercel at it), `prisma migrate deploy`, enter the *real* household through the app's First run (not through code), EAS production-profile APK replacing the dry-run APK (first give the `production` profile in `app/eas.json` `"environment": "production"` and `"buildType": "apk"`, and set `EXPO_PUBLIC_BACKEND_URL` and `EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID` in the EAS production environment of `@fknacua/split-house-app`, as 8.3 did for preview), new-phone test (install, sign in, old session revoked).
+- **11.7** (was 12.7) Go-live check: end-to-end run on the dev branch with fixtures (set up household through First run, open month, upload the test bill, preview messages, WhatsApp open, record payments, settle), then the first real month on `prod`.
+
+Exit: the real household runs its first go-live month on a clean production database with weekly backups and a tested restore.
 
 ---
 
-## Phase 12: Hardening and release
+## Phase 12: Notifications and Settings
 
-- **12.1** Dark-mode sweep of all 18 components x all states via `__gallery`; hex grep; touch targets; font weights.
-- **12.2** Layout nudges the design warned about: taller label-above forms (MarkPaid different amount, failed sheets), Settings `blocked`; keyboard-avoiding in sheets; small phone and large font scale.
-- **12.3** Accessibility: labels on icon buttons, contrast of tokens already designed, focus order.
-- **12.4** Public-repo hygiene scan: no real names/numbers/amounts in code, tests, seed, README; `.env.example` names only; no `assets-old` content. Also none of the `TODO: replace with a wrapper` lint disables left in `app/src` (see 2.18), and `no-restricted-imports` clean without disables except justified ones.
-- **12.4a** **Unused code sweep**: `isMonthKey` in `app/src/lib/month.ts` (added in 2.11) had no caller outside its tests. If still unused, delete it and its tests. Also list the other exports under `app/src/lib/` that nothing imports, and remove or justify each.
-- **12.5a** **Backup bucket account setup (Francis, by hand; add as a new section to `docs/SplitHouse — Account Setup Guide.md`)**: create a free Cloudflare account and enable R2 (**decided: Cloudflare R2**; chosen over Backblaze B2 for free egress so restores cost nothing, a 10 GB free tier that includes 1M writes and 10M reads a month, and S3-compatible tooling; B2 is the fallback). R2 enabling goes through a checkout flow for an R2 subscription; the docs do not say whether a card is required, so check at signup and confirm Francis is fine with that. Create a private bucket named `split-house-backups` (no public access, no custom domain). Create an API token scoped to that single bucket with write/read only (no account-wide key, no delete rights if the provider allows). Note the endpoint URL, access key ID and secret in a password manager. Set a lifecycle rule to expire objects after about 60 days (or the job prunes to the last 8).
-- **12.5b** **GitHub secrets (Francis, in the repo's Settings > Secrets and variables > Actions)**: `NEON_DIRECT_URL` (direct, not pooled, read-only role if Neon allows), `BACKUP_PASSPHRASE` (also saved in the password manager; without it backups can't be restored), `BACKUP_BUCKET`, `BACKUP_ENDPOINT`, `BACKUP_ACCESS_KEY_ID`, `BACKUP_SECRET_ACCESS_KEY`. Add the names (no values) to `.env.example` or the setup guide.
-- **12.5c** **Workflow** `.github/workflows/backup.yml`: weekly cron plus manual `workflow_dispatch`; steps: install the Postgres client matching Neon's major version, `pg_dump --format=custom`, encrypt with `age`/`gpg` using the passphrase, upload to the bucket with an S3-compatible CLI, prune older than the last 8, fail the job (GitHub emails Francis) on any error. No dump or secret is ever printed to logs or kept as a public artifact.
-- **12.5d** **Restore test, once before go-live**: download the latest object, decrypt, `pg_restore` into a scratch Neon branch, check row counts for `Charge`, `Bill`, `BillFile` and that a bill PDF opens; delete the scratch branch. Write the restore steps in `backend/README.md` (no secrets).
-- **12.5e** Moved to 8.0, then done early as Phase 3.5 (shared package).
-- **12.6** Production: Vercel project `split-house-api`, env vars, Neon prod branch migration (`prisma migrate deploy`), seed *real* household through the app's First run (not through code), EAS production-profile APK, new-phone test (install, sign in, old session revoked, reminders rebuilt).
-- **12.7** Go-live check for the Nov 2026 cycle: end-to-end dry run on the dev branch with fixtures: set up household, open month, upload (test) bill, preview messages, WhatsApp open, record payments, corrections, settle.
+Extras after go-live prep: the app works without them. Notifications come first, because Settings' notification switches (12.8), the `blocked` state (12.10) and Sign out's cancel (12.11) all act on them, so Settings is reviewed with switches that work. First run's Reminders step (12.12) comes last because it uses the `blocked` state.
+
+### Notifications ("Notifications" boards are a copy reference, not screens)
+Source `Notifications.dc.html` (`headsUp`, `shade`) for copy, channel names, action labels, small icon. Tech Stack table defines triggers.
+
+- **12.1** (was 9B.1, 11.1) `expo-notifications` channels: Action needed (high, heads-up), Payment checks, FYI (low/silent); create on launch.
+- **12.2** (was 9B.2, 11.2) Action buttons: Paid -> opens Record payment sheet via deep link `splithouse://payments/new?charge=<id>`; Nudge -> opens WhatsApp nudge via Recipient with nudge intent (needs foreground). Register categories with `setNotificationCategoryAsync`.
+- **12.3** (was 9B.3, 11.3) Scheduler `app/src/lib/notifications/schedule.ts`: input = month summary + settings; cancels all and reschedules (idempotent) on sign-in, launch, and after every mutation (new bill, payment, due-date edit, setting toggle). Date-based: upload bill (about the 2nd, daily until done), collect Tenant 1's rent (last working day before the 1st), Pay utilities bill with live "collected $X of $Y", per-charge "Did {name} pay {charge}?". Event-based immediate: Transfer $950 to savings (when Tenant 2 rent marked received), month settled, unusual bill, aircon due.
+- **12.4** (was 9B.4, 11.4) Backend `GET /api/notifications/plan` returns computed trigger list so scheduling logic stays server-side/testable (preferred, mirrors "split engine only in backend"); app only schedules.
+- **12.5** (was 9B.5, 11.5) Tap routing with `expo-router` + `Notifications.useLastNotificationResponse`.
+- **12.6** (was 9B.6, 11.6) Test on device overnight for delivery delay (Tech Stack "Reminder delay"), no exact-alarm permission.
+
+### Settings (5 states)
+Source `Settings.dc.html` (33KB).
+- **12.7** (was 9A.1, 10A.1) Backend: `GET/PUT /api/settings` (notification toggles per channel/type); message templates are part of the versioned household config, so template edits go through `POST /api/household/versions` (9.1) with "starts from" (Settings "Applies to" Select: everyone / a person).
+- **12.8** (was 9A.2, 10A.2) `view`: Account Card (signed-in email, Sign out, no confirmation dialog per mapping), Appearance (ConnectedButtonGroup Light/Dark/System bound to the existing `useThemePreference()` from step 2.1a; no new theme logic), Messages (links to template editors), Notifications (Switches per channel/type).
+- **12.9** (was 9A.3, 10A.3) `template` / `override` / `nudge`: Textarea editors (label above), placeholder chips to insert, preview card with compact ConnectedButtonGroup sample selector (custom), per-person override via Applies-to Select; Save creates a version (starts-from rule applies). From 8.2a: a "Section titles" block next to "Line labels" (not drawn, log as a deviation), and the message preview (here and on Recipient's message card) brought in line with the sent text: lines as `*Label:* amount (working)` using the line's `working` field, and `*…*` in template text rendered bold without the asterisks. Decide then whether the preview shows lines inline as sent or keeps the two columns, and whether the `{total}` line keeps its heavier style.
+- **12.10** (was 9A.4, 10A.4) `blocked`: when notification permission is denied, warning Alert + "Open system settings" (`Linking.openSettings()`, external-link icon); re-check on app foreground.
+- **12.11** (was 9A.5, 10A.5) Sign out: `authClient.signOut()`, clear query cache, `GoogleSignin.signOut()`, cancel scheduled notifications (12.3).
+
+### First run's Reminders step
+- **12.12** (was 10.3, 4A.3) `Welcome` `state=notifications`. **Reminders step**: explainer then `Notifications.requestPermissionsAsync()`; on grant mark step done; on denial show the blocked state (12.10) and continue (optional step). Android 13+ runtime permission.
+
+---
+
+## Phase 13: Add charge (5 states)
+
+Source `AddCharge.dc.html`. Last of the feature screens because it is a nice to have: a wrong bill is rare, and a correction charge is its only must-have use (Replace bill is out of v1, see the Phase 6 intro).
+
+- **13.1** (was 11.1, 9A.1) Backend: `POST /api/charges/preview` (mode, split method, total, who, custom amounts, month) -> per-person cents via engine; `POST /api/charges` creates `ChargeGroup` + charges in one transaction (amounts stored, never recalculated). `Correction` = personal charge with `correctsMonth`, signed amount.
+- **13.2** (was 11.2, 9A.2) UI sheet: ConnectedButtonGroup Shared / Personal (Add charge is not final), single-select chips for split method (Per share, Per unit, Custom) and Who, Label, Amount (MoneyField), Month being fixed (MonthSelect, corrections), Due date, Note. Live preview card from the preview endpoint (debounced, Spinner while loading); `error` state (custom split doesn't add up) = danger Alert + Save disabled; Saving/Failed via scaffold. Replaces spike `add-charge-sheet.tsx`. Switch on the Home Add charge entry (hidden in Phase 5) and the History link to correction charges (4.2).
+
+---
+
+## Phase 14: Hardening
+
+Release moved to Phase 11. 14.4 (public-repo hygiene) runs before the repo is made public, whenever that is.
+
+- **14.1** (was 12.1) Dark-mode sweep of all 18 components x all states via `__gallery`; hex grep; touch targets; font weights.
+- **14.2** (was 12.2) Layout nudges the design warned about: taller label-above forms (MarkPaid different amount, failed sheets), Settings `blocked`; keyboard-avoiding in sheets; small phone and large font scale.
+- **14.3** (was 12.3) Accessibility: labels on icon buttons, contrast of tokens already designed, focus order.
+- **14.4** (was 12.4) Public-repo hygiene scan: no real names/numbers/amounts in code, tests, seed, README; `.env.example` names only; no `assets-old` content. Also none of the `TODO: replace with a wrapper` lint disables left in `app/src` (see 2.18), and `no-restricted-imports` clean without disables except justified ones.
+- **14.4a** (was 12.4a) **Unused code sweep**: `isMonthKey` in `app/src/lib/month.ts` (added in 2.11) had no caller outside its tests. If still unused, delete it and its tests. Also list the other exports under `app/src/lib/` that nothing imports, and remove or justify each.
 
 ---
 
@@ -553,6 +642,7 @@ Source `AddCharge.dc.html`. Last of the feature screens because it is a nice to 
 
 1. History "carried" state: deferred to a future fix (decided).
 2. View bill PDF: decided, external viewer via Android's app chooser.
-3. Backup destination: decided, encrypted weekly dump to an object-storage bucket (Cloudflare R2, steps 12.5a-d).
+3. Backup destination: decided, encrypted weekly dump to an object-storage bucket (Cloudflare R2, steps 11.2 to 11.5).
 4. Replace bill: decided, not built in v1 (design stays, feature deferred).
 5. Phase 6: still to decide at build: the message for a non-PDF or oversized file (6.2); which billing period counts as matching a month and how the bill month is read from the PDF (6.3); the unusual-bill threshold and wording (6.3).
+6. Rooms (after v1, Francis, 2026-10-31): rooms as the base of the household config, with room names and rent and utilities per room, as the Household design's "Landlord & rooms" editor suggests. Too big for the dry run; 8.2a's `sectionTitles` covers the message wording until then.
