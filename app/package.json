@@ -104,7 +104,8 @@
     "test": "vitest run",
     "lint": "expo lint && eslint",
     "eslint-fix": "eslint --fix",
-    "build-eas": "npx eas-cli build --profile development --platform android"
+    "build-eas": "npx eas-cli build --profile development --platform android",
+    "build-eas-preview": "npx eas-cli build --profile preview --platform android --non-interactive"
   },
   "private": true
 }
