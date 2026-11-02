@@ -1,9 +1,11 @@
+import { useRouter } from 'expo-router';
 import { useState } from 'react';
 import { RefreshControl, ScrollView, Text, View } from 'react-native';
 import { UserPlus } from 'lucide-react-native';
 
 import { Alert, Button, PageHeader, Screen, SkeletonBlock } from '@/components';
 import { useHousehold, usePullToRefresh } from '@/hooks';
+import type { HouseholdTarget } from '@splithouse/shared';
 import { HouseholdSkeleton } from './components/household-skeleton';
 import { LandlordCard } from './components/landlord-card';
 import { MonthSelect } from './components/month-select';
@@ -13,13 +15,31 @@ import { SplitSection } from './components/split-section';
 /**
  * The Household tab: the setup for one month. Every string comes from `GET /api/household`; this
  * screen lays it out and switches the month. Picking a month redraws the skeleton until it arrives.
- * The View and edit buttons are drawn and do nothing until their forms are built.
+ * View and Edit open the person's screens; the other edit buttons do nothing until their forms are built.
  */
 export function Household() {
+  const router = useRouter();
   const [pickedMonth, setPickedMonth] = useState<string>();
   const { data, error, isPending, isPlaceholderData, refetch } = useHousehold(pickedMonth);
   const { refreshing, onRefresh } = usePullToRefresh(refetch);
   const loaded = isPlaceholderData ? undefined : data;
+
+  const openTarget = (target: HouseholdTarget) => {
+    if (!loaded) return;
+    if (target.kind === 'view-person') {
+      router.push({
+        pathname: '/household/person/[personId]',
+        params: { personId: target.personId, month: loaded.month },
+      });
+    } else if (target.kind === 'edit-person') {
+      // Only an upcoming month can be edited from; otherwise the form opens on the next month.
+      const shown = loaded.monthOptions.find((option) => option.month === loaded.month);
+      router.push({
+        pathname: '/household/person/[personId]/edit',
+        params: { personId: target.personId, ...(shown?.badge ? { month: loaded.month } : {}) },
+      });
+    }
+  };
 
   return (
     <Screen>
@@ -56,7 +76,7 @@ export function Household() {
                 People
               </Text>
               {loaded.people.map((person) => (
-                <PersonCard key={person.personId} person={person} />
+                <PersonCard key={person.personId} person={person} onOpen={openTarget} />
               ))}
             </View>
             <Button label={loaded.addPerson.label} variant="outline" icon={UserPlus} />

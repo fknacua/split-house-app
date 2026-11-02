@@ -46,6 +46,7 @@ const buttonStyle = tva({
       'outline-destructive':
         'border border-danger data-[active=true]:bg-danger-tint data-[disabled=true]:border-outline-variant',
       ghost: 'data-[active=true]:bg-container',
+      'ghost-destructive': 'data-[active=true]:bg-danger-tint',
     },
     size: {
       default: 'h-12 px-6',
@@ -62,6 +63,7 @@ const variantContent = {
   'outline-warning': 'text-warning',
   'outline-destructive': 'text-danger',
   ghost: 'text-on-surface',
+  'ghost-destructive': 'text-danger',
 };
 
 // The disabled colour comes from the style context, not a data-[disabled] selector: it must

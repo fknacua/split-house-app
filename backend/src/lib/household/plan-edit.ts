@@ -165,14 +165,14 @@ const dayText = (day: number | undefined) => (day ? formatDayOrdinal(day) : NONE
 const depositText = (cents: number) => (cents ? formatCents(cents) : "None");
 
 /** The dated rows: only what differs between the two configs' entries for the person. */
-function datedRows(from: PersonConfig, to: PersonConfig, name: string): HouseholdEditRow[] {
+function datedRows(from: PersonConfig, to: PersonConfig): HouseholdEditRow[] {
   const rows: HouseholdEditRow[] = [
-    { label: `${name} rent`, from: formatCents(from.rentCents), to: formatCents(to.rentCents) },
-    { label: `${name} rent due`, from: dayText(from.dueDays.RENT), to: dayText(to.dueDays.RENT) },
-    { label: `${name} utility shares`, from: amountText(from.utilityShares), to: amountText(to.utilityShares) },
-    { label: `${name} utilities due`, from: dayText(from.dueDays.UTILITIES), to: dayText(to.dueDays.UTILITIES) },
-    { label: `${name} aircon units`, from: String(from.airconUnits), to: String(to.airconUnits) },
-    { label: `${name} deposit`, from: depositText(from.depositCents), to: depositText(to.depositCents) },
+    { label: "Rent", from: formatCents(from.rentCents), to: formatCents(to.rentCents) },
+    { label: "Rent due", from: dayText(from.dueDays.RENT), to: dayText(to.dueDays.RENT) },
+    { label: "Utility shares", from: amountText(from.utilityShares), to: amountText(to.utilityShares) },
+    { label: "Utilities due", from: dayText(from.dueDays.UTILITIES), to: dayText(to.dueDays.UTILITIES) },
+    { label: "Aircon units", from: String(from.airconUnits), to: String(to.airconUnits) },
+    { label: "Deposit", from: depositText(from.depositCents), to: depositText(to.depositCents) },
   ];
   return rows.filter((row) => row.from !== row.to);
 }
@@ -209,7 +209,7 @@ export function planHouseholdEdit(input: HouseholdEditPlanInput): HouseholdEditP
       if (!isDeepStrictEqual(parsed.data, base.config)) nextConfig = parsed.data;
       const next = parsed.data.people.find((p) => p.personId === edit.personId) ?? inBase;
       const from = before?.config.people.find((p) => p.personId === edit.personId) ?? inBase;
-      const rows = datedRows(from, next, person.name);
+      const rows = datedRows(from, next);
       if (rows.length > 0) groups.push({ title: `Saves from ${formatMonthShortLabel(month)}`, rows });
     }
   }

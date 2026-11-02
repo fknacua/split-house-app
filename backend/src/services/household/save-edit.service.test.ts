@@ -109,7 +109,7 @@ describe("previewHouseholdEdit", () => {
           { label: "Color", from: "Green", to: "Purple" },
         ],
       },
-      { title: "Saves from Jan 2027", rows: [{ label: "Jordan rent", from: "$950.00", to: "$1,000.00" }] },
+      { title: "Saves from Jan 2027", rows: [{ label: "Rent", from: "$950.00", to: "$1,000.00" }] },
     ]);
     expect(preview.canSave).toBe(true);
     expect(preview.errors).toEqual({});
@@ -128,8 +128,8 @@ describe("previewHouseholdEdit", () => {
   it("shows shares and due days as text", async () => {
     const { groups } = await previewHouseholdEdit(fakeDb().db, edit({ utilityShares: 1500, utilitiesDueDay: 9 }));
     expect(groups[0].rows).toEqual([
-      { label: "Jordan utility shares", from: "1", to: "1.5" },
-      { label: "Jordan utilities due", from: "4th", to: "9th" },
+      { label: "Utility shares", from: "1", to: "1.5" },
+      { label: "Utilities due", from: "4th", to: "9th" },
     ]);
   });
 
@@ -137,8 +137,8 @@ describe("previewHouseholdEdit", () => {
     const { db } = fakeDb([version("2026-11", NOV_2026_CONFIG), version("2027-01", JAN_2027_CONFIG)]);
     const preview = await previewHouseholdEdit(db, edit({ airconUnits: 2 }));
     expect(preview.groups[0].rows).toEqual([
-      { label: "Jordan rent", from: "$950.00", to: "$1,000.00" },
-      { label: "Jordan aircon units", from: "1", to: "2" },
+      { label: "Rent", from: "$950.00", to: "$1,000.00" },
+      { label: "Aircon units", from: "1", to: "2" },
     ]);
   });
 

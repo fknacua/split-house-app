@@ -6,6 +6,7 @@ import type {
   HouseholdSplitRow,
   HouseholdSplitSegment,
   HouseholdStat,
+  HouseholdTarget,
 } from '@splithouse/shared';
 
 /** Props for {@link LandlordCard}. */
@@ -38,6 +39,8 @@ export interface MonthSelectProps {
 export interface PersonCardProps {
   /** The initial, color, name, sub line, facts and buttons. */
   person: HouseholdPerson;
+  /** Opens where a button leads. */
+  onOpen: (target: HouseholdTarget) => void;
 }
 
 /** Props for {@link PersonFact}. */
