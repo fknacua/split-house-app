@@ -2,7 +2,7 @@ import { recipientResponseSchema, type RecipientResponse } from "@splithouse/sha
 import { describe, expect, it } from "vitest";
 import { NOV_2026_CONFIG, PERSON_IDS } from "@/lib/fixtures/household";
 import { whatsappLink } from "@/lib/messages/whatsapp-link";
-import { buildRecipient, recipientSubLine, type RecipientChargeRow, type RecipientInput } from "./build-recipient";
+import { buildRecipient, type RecipientChargeRow, type RecipientInput } from "./build-recipient";
 
 const { alex, priya, sam, jordan } = PERSON_IDS;
 
@@ -75,14 +75,6 @@ function input(personId: string, charges: RecipientChargeRow[], overrides: Parti
     ...overrides,
   };
 }
-
-describe("recipientSubLine", () => {
-  it("reads the room from the role and the routes", () => {
-    expect(recipientSubLine(NOV_2026_CONFIG, priya, NAMES)).toBe("Master room · pays you directly");
-    expect(recipientSubLine(NOV_2026_CONFIG, sam, NAMES)).toBe("Own room · utilities and aircon via Priya");
-    expect(recipientSubLine(NOV_2026_CONFIG, jordan, NAMES)).toBe("Own room · pays you directly");
-  });
-});
 
 describe("buildRecipient: notSent", () => {
   it("builds the primary tenant's page as on the board", () => {

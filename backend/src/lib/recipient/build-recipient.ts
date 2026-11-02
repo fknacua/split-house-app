@@ -1,5 +1,4 @@
 import {
-  CHARGE_TYPES,
   dateKeyOf,
   daysUntil,
   formatCents,
@@ -19,6 +18,7 @@ import {
 import type { ChargeCategory, MessageKind } from "@/generated/prisma/enums";
 import { chargeBadge, HOME_BADGES } from "@/lib/home/badges";
 import { chargeDueDate } from "@/lib/home/due-dates";
+import { joinWords, personSubLine, ROUTE_WORDS } from "@/lib/household/sub-line";
 import type { BreakdownCharge } from "@/lib/messages/build-breakdown";
 import { renderMonthlyMessage, renderNudgeMessage, type MonthlyMessage } from "@/lib/messages/render";
 import { whatsappLink } from "@/lib/messages/whatsapp-link";
@@ -58,42 +58,6 @@ export interface RecipientInput {
    * charges; otherwise the earliest-due overdue charge is chosen.
    */
   chargeId?: string | null;
-}
-
-// How a charge type reads in the sub line, e.g. "utilities and aircon via Priya".
-const ROUTE_WORDS: Record<ChargeType, string> = {
-  RENT: "rent",
-  UTILITIES: "utilities",
-  AIRCON: "aircon",
-  RECURRING: "other charges",
-};
-
-/** `a`, `a and b`, `a, b and c`. */
-function joinWords(words: string[]): string {
-  return words.length <= 1 ? (words[0] ?? "") : `${words.slice(0, -1).join(", ")} and ${words.at(-1)}`;
-}
-
-/**
- * The header's sub line from the config: the room from the role, then how they pay.
- *
- * @param config - The config pinned to the month.
- * @param personId - The person.
- * @param names - Names by person id.
- * @returns e.g. `Master room · pays you directly` or `Own room · utilities and aircon via Priya`.
- */
-export function recipientSubLine(config: HouseholdConfig, personId: string, names: Map<string, string>): string {
-  const person = config.people.find((p) => p.personId === personId);
-  const room = person?.role === "PRIMARY" ? "Master room" : "Own room";
-  const viaTypes = new Map<string, ChargeType[]>();
-  for (const type of CHARGE_TYPES) {
-    const route = person?.routes[type];
-    if (route?.kind === "VIA") viaTypes.set(route.viaPersonId, [...(viaTypes.get(route.viaPersonId) ?? []), type]);
-  }
-  if (viaTypes.size === 0) return `${room} · pays you directly`;
-  const routes = [...viaTypes].map(
-    ([viaId, types]) => `${joinWords(types.map((t) => ROUTE_WORDS[t]))} via ${names.get(viaId) ?? "someone"}`,
-  );
-  return `${room} · ${routes.join(", ")}`;
 }
 
 /**
@@ -426,7 +390,7 @@ function paidRecipient(input: RecipientInput, names: Map<string, string>, header
 export function buildRecipient(input: RecipientInput): RecipientResponse {
   const { month, person } = input;
   const names = new Map(input.people.map((p) => [p.id, p.name]));
-  const header = { name: person.name, sub: recipientSubLine(input.config, person.id, names) };
+  const header = { name: person.name, sub: personSubLine(input.config, person.id, names) };
   // Credits can't be marked paid yet (Phase 11), so an unpaid one doesn't hold the page back.
   const toPay = input.charges.filter((c) => c.amountCents > 0);
   if (input.billCents !== null && toPay.length > 0 && toPay.every((c) => c.paidCents !== null)) {
