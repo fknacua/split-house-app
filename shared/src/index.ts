@@ -4,6 +4,7 @@ export * from './api/bootstrap';
 export * from './api/error';
 export * from './api/history';
 export * from './api/home';
+export * from './api/household';
 export * from './api/me';
 export * from './api/payment';
 export * from './api/recipient';
