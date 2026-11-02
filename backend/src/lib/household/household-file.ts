@@ -3,13 +3,16 @@ import {
   householdConfigSchema,
   monthKey,
   type HouseholdConfig,
+  type PersonColor,
 } from "@splithouse/shared";
+import { nextPersonColor } from "./person-color";
 
 /** A `Person` row the load script creates. */
 export interface HouseholdFilePerson {
   id: string;
   name: string;
   whatsappE164: string | null;
+  color: PersonColor;
   isOwner: boolean;
 }
 
@@ -36,7 +39,8 @@ type RawPerson = Record<string, unknown> & { name?: unknown; whatsappE164?: unkn
  * a WhatsApp number for everyone except the owner, and rent above zero for every tenant.
  *
  * @param json - The file's parsed JSON.
- * @returns The `Person` rows (the config's `personId` becomes the row id) and the config.
+ * @returns The `Person` rows (the config's `personId` becomes the row id; colors are assigned, Teal
+ *   for the owner and the others in file order) and the config.
  * @throws {HouseholdFileError} When anything is missing or invalid; lists every problem by path.
  */
 export function parseHouseholdFile(json: unknown): HouseholdFile {
@@ -76,14 +80,21 @@ export function parseHouseholdFile(json: unknown): HouseholdFile {
 
   if (problems.length > 0 || !parsed.success) throw new HouseholdFileError(problems);
 
+  const usedColors: PersonColor[] = [];
   return {
     startsFromMonth: startsFromMonth as string,
-    people: rawPeople.map((p, i) => ({
-      id: parsed.data.people[i].personId,
-      name: (p.name as string).trim(),
-      whatsappE164: (p.whatsappE164 as string | null | undefined) ?? null,
-      isOwner: parsed.data.people[i].role === "OWNER",
-    })),
+    people: rawPeople.map((p, i) => {
+      const isOwner = parsed.data.people[i].role === "OWNER";
+      const color = isOwner ? "TEAL" : nextPersonColor(usedColors);
+      usedColors.push(color);
+      return {
+        id: parsed.data.people[i].personId,
+        name: (p.name as string).trim(),
+        whatsappE164: (p.whatsappE164 as string | null | undefined) ?? null,
+        color,
+        isOwner,
+      };
+    }),
     config: parsed.data,
   };
 }

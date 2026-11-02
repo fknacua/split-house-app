@@ -2,8 +2,8 @@ import "dotenv/config";
 import { parseArgs } from "node:util";
 import { prisma } from "@/lib/prisma";
 import { openMonthIfNeeded } from "@/lib/month-open";
-import { HOUSEHOLD_SCHEMA_VERSION } from "@splithouse/shared";
-import { NOV_2026_CONFIG, PERSON_IDS, VERSION_A_CONFIG } from "@/lib/fixtures/household";
+import { HOUSEHOLD_SCHEMA_VERSION, type PersonColor } from "@splithouse/shared";
+import { JAN_2027_CONFIG, NOV_2026_CONFIG, PERSON_IDS, VERSION_A_CONFIG } from "@/lib/fixtures/household";
 import { buildMonthCharges, buildUtilitiesCharges, type EngineCharge } from "@/lib/split/engine";
 import { BILL_FIXTURE } from "@/lib/fixtures/bill";
 import { generateBillFixturePdf } from "@/lib/fixtures/generate-bill-pdf";
@@ -44,6 +44,8 @@ const SCENARIOS = {
   settled: { devNow: "2026-11-29T09:00:00+08:00" },
   // As settled, but Priya's rent came in $63.65 short, so her Recipient page shows `paidDifferent`.
   shortPaid: { devNow: "2026-11-29T09:00:00+08:00" },
+  // As upload, plus a January 2027 version that no month has opened, for Household's month switch.
+  householdUpcoming: { devNow: "2026-11-03T09:00:00+08:00" },
 } as const;
 
 type ScenarioName = keyof typeof SCENARIOS;
@@ -65,6 +67,13 @@ const PERSON_NAMES: Record<string, string> = {
   [PERSON_IDS.priya]: "Priya",
   [PERSON_IDS.sam]: "Sam",
   [PERSON_IDS.jordan]: "Jordan",
+};
+
+const PERSON_COLORS: Record<string, PersonColor> = {
+  [PERSON_IDS.alex]: "TEAL",
+  [PERSON_IDS.priya]: "BLUE",
+  [PERSON_IDS.sam]: "ORANGE",
+  [PERSON_IDS.jordan]: "GREEN",
 };
 
 // Every saved bill gets the synthetic two-page fixture PDF (invented values, nothing from a real
@@ -93,6 +102,7 @@ async function seedPeople() {
         id: personId,
         name,
         whatsappE164: personId === PERSON_IDS.alex ? null : "+6581234567",
+        color: PERSON_COLORS[personId],
         isOwner: personId === PERSON_IDS.alex,
       },
     });
@@ -300,6 +310,11 @@ async function main() {
   await prisma.householdVersion.create({
     data: { startsFromMonth: "2026-11", schemaVersion: HOUSEHOLD_SCHEMA_VERSION, config: NOV_2026_CONFIG },
   });
+  if (scenario === "householdUpcoming") {
+    await prisma.householdVersion.create({
+      data: { startsFromMonth: "2027-01", schemaVersion: HOUSEHOLD_SCHEMA_VERSION, config: JAN_2027_CONFIG },
+    });
+  }
 
   // --- August 2026: fully paid and settled. ---
   await prisma.month.create({ data: { month: "2026-08", householdVersionId: versionA.id, openedAt: new Date("2026-08-01T09:00:00+08:00") } });

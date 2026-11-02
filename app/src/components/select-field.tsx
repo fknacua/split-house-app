@@ -39,6 +39,41 @@ export interface SelectFieldOwnProps {
 }
 
 /**
+ * The bottom sheet list of a select: render it inside `Select`, after the trigger.
+ *
+ * @param options - The choices, in the order they are listed.
+ * @param value - The picked option's value, shown in a heavier weight.
+ */
+export function SelectOptionsSheet({ options, value }: { options: SelectOption[]; value?: string }) {
+  return (
+    <SelectPortal>
+      <SelectBackdrop />
+      <SelectContent>
+        <SelectDragIndicatorWrapper>
+          <SelectDragIndicator />
+        </SelectDragIndicatorWrapper>
+        {options.map(({ label, value: optionValue, detail, detailTone, trailing, badge }) => {
+          const extras: SelectItemExtras = { detail, detailTone, trailing, badge };
+          const twoLine = detail !== undefined;
+          return (
+            <SelectItem
+              key={optionValue}
+              label={label}
+              value={optionValue}
+              className={twoLine ? 'py-2' : undefined}
+              textStyle={{
+                ...extras,
+                className: optionValue === value ? 'font-manrope-extrabold' : twoLine ? 'font-manrope-bold' : undefined,
+              }}
+            />
+          );
+        })}
+      </SelectContent>
+    </SelectPortal>
+  );
+}
+
+/**
  * Bare select: the 48px outlined field that opens a bottom sheet list, with no label or form
  * state. The value is the picked option's `value`, or `''` when nothing is picked. While a
  * choice is picked, an × button in the field clears it back to `''` (opt in with `clearable`).
@@ -88,30 +123,7 @@ export const BareSelectField = forwardRef<
         )}
         <SelectIcon as={ChevronDown} className={disabled ? 'text-on-disabled' : undefined} />
       </SelectTrigger>
-      <SelectPortal>
-        <SelectBackdrop />
-        <SelectContent>
-          <SelectDragIndicatorWrapper>
-            <SelectDragIndicator />
-          </SelectDragIndicatorWrapper>
-          {options.map(({ label, value: optionValue, detail, detailTone, trailing }) => {
-            const extras: SelectItemExtras = { detail, detailTone, trailing };
-            const twoLine = detail !== undefined;
-            return (
-              <SelectItem
-                key={optionValue}
-                label={label}
-                value={optionValue}
-                className={twoLine ? 'py-2' : undefined}
-                textStyle={{
-                  ...extras,
-                  className: optionValue === value ? 'font-manrope-extrabold' : twoLine ? 'font-manrope-bold' : undefined,
-                }}
-              />
-            );
-          })}
-        </SelectContent>
-      </SelectPortal>
+      <SelectOptionsSheet options={options} value={value} />
     </Select>
   );
 });

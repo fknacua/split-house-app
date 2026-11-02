@@ -120,3 +120,11 @@ export const NOV_2026_CONFIG: HouseholdConfig = {
     sectionTitles: {},
   },
 };
+
+// An upcoming version no month has opened: as Nov 2026, with Jordan's rent up to $1,000.00.
+export const JAN_2027_CONFIG: HouseholdConfig = {
+  ...NOV_2026_CONFIG,
+  people: NOV_2026_CONFIG.people.map((person) =>
+    person.personId === PERSON_IDS.jordan ? { ...person, rentCents: 100000 } : person,
+  ),
+};

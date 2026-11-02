@@ -42,4 +42,8 @@ export const queryKeys = {
    */
   recipient: (month: string, personId: string, chargeId: string | null) =>
     ['recipient', month, personId, chargeId] as const,
+  /** Every month of the Household screen. The prefix of `household`, so an edit refreshes them all. */
+  allHousehold: ['household'] as const,
+  /** @param month `YYYY-MM` key of the month picked in "Showing:", or null for the active month. */
+  household: (month: string | null) => ['household', month] as const,
 };

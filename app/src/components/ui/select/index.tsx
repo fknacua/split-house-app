@@ -24,6 +24,8 @@ import {
   ActionsheetSectionHeaderText,
 } from './select-actionsheet';
 import { Pressable, Text, View, TextInput } from 'react-native';
+import type { BadgeContent } from '@splithouse/shared';
+import { Badge, BadgeText } from '../badge';
 
 /**
  * Extra lines a SelectItem can show, passed through its `textStyle` (gluestack spreads `textStyle`
@@ -36,17 +38,20 @@ export interface SelectItemExtras {
   detailTone?: 'default' | 'danger';
   /** A bold figure at the right of the label, e.g. `$950.00`. */
   trailing?: string;
+  /** A badge at the right of the label, e.g. `Upcoming`. */
+  badge?: BadgeContent | null;
 }
 
 type ISelectItemTextProps = React.ComponentProps<typeof ActionsheetItemText> & SelectItemExtras;
 
 // App change to the copied component: the item text can carry a detail line and a trailing
-// figure (Record payment's From and For rows). Without them it is gluestack's one-line text.
+// figure (Record payment's From and For rows) or a badge (Household's month list). Without them it
+// is gluestack's one-line text.
 const SelectItemText = React.forwardRef<
   React.ComponentRef<typeof ActionsheetItemText>,
   ISelectItemTextProps
->(function SelectItemText({ detail, detailTone = 'default', trailing, children, ...props }, ref) {
-  if (detail === undefined && trailing === undefined) {
+>(function SelectItemText({ detail, detailTone = 'default', trailing, badge, children, ...props }, ref) {
+  if (detail === undefined && trailing === undefined && !badge) {
     return <ActionsheetItemText ref={ref} {...props}>{children}</ActionsheetItemText>;
   }
   return (
@@ -60,6 +65,11 @@ const SelectItemText = React.forwardRef<
           >
             {trailing}
           </Text>
+        ) : null}
+        {badge ? (
+          <Badge variant={badge.tone}>
+            <BadgeText>{badge.label}</BadgeText>
+          </Badge>
         ) : null}
       </View>
       {detail !== undefined ? (

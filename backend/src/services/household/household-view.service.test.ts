@@ -1,14 +1,14 @@
-import { HOUSEHOLD_SCHEMA_VERSION, type HouseholdConfig } from "@splithouse/shared";
+import { HOUSEHOLD_SCHEMA_VERSION, type HouseholdConfig, type PersonColor } from "@splithouse/shared";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { ApiError } from "@/lib/api";
-import { NOV_2026_CONFIG, PERSON_IDS, VERSION_A_CONFIG } from "@/lib/fixtures/household";
+import { JAN_2027_CONFIG, NOV_2026_CONFIG, PERSON_IDS, VERSION_A_CONFIG } from "@/lib/fixtures/household";
 import { getHouseholdView, type HouseholdViewDb } from "./household-view.service";
 
-const PEOPLE = [
-  { id: PERSON_IDS.alex, name: "Alex", whatsappE164: null },
-  { id: PERSON_IDS.priya, name: "Priya", whatsappE164: "+6581234567" },
-  { id: PERSON_IDS.sam, name: "Sam", whatsappE164: null },
-  { id: PERSON_IDS.jordan, name: "Jordan", whatsappE164: "+6581234568" },
+const PEOPLE: { id: string; name: string; color: PersonColor }[] = [
+  { id: PERSON_IDS.alex, name: "Alex", color: "TEAL" },
+  { id: PERSON_IDS.priya, name: "Priya", color: "BLUE" },
+  { id: PERSON_IDS.sam, name: "Sam", color: "ORANGE" },
+  { id: PERSON_IDS.jordan, name: "Jordan", color: "GREEN" },
 ];
 
 const version = (startsFromMonth: string, config: HouseholdConfig) => ({
@@ -16,12 +16,6 @@ const version = (startsFromMonth: string, config: HouseholdConfig) => ({
   schemaVersion: HOUSEHOLD_SCHEMA_VERSION,
   config,
 });
-
-/** January's rent rises to $1,000.00 for Jordan, so a card shows which version was read. */
-const JAN_2027_CONFIG: HouseholdConfig = {
-  ...NOV_2026_CONFIG,
-  people: NOV_2026_CONFIG.people.map((p) => (p.personId === PERSON_IDS.jordan ? { ...p, rentCents: 100000 } : p)),
-};
 
 const VERSIONS = [
   version("2027-01", JAN_2027_CONFIG),
@@ -70,16 +64,22 @@ describe("getHouseholdView", () => {
     expect(view.monthOptions.find((o) => o.month === "2026-12")?.badge).toBeNull();
   });
 
+  it("gives everyone their current color on the cards and the split, whatever the month", async () => {
+    const view = await getHouseholdView(fakeDb(), "2026-08");
+    expect(view.people.map((p) => p.color)).toEqual(["BLUE", "ORANGE", "GREEN", "TEAL"]);
+    expect(view.splitRows[0].segments.map((s) => s.color)).toEqual(["TEAL", "BLUE", "ORANGE", "GREEN"]);
+  });
+
   it("reads the newest version starting on or before an unopened month", async () => {
-    expect(await jordanRent(fakeDb(), "2027-01")).toBe("$1,000.00 direct");
-    expect(await jordanRent(fakeDb(), "2027-03")).toBe("$1,000.00 direct");
-    expect(await jordanRent(fakeDb(), "2026-12")).toBe("$950.00 direct");
+    expect(await jordanRent(fakeDb(), "2027-01")).toBe("$1,000.00");
+    expect(await jordanRent(fakeDb(), "2027-03")).toBe("$1,000.00");
+    expect(await jordanRent(fakeDb(), "2026-12")).toBe("$950.00");
   });
 
   it("reads the version an opened month is pinned to", async () => {
     const db = fakeDb(VERSIONS, { "2026-09": JAN_2027_CONFIG });
-    expect(await jordanRent(db, "2026-09")).toBe("$1,000.00 direct");
-    expect(await jordanRent(db, "2026-10")).toBe("$920.00 direct");
+    expect(await jordanRent(db, "2026-09")).toBe("$1,000.00");
+    expect(await jordanRent(db, "2026-10")).toBe("$920.00");
   });
 
   it("marks only months after the active one as upcoming", async () => {

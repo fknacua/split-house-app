@@ -120,14 +120,15 @@ export function SkeletonPersonCards({ count = 3 }: { count?: number }) {
             </View>
           </View>
           <View className="flex-row flex-wrap gap-x-3 gap-y-2">
-            {Array.from({ length: 4 }).map((__, j) => (
-              <View key={j} className="w-[48%] gap-1.5">
+            {Array.from({ length: 2 }).map((__, j) => (
+              <View key={j} className="min-w-0 grow basis-[45%] gap-1.5">
                 <SkeletonBlock className="h-3 w-18" />
                 <SkeletonBlock className="h-3.5 w-26" />
               </View>
             ))}
           </View>
-          <View className="items-end border-t border-outline-variant pt-2">
+          <View className="flex-row justify-end gap-2 border-t border-outline-variant pt-2">
+            <SkeletonBlock className="h-11 w-24 rounded-full" />
             <SkeletonBlock className="h-11 w-24 rounded-full" />
           </View>
         </View>

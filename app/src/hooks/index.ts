@@ -9,6 +9,7 @@ export * from './use-discard-bill-draft';
 export * from './use-history';
 export * from './use-history-month';
 export * from './use-home';
+export * from './use-household';
 export * from './use-load-bill-draft';
 export * from './use-open-bill-pdf';
 export * from './use-mark-bill-paid';

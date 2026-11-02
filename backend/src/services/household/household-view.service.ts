@@ -1,10 +1,10 @@
-import { parseHouseholdConfig, type HouseholdViewResponse } from "@splithouse/shared";
+import { parseHouseholdConfig, type HouseholdViewResponse, type PersonColor } from "@splithouse/shared";
 import { ApiError } from "@/lib/api";
 import { buildHouseholdView } from "@/lib/household/build-household-view";
 import { getActiveMonth, type ActiveMonthDb } from "@/services/months/active-month.service";
 
 const VERSION_SELECT = { startsFromMonth: true, schemaVersion: true, config: true } as const;
-const PERSON_SELECT = { id: true, name: true, whatsappE164: true } as const;
+const PERSON_SELECT = { id: true, name: true, color: true } as const;
 
 /** The slice of the Prisma client this service uses, so tests can pass an in-memory fake. */
 export interface HouseholdViewDb extends ActiveMonthDb {
@@ -23,7 +23,7 @@ export interface HouseholdViewDb extends ActiveMonthDb {
   person: {
     findMany(args: {
       select: typeof PERSON_SELECT;
-    }): Promise<{ id: string; name: string; whatsappE164: string | null }[]>;
+    }): Promise<{ id: string; name: string; color: PersonColor }[]>;
   };
 }
 

@@ -67,6 +67,16 @@
     --info-line: 204 231 246;
     --info-container: 204 231 246;
     --on-info-container: 1 67 97;
+    --person-blue: 21 101 192;
+    --person-orange: 191 64 0;
+    --person-green: 46 125 50;
+    --person-purple: 123 31 162;
+    --person-pink: 194 24 91;
+    --person-teal: 0 121 107;
+    --person-gold: 138 101 0;
+    --person-brown: 109 76 65;
+    --person-slate: 69 90 100;
+    --on-person: 255 255 255;
   }
 
   @media (prefers-color-scheme: dark) {
@@ -125,6 +135,16 @@
       --info-line: 27 118 160;
       --info-container: 16 73 98;
       --on-info-container: 184 231 251;
+      --person-blue: 100 181 246;
+      --person-orange: 255 160 64;
+      --person-green: 129 199 132;
+      --person-purple: 206 147 216;
+      --person-pink: 244 143 177;
+      --person-teal: 77 208 225;
+      --person-gold: 255 213 79;
+      --person-brown: 188 170 164;
+      --person-slate: 144 164 174;
+      --on-person: 17 18 20;
     }
   }
 
@@ -183,6 +203,16 @@
     --info-line: 27 118 160;
     --info-container: 16 73 98;
     --on-info-container: 184 231 251;
+    --person-blue: 100 181 246;
+    --person-orange: 255 160 64;
+    --person-green: 129 199 132;
+    --person-purple: 206 147 216;
+    --person-pink: 244 143 177;
+    --person-teal: 77 208 225;
+    --person-gold: 255 213 79;
+    --person-brown: 188 170 164;
+    --person-slate: 144 164 174;
+    --on-person: 17 18 20;
   }
 
   :root.light {
@@ -240,6 +270,16 @@
     --info-line: 204 231 246;
     --info-container: 204 231 246;
     --on-info-container: 1 67 97;
+    --person-blue: 21 101 192;
+    --person-orange: 191 64 0;
+    --person-green: 46 125 50;
+    --person-purple: 123 31 162;
+    --person-pink: 194 24 91;
+    --person-teal: 0 121 107;
+    --person-gold: 138 101 0;
+    --person-brown: 109 76 65;
+    --person-slate: 69 90 100;
+    --on-person: 255 255 255;
   }
 }
 
@@ -309,6 +349,16 @@
   --color-info-line: rgb(var(--info-line));
   --color-info-container: rgb(var(--info-container));
   --color-on-info-container: rgb(var(--on-info-container));
+  --color-person-blue: rgb(var(--person-blue));
+  --color-person-orange: rgb(var(--person-orange));
+  --color-person-green: rgb(var(--person-green));
+  --color-person-purple: rgb(var(--person-purple));
+  --color-person-pink: rgb(var(--person-pink));
+  --color-person-teal: rgb(var(--person-teal));
+  --color-person-gold: rgb(var(--person-gold));
+  --color-person-brown: rgb(var(--person-brown));
+  --color-person-slate: rgb(var(--person-slate));
+  --color-on-person: rgb(var(--on-person));
 
   /* Type: Manrope, weights 400 to 800. React Native can't select a weight out of a
      single font family (no variable fonts), so each weight is its own family,
