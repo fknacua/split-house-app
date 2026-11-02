@@ -14,6 +14,7 @@ import {
 } from "@splithouse/shared";
 import { HOME_BADGES } from "@/lib/home/badges";
 import { splitRemainderByBps } from "@/lib/split/engine";
+import { amountText, SHARE_SCALE } from "./amount-text";
 import { personSubLine } from "./sub-line";
 
 /** What `buildHouseholdView` reads. */
@@ -30,7 +31,6 @@ export interface HouseholdViewInput {
   people: { id: string; name: string; color: PersonColor }[];
 }
 
-const SHARE_SCALE = 1000;
 const FALLBACK_COLOR: PersonColor = "SLATE";
 
 /** The names and colors from the `Person` rows. */
@@ -48,11 +48,6 @@ interface Remainders {
   shares: { total: number; owner: number; primary: number };
   /** In thousandths of a unit, since a split can leave part of a unit. */
   units: { total: number; owner: number; primary: number };
-}
-
-/** A count in thousandths, as a plain number: `1.5`, `2`. */
-function amountText(thousandths: number): string {
-  return String(Number((thousandths / SHARE_SCALE).toFixed(3)));
 }
 
 /** A count in thousandths with its word: `1 share`, `1.5 shares`. */

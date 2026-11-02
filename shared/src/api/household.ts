@@ -134,3 +134,160 @@ export const householdViewResponseSchema = z.object({
 
 /** `GET /api/household`: the Household screen for one month, ready to render. */
 export type HouseholdViewResponse = z.infer<typeof householdViewResponseSchema>;
+
+/** `GET /api/household/form` query: the person, and the month to read. Missing means the first Starts from option. */
+export const householdFormQuerySchema = z.object({
+  personId: z.string().min(1),
+  month: monthKey.optional(),
+});
+
+/** `GET /api/household/form` query: the person, and the month to read. Missing means the first Starts from option. */
+export type HouseholdFormQuery = z.infer<typeof householdFormQuerySchema>;
+
+/** A label and its plain text on a View screen. */
+export const householdFormTextRowSchema = z.object({
+  /** e.g. `Rent (SGD)`. */
+  label: z.string(),
+  /** e.g. `1,000.00`, `None`, `—`. */
+  value: z.string(),
+});
+
+/** A label and its plain text on a View screen. */
+export type HouseholdFormTextRow = z.infer<typeof householdFormTextRowSchema>;
+
+/** `GET /api/household/form`: one person's Edit and View screens for one month, ready to render. */
+export const householdFormResponseSchema = z.object({
+  personId: z.string(),
+  /** e.g. `Edit Jordan`. */
+  title: z.string(),
+  /** The View screen's title, e.g. `Jordan`. */
+  viewTitle: z.string(),
+  /** e.g. `Own room · pays you directly`. */
+  sub: z.string(),
+  /** `YYYY-MM`. The month the values were read from. */
+  month: monthKey,
+  /** The Starts from option to select: `month` when it is one, otherwise the first. */
+  startsFrom: monthKey,
+  /** The months after the active one, oldest first. */
+  startsFromOptions: z.array(monthKey),
+  /** The form's values. Shares are thousandths; a route's person is null when it is paid directly. */
+  values: z.object({
+    name: z.string(),
+    whatsappE164: z.string().nullable(),
+    color: personColor,
+    rentDueDay: z.number().int().nullable(),
+    utilitiesDueDay: z.number().int().nullable(),
+    rentViaPersonId: z.string().nullable(),
+    utilitiesViaPersonId: z.string().nullable(),
+    /** Null for the owner and the primary tenant, whose amounts come from the split. */
+    amounts: z
+      .object({
+        rentCents: z.number().int(),
+        utilityShares: z.number().int(),
+        airconUnits: z.number().int(),
+        depositCents: z.number().int(),
+      })
+      .nullable(),
+  }),
+  /** e.g. `Green`, beside the Color label. */
+  colorName: z.string(),
+  /** The colors that can be picked, in the order drawn. Teal is only offered to the owner. */
+  swatches: z.array(z.object({ color: personColor, name: z.string() })),
+  /** Who a charge can be sent via: everyone in the month's version but this person and the owner. */
+  sentViaOptions: z.array(z.object({ personId: z.string(), name: z.string() })),
+  /** The View screen's text, by section. */
+  view: z.object({
+    details: z.array(householdFormTextRowSchema),
+    amounts: z.array(householdFormTextRowSchema),
+    routes: z.array(householdFormTextRowSchema),
+  }),
+  /** The link under Save. */
+  secondaryAction: z.object({
+    label: z.string(),
+    kind: z.enum(['remove-person', 'cancel']),
+  }),
+});
+
+/** `GET /api/household/form`: one person's Edit and View screens for one month, ready to render. */
+export type HouseholdFormResponse = z.infer<typeof householdFormResponseSchema>;
+
+/**
+ * An edit to one person. Only the fields sent are applied. The rules on the values (a required name,
+ * a valid number, day 1 to 31) are checked by the server so the preview can answer per field.
+ */
+export const householdPersonEditSchema = z.object({
+  kind: z.literal('person'),
+  personId: z.string().min(1),
+  /** The month the dated fields start from. */
+  startsFromMonth: monthKey,
+  // Saved right away, on the person.
+  name: z.string().optional(),
+  whatsappE164: z.string().nullable().optional(),
+  color: personColor.optional(),
+  // Saved from the chosen month, on the version.
+  rentCents: z.number().int().optional(),
+  /** Thousandths: 1.5 shares is 1500. */
+  utilityShares: z.number().int().optional(),
+  airconUnits: z.number().int().optional(),
+  depositCents: z.number().int().optional(),
+  /** Null clears the day. */
+  rentDueDay: z.number().int().nullable().optional(),
+  /** Also sets the aircon due day. Null clears both. */
+  utilitiesDueDay: z.number().int().nullable().optional(),
+});
+
+/** An edit to one person. Only the fields sent are applied. */
+export type HouseholdPersonEdit = z.infer<typeof householdPersonEditSchema>;
+
+/** `POST /api/household/edits` and `.../preview` body: one typed edit. The app never sends a config. */
+export const householdEditSchema = z.discriminatedUnion('kind', [householdPersonEditSchema]);
+
+/** `POST /api/household/edits` and `.../preview` body: one typed edit. The app never sends a config. */
+export type HouseholdEdit = z.infer<typeof householdEditSchema>;
+
+/** One changed value in the summary card. */
+export const householdEditRowSchema = z.object({
+  /** e.g. `Jordan rent`. */
+  label: z.string(),
+  /** e.g. `$950.00`. */
+  from: z.string(),
+  /** e.g. `$1,000.00`. */
+  to: z.string(),
+});
+
+/** One changed value in the summary card. */
+export type HouseholdEditRow = z.infer<typeof householdEditRowSchema>;
+
+/** A group in the summary card. A group with no rows is left out. */
+export const householdEditGroupSchema = z.object({
+  /** `Saves now` or `Saves from Jan 2027`. */
+  title: z.string(),
+  rows: z.array(householdEditRowSchema),
+});
+
+/** A group in the summary card. A group with no rows is left out. */
+export type HouseholdEditGroup = z.infer<typeof householdEditGroupSchema>;
+
+/** `POST /api/household/edits/preview`: what the edit would change. Nothing is stored. */
+export const householdEditPreviewResponseSchema = z.object({
+  /** Empty hides the summary card. */
+  groups: z.array(householdEditGroupSchema),
+  /** Whether Save would store something, with no errors. */
+  canSave: z.boolean(),
+  /** Messages by request field name; `form` for one that belongs to no field. */
+  errors: z.record(z.string(), z.string()),
+  /** e.g. `March 2027 keeps its own values, so this change stops there.` */
+  laterVersionWarning: z.string().nullable(),
+});
+
+/** `POST /api/household/edits/preview`: what the edit would change. Nothing is stored. */
+export type HouseholdEditPreviewResponse = z.infer<typeof householdEditPreviewResponseSchema>;
+
+/** `POST /api/household/edits`: what was stored. */
+export const householdEditSaveResponseSchema = z.object({
+  /** The version's starts-from month, or null when only name, WhatsApp or color changed. */
+  savedFromMonth: monthKey.nullable(),
+});
+
+/** `POST /api/household/edits`: what was stored. */
+export type HouseholdEditSaveResponse = z.infer<typeof householdEditSaveResponseSchema>;
