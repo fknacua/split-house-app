@@ -247,7 +247,7 @@ export type HouseholdEdit = z.infer<typeof householdEditSchema>;
 
 /** One changed value in the summary card. */
 export const householdEditRowSchema = z.object({
-  /** e.g. `Jordan rent`. */
+  /** e.g. `Rent due`. The screen is already about the person, so it has no name in it. */
   label: z.string(),
   /** e.g. `$950.00`. */
   from: z.string(),

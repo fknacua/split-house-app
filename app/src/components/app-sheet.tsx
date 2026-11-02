@@ -21,7 +21,7 @@ export interface AppSheetRef {
 }
 
 /** Shown in the failed state when the screen gives no message (copy from the design source). */
-const DEFAULT_FAILED_MESSAGE = "Couldn't save. Check your connection and try again.";
+export const DEFAULT_FAILED_MESSAGE = "Couldn't save. Check your connection and try again.";
 
 /** The grabber: 32 x 4 on the `track` token, 10px from the top edge (design source). */
 function Grabber() {

@@ -7,7 +7,7 @@ import type { PersonCardProps } from '../types';
 import { PersonFact } from './person-fact';
 
 /** One person on Household: the colored initial, name and sub line, their facts, and the View and Edit buttons. */
-export function PersonCard({ person }: PersonCardProps) {
+export function PersonCard({ person, onOpen }: PersonCardProps) {
   return (
     <Card padded={false} className="gap-2.5 py-3 pl-3.5 pr-3">
       <View className="flex-row items-center gap-3">
@@ -33,6 +33,7 @@ export function PersonCard({ person }: PersonCardProps) {
               variant="outline"
               size="small"
               icon={action.target.kind === 'view-person' ? Eye : Pencil}
+              onPress={() => onOpen(action.target)}
             />
           ))}
         </View>

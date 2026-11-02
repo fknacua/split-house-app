@@ -10,7 +10,7 @@ import {
 /**
  * The button looks: filled (primary, warning like Nudge, danger) and outlined (outline,
  * outline-warning, outline-danger like the Confirm action), plus ghost (no fill or border,
- * like Cancel under a sheet's main action).
+ * like Cancel under a sheet's main action) and ghost-danger (Remove from household).
  */
 export type ButtonVariant =
   | 'primary'
@@ -19,7 +19,8 @@ export type ButtonVariant =
   | 'outline-warning'
   | 'danger'
   | 'outline-danger'
-  | 'ghost';
+  | 'ghost'
+  | 'ghost-danger';
 
 /** 48px (`default`) or the 44px row-action size (`small`). */
 export type ButtonSize = 'default' | 'small';
@@ -33,6 +34,7 @@ const NATIVE_VARIANT = {
   danger: 'destructive',
   'outline-danger': 'outline-destructive',
   ghost: 'ghost',
+  'ghost-danger': 'ghost-destructive',
 } as const;
 
 const NATIVE_SIZE = { default: 'default', small: 'sm' } as const;
