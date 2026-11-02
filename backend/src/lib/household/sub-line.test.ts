@@ -16,4 +16,8 @@ describe("personSubLine", () => {
     expect(personSubLine(NOV_2026_CONFIG, sam, NAMES)).toBe("Own room · utilities and aircon via Priya");
     expect(personSubLine(NOV_2026_CONFIG, jordan, NAMES)).toBe("Own room · pays you directly");
   });
+
+  it("says the owner pays the landlord and utilities", () => {
+    expect(personSubLine(NOV_2026_CONFIG, PERSON_IDS.alex, NAMES)).toBe("Master room · pays landlord & utilities");
+  });
 });

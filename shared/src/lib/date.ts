@@ -155,6 +155,19 @@ export function parseDisplayDate(text: string): string | null {
 }
 
 /**
+ * Formats a day of the month for reading.
+ *
+ * @param day The day, 1 to 31.
+ * @returns e.g. `1st`, `2nd`, `3rd`, `11th`, `28th`.
+ */
+export function formatDayOrdinal(day: number): string {
+  const lastTwo = day % 100;
+  if (lastTwo >= 11 && lastTwo <= 13) return `${day}th`;
+  const suffix = { 1: 'st', 2: 'nd', 3: 'rd' }[day % 10] ?? 'th';
+  return `${day}${suffix}`;
+}
+
+/**
  * Turns a due day from the household config into a date key in one month.
  *
  * @param month A month key, e.g. `2026-11`.

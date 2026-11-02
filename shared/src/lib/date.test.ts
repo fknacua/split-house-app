@@ -9,6 +9,7 @@ import {
   formatDateMedium,
   formatDateRange,
   formatDateShort,
+  formatDayOrdinal,
   isDateKey,
   todayKey,
 } from './date';
@@ -126,5 +127,24 @@ describe('dueDateKey', () => {
   it('throws on a bad month key', () => {
     expect(() => dueDateKey('2026-13', 7)).toThrow(RangeError);
     expect(() => dueDateKey('2026-1', 7)).toThrow(RangeError);
+  });
+});
+
+describe('formatDayOrdinal', () => {
+  it.each([
+    [1, '1st'],
+    [2, '2nd'],
+    [3, '3rd'],
+    [4, '4th'],
+    [11, '11th'],
+    [12, '12th'],
+    [13, '13th'],
+    [21, '21st'],
+    [22, '22nd'],
+    [23, '23rd'],
+    [28, '28th'],
+    [31, '31st'],
+  ])('%i reads %s', (day, text) => {
+    expect(formatDayOrdinal(day)).toBe(text);
   });
 });
