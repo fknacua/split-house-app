@@ -39,10 +39,10 @@ describe("parseHouseholdFile", () => {
     expect(result.startsFromMonth).toBe("2026-11");
     expect(result.config).toEqual(NOV_2026_CONFIG);
     expect(result.people).toEqual([
-      { id: PERSON_IDS.alex, name: "Alex", whatsappE164: null, isOwner: true },
-      { id: PERSON_IDS.priya, name: "Priya", whatsappE164: "+6581234567", isOwner: false },
-      { id: PERSON_IDS.sam, name: "Sam", whatsappE164: "+6581234567", isOwner: false },
-      { id: PERSON_IDS.jordan, name: "Jordan", whatsappE164: "+6581234567", isOwner: false },
+      { id: PERSON_IDS.alex, name: "Alex", whatsappE164: null, color: "TEAL", isOwner: true },
+      { id: PERSON_IDS.priya, name: "Priya", whatsappE164: "+6581234567", color: "BLUE", isOwner: false },
+      { id: PERSON_IDS.sam, name: "Sam", whatsappE164: "+6581234567", color: "ORANGE", isOwner: false },
+      { id: PERSON_IDS.jordan, name: "Jordan", whatsappE164: "+6581234567", color: "GREEN", isOwner: false },
     ]);
   });
 

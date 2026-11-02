@@ -54,7 +54,6 @@ import {
   SkeletonPersonCards,
   SkeletonRowList,
   Spinner,
-  SplitProgress,
   SubpageHeader,
   Switch,
   SwitchRow,
@@ -751,9 +750,6 @@ function SurfacesDemo() {
           { label: '4', value: '4' },
         ]}
       />
-      <Text className="font-manrope-bold text-label text-on-surface-variant">Split bar</Text>
-      <SplitProgress percent={50} accessibilityLabel="Your share 50 percent" />
-      <SplitProgress percent={70} accessibilityLabel="Your share 70 percent" />
 
       <Text className="font-manrope-bold text-sheet-title text-on-surface">Accordion</Text>
       <Card padded={false}>

@@ -24,10 +24,10 @@ function useHousehold(versions: { startsFromMonth: string; schemaVersion: number
     householdVersion: { findMany: async () => versions },
     person: {
       findMany: async () => [
-        { id: PERSON_IDS.alex, name: "Alex", whatsappE164: null },
-        { id: PERSON_IDS.priya, name: "Priya", whatsappE164: "+6581234567" },
-        { id: PERSON_IDS.sam, name: "Sam", whatsappE164: null },
-        { id: PERSON_IDS.jordan, name: "Jordan", whatsappE164: "+6581234568" },
+        { id: PERSON_IDS.alex, name: "Alex", color: "TEAL" },
+        { id: PERSON_IDS.priya, name: "Priya", color: "BLUE" },
+        { id: PERSON_IDS.sam, name: "Sam", color: "ORANGE" },
+        { id: PERSON_IDS.jordan, name: "Jordan", color: "GREEN" },
       ],
     },
   });

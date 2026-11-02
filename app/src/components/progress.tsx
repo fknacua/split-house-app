@@ -76,35 +76,3 @@ export function SegmentedProgress({
     </View>
   );
 }
-
-/**
- * Two-segment split bar (custom Progress, screen mapping doc): a 6px bar of a `primary` segment
- * and a `track` segment with a 2px gap, such as the 50/50 share on Household. Display only; the
- * percentages come from the server.
- *
- * @param percent - Width of the first (`primary`) segment, 0 to 100. The second takes the rest.
- * @param accessibilityLabel - What the split shows, read out by screen readers.
- * @param className - Extra classes for the bar.
- */
-export function SplitProgress({
-  percent,
-  accessibilityLabel,
-  className,
-}: {
-  percent: number;
-  accessibilityLabel: string;
-  className?: string;
-}) {
-  const first = clampPercent(percent, 100);
-  return (
-    <View
-      accessibilityRole="progressbar"
-      accessibilityLabel={accessibilityLabel}
-      accessibilityValue={{ min: 0, max: 100, now: Math.round(first) }}
-      className={`h-1.5 flex-row gap-0.5 overflow-hidden rounded-full ${className ?? ''}`}
-    >
-      {first > 0 ? <View className="bg-primary" style={{ flex: first }} /> : null}
-      {first < 100 ? <View className="bg-track" style={{ flex: 100 - first }} /> : null}
-    </View>
-  );
-}

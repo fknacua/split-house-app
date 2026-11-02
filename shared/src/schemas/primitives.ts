@@ -30,5 +30,17 @@ export const positiveCents = cents.positive('Enter an amount above $0.00');
  */
 export const e164Phone = z.e164('Enter a valid phone number');
 
+/** The nine person colors, by name, so light and dark stay in sync. */
+export const PERSON_COLORS = ['BLUE', 'ORANGE', 'GREEN', 'PURPLE', 'PINK', 'TEAL', 'GOLD', 'BROWN', 'SLATE'] as const;
+
+/** One of the nine person colors. */
+export const personColor = z.enum(PERSON_COLORS);
+
+/** One of the nine person colors. */
+export type PersonColor = z.infer<typeof personColor>;
+
+/** The colors a tenant can have, in default order: all but Teal, which is only for the owner. */
+export const TENANT_PERSON_COLORS: readonly PersonColor[] = PERSON_COLORS.filter((color) => color !== 'TEAL');
+
 /** A non-empty label or name after trimming. */
 export const requiredText = z.string().trim().min(1, 'Required');

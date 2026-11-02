@@ -112,6 +112,18 @@ enum ParseStatus {
   MANUAL
 }
 
+enum PersonColor {
+  BLUE
+  ORANGE
+  GREEN
+  PURPLE
+  PINK
+  TEAL
+  GOLD
+  BROWN
+  SLATE
+}
+
 enum TaskType {
   SAVINGS_TRANSFER
 }
@@ -122,6 +134,7 @@ model Person {
   id           String   @id @default(cuid())
   name         String
   whatsappE164 String?
+  color        PersonColor
   isOwner      Boolean  @default(false)
   isActive     Boolean  @default(true)
   createdAt    DateTime @default(now())

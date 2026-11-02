@@ -1,5 +1,5 @@
 import { z } from 'zod';
-import { monthKey } from '../schemas/primitives';
+import { monthKey, personColor } from '../schemas/primitives';
 import { badgeSchema } from './history';
 
 /** `GET /api/household` query: the month to show. Missing means the active month. */
@@ -14,7 +14,7 @@ export type HouseholdViewQuery = z.infer<typeof householdViewQuerySchema>;
 export const householdTargetSchema = z.discriminatedUnion('kind', [
   z.object({ kind: z.literal('edit-home') }),
   z.object({ kind: z.literal('edit-person'), personId: z.string() }),
-  z.object({ kind: z.literal('edit-split') }),
+  z.object({ kind: z.literal('view-person'), personId: z.string() }),
   z.object({ kind: z.literal('add-person') }),
 ]);
 
@@ -59,7 +59,7 @@ export type HouseholdStat = z.infer<typeof householdStatSchema>;
 export const householdFactSchema = z.object({
   /** e.g. `Rent · due 28th`. */
   label: z.string(),
-  /** e.g. `$950.00 direct`. */
+  /** e.g. `$950.00`. */
   value: z.string(),
 });
 
@@ -72,43 +72,47 @@ export const householdPersonSchema = z.object({
   /** e.g. `S`. */
   initial: z.string(),
   name: z.string(),
+  /** The avatar's fill. */
+  color: personColor,
   /** e.g. `Own room · utilities and aircon via Priya`. */
   sub: z.string(),
   facts: z.array(householdFactSchema),
-  /** The buttons in the order drawn. */
+  /** The buttons in the order drawn. Empty on the owner's card. */
   actions: z.array(householdActionSchema),
 });
 
 /** One person's card. The owner's card comes last and reads `You`. */
 export type HouseholdPerson = z.infer<typeof householdPersonSchema>;
 
-/** One row of "Your split": rent, utilities or aircon. */
+/** One person's part of a Household split row: a bar segment and a legend entry. */
+export const householdSplitSegmentSchema = z.object({
+  personId: z.string(),
+  /** e.g. `Priya`, or `You` for the owner. */
+  name: z.string(),
+  /** e.g. `$1,675.00`, `1.5`. */
+  value: z.string(),
+  /** The segment's width, 0 to 100. A person at 0 has no segment but stays in the legend. */
+  percent: z.number().min(0).max(100),
+  color: personColor,
+});
+
+/** One person's part of a Household split row: a bar segment and a legend entry. */
+export type HouseholdSplitSegment = z.infer<typeof householdSplitSegmentSchema>;
+
+/** One row of "Household split": rent, utilities or aircon, across everyone. */
 export const householdSplitRowSchema = z.object({
   /** e.g. `Rent`. */
   label: z.string(),
-  /** e.g. `$3,350.00 master room · $1,675.00 each`. */
+  /** The total, e.g. `$5,250.00 across the home`, `5 shares`. */
   detail: z.string(),
-  /** The owner's segment of the bar, 0 to 100. The primary tenant's is the rest. */
-  ownerPercent: z.number().min(0).max(100),
-  /** e.g. `50 / 50`. */
-  ratio: z.string(),
+  /** The owner first, then the primary tenant, then the tenants. */
+  segments: z.array(householdSplitSegmentSchema),
+  /** The bar read out, e.g. `Rent: You $1,675.00, Priya $1,675.00`. */
+  accessibilityLabel: z.string(),
 });
 
-/** One row of "Your split": rent, utilities or aircon. */
+/** One row of "Household split": rent, utilities or aircon, across everyone. */
 export type HouseholdSplitRow = z.infer<typeof householdSplitRowSchema>;
-
-/** The "Your split" section. */
-export const householdSplitSchema = z.object({
-  /** e.g. `Your split with Priya`. */
-  title: z.string(),
-  /** e.g. `What’s left after Sam & Jordan`. Null when the household has no subtenants. */
-  sub: z.string().nullable(),
-  edit: householdActionSchema,
-  rows: z.array(householdSplitRowSchema),
-});
-
-/** The "Your split" section. */
-export type HouseholdSplit = z.infer<typeof householdSplitSchema>;
 
 /** `GET /api/household`: the Household screen for one month, ready to render. */
 export const householdViewResponseSchema = z.object({
@@ -122,9 +126,9 @@ export const householdViewResponseSchema = z.object({
     stats: z.array(householdStatSchema),
     edit: householdActionSchema,
   }),
+  /** The "Household split" rows: rent, utilities and aircon. */
+  splitRows: z.array(householdSplitRowSchema),
   people: z.array(householdPersonSchema),
-  /** Null when the household has no primary tenant, so there is no one to split with. */
-  split: householdSplitSchema.nullable(),
   addPerson: householdActionSchema,
 });
 

@@ -1,12 +1,6 @@
-import { Text } from 'react-native';
+import { Household } from '@/screens/household';
 
-import { Screen } from '@/components';
-
-/** Placeholder until the Household screen is built. */
-export default function HouseholdScreen() {
-  return (
-    <Screen className="items-center justify-center">
-      <Text className="font-manrope-bold text-title text-foreground">Household</Text>
-    </Screen>
-  );
+/** Household tab: the route only renders the screen. */
+export default function HouseholdRoute() {
+  return <Household />;
 }

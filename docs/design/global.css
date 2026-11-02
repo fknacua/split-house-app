@@ -69,6 +69,16 @@
   --color-info-line: rgb(var(--info-line));
   --color-info-container: rgb(var(--info-container));
   --color-on-info-container: rgb(var(--on-info-container));
+  --color-person-blue: rgb(var(--person-blue));
+  --color-person-orange: rgb(var(--person-orange));
+  --color-person-green: rgb(var(--person-green));
+  --color-person-purple: rgb(var(--person-purple));
+  --color-person-pink: rgb(var(--person-pink));
+  --color-person-teal: rgb(var(--person-teal));
+  --color-person-gold: rgb(var(--person-gold));
+  --color-person-brown: rgb(var(--person-brown));
+  --color-person-slate: rgb(var(--person-slate));
+  --color-on-person: rgb(var(--on-person));
 
   /* Type: Manrope, weights 400 to 800 (load all five weights in the Expo font setup) */
   /* Fixed Oct 15 build (Claude Code): Tailwind v4 needs --font-* for family and

@@ -54,6 +54,12 @@ The canvas boards are the same component with different props. The tables below 
   - Disabled while saving: selected background and border `track`, unselected border `outline-variant`, all text `on-disabled`. Taps ignored. 150 ms colour transition only.
   - Not these controls: the "Insert" placeholder chips in the message template editor (they add text), and the radio cards in Mark paid > shortfall and Share bill.
   - The selected fill matches the primary action button (e.g. Add charge below the sheet). Approved by the owner. Fallback if it reads as confusing: the grey `selected` token as the fill.
+- Person colors (Household page only for now): every person has one of nine fixed colors, stored by name, with no custom picker. Blue, Orange, Green, Purple, Pink, Teal, Gold, Brown, Slate, as `person-*` tokens; text on a color uses `on-person`. Teal is reserved for You, so tenants choose from the other eight. No red, because red means error and overdue. Sample assignment: You Teal, Primary Tenant Blue, Tenant 1 Orange, Tenant 2 Green.
+- Household overview order: header, rent card, Household split, People, Add subtenant. Household split has three rows (Rent, Utilities, Aircon), each with a total on the right, one 8px bar with 2px gaps and a segment per person sized by amount, and a two-by-two legend (dot, name, amount). Tenant cards have View and Edit; the You card has no buttons.
+- View a person: the edit form, read-only. A label with plain value text, no boxes, helper text or asterisks. Empty shows an em dash, an empty deposit shows "None". Color is a dot and name. Starts from and the summary are hidden. Groups are Details and Amounts. Title is the person's name. One solid Edit button with a pencil.
+- Add and Edit forms: groups "Saved right away" (Name, WhatsApp, Color) and "From a month you pick" (Starts from and everything dated), with no subtext under anything except the screen subtitle. Color row: eight 48px swatches in two rows of four, single select, 2px ring in the text color with a 3px page-colored gap plus a check on the selected one, its dot and name right of the label. The button is always "Save changes", disabled with no changes or, on Add, while required fields are empty.
+- Change summary card, above Save on edit forms: appears when any field changed, lists only what changed as old and new (old struck through), in two groups each shown only when it has rows: "Saves now" (Name, WhatsApp, Color) and "Saves from Jan 2027" (the month from Starts from). No notes. Hidden when nothing changed, and always hidden on Add.
+- Remove dialog: a "Remove from" month select, same look as Starts from, pre-filled with next month, next month onward. There is no "Today" option.
 - Every field is a `FormControl` with the label above the field and helper or error text below. No floating labels. See the Form controls row.
 - Month-only fields (bill month, Starts from) are Select-style lists. The date picker has no month-only mode. Date fields use the native picker.
 - Amounts are integer cents, SGD only. See the Data Model doc for rounding.
@@ -192,7 +198,11 @@ Component and props are what to pass to the source file in `docs/design/source/`
 |---|---|---|
 | Household · Loading | `Household` | `state=loading` |
 | Household · Overview | `Household` | `state=view` |
+| Household · View Tenant 2 | `Household` | `state=viewPerson` |
+| Household · View Primary Tenant | `Household` | `state=viewPrimary` |
+| Household · View Tenant 1 | `Household` | `state=viewTenant1` |
 | Household · Edit Tenant 2 from Jan 2027, preview | `Household` | `state=editPerson` |
+| Household · Edit Tenant 2, name, color and amounts | `Household` | `state=editPersonBoth` |
 | Household · Split doesn't add to 100% | `Household` | `state=splitError` |
 | Household · Edit Primary Tenant, rename | `Household` | `state=editPrimary` |
 | Household · Edit Tenant 1 | `Household` | `state=editTenant1` |

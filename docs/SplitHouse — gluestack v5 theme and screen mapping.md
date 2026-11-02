@@ -46,6 +46,16 @@ The handover's twelve semantic names are the tokens, plus four added in the Octo
 | info | custom | #0288D1 | #29B6F6 | Notes, due-today |
 | info-tint / line | custom | #E5F6FD / #CCE7F6 | #082431 / #1B76A0 | Info alert card |
 | info-container / on | custom | #CCE7F6 / #014361 | #104962 / #B8E7FB | Info badge |
+| person-blue | custom | #1565C0 | #64B5F6 | Person color |
+| person-orange | custom | #BF4000 | #FFA040 | Person color |
+| person-green | custom | #2E7D32 | #81C784 | Person color |
+| person-purple | custom | #7B1FA2 | #CE93D8 | Person color |
+| person-pink | custom | #C2185B | #F48FB1 | Person color |
+| person-teal | custom | #00796B | #4DD0E1 | Person color, only for the owner |
+| person-gold | custom | #8A6500 | #FFD54F | Person color |
+| person-brown | custom | #6D4C41 | #BCAAA4 | Person color |
+| person-slate | custom | #455A64 | #90A4AE | Person color |
+| on-person | custom | #FFFFFF | #111214 | Text on a person color (avatar initials, swatch check) |
 | ring | ring | primary | primary | Focus ring (neutral) |
 
 ## Type, shape, spacing, elevation, icons
@@ -142,7 +152,7 @@ Checked against gluestack v5's component list. Custom pieces are marked **custom
 | Mark paid, Record payment, Mark bill paid | BottomSheet, FormControl, Input, Select (From, For), DateTimePicker (Received on, Paid on), Radio (carry or let go), Alert, Button, Spinner | None | Saving and failed-save states |
 | Share bill | BottomSheet, Radio, Switch, Button | None. The system share sheet is Android's | None |
 | View bill | Card, Badge, Progress, Button, Skeleton | PDF viewer (**custom**, opened from the Open row) | Loading state |
-| Household | Card, FormControl, Input, Select (Applies to), Select (Starts from, as a month list), Switch, Alert, Progress, Skeleton | Connected button group: Directly or Via someone (**custom**); country-code prefix inside the WhatsApp field (**custom**); the two-segment 50/50 split bar (**custom** Progress) | Loading state. Required markers added |
+| Household | Card, FormControl, Input, Select (Applies to), Select (Starts from, as a month list), Switch, Alert, Progress, Skeleton | Connected button group: Directly or Via someone (**custom**); country-code prefix inside the WhatsApp field (**custom**); the per-person split bar, one segment per person in that person's color (**custom** Progress); the person color swatches (**custom**) | Loading state. Required markers added |
 | History | Card, Badge, Alert (month banner), Skeleton | Bottom navigation bar (**custom**) | Loading state |
 | Settings | Card, Switch, FormControl, Textarea (templates), Select (Applies to), Badge, Alert, Button | Connected button groups: theme, preview sample (**custom**, the preview sample group is compact); message preview card (**custom**) | Account card with Sign out. Notifications-blocked state |
 | First-run setup | Card, Progress, Button | Four-segment step indicator (**custom** Progress) | New step: Turn on reminders |

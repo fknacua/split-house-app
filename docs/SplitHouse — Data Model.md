@@ -10,10 +10,10 @@ Stack it assumes: Postgres on Neon, Prisma, Next.js route handlers on Vercel, Be
 
 ## Settled decisions
 
-- **Versioned settings.** Every save on Household (and the settings that follow its "starts from" rule) creates a new immutable `HouseholdVersion` stamped with a starts-from month. A month uses the newest version that starts on or before it. Old versions are never edited.
+- **Versioned settings.** Every save on Household (and the settings that follow its "starts from" rule) creates a new immutable `HouseholdVersion` stamped with a starts-from month. A month uses the newest version that starts on or before it. A version becomes immutable once a month has opened using it. Until then it is still upcoming: more edits for the same starts-from month are added to that one version, and they all apply when the month opens.
 - **Saved amounts.** Charges are created with their cents stored. They are never recalculated from settings later.
 - **Edits never touch existing months.** A Household edit must start **after the current month** (next month or later), so it can never affect a month whose charges already exist. "Current month" here is the newest opened month, so once December is started early, edits start from January. Fixing a past or current month is done with a correction charge. There is no regenerate step.
-- **First-run exception.** The very first version, created in first-run setup, may start at the go-live month (Nov 2026).
+- **First-run exception.** The very first version, created in first-run setup, may start at the current or the next month. First run blocks the app until its required steps are done, and no month opens before then, so quitting partway resumes where it left off.
 - **Payments are paid fields on the Charge.** No separate Payment table. Recording a payment marks charges paid, with who paid.
 - **Split engine** is one pure function that runs only on the backend. Add charge and Household previews call preview endpoints. Its unit tests use the Nov 2026 fixtures below.
 - **Rounding rule.** Every person except Francis gets their exact share rounded to the nearest cent (half up). Francis gets the total minus everyone else, so shares always add up to the amount.
@@ -22,7 +22,7 @@ Stack it assumes: Postgres on Neon, Prisma, Next.js route handlers on Vercel, Be
 ## Entities
 
 ### Person
-`id`, `name`, `whatsappE164`, `isOwner` (Francis), `isActive`. People are never hard-deleted because charges reference them. When someone is removed, a new `HouseholdVersion` stops including them from the starts-from month.
+`id`, `name`, `whatsappE164`, `color`, `isOwner` (Francis), `isActive`. People are never hard-deleted because charges reference them. When someone is removed, a new `HouseholdVersion` stops including them from the starts-from month. `color` is one of nine names (`BLUE`, `ORANGE`, `GREEN`, `PURPLE`, `PINK`, `TEAL`, `GOLD`, `BROWN`, `SLATE`), not a hex, so light and dark stay in sync. Teal is only for the owner, and duplicates among the others are allowed. Like `name`, it saves right away and is not versioned, so past months show the current color.
 
 ### HouseholdVersion
 `id`, `startsFromMonth` (unique), `schemaVersion`, `config` (JSON validated in code), `createdAt`. Immutable.

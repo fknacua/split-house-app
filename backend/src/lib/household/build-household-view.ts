@@ -3,18 +3,18 @@ import {
   formatDayOrdinal,
   formatMonthShortLabel,
   type ChargeType,
-  type HouseholdAction,
   type HouseholdConfig,
   type HouseholdFact,
   type HouseholdMonthOption,
   type HouseholdPerson,
-  type HouseholdSplit,
+  type HouseholdSplitRow,
   type HouseholdViewResponse,
+  type PersonColor,
   type PersonConfig,
 } from "@splithouse/shared";
 import { HOME_BADGES } from "@/lib/home/badges";
 import { splitRemainderByBps } from "@/lib/split/engine";
-import { joinWords, personSubLine } from "./sub-line";
+import { personSubLine } from "./sub-line";
 
 /** What `buildHouseholdView` reads. */
 export interface HouseholdViewInput {
@@ -26,12 +26,18 @@ export interface HouseholdViewInput {
   versionMonths: string[];
   /** The config in effect for `month`. */
   config: HouseholdConfig;
-  /** Everyone, for names and numbers. `whatsappE164` is null without a number. */
-  people: { id: string; name: string; whatsappE164: string | null }[];
+  /** Everyone, for names and colors. */
+  people: { id: string; name: string; color: PersonColor }[];
 }
 
 const SHARE_SCALE = 1000;
-const EDIT_SPLIT: HouseholdAction = { label: "Edit split", target: { kind: "edit-split" } };
+const FALLBACK_COLOR: PersonColor = "SLATE";
+
+/** The names and colors from the `Person` rows. */
+interface PersonLookup {
+  names: Map<string, string>;
+  colors: Map<string, PersonColor>;
+}
 
 /** Who splits the remainder of each category, and each one's part of it. */
 interface Remainders {
@@ -101,160 +107,100 @@ function dueLabel(config: HouseholdConfig, person: PersonConfig, type: ChargeTyp
   return day ? `${label} · due ${formatDayOrdinal(day)}` : label;
 }
 
-/** A Singapore number with its usual space; any other number as stored. */
-function phoneText(e164: string | null): string {
-  if (!e164) return "Not set";
-  const singapore = /^\+65(\d{4})(\d{4})$/.exec(e164);
-  return singapore ? `+65 ${singapore[1]} ${singapore[2]}` : e164;
-}
-
-/** The facts after rent, utilities and aircon on a tenant's card: Messages, Deposit, or WhatsApp when neither applies. */
-function tenantExtraFacts(
-  person: PersonConfig,
-  names: Map<string, string>,
-  whatsappE164: string | null,
-): HouseholdFact[] {
-  const vias = [...new Set(Object.values(person.routes).flatMap((r) => (r?.kind === "VIA" ? [r.viaPersonId] : [])))];
-  const facts: HouseholdFact[] = [];
-  if (vias.length > 0) {
-    const whose = vias.map((id) => `${names.get(id) ?? "Someone"}’s`);
-    facts.push({ label: "Messages", value: `In ${joinWords(whose)}` });
-  }
-  if (person.depositCents > 0) facts.push({ label: "Deposit", value: `${formatCents(person.depositCents)} held` });
-  if (facts.length === 0) facts.push({ label: "WhatsApp", value: phoneText(whatsappE164) });
-  return facts;
-}
-
-/** Adds how a charge reaches the user: `1 share via Priya`. */
-function withVia(text: string, person: PersonConfig, type: ChargeType, names: Map<string, string>): string {
-  const via = viaId(person, type);
-  return via ? `${text} via ${names.get(via) ?? "someone"}` : text;
-}
-
-/** The facts on a primary tenant's or tenant's card. */
-function personFacts(
-  input: HouseholdViewInput,
-  person: PersonConfig,
-  remainders: Remainders,
-  names: Map<string, string>,
-): HouseholdFact[] {
-  const whatsapp = input.people.find((p) => p.id === person.personId)?.whatsappE164 ?? null;
+/** The facts on a primary tenant's or tenant's card: rent and utilities. The sub line says how they pay. */
+function personFacts(config: HouseholdConfig, person: PersonConfig, remainders: Remainders): HouseholdFact[] {
   const isPrimary = person.role === "PRIMARY";
   const rentCents = isPrimary ? remainders.rent.primary : person.rentCents;
   const shares = isPrimary ? remainders.shares.primary : person.utilityShares;
-  const units = isPrimary ? remainders.units.primary : person.airconUnits * SHARE_SCALE;
 
-  // A tenant's rent says it is paid directly, against their other routes; the primary's has no such contrast.
-  const rentDirect = isPrimary ? formatCents(rentCents) : `${formatCents(rentCents)} direct`;
-  const rentVia = viaId(person, "RENT");
-  const rent = rentVia ? withVia(formatCents(rentCents), person, "RENT", names) : rentDirect;
-
-  const { config } = input;
   return [
-    { label: dueLabel(config, person, "RENT", "Rent"), value: rent },
-    {
-      label: dueLabel(config, person, "UTILITIES", "Utilities"),
-      value: withVia(countText(shares, "share"), person, "UTILITIES", names),
-    },
-    { label: "Aircon", value: countText(units, "unit") },
-    ...(isPrimary
-      ? [{ label: "WhatsApp", value: phoneText(whatsapp) }]
-      : tenantExtraFacts(person, names, whatsapp)),
+    { label: dueLabel(config, person, "RENT", "Rent"), value: formatCents(rentCents) },
+    { label: dueLabel(config, person, "UTILITIES", "Utilities"), value: countText(shares, "share") },
   ];
 }
 
 /** Everyone's cards as drawn: the primary tenant, the tenants in config order, then the owner as `You`. */
-function personCards(input: HouseholdViewInput, remainders: Remainders, names: Map<string, string>): HouseholdPerson[] {
+function personCards(input: HouseholdViewInput, remainders: Remainders, { names, colors }: PersonLookup): HouseholdPerson[] {
   const { config } = input;
   const { owner, primary } = remainders;
   const tenants = config.people.filter((p) => p.role === "TENANT");
 
-  const card = (person: PersonConfig, actions: HouseholdAction[]): HouseholdPerson => {
+  const card = (person: PersonConfig): HouseholdPerson => {
     const name = names.get(person.personId) ?? "Someone";
     return {
       personId: person.personId,
       initial: (Array.from(name.trim())[0] ?? "?").toUpperCase(),
       name,
+      color: colors.get(person.personId) ?? FALLBACK_COLOR,
       sub: personSubLine(config, person.personId, names),
-      facts: personFacts(input, person, remainders, names),
-      actions,
+      facts: personFacts(config, person, remainders),
+      actions: [
+        { label: "View", target: { kind: "view-person", personId: person.personId } },
+        { label: "Edit", target: { kind: "edit-person", personId: person.personId } },
+      ],
     };
   };
-  const edit = (person: PersonConfig): HouseholdAction => ({
-    label: "Edit",
-    target: { kind: "edit-person", personId: person.personId },
-  });
 
   return [
-    ...(primary ? [card(primary, [EDIT_SPLIT, edit(primary)])] : []),
-    ...tenants.map((tenant) => card(tenant, [edit(tenant)])),
+    ...(primary ? [card(primary)] : []),
+    ...tenants.map(card),
     {
       personId: owner.personId,
       initial: "Y",
       name: "You",
+      color: colors.get(owner.personId) ?? FALLBACK_COLOR,
       sub: personSubLine(config, owner.personId, names),
       facts: [
         { label: "Rent share", value: formatCents(remainders.rent.owner) },
         { label: "Utilities", value: countText(remainders.shares.owner, "share") },
-        { label: "Aircon", value: countText(remainders.units.owner, "unit") },
-        { label: "Leftover cents", value: "Absorbed by you" },
       ],
-      actions: primary ? [EDIT_SPLIT] : [],
+      actions: [],
     },
   ];
 }
 
-/** `$1,675.00 each` when both pay the same, otherwise each one's part. */
-function eachText(owner: number, primary: number, primaryName: string, format: (value: number) => string): string {
-  return owner === primary ? `${format(owner)} each` : `you ${format(owner)}, ${primaryName} ${format(primary)}`;
-}
+/** "Household split": rent, utilities and aircon across everyone, the owner first, then the primary tenant, then the tenants. */
+function splitRows(config: HouseholdConfig, remainders: Remainders, { names, colors }: PersonLookup): HouseholdSplitRow[] {
+  const { owner, primary, rent, shares, units } = remainders;
+  const tenants = config.people.filter((p) => p.role === "TENANT");
 
-/** The "Your split" section, or null with no primary tenant to split with. */
-function splitSection(
-  config: HouseholdConfig,
-  remainders: Remainders,
-  names: Map<string, string>,
-): HouseholdSplit | null {
-  const { primary, rent, shares, units } = remainders;
-  if (!primary) return null;
-
-  const primaryName = names.get(primary.personId) ?? "Someone";
-  const tenantNames = config.people
-    .filter((p) => p.role === "TENANT")
-    .map((p) => names.get(p.personId) ?? "Someone");
-  const { categories } = config;
-  const row = (label: string, ownerBps: number, primaryBps: number, detail: string) => ({
-    label,
-    detail,
-    ownerPercent: ownerBps / 100,
-    ratio: `${ownerBps / 100} / ${primaryBps / 100}`,
-  });
-
-  return {
-    title: `Your split with ${primaryName}`,
-    sub: tenantNames.length > 0 ? `What’s left after ${joinWords(tenantNames, "&")}` : null,
-    edit: EDIT_SPLIT,
-    rows: [
-      row(
-        "Rent",
-        categories.rent.ownerBps,
-        categories.rent.primaryBps,
-        `${formatCents(categories.rent.sharedRentCents)} master room · ${eachText(rent.owner, rent.primary, primaryName, formatCents)}`,
-      ),
-      row(
-        "Utilities",
-        categories.utilities.ownerBps,
-        categories.utilities.primaryBps,
-        `${amountText(shares.total)} of ${amountText(categories.utilities.totalShares)} shares · ${eachText(shares.owner, shares.primary, primaryName, amountText)}`,
-      ),
-      row(
-        "Aircon",
-        categories.aircon.ownerBps,
-        categories.aircon.primaryBps,
-        `${amountText(units.total)} of ${categories.aircon.totalUnits} units · ${eachText(units.owner, units.primary, primaryName, amountText)}`,
-      ),
-    ],
+  const row = (
+    label: string,
+    split: { owner: number; primary: number },
+    tenantAmount: (tenant: PersonConfig) => number,
+    format: (amount: number) => string,
+    detail: (total: number) => string,
+  ): HouseholdSplitRow => {
+    const parts = [
+      { person: owner, name: "You", amount: split.owner },
+      ...(primary ? [{ person: primary, name: names.get(primary.personId) ?? "Someone", amount: split.primary }] : []),
+      ...tenants.map((tenant) => ({
+        person: tenant,
+        name: names.get(tenant.personId) ?? "Someone",
+        amount: tenantAmount(tenant),
+      })),
+    ];
+    const total = parts.reduce((sum, part) => sum + part.amount, 0);
+    const segments = parts.map(({ person, name, amount }) => ({
+      personId: person.personId,
+      name,
+      value: format(amount),
+      percent: total > 0 ? Math.round((amount / total) * 1000) / 10 : 0,
+      color: colors.get(person.personId) ?? FALLBACK_COLOR,
+    }));
+    return {
+      label,
+      detail: detail(total),
+      segments,
+      accessibilityLabel: `${label}: ${segments.map((s) => `${s.name} ${s.value}`).join(", ")}`,
+    };
   };
+
+  return [
+    row("Rent", rent, (t) => t.rentCents, formatCents, (total) => `${formatCents(total)} across the home`),
+    row("Utilities", shares, (t) => t.utilityShares, amountText, (total) => countText(total, "share")),
+    row("Aircon", units, (t) => t.airconUnits * SHARE_SCALE, amountText, (total) => countText(total, "unit")),
+  ];
 }
 
 /**
@@ -267,7 +213,10 @@ function splitSection(
  */
 export function buildHouseholdView(input: HouseholdViewInput): HouseholdViewResponse {
   const { config } = input;
-  const names = new Map(input.people.map((p) => [p.id, p.name]));
+  const lookup: PersonLookup = {
+    names: new Map(input.people.map((p) => [p.id, p.name])),
+    colors: new Map(input.people.map((p) => [p.id, p.color])),
+  };
   const remainders = remaindersOf(config);
   const { aircon, utilities } = config.categories;
 
@@ -285,8 +234,8 @@ export function buildHouseholdView(input: HouseholdViewInput): HouseholdViewResp
       ],
       edit: { label: "Edit", target: { kind: "edit-home" } },
     },
-    people: personCards(input, remainders, names),
-    split: splitSection(config, remainders, names),
+    splitRows: splitRows(config, remainders, lookup),
+    people: personCards(input, remainders, lookup),
     addPerson: { label: "Add subtenant", target: { kind: "add-person" } },
   };
 }
