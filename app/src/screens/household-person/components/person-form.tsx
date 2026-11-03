@@ -1,5 +1,6 @@
 import { zodResolver } from '@hookform/resolvers/zod';
 import { Undo } from 'lucide-react-native';
+import { useState } from 'react';
 import { useForm, useWatch } from 'react-hook-form';
 import { KeyboardAvoidingView, ScrollView, View } from 'react-native';
 
@@ -28,14 +29,14 @@ import { ColorField } from './color-field';
 import { EditSaveActions } from './edit-save-actions';
 import { EditSummaryCard } from './edit-summary-card';
 import { FormSection } from './form-section';
+import { RemovePersonDialog } from './remove-person-dialog';
 import { RouteField } from './route-field';
 
 /**
  * The `editPerson` board: "Saved right away" (Name, WhatsApp, Color) and the dated group, which takes effect
  * next month (the amounts and routes only for a tenant). It opens on the latest saved values. The summary lists only what
  * changed in this edit, and with Save is in the footer. Save returns to the overview, on the month it was
- * showing, with a toast. Leaving with unsaved changes asks first. "Remove from household" does nothing until
- * 9.8.
+ * showing, with a toast. Leaving with unsaved changes asks first. "Remove from household" opens its dialog.
  */
 export function PersonForm({ form }: PersonFormProps) {
   const {
@@ -51,6 +52,7 @@ export function PersonForm({ form }: PersonFormProps) {
   const dirty = hasUnsavedChanges(values, form);
   const flow = useEditFlow(toHouseholdEdit(values, form), dirty);
   const { errors, guard } = flow;
+  const [removing, setRemoving] = useState(false);
 
   return (
     <Screen>
@@ -183,7 +185,12 @@ export function PersonForm({ form }: PersonFormProps) {
         <EditSummaryCard groups={flow.groups} loading={dirty && !flow.answered && !flow.previewFailed} />
         <EditSaveActions flow={flow} disabled={!isValid || hasUnpickedRoute(values)} />
         {form.secondaryAction.kind === 'remove-person' ? (
-          <Button label={form.secondaryAction.label} variant="ghost-danger" disabled={flow.saving} />
+          <Button
+            label={form.secondaryAction.label}
+            variant="ghost-danger"
+            disabled={flow.saving}
+            onPress={() => setRemoving(true)}
+          />
         ) : (
           <Button
             label={form.secondaryAction.label}
@@ -203,6 +210,14 @@ export function PersonForm({ form }: PersonFormProps) {
         confirmLabel="Discard"
         onConfirm={guard.discard}
       />
+      {form.removeDialog ? (
+        <RemovePersonDialog
+          open={removing}
+          personId={form.personId}
+          dialog={form.removeDialog}
+          onClose={() => setRemoving(false)}
+        />
+      ) : null}
     </Screen>
   );
 }

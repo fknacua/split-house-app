@@ -86,6 +86,15 @@ export interface EditSaveActionsProps {
   disabled: boolean;
 }
 
+/** Props for {@link RemovePersonDialog}. */
+export interface RemovePersonDialogProps {
+  open: boolean;
+  personId: string;
+  /** The text the server wrote. */
+  dialog: NonNullable<HouseholdFormResponse['removeDialog']>;
+  onClose: () => void;
+}
+
 /** Props for {@link ViewRow}. */
 export interface ViewRowProps {
   /** The label and its plain text. */

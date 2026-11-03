@@ -91,3 +91,32 @@ export function applyAddPerson(config: HouseholdConfig, tenant: PersonConfig): H
     },
   };
 }
+
+/**
+ * Takes a tenant out of a config, with their recurring charges, template overrides and section title. The
+ * utilities total falls by their shares, so everyone else's shares keep their size. The aircon total stays, since
+ * the units stay in the house, so the owner and primary tenant take them over. The result still has to go through
+ * `householdConfigSchema`.
+ *
+ * @param config - The config the edit starts from. Not changed.
+ * @param personId - The tenant.
+ * @returns The new config.
+ */
+export function applyRemovePerson(config: HouseholdConfig, personId: string): HouseholdConfig {
+  const { utilities } = config.categories;
+  const shares = config.people.find((p) => p.personId === personId)?.utilityShares ?? 0;
+  return {
+    ...config,
+    people: config.people.filter((p) => p.personId !== personId),
+    categories: {
+      ...config.categories,
+      utilities: { ...utilities, totalShares: utilities.totalShares - shares },
+    },
+    recurring: config.recurring.filter((r) => r.personId !== personId),
+    templates: {
+      ...config.templates,
+      overrides: config.templates.overrides.filter((o) => o.personId !== personId),
+      sectionTitles: Object.fromEntries(Object.entries(config.templates.sectionTitles).filter(([id]) => id !== personId)),
+    },
+  };
+}

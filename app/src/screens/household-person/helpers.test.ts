@@ -34,6 +34,7 @@ function formFor(overrides: Partial<HouseholdFormResponse['values']> = {}): Hous
     },
     colorName: 'Green',
     swatches: [{ color: 'GREEN', name: 'Green' }],
+    removeDialog: null,
     sentViaOptions: [],
     view: { details: [], amounts: [], routes: [] },
     secondaryAction: { label: 'Remove from household', kind: 'remove-person' },

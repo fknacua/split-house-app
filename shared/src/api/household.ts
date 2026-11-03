@@ -77,7 +77,7 @@ export const householdPersonSchema = z.object({
   /** e.g. `Own room · utilities and aircon via Priya`. */
   sub: z.string(),
   facts: z.array(householdFactSchema),
-  /** The buttons in the order drawn. Empty on the owner's card. */
+  /** The buttons in the order drawn. Empty on the owner's card and for someone not in the household next month. */
   actions: z.array(householdActionSchema),
 });
 
@@ -205,6 +205,16 @@ export const householdFormResponseSchema = z.object({
     label: z.string(),
     kind: z.enum(['remove-person', 'cancel']),
   }),
+  /** The remove dialog's text. Null for anyone but a tenant. */
+  removeDialog: z
+    .object({
+      /** e.g. `Remove Jordan from household?`. */
+      title: z.string(),
+      body: z.string(),
+      /** The check lines: what stays and what goes with them. */
+      keeps: z.array(z.string()),
+    })
+    .nullable(),
 });
 
 /** `GET /api/household/form`: one person's Edit and View screens, with their latest saved values, ready to render. */
@@ -276,10 +286,20 @@ export const householdAddPersonEditSchema = z.object({
 /** A new tenant, who joins from next month. */
 export type HouseholdAddPersonEdit = z.infer<typeof householdAddPersonEditSchema>;
 
+/** Removes a tenant from next month, which the server works out. Their `Person` row and past months stay. */
+export const householdRemovePersonEditSchema = z.object({
+  kind: z.literal('removePerson'),
+  personId: z.string().min(1),
+});
+
+/** Removes a tenant from next month. */
+export type HouseholdRemovePersonEdit = z.infer<typeof householdRemovePersonEditSchema>;
+
 /** `POST /api/household/edits` and `.../preview` body: one typed edit. The app never sends a config. */
 export const householdEditSchema = z.discriminatedUnion('kind', [
   householdPersonEditSchema,
   householdAddPersonEditSchema,
+  householdRemovePersonEditSchema,
 ]);
 
 /** `POST /api/household/edits` and `.../preview` body: one typed edit. The app never sends a config. */
