@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { NOV_2026_CONFIG, PERSON_IDS } from "@/lib/fixtures/household";
+import { NOV_2026_CONFIG, PERSON_IDS, ROOM_IDS } from "@/lib/fixtures/household";
 import { HouseholdFileError, parseHouseholdFile } from "./household-file";
 
 const NAMES: Record<string, string> = {
@@ -51,7 +51,6 @@ describe("parseHouseholdFile", () => {
     file.startsFromMonth = "Nov";
     file.people[1].name = " ";
     file.people[2].whatsappE164 = "+65";
-    file.people[3].rentCents = 0;
     file.people[3].dueDays = { RENT: 0 };
 
     expect(problemsOf(file)).toEqual(
@@ -59,10 +58,27 @@ describe("parseHouseholdFile", () => {
         "startsFromMonth: use YYYY-MM",
         "people.1.name: required",
         "people.2.whatsappE164: required, +65 and the number",
-        "people.3.rentCents: must be above 0 for a tenant",
         expect.stringMatching(/^people\.3\.dueDays\.RENT: /),
       ]),
     );
+  });
+
+  it("requires rent above zero on an occupied tenant room, and not on an empty one", () => {
+    const zeroRent = (file: ReturnType<typeof validFile>) => ({
+      ...file,
+      rooms: file.rooms.map((r) => (r.id === ROOM_IDS.room3 ? { ...r, rentCents: 0 } : r)),
+    });
+    expect(problemsOf(zeroRent(validFile()))).toEqual(["rooms.2.rentCents: must be above 0 for an occupied room"]);
+
+    const emptyRoom = validFile();
+    emptyRoom.people = emptyRoom.people.filter((p) => p.personId !== PERSON_IDS.jordan);
+    expect(parseHouseholdFile(zeroRent(emptyRoom)).config.people).toHaveLength(3);
+  });
+
+  it("refuses a file with no rooms, as a version 1 file has", () => {
+    const oldShape: Record<string, unknown> = validFile();
+    delete oldShape.rooms;
+    expect(problemsOf(oldShape)).toEqual(expect.arrayContaining([expect.stringMatching(/^rooms: /)]));
   });
 
   it("applies the shared schema's household rules", () => {

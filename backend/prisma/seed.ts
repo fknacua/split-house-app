@@ -83,7 +83,6 @@ const SAMPLE_PDF_PAGES = await countPdfPages(SAMPLE_PDF);
 
 async function wipeDomainTables() {
   await prisma.messageEvent.deleteMany();
-  await prisma.task.deleteMany();
   await prisma.charge.deleteMany();
   await prisma.chargeGroup.deleteMany();
   await prisma.billFile.deleteMany();

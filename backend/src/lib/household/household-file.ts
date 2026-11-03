@@ -36,7 +36,32 @@ type RawPerson = Record<string, unknown> & { name?: unknown; whatsappE164?: unkn
  * Parses the local household file the dry-run load script reads: the household config with each
  * person's `name` and `whatsappE164` beside their config entry, plus `startsFromMonth`. Keys
  * starting with `_` (notes) are ignored. Beyond the shared schema it requires a name for everyone,
- * a WhatsApp number for everyone except the owner, and rent above zero for every tenant.
+ * a WhatsApp number for everyone except the owner, and rent above zero for every occupied tenant room.
+ *
+ * The file's shape, with the rest of each entry as in `householdConfigSchema` (schema version 2):
+ * ```json
+ * {
+ *   "startsFromMonth": "2026-11",
+ *   "rooms": [
+ *     { "id": "room-master", "roomType": "MASTER", "name": "Master room", "airconUnits": 1 },
+ *     { "id": "room-2", "roomType": "TENANT", "name": "Room 2", "airconUnits": 1, "rentCents": 95000, "includeInTotal": true },
+ *     { "id": "room-living", "roomType": "COMMON", "name": "Living room", "airconUnits": 2 }
+ *   ],
+ *   "people": [
+ *     { "personId": "person-alex", "name": "Alex", "whatsappE164": null, "role": "OWNER", "roomId": "room-master" },
+ *     { "personId": "person-sam", "name": "Sam", "whatsappE164": "+6581234567", "role": "TENANT", "roomId": "room-2", "utilityShares": 1000 }
+ *   ],
+ *   "categories": {
+ *     "rent": { "landlordRentCents": 430000, "landlordDueDay": 1, "ownerBps": 10000, "primaryBps": 0 },
+ *     "utilities": { "totalShares": 5000, "ownerBps": 10000, "primaryBps": 0 },
+ *     "aircon": { "ownerBps": 10000, "primaryBps": 0 }
+ *   },
+ *   "templates": { "monthly": "...", "nudge": "..." }
+ * }
+ * ```
+ * Coming from schema version 1: a tenant's `rentCents` and `airconUnits` move onto their room, and they
+ * gain a `roomId`. `sharedRentCents` becomes `landlordRentCents`, which is the master rent plus the rent
+ * of occupied rooms with `includeInTotal` on. Aircon's `totalUnits` goes: the total is the sum of the rooms.
  *
  * @param json - The file's parsed JSON.
  * @returns The `Person` rows (the config's `personId` becomes the row id; colors are assigned, Teal
@@ -73,12 +98,17 @@ export function parseHouseholdFile(json: unknown): HouseholdFile {
     } else if (!e164Phone.safeParse(p.whatsappE164).success) {
       problems.push(`people.${i}.whatsappE164: required, +65 and the number`);
     }
-    if (p.role === "TENANT" && !(typeof p.rentCents === "number" && p.rentCents > 0)) {
-      problems.push(`people.${i}.rentCents: must be above 0 for a tenant`);
-    }
   });
 
   if (problems.length > 0 || !parsed.success) throw new HouseholdFileError(problems);
+
+  const occupied = new Set(parsed.data.people.map((p) => p.roomId));
+  parsed.data.rooms.forEach((room, i) => {
+    if (room.roomType === "TENANT" && occupied.has(room.id) && room.rentCents <= 0) {
+      problems.push(`rooms.${i}.rentCents: must be above 0 for an occupied room`);
+    }
+  });
+  if (problems.length > 0) throw new HouseholdFileError(problems);
 
   const usedColors: PersonColor[] = [];
   return {
