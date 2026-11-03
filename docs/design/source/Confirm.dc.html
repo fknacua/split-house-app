@@ -37,10 +37,10 @@ body{margin:0}
 <sc-if value="{{hasWhen}}" hint-placeholder-val="{{false}}">
 <div style="display: flex; flex-direction: column; gap: 6px">
 <label id="whenLabel" style="font-size: 14px; line-height: 20px; font-weight: 700; color: {{c.onSurface}}">Remove from</label>
-<button aria-haspopup="listbox" aria-labelledby="whenLabel whenValue" style="width: 100%; height: 48px; box-sizing: border-box; padding: 0 14px; border: 1px solid {{c.outline}}; border-radius: 12px; background: none; color: {{c.onSurface}}; font-family: inherit; display: flex; align-items: center; gap: 8px; text-align: left">
+<a href="{{whenHref}}" aria-haspopup="dialog" aria-labelledby="whenLabel whenValue" style="width: 100%; height: 48px; box-sizing: border-box; padding: 0 14px; border: 1px solid {{c.outline}}; border-radius: 12px; background: none; color: {{c.onSurface}}; font-family: inherit; display: flex; align-items: center; gap: 8px; text-align: left; text-decoration: none">
 <span id="whenValue" style="flex-grow: 1; min-width: 0; font-size: 16px; line-height: 24px; font-weight: 500">{{whenMonth}}</span>
-<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="flex-shrink: 0; color: {{c.onSurfaceVariant}}"><path d="m6 9 6 6 6-6"></path></svg>
-</button>
+<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="flex-shrink: 0; color: {{c.onSurface}}"><path d="M8 2v4"></path><path d="M16 2v4"></path><rect width="18" height="18" x="3" y="4" rx="2"></rect><path d="M3 10h18"></path></svg>
+</a>
 </div>
 </sc-if>
 <sc-if value="{{hasKeeps}}" hint-placeholder-val="{{false}}">
@@ -94,7 +94,7 @@ class Component extends DCLogic {
       v.bgTitle = 'Edit Tenant 2'; v.iconUser = true;
       v.title = 'Remove Tenant 2 from household?';
       v.body = 'From the month you pick they won’t get any charges or messages, and the utility shares will be split between everyone else.';
-      v.hasWhen = true; v.whenMonth = 'January 2027';
+      v.hasWhen = true; v.whenMonth = 'January 2027'; v.whenHref = dark ? 'MonthPicker-Remove-Dark.dc.html' : 'MonthPicker-Remove-Light.dc.html';
       v.hasKeeps = true;
       v.keeps = ['Past months and History stay as they are', 'Their $950.00 deposit stays recorded until you return it'];
       v.confirmLabel = 'Remove from household'; v.cancelLabel = 'Cancel';

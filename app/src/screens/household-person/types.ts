@@ -13,6 +13,8 @@ import type { PersonFormValues } from './helpers';
 /** Props for {@link FormSection}. */
 export interface FormSectionProps {
   title: string;
+  /** A line under the title, or null for none. */
+  note?: string | null;
   /** Draws the rule above the section. False for the first one. */
   separated: boolean;
   children: ReactNode;
@@ -52,15 +54,8 @@ export interface EditSummaryRowProps {
 
 /** Props for {@link PersonForm}. */
 export interface PersonFormProps {
-  /** The newest loaded response. */
+  /** The loaded response. It fills the form when the form opens. */
   form: HouseholdFormResponse;
-  /** The month picked in Starts from. */
-  month: string;
-  onMonthChange: (month: string) => void;
-  /** False while the picked month's response has not arrived: Save waits for it. */
-  monthLoaded: boolean;
-  /** Why the picked month could not be loaded, or null. */
-  monthError: string | null;
 }
 
 /** Props for {@link ViewRow}. */

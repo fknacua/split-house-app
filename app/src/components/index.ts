@@ -22,6 +22,7 @@ export * from './form-field';
 export * from './google-button';
 export * from './icon';
 export * from './money-input';
+export * from './month-picker/month-picker';
 export * from './month-select-field';
 export * from './phone-input';
 export * from './progress';

@@ -6,7 +6,6 @@ import { applyHouseholdEdit } from "./apply-edit";
 const edit = (personId: string, fields: Partial<HouseholdPersonEdit>): HouseholdPersonEdit => ({
   kind: "person",
   personId,
-  startsFromMonth: "2027-01",
   ...fields,
 });
 const person = (config: typeof NOV_2026_CONFIG, personId: string) => config.people.find((p) => p.personId === personId);

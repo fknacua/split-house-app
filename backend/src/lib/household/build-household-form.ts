@@ -1,8 +1,8 @@
+import { isDeepStrictEqual } from "node:util";
 import {
-  addMonths,
   formatCents,
   formatDayOrdinal,
-  monthRange,
+  formatMonthLabel,
   PERSON_COLORS,
   TENANT_PERSON_COLORS,
   type ChargeType,
@@ -15,35 +15,19 @@ import { amountText } from "./amount-text";
 import { personColorName } from "./person-color";
 import { personSubLine } from "./sub-line";
 
-/** How many months ahead Starts from offers. */
-const STARTS_FROM_MONTHS = 12;
 const NONE = "—";
 
 /** What `buildHouseholdForm` reads. */
 export interface HouseholdFormInput {
-  /** The month the values are read from, `YYYY-MM`. */
+  /** The month after the active one, `YYYY-MM`: the latest saved values and any new edit start then. */
   month: string;
-  /** The Starts from options. */
-  startsFromOptions: string[];
   /** The config in effect for `month`, with the person in it. */
   config: HouseholdConfig;
+  /** The active month's config, to tell whether the saved values have taken effect yet. */
+  activeConfig: HouseholdConfig | null;
   personId: string;
   /** Everyone's `Person` rows. */
   people: { id: string; name: string; whatsappE164: string | null; color: PersonColor; isOwner: boolean }[];
-}
-
-/**
- * The months a dated edit can start from: the next 12 after the active month, plus any upcoming
- * version further out, so it can still be edited.
- *
- * @param activeMonth - The active month.
- * @param versionMonths - Every version's starts-from month.
- * @returns Month keys, oldest first.
- */
-export function startsFromMonths(activeMonth: string, versionMonths: string[]): string[] {
-  const next = monthRange(addMonths(activeMonth, 1), STARTS_FROM_MONTHS);
-  const upcoming = versionMonths.filter((month) => month > activeMonth);
-  return [...new Set([...next, ...upcoming])].sort();
 }
 
 /** Money without its `$`, since the label says SGD. */
@@ -57,14 +41,14 @@ function viaOf(person: PersonConfig, type: ChargeType): string | null {
 }
 
 /**
- * One person's Edit and View screens for one month, display-ready.
+ * One person's Edit and View screens with their latest saved values, display-ready.
  *
- * @param input - The month, its config, the person and everyone's rows.
+ * @param input - The month, its config, the active month's config, the person and everyone's rows.
  * @returns The response for `GET /api/household/form`.
  * @throws {Error} When the person is not in the config or has no row; the service checks both first.
  */
 export function buildHouseholdForm(input: HouseholdFormInput): HouseholdFormResponse {
-  const { config, month, personId, startsFromOptions } = input;
+  const { activeConfig, config, month, personId } = input;
   const person = config.people.find((p) => p.personId === personId);
   const row = input.people.find((p) => p.id === personId);
   if (!person || !row) throw new Error("The person is not in the version");
@@ -79,15 +63,16 @@ export function buildHouseholdForm(input: HouseholdFormInput): HouseholdFormResp
     utilities: { label: "Utilities due", value: dayText(person.dueDays.UTILITIES) },
   };
   const colors = row.isOwner ? PERSON_COLORS : TENANT_PERSON_COLORS;
+  const monthLabel = formatMonthLabel(month);
+  const activePerson = activeConfig?.people.find((p) => p.personId === personId);
 
   return {
     personId,
     title: `Edit ${row.name}`,
     viewTitle: row.name,
     sub: personSubLine(config, personId, names),
-    month,
-    startsFrom: startsFromOptions.includes(month) ? month : startsFromOptions[0],
-    startsFromOptions,
+    datedTitle: `From ${monthLabel}`,
+    pendingNote: isDeepStrictEqual(activePerson, person) ? null : `These take effect from ${monthLabel}.`,
     values: {
       name: row.name,
       whatsappE164: row.whatsappE164,

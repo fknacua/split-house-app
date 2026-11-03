@@ -41,7 +41,7 @@ function useHousehold(versions: ReturnType<typeof version>[], pinned: Record<str
   });
 }
 
-const VERSIONS = [version("2027-01", JAN_2027_CONFIG), version("2026-11", NOV_2026_CONFIG)];
+const VERSIONS = [version("2026-12", JAN_2027_CONFIG), version("2026-11", NOV_2026_CONFIG)];
 const jordan = `?personId=${PERSON_IDS.jordan}`;
 
 beforeEach(() => {
@@ -51,25 +51,26 @@ beforeEach(() => {
 afterEach(() => vi.unstubAllEnvs());
 
 describe("GET /api/household/form", () => {
-  it("defaults to the first Starts from option, parsing with the shared schema", async () => {
+  it("shows the latest saved values with a note, parsing with the shared schema", async () => {
     const response = await GET(request(jordan), undefined);
     expect(response.status).toBe(200);
     const body = householdFormResponseSchema.parse(await response.json());
-    expect(body.month).toBe("2026-12");
-    expect(body.startsFrom).toBe("2026-12");
-    expect(body.values.amounts?.rentCents).toBe(95000);
-  });
-
-  it("reads the values of the version for the month asked for", async () => {
-    const response = await GET(request(`${jordan}&month=2027-01`), undefined);
-    const body = householdFormResponseSchema.parse(await response.json());
     expect(body.values.amounts?.rentCents).toBe(100000);
+    expect(body.datedTitle).toBe("From December 2026");
+    expect(body.pendingNote).toBe("These take effect from December 2026.");
   });
 
-  it("reads the version an opened month is pinned to", async () => {
-    useHousehold(VERSIONS, { "2026-11": JAN_2027_CONFIG });
-    const response = await GET(request(`${jordan}&month=2026-11`), undefined);
-    expect(householdFormResponseSchema.parse(await response.json()).values.amounts?.rentCents).toBe(100000);
+  it("has no note when the saved values are already in effect", async () => {
+    useHousehold([version("2026-11", NOV_2026_CONFIG)]);
+    const body = householdFormResponseSchema.parse(await (await GET(request(jordan), undefined)).json());
+    expect(body.values.amounts?.rentCents).toBe(95000);
+    expect(body.pendingNote).toBeNull();
+  });
+
+  it("compares with the version the active month is pinned to", async () => {
+    useHousehold([version("2026-11", NOV_2026_CONFIG)], { "2026-11": JAN_2027_CONFIG });
+    const body = householdFormResponseSchema.parse(await (await GET(request(jordan), undefined)).json());
+    expect(body.pendingNote).toBe("These take effect from December 2026.");
   });
 
   it("answers 400 without a person", async () => {
@@ -87,8 +88,9 @@ describe("GET /api/household/form", () => {
     expect((await response.json()).error.code).toBe("no_person");
   });
 
-  it("answers 404 no_version for a month before every version", async () => {
-    const response = await GET(request(`${jordan}&month=2026-10`), undefined);
+  it("answers 404 no_version when no version covers next month", async () => {
+    useHousehold([version("2027-06", NOV_2026_CONFIG)]);
+    const response = await GET(request(jordan), undefined);
     expect(response.status).toBe(404);
     expect((await response.json()).error.code).toBe("no_version");
   });

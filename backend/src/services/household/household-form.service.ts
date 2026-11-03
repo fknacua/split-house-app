@@ -1,6 +1,6 @@
-import { parseHouseholdConfig, type HouseholdFormQuery, type HouseholdFormResponse, type PersonColor } from "@splithouse/shared";
+import { addMonths, parseHouseholdConfig, type HouseholdFormQuery, type HouseholdFormResponse, type PersonColor } from "@splithouse/shared";
 import { ApiError } from "@/lib/api";
-import { buildHouseholdForm, startsFromMonths } from "@/lib/household/build-household-form";
+import { buildHouseholdForm } from "@/lib/household/build-household-form";
 import { getActiveMonth, type ActiveMonthDb } from "@/services/months/active-month.service";
 
 const VERSION_SELECT = { startsFromMonth: true, schemaVersion: true, config: true } as const;
@@ -28,14 +28,15 @@ export interface HouseholdFormDb extends ActiveMonthDb {
 }
 
 /**
- * Reads one person's form for a month: the version an opened month is pinned to, otherwise the newest
- * starting on or before the month. Read-only.
+ * Reads one person's form with their latest saved values: the version in effect next month, which is what
+ * new edits build on. The active month's version, the one it is pinned to once opened, tells whether those
+ * values have taken effect yet. Read-only.
  *
  * @param db - The Prisma client, or a fake in tests.
- * @param query - The person, and the month to read (View passes "Showing:"; missing means the first Starts from option).
+ * @param query - The person.
  * @returns The Edit and View screens.
- * @throws {ApiError} 409 `no_household` before first run; 404 `no_version` for a month before every
- * version; 404 `no_person` for an unknown person or someone not in that month's version.
+ * @throws {ApiError} 409 `no_household` before first run; 404 `no_version` when no version covers next
+ * month; 404 `no_person` for an unknown person or someone not in that version.
  */
 export async function getHouseholdForm(db: HouseholdFormDb, query: HouseholdFormQuery): Promise<HouseholdFormResponse> {
   const [activeMonth, versions, people] = await Promise.all([
@@ -45,19 +46,20 @@ export async function getHouseholdForm(db: HouseholdFormDb, query: HouseholdForm
   ]);
   if (versions.length === 0) throw new ApiError(409, "no_household", "Set up the household first.");
 
-  const startsFromOptions = startsFromMonths(activeMonth, versions.map((v) => v.startsFromMonth));
-  const month = query.month ?? startsFromOptions[0];
+  const month = addMonths(activeMonth, 1);
+  const version = versions.find((v) => v.startsFromMonth <= month);
+  if (!version) throw new ApiError(404, "no_version", "The household has no setup for next month.");
   const opened = await db.month.findUnique({
-    where: { month },
+    where: { month: activeMonth },
     select: { householdVersion: { select: { schemaVersion: true, config: true } } },
   });
-  const version = opened?.householdVersion ?? versions.find((v) => v.startsFromMonth <= month);
-  if (!version) throw new ApiError(404, "no_version", "The household has no setup for this month.");
+  const active = opened?.householdVersion ?? versions.find((v) => v.startsFromMonth <= activeMonth);
 
   const config = parseHouseholdConfig(version.schemaVersion, version.config);
   const known = people.some((p) => p.id === query.personId);
   if (!known || !config.people.some((p) => p.personId === query.personId)) {
-    throw new ApiError(404, "no_person", "This person is not in the household for this month.");
+    throw new ApiError(404, "no_person", "This person is not in the household next month.");
   }
-  return buildHouseholdForm({ month, startsFromOptions, config, personId: query.personId, people });
+  const activeConfig = active ? parseHouseholdConfig(active.schemaVersion, active.config) : null;
+  return buildHouseholdForm({ month, config, activeConfig, personId: query.personId, people });
 }

@@ -41,6 +41,7 @@ import {
   FieldControl,
   FieldControlProps,
   MoneyInput,
+  MonthPicker,
   MonthSelectField,
   type NavItem,
   PageHeader,
@@ -401,6 +402,7 @@ function PickersDemo() {
   const switchOn = useWatch({ control, name: 'switchOn' });
   const [bareWho, setBareWho] = useState('');
   const [bareMonth, setBareMonth] = useState('');
+  const [barePickedMonth, setBarePickedMonth] = useState('');
   const [bareDate, setBareDate] = useState('');
   const date = useWatch({ control, name: 'date' });
   const who = useWatch({ control, name: 'who' });
@@ -522,8 +524,18 @@ function PickersDemo() {
         months={months}
         placeholder="Choose a month"
       />
+      <MonthPicker
+        value={barePickedMonth}
+        onChange={setBarePickedMonth}
+        accessibilityLabel="Month picker"
+        sheetTitle="Month picker"
+        months={months}
+        clearable
+        placeholder="Choose a month"
+      />
       <Text className="font-manrope-medium text-caption text-on-surface-variant">
-        Bare values: {bareWho === '' ? '(none)' : bareWho} / {bareMonth === '' ? '(none)' : bareMonth}
+        Bare values: {bareWho === '' ? '(none)' : bareWho} / {bareMonth === '' ? '(none)' : bareMonth} /{' '}
+        {barePickedMonth === '' ? '(none)' : barePickedMonth}
       </Text>
 
       <Text className="font-manrope-bold text-sheet-title text-on-surface">Switch</Text>

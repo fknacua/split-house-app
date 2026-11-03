@@ -11,20 +11,15 @@ import { ViewColorRow } from './components/view-color-row';
 import { ViewRow } from './components/view-row';
 
 /**
- * The `viewPerson` board: a person's details for the month picked in "Showing:", read-only, with one
- * Edit button. Every string comes from `GET /api/household/form`. Edit opens on this month when it is
- * upcoming; a month already opened can't change, so Edit then opens on the next one.
+ * The `viewPerson` board: a person's latest saved details, read-only, with one Edit button. Every string
+ * comes from `GET /api/household/form`, including the note when the amounts haven't taken effect yet.
  */
 export function PersonView() {
-  const { personId, month } = useLocalSearchParams<{ personId: string; month?: string }>();
+  const { personId } = useLocalSearchParams<{ personId: string }>();
   const router = useRouter();
-  const { data: form, error, isPending } = useHouseholdForm(personId, month);
+  const { data: form, error, isPending } = useHouseholdForm(personId);
 
-  const openEdit = () => {
-    if (!form) return;
-    const editMonth = form.startsFromOptions.includes(form.month) ? { month: form.month } : {};
-    router.push({ pathname: '/household/person/[personId]/edit', params: { personId, ...editMonth } });
-  };
+  const openEdit = () => router.push({ pathname: '/household/person/[personId]/edit', params: { personId } });
 
   return (
     <Screen>
@@ -44,7 +39,7 @@ export function PersonView() {
               ))}
               <ViewColorRow color={form.values.color} name={form.colorName} />
             </FormSection>
-            <FormSection title="Amounts" separated>
+            <FormSection title="Amounts" note={form.pendingNote} separated>
               <View className="flex-row flex-wrap gap-x-3 gap-y-4">
                 {form.view.amounts.map((row) => (
                   <ViewRow key={row.label} row={row} half />

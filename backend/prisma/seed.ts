@@ -44,7 +44,7 @@ const SCENARIOS = {
   settled: { devNow: "2026-11-29T09:00:00+08:00" },
   // As settled, but Priya's rent came in $63.65 short, so her Recipient page shows `paidDifferent`.
   shortPaid: { devNow: "2026-11-29T09:00:00+08:00" },
-  // As upload, plus a January 2027 version that no month has opened, for Household's month switch.
+  // As upload, plus a December 2026 version that no month has opened: saved values not in effect yet.
   householdUpcoming: { devNow: "2026-11-03T09:00:00+08:00" },
 } as const;
 
@@ -312,7 +312,7 @@ async function main() {
   });
   if (scenario === "householdUpcoming") {
     await prisma.householdVersion.create({
-      data: { startsFromMonth: "2027-01", schemaVersion: HOUSEHOLD_SCHEMA_VERSION, config: JAN_2027_CONFIG },
+      data: { startsFromMonth: "2026-12", schemaVersion: HOUSEHOLD_SCHEMA_VERSION, config: JAN_2027_CONFIG },
     });
   }
 

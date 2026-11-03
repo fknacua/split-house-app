@@ -1,5 +1,5 @@
 import {
-  formatMonthLabel,
+  addMonths,
   HOUSEHOLD_SCHEMA_VERSION,
   parseHouseholdConfig,
   type HouseholdConfig,
@@ -9,7 +9,7 @@ import {
   type PersonColor,
 } from "@splithouse/shared";
 import { ApiError } from "@/lib/api";
-import { planHouseholdEdit, versionsAround, type HouseholdEditPlan } from "@/lib/household/plan-edit";
+import { planHouseholdEdit, versionInEffect, type HouseholdEditPlan } from "@/lib/household/plan-edit";
 import { getActiveMonth, type ActiveMonthDb } from "@/services/months/active-month.service";
 
 const VERSION_SELECT = { id: true, startsFromMonth: true, schemaVersion: true, config: true } as const;
@@ -71,19 +71,15 @@ async function loadPlan(db: HouseholdEditReadDb, edit: HouseholdEdit) {
     startsFromMonth: row.startsFromMonth,
     config: parseHouseholdConfig(row.schemaVersion, row.config),
   }));
-  const month = edit.startsFromMonth;
-  const { base, before, later } = versionsAround(versions, month);
-  if (!base) {
-    if (month <= activeMonth) {
-      throw new ApiError(409, "month_locked", `Pick a month after ${formatMonthLabel(activeMonth)}.`);
-    }
-    throw new ApiError(404, "no_version", "The household has no setup for this month.");
-  }
+  const month = addMonths(activeMonth, 1);
+  const base = versionInEffect(versions, month);
+  if (!base) throw new ApiError(404, "no_version", "The household has no setup for next month.");
   if (!person || !base.config.people.some((p) => p.personId === edit.personId)) {
-    throw new ApiError(404, "no_person", "This person is not in the household for this month.");
+    throw new ApiError(404, "no_person", "This person is not in the household next month.");
   }
   return {
-    plan: planHouseholdEdit({ edit, person, activeMonth, base, before, later }),
+    month,
+    plan: planHouseholdEdit({ edit, person, month, base }),
     existing: rows.find((row) => row.startsFromMonth === month) ?? null,
   };
 }
@@ -94,10 +90,9 @@ async function loadPlan(db: HouseholdEditReadDb, edit: HouseholdEdit) {
  *
  * @param db - The Prisma client, or a fake in tests.
  * @param edit - The edit.
- * @returns The summary groups, whether Save is allowed, the errors per field and any later-version warning.
- * @throws {ApiError} 409 `no_household` before first run; 409 `month_locked` for the active month or
- * earlier with no version in effect; 404 `no_version` for a later month before every version; 404
- * `no_person` for an unknown person or someone not in the version.
+ * @returns The summary groups, whether Save is allowed and the errors per field.
+ * @throws {ApiError} 409 `no_household` before first run; 404 `no_version` when no version covers next
+ * month; 404 `no_person` for an unknown person or someone not in the version.
  */
 export async function previewHouseholdEdit(db: HouseholdEditReadDb, edit: HouseholdEdit): Promise<HouseholdEditPreviewResponse> {
   const { plan } = await loadPlan(db, edit);
@@ -105,29 +100,26 @@ export async function previewHouseholdEdit(db: HouseholdEditReadDb, edit: Househ
     groups: plan.groups,
     canSave: plan.canSave,
     errors: plan.errors,
-    laterVersionWarning: plan.laterVersionWarning,
   };
 }
 
 /**
  * Saves an edit in one transaction, running the preview's checks again. Name, WhatsApp and color go on
- * the `Person` row; dated values update the version starting that month while no month has opened
- * using it, or create one from the version in effect. An edit that changes only the row stores no version.
+ * the `Person` row; dated values start next month, updating the version starting then while no month has
+ * opened using it, or creating one from the version in effect. An edit that changes only the row stores no
+ * version.
  *
  * @param db - The Prisma client, or a fake in tests.
  * @param edit - The edit.
  * @returns The month the dated values start from, or null when there were none.
- * @throws {ApiError} The preview's 404s and 409 `no_household`; 409 `month_locked` for a dated change on
- * the active month or earlier; 409 `version_locked` when a month has opened using the version; 409
+ * @throws {ApiError} The preview's 404s and 409 `no_household`; 409 `version_locked` when a month has opened using the version; 409
  * `version_conflict` when a second save created the same month first; 422 `invalid_edit` when a rule
  * fails; 422 `no_changes` when there is nothing to store.
  */
 export async function saveHouseholdEdit(db: HouseholdEditDb, edit: HouseholdEdit): Promise<HouseholdEditSaveResponse> {
-  const month = edit.startsFromMonth;
   try {
     return await db.$transaction(async (tx) => {
-      const { plan, existing } = await loadPlan(tx, edit);
-      if (plan.monthBlocked) throw new ApiError(409, "month_locked", plan.errors.startsFromMonth);
+      const { plan, month, existing } = await loadPlan(tx, edit);
       const messages = Object.values(plan.errors);
       if (messages.length > 0) throw new ApiError(422, "invalid_edit", messages.join(" "));
       if (!plan.canSave) throw new ApiError(422, "no_changes", "There is nothing to save.");

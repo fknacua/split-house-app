@@ -135,13 +135,12 @@ export const householdViewResponseSchema = z.object({
 /** `GET /api/household`: the Household screen for one month, ready to render. */
 export type HouseholdViewResponse = z.infer<typeof householdViewResponseSchema>;
 
-/** `GET /api/household/form` query: the person, and the month to read. Missing means the first Starts from option. */
+/** `GET /api/household/form` query: the person. */
 export const householdFormQuerySchema = z.object({
   personId: z.string().min(1),
-  month: monthKey.optional(),
 });
 
-/** `GET /api/household/form` query: the person, and the month to read. Missing means the first Starts from option. */
+/** `GET /api/household/form` query: the person. */
 export type HouseholdFormQuery = z.infer<typeof householdFormQuerySchema>;
 
 /** A label and its plain text on a View screen. */
@@ -155,7 +154,7 @@ export const householdFormTextRowSchema = z.object({
 /** A label and its plain text on a View screen. */
 export type HouseholdFormTextRow = z.infer<typeof householdFormTextRowSchema>;
 
-/** `GET /api/household/form`: one person's Edit and View screens for one month, ready to render. */
+/** `GET /api/household/form`: one person's Edit and View screens, with their latest saved values, ready to render. */
 export const householdFormResponseSchema = z.object({
   personId: z.string(),
   /** e.g. `Edit Jordan`. */
@@ -164,12 +163,10 @@ export const householdFormResponseSchema = z.object({
   viewTitle: z.string(),
   /** e.g. `Own room · pays you directly`. */
   sub: z.string(),
-  /** `YYYY-MM`. The month the values were read from. */
-  month: monthKey,
-  /** The Starts from option to select: `month` when it is one, otherwise the first. */
-  startsFrom: monthKey,
-  /** The months after the active one, oldest first. */
-  startsFromOptions: z.array(monthKey),
+  /** The dated group's title on Edit, e.g. `From December 2026`. */
+  datedTitle: z.string(),
+  /** e.g. `These take effect from December 2026.` while saved values differ from the active month's; otherwise null. */
+  pendingNote: z.string().nullable(),
   /** The form's values. Shares are thousandths; a route's person is null when it is paid directly. */
   values: z.object({
     name: z.string(),
@@ -193,7 +190,7 @@ export const householdFormResponseSchema = z.object({
   colorName: z.string(),
   /** The colors that can be picked, in the order drawn. Teal is only offered to the owner. */
   swatches: z.array(z.object({ color: personColor, name: z.string() })),
-  /** Who a charge can be sent via: everyone in the month's version but this person and the owner. */
+  /** Who a charge can be sent via: everyone in the version but this person and the owner. */
   sentViaOptions: z.array(z.object({ personId: z.string(), name: z.string() })),
   /** The View screen's text, by section. */
   view: z.object({
@@ -208,23 +205,22 @@ export const householdFormResponseSchema = z.object({
   }),
 });
 
-/** `GET /api/household/form`: one person's Edit and View screens for one month, ready to render. */
+/** `GET /api/household/form`: one person's Edit and View screens, with their latest saved values, ready to render. */
 export type HouseholdFormResponse = z.infer<typeof householdFormResponseSchema>;
 
 /**
- * An edit to one person. Only the fields sent are applied. The rules on the values (a required name,
- * a valid number, day 1 to 31) are checked by the server so the preview can answer per field.
+ * An edit to one person. Only the fields sent are applied. Dated fields always start next month, which the
+ * server works out. The rules on the values (a required name, a valid number, day 1 to 31) are checked by the
+ * server so the preview can answer per field.
  */
 export const householdPersonEditSchema = z.object({
   kind: z.literal('person'),
   personId: z.string().min(1),
-  /** The month the dated fields start from. */
-  startsFromMonth: monthKey,
   // Saved right away, on the person.
   name: z.string().optional(),
   whatsappE164: z.string().nullable().optional(),
   color: personColor.optional(),
-  // Saved from the chosen month, on the version.
+  // Saved from next month, on the version.
   rentCents: z.number().int().optional(),
   /** Thousandths: 1.5 shares is 1500. */
   utilityShares: z.number().int().optional(),
@@ -260,7 +256,7 @@ export type HouseholdEditRow = z.infer<typeof householdEditRowSchema>;
 
 /** A group in the summary card. A group with no rows is left out. */
 export const householdEditGroupSchema = z.object({
-  /** `Saves now` or `Saves from Jan 2027`. */
+  /** `Saves now` or `Saves from Dec 2026`. */
   title: z.string(),
   rows: z.array(householdEditRowSchema),
 });
@@ -276,8 +272,6 @@ export const householdEditPreviewResponseSchema = z.object({
   canSave: z.boolean(),
   /** Messages by request field name; `form` for one that belongs to no field. */
   errors: z.record(z.string(), z.string()),
-  /** e.g. `March 2027 keeps its own values, so this change stops there.` */
-  laterVersionWarning: z.string().nullable(),
 });
 
 /** `POST /api/household/edits/preview`: what the edit would change. Nothing is stored. */
