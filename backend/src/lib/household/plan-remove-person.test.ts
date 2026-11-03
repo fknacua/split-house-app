@@ -2,6 +2,7 @@ import type { HouseholdConfig } from "@splithouse/shared";
 import { describe, expect, it } from "vitest";
 import { NOV_2026_CONFIG, PERSON_IDS } from "@/lib/fixtures/household";
 import { planRemovePerson } from "./plan-remove-person";
+import { masterRentCents, sharedAirconUnits, totalAirconUnits } from "./room-amounts";
 
 const { alex, priya, sam, jordan } = PERSON_IDS;
 
@@ -12,8 +13,15 @@ describe("planRemovePerson", () => {
     expect(plan).toMatchObject({ errors: {}, canSave: true });
     expect(plan.nextConfig?.people.map((p) => p.personId)).not.toContain(jordan);
     expect(plan.nextConfig?.categories.utilities.totalShares).toBe(categories.utilities.totalShares - 1000);
-    expect(plan.nextConfig?.categories.aircon.totalUnits).toBe(categories.aircon.totalUnits);
     expect(plan.nextConfig?.categories.rent).toEqual(categories.rent);
+    expect(plan.nextConfig?.rooms).toEqual(NOV_2026_CONFIG.rooms);
+    expect(totalAirconUnits(plan.nextConfig!)).toBe(totalAirconUnits(NOV_2026_CONFIG));
+    expect(sharedAirconUnits(plan.nextConfig!)).toBe(5);
+  });
+
+  it("leaves the room empty, so the owner and primary tenant cover a room that was in the total", () => {
+    expect(masterRentCents(planRemovePerson(sam, NOV_2026_CONFIG).nextConfig!)).toBe(430000);
+    expect(masterRentCents(planRemovePerson(jordan, NOV_2026_CONFIG).nextConfig!)).toBe(335000);
   });
 
   it("takes their recurring charges, template overrides and section title with them", () => {

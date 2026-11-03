@@ -33,6 +33,21 @@ describe("deriveSetupProgress", () => {
     });
   });
 
+  it("marks Rent & rooms done from the landlord rent or a tenant room's rent, and open with neither", () => {
+    const rent = { ...NOV_2026_CONFIG.categories.rent, landlordRentCents: 0 };
+    const noLandlordRent: HouseholdConfig = {
+      ...NOV_2026_CONFIG,
+      categories: { ...NOV_2026_CONFIG.categories, rent },
+    };
+    expect(stepDone(noLandlordRent).rentAndRooms).toBe(true);
+
+    const noRent: HouseholdConfig = {
+      ...noLandlordRent,
+      rooms: NOV_2026_CONFIG.rooms.map((r) => (r.roomType === "TENANT" ? { ...r, rentCents: 0 } : r)),
+    };
+    expect(stepDone(noRent).rentAndRooms).toBe(false);
+  });
+
   it("leaves People and Your split open when there is only the owner", () => {
     const ownerOnly: HouseholdConfig = {
       ...NOV_2026_CONFIG,

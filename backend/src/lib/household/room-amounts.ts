@@ -73,6 +73,20 @@ export function roomOf(config: HouseholdConfig, personId: string): HouseholdRoom
 }
 
 /**
+ * A tenant's rent, which is their room's rent.
+ *
+ * @param config - A parsed household config.
+ * @param personId - The person to look up.
+ * @returns The rent in cents, or 0 for someone not in a tenant room: the owner and primary tenant
+ *   split the master rent instead.
+ * @throws {Error} When the person is not in this config.
+ */
+export function tenantRentCents(config: HouseholdConfig, personId: string): number {
+  const room = roomOf(config, personId);
+  return room.roomType === "TENANT" ? room.rentCents : 0;
+}
+
+/**
  * Lists the people in a room.
  *
  * @param config - A parsed household config.

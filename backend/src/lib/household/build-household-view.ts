@@ -15,6 +15,7 @@ import {
 import { HOME_BADGES } from "@/lib/home/badges";
 import { splitRemainderByBps } from "@/lib/split/engine";
 import { amountText, SHARE_SCALE } from "./amount-text";
+import { masterRentCents, roomOf, sharedAirconUnits, tenantRentCents, totalAirconUnits } from "./room-amounts";
 import { personSubLine } from "./sub-line";
 
 /** What `buildHouseholdView` reads. */
@@ -69,14 +70,13 @@ function remaindersOf(config: HouseholdConfig): Remainders {
     return { total, owner: parts[owner.personId], primary: primary ? parts[primary.personId] : 0 };
   };
   const tenantShares = config.people.reduce((sum, p) => sum + p.utilityShares, 0);
-  const tenantUnits = config.people.reduce((sum, p) => sum + p.airconUnits, 0);
 
   return {
     owner,
     primary,
-    rent: split(rent.sharedRentCents, rent.primaryBps),
+    rent: split(masterRentCents(config), rent.primaryBps),
     shares: split(utilities.totalShares - tenantShares, utilities.primaryBps),
-    units: split((aircon.totalUnits - tenantUnits) * SHARE_SCALE, aircon.primaryBps),
+    units: split(sharedAirconUnits(config) * SHARE_SCALE, aircon.primaryBps),
   };
 }
 
@@ -107,7 +107,7 @@ function dueLabel(config: HouseholdConfig, person: PersonConfig, type: ChargeTyp
 /** The facts on a primary tenant's or tenant's card: rent and utilities. The sub line says how they pay. */
 function personFacts(config: HouseholdConfig, person: PersonConfig, remainders: Remainders): HouseholdFact[] {
   const isPrimary = person.role === "PRIMARY";
-  const rentCents = isPrimary ? remainders.rent.primary : person.rentCents;
+  const rentCents = isPrimary ? remainders.rent.primary : tenantRentCents(config, person.personId);
   const shares = isPrimary ? remainders.shares.primary : person.utilityShares;
 
   return [
@@ -196,16 +196,16 @@ function splitRows(config: HouseholdConfig, remainders: Remainders, { names, col
   };
 
   return [
-    row("Rent", rent, (t) => t.rentCents, formatCents, (total) => `${formatCents(total)} across the home`),
+    row("Rent", rent, (t) => tenantRentCents(config, t.personId), formatCents, (total) => `${formatCents(total)} across the home`),
     row("Utilities", shares, (t) => t.utilityShares, amountText, (total) => countText(total, "share")),
-    row("Aircon", units, (t) => t.airconUnits * SHARE_SCALE, amountText, (total) => countText(total, "unit")),
+    row("Aircon", units, (t) => roomOf(config, t.personId).airconUnits * SHARE_SCALE, amountText, (total) => countText(total, "unit")),
   ];
 }
 
 /**
  * The Household screen for one month, display-ready. Reads the config only: no bill exists for a
- * future month, so utilities and aircon show as shares and units, never as money. The landlord's
- * rent and rooms are not in the config yet (9.9), so the card has only the two stats it can show.
+ * future month, so utilities and aircon show as shares and units, never as money. The card keeps
+ * its two stats until the landlord's rent and rooms move onto it (9.14).
  *
  * @param input - The month, the config in effect for it, the people and the version months.
  * @returns The response for `GET /api/household`.
@@ -217,7 +217,8 @@ export function buildHouseholdView(input: HouseholdViewInput): HouseholdViewResp
     colors: new Map(input.people.map((p) => [p.id, p.color])),
   };
   const remainders = remaindersOf(config);
-  const { aircon, utilities } = config.categories;
+  const { utilities } = config.categories;
+  const airconTotal = totalAirconUnits(config);
 
   return {
     month: input.month,
@@ -225,7 +226,7 @@ export function buildHouseholdView(input: HouseholdViewInput): HouseholdViewResp
     monthOptions: monthOptions(input),
     landlord: {
       stats: [
-        { value: String(aircon.totalUnits), label: aircon.totalUnits === 1 ? "aircon unit" : "aircon units" },
+        { value: String(airconTotal), label: airconTotal === 1 ? "aircon unit" : "aircon units" },
         {
           value: amountText(utilities.totalShares),
           label: utilities.totalShares === SHARE_SCALE ? "utility share" : "utility shares",

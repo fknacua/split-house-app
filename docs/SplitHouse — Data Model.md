@@ -53,7 +53,7 @@ A list inside `config`, not a table, so a room change starts next month like any
 - **Utility shares and the deposit** belong to the person, so a tenant who leaves takes their shares out of `totalShares`.
 - **The rooms stat** counts `MASTER` and `TENANT` rooms, occupied or not.
 
-These amounts are worked out by one pure backend helper, `lib/household/room-amounts.ts`: `masterRentCents`, `totalAirconUnits`, `sharedAirconUnits`, `roomCount`, `roomOf` and `peopleIn`.
+These amounts are worked out by one pure backend helper, `lib/household/room-amounts.ts`: `masterRentCents`, `totalAirconUnits`, `sharedAirconUnits`, `roomCount`, `roomOf`, `tenantRentCents` and `peopleIn`.
 
 ### Month
 `month` (unique `YYYY-MM`), `householdVersionId` (the version pinned when the month opened), `openedAt`. Status (bill missing, messages unsent, collecting, settled) is derived, not stored.

@@ -31,13 +31,30 @@ const empty: HouseholdAddPersonEdit = {
 };
 const plan = (fields: Partial<HouseholdAddPersonEdit> = {}) => planAddPerson({ ...filled, ...fields }, ID, NOV_2026_CONFIG);
 
-describe("planAddPerson", () => {
+describe("planAddPerson until 9.17", () => {
+  it("refuses a complete tenant with a clear error and no new config", () => {
+    expect(plan()).toEqual({
+      name: "Casey",
+      nextConfig: null,
+      errors: { form: "Adding a subtenant is not available yet." },
+      canSave: false,
+    });
+  });
+
+  it("still reports a wrong field beside the refusal", () => {
+    const { errors } = plan({ utilityShares: -1, airconUnits: 5 });
+    expect(errors.utilityShares).toBe("Enter 0 or more.");
+    expect(errors.airconUnits).toBe("Invalid entry.");
+  });
+});
+
+// Skipped until 9.17, when a new tenant picks a room. Rewrite these there.
+describe.skip("planAddPerson", () => {
   it("adds the tenant, with the utilities total following and the aircon total staying", () => {
     const { categories } = NOV_2026_CONFIG;
     const result = plan();
     expect(result).toMatchObject({ name: "Casey", errors: {}, canSave: true });
     expect(result.nextConfig?.categories.utilities.totalShares).toBe(categories.utilities.totalShares + 1000);
-    expect(result.nextConfig?.categories.aircon.totalUnits).toBe(categories.aircon.totalUnits);
     expect(result.nextConfig?.categories.rent).toEqual(categories.rent);
     expect(result.nextConfig?.people.at(-1)).toEqual({
       personId: ID,

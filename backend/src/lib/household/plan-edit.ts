@@ -15,6 +15,7 @@ import {
 } from "@splithouse/shared";
 import { applyHouseholdEdit } from "./apply-edit";
 import { personColorName } from "./person-color";
+import { tenantRentCents } from "./room-amounts";
 import { hasPayersVia, paysViaSomeone, routeText, viaOf } from "./route-via";
 
 /** A version with its config parsed. */
@@ -89,7 +90,9 @@ export function datedFieldErrors(edit: HouseholdPersonEdit, person: PersonConfig
   for (const field of AMOUNT_FIELDS) {
     const value = edit[field];
     if (value === undefined) continue;
-    if (person.role !== "TENANT" && value !== person[field]) errors[field] = SPLIT_ERROR;
+    // The owner and primary tenant hold no rent of their own.
+    const saved = field === "depositCents" ? person.depositCents : 0;
+    if (person.role !== "TENANT" && value !== saved) errors[field] = SPLIT_ERROR;
     else if (value < 0) errors[field] = "Enter 0 or more.";
   }
   const routes = [
@@ -171,10 +174,17 @@ export function planPersonChanges(edit: HouseholdPersonEdit, person: EditPerson)
 const dayText = (day: number | undefined) => (day ? formatDayOrdinal(day) : NONE);
 const depositText = (cents: number) => (cents ? formatCents(cents) : "None");
 
-/** The dated rows: only what differs between the two configs' entries for the person. */
-function datedRows(from: PersonConfig, to: PersonConfig, names: Map<string, string>): HouseholdEditRow[] {
+/** The dated rows: only what differs between the two configs for the person. */
+function datedRows(fromConfig: HouseholdConfig, toConfig: HouseholdConfig, personId: string, names: Map<string, string>): HouseholdEditRow[] {
+  const from = fromConfig.people.find((p) => p.personId === personId);
+  const to = toConfig.people.find((p) => p.personId === personId);
+  if (!from || !to) throw new Error("The person is not in the version");
   const rows: HouseholdEditRow[] = [
-    { label: "Rent", from: formatCents(from.rentCents), to: formatCents(to.rentCents) },
+    {
+      label: "Rent",
+      from: formatCents(tenantRentCents(fromConfig, personId)),
+      to: formatCents(tenantRentCents(toConfig, personId)),
+    },
     { label: "Rent due", from: dayText(from.dueDays.RENT), to: dayText(to.dueDays.RENT) },
     { label: "Utilities due", from: dayText(from.dueDays.UTILITIES), to: dayText(to.dueDays.UTILITIES) },
     { label: "Deposit", from: depositText(from.depositCents), to: depositText(to.depositCents) },
@@ -215,8 +225,7 @@ export function planHouseholdEdit(input: HouseholdEditPlanInput): HouseholdEditP
       errors.form = parsed.error.issues[0].message;
     } else {
       if (!isDeepStrictEqual(parsed.data, base.config)) nextConfig = parsed.data;
-      const next = parsed.data.people.find((p) => p.personId === edit.personId) ?? inBase;
-      const rows = datedRows(inBase, next, names);
+      const rows = datedRows(base.config, parsed.data, edit.personId, names);
       if (rows.length > 0) groups.push({ title: `Saves from ${formatMonthShortLabel(month)}`, rows });
     }
   }
