@@ -9,6 +9,7 @@ import {
   type HouseholdConfig,
   type HouseholdFormResponse,
   type PersonColor,
+  type PersonConfig,
 } from "@splithouse/shared";
 import { amountText } from "./amount-text";
 import { nextPersonColor, personColorName } from "./person-color";
@@ -53,6 +54,26 @@ export function buildAddPersonForm(input: Pick<HouseholdFormInput, "month" | "co
     colorName: personColorName(color),
     swatches: TENANT_PERSON_COLORS.map((c) => ({ color: c, name: personColorName(c) })),
     sentViaOptions: sentViaChoices(config.people, new Map(people.map((p) => [p.id, p.name])), null),
+  };
+}
+
+/** The remove dialog's text for a tenant. The third line only shows when something goes with them. */
+function removeDialog(config: HouseholdConfig, person: PersonConfig, name: string, monthLabel: string) {
+  const { personId } = person;
+  const goes = [
+    ...(config.recurring.some((r) => r.personId === personId) ? ["recurring charges"] : []),
+    ...(config.templates.overrides.some((o) => o.personId === personId) || config.templates.sectionTitles[personId]
+      ? ["message settings"]
+      : []),
+  ];
+  return {
+    title: `Remove ${name} from household?`,
+    body: `From ${monthLabel} they won’t get any charges or messages, and the utility shares will be split between everyone else.`,
+    keeps: [
+      "Past months and History stay as they are",
+      ...(person.depositCents ? [`Their ${formatCents(person.depositCents)} deposit stays recorded until you return it`] : []),
+      ...(goes.length > 0 ? [`Their ${goes.join(" and ")} go with them`] : []),
+    ],
   };
 }
 
@@ -131,5 +152,6 @@ export function buildHouseholdForm(input: HouseholdFormInput): HouseholdFormResp
     secondaryAction: isTenant
       ? { label: "Remove from household", kind: "remove-person" }
       : { label: "Cancel", kind: "cancel" },
+    removeDialog: isTenant ? removeDialog(config, person, row.name, monthLabel) : null,
   };
 }

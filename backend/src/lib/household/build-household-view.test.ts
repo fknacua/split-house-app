@@ -30,6 +30,7 @@ function input(overrides: Partial<HouseholdViewInput> = {}): HouseholdViewInput 
     activeMonth: "2026-11",
     versionMonths: ["2026-08", "2026-11"],
     config: NOV_2026_CONFIG,
+    editablePersonIds: new Set([alex, priya, sam, jordan]),
     people: PEOPLE,
     ...overrides,
   };
@@ -47,6 +48,12 @@ function card(view: ReturnType<typeof buildHouseholdView>, personId: string) {
 }
 
 describe("buildHouseholdView", () => {
+  it("has no buttons for someone not in the household next month", () => {
+    const view = buildHouseholdView(input({ editablePersonIds: new Set([alex, priya, sam]) }));
+    expect(card(view, jordan).actions).toEqual([]);
+    expect(card(view, sam).actions.map((a) => a.label)).toEqual(["View", "Edit"]);
+  });
+
   it("parses with the shared schema", () => {
     expect(() => householdViewResponseSchema.parse(buildHouseholdView(input()))).not.toThrow();
   });

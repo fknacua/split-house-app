@@ -489,3 +489,49 @@ describe("adding a person", () => {
     await expect(saveHouseholdEdit(fakeDb([]).db, add)).rejects.toMatchObject({ status: 409, code: "no_household" });
   });
 });
+
+describe("removing a person", () => {
+  const remove = { kind: "removePerson", personId: PERSON_IDS.jordan } as const;
+  const dec = (versions: VersionRow[]) => versions.find((v) => v.startsFromMonth === "2026-12")?.config as HouseholdConfig;
+
+  it("previews with no groups and stores nothing", async () => {
+    const { db, state } = fakeDb();
+    expect(await previewHouseholdEdit(db, remove)).toEqual({ groups: [], canSave: true, errors: {} });
+    expect(state.versions).toHaveLength(1);
+  });
+
+  it("takes them out from next month, keeping this month's version and their row", async () => {
+    const { db, state } = fakeDb();
+    expect(await saveHouseholdEdit(db, remove)).toEqual({ savedFromMonth: "2026-12" });
+    expect(dec(state.versions).people.map((p) => p.personId)).not.toContain(PERSON_IDS.jordan);
+    expect((state.versions[0].config as HouseholdConfig).people).toEqual(NOV_2026_CONFIG.people);
+    expect(state.people.some((p) => p.id === PERSON_IDS.jordan)).toBe(true);
+  });
+
+  it("refuses while someone pays via them, storing nothing", async () => {
+    const config: HouseholdConfig = {
+      ...NOV_2026_CONFIG,
+      people: NOV_2026_CONFIG.people.map((p) =>
+        p.personId === PERSON_IDS.sam ? { ...p, routes: { RENT: { kind: "VIA", viaPersonId: PERSON_IDS.jordan } } } : p,
+      ),
+    };
+    const { db, state } = fakeDb([version("2026-11", config)]);
+    await expect(saveHouseholdEdit(db, remove)).rejects.toMatchObject({
+      status: 422,
+      code: "invalid_edit",
+      message: "This person has payment routed to them. Please redirect the payment before removing.",
+    });
+    expect(state.versions).toHaveLength(1);
+  });
+
+  it("answers 404 no_person the second time", async () => {
+    const { db } = fakeDb();
+    await saveHouseholdEdit(db, remove);
+    await expect(saveHouseholdEdit(db, remove)).rejects.toMatchObject({ status: 404, code: "no_person" });
+  });
+
+  it("answers 409 version_locked when a month has opened using the version", async () => {
+    const { db } = fakeDb([version("2026-11", NOV_2026_CONFIG), version("2026-12", NOV_2026_CONFIG)], ["version-2026-12"]);
+    await expect(saveHouseholdEdit(db, remove)).rejects.toMatchObject({ status: 409, code: "version_locked" });
+  });
+});

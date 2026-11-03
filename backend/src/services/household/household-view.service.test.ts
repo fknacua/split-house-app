@@ -117,6 +117,15 @@ describe("getHouseholdView", () => {
     expect(november.splitRows.flatMap((row) => row.segments.map((s) => s.name))).not.toContain("Casey");
   });
 
+  it("drops the buttons for someone leaving next month, while the month still shows them", async () => {
+    const without = { ...NOV_2026_CONFIG, people: NOV_2026_CONFIG.people.filter((p) => p.personId !== PERSON_IDS.jordan) };
+    const db = fakeDb([version("2026-12", without), version("2026-11", NOV_2026_CONFIG)]);
+    const jordan = (await getHouseholdView(db, "2026-11")).people.find((p) => p.personId === PERSON_IDS.jordan);
+    expect(jordan?.actions).toEqual([]);
+    const names = (await getHouseholdView(db, "2026-12")).people.map((p) => p.personId);
+    expect(names).not.toContain(PERSON_IDS.jordan);
+  });
+
   it("does not open the month", async () => {
     const db = fakeDb();
     const create = vi.fn();

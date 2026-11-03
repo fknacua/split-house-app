@@ -1,4 +1,4 @@
-import { parseHouseholdConfig, type HouseholdViewResponse, type PersonColor } from "@splithouse/shared";
+import { addMonths, parseHouseholdConfig, type HouseholdViewResponse, type PersonColor } from "@splithouse/shared";
 import { ApiError } from "@/lib/api";
 import { buildHouseholdView } from "@/lib/household/build-household-view";
 import { getActiveMonth, type ActiveMonthDb } from "@/services/months/active-month.service";
@@ -53,9 +53,14 @@ export async function getHouseholdView(db: HouseholdViewDb, requestedMonth?: str
   const version = opened?.householdVersion ?? versions.find((v) => v.startsFromMonth <= month);
   if (!version) throw new ApiError(404, "no_version", "The household has no setup for this month.");
 
+  const nextMonth = addMonths(activeMonth, 1);
+  const next = versions.find((v) => v.startsFromMonth <= nextMonth);
+  const nextPeople = next ? parseHouseholdConfig(next.schemaVersion, next.config).people : [];
+
   return buildHouseholdView({
     month,
     activeMonth,
+    editablePersonIds: new Set(nextPeople.map((p) => p.personId)),
     versionMonths: versions.map((v) => v.startsFromMonth),
     config: parseHouseholdConfig(version.schemaVersion, version.config),
     people,

@@ -27,6 +27,8 @@ export interface HouseholdViewInput {
   versionMonths: string[];
   /** The config in effect for `month`. */
   config: HouseholdConfig;
+  /** Who is in the household next month. Edit and View show the latest saved values, so only they have the buttons. */
+  editablePersonIds: ReadonlySet<string>;
   /** Everyone, for names and colors. */
   people: { id: string; name: string; color: PersonColor }[];
 }
@@ -129,10 +131,12 @@ function personCards(input: HouseholdViewInput, remainders: Remainders, { names,
       color: colors.get(person.personId) ?? FALLBACK_COLOR,
       sub: personSubLine(config, person.personId, names),
       facts: personFacts(config, person, remainders),
-      actions: [
-        { label: "View", target: { kind: "view-person", personId: person.personId } },
-        { label: "Edit", target: { kind: "edit-person", personId: person.personId } },
-      ],
+      actions: input.editablePersonIds.has(person.personId)
+        ? [
+            { label: "View", target: { kind: "view-person", personId: person.personId } },
+            { label: "Edit", target: { kind: "edit-person", personId: person.personId } },
+          ]
+        : [],
     };
   };
 

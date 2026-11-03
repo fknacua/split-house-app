@@ -20,6 +20,30 @@ const form = (personId: string, activeConfig: HouseholdConfig | null = NOV_2026_
   });
 
 describe("buildHouseholdForm", () => {
+  it("writes the remove dialog for a tenant, with the month and their deposit", () => {
+    const body = householdFormResponseSchema.parse(form(PERSON_IDS.jordan));
+    expect(body.removeDialog).toEqual({
+      title: "Remove Jordan from household?",
+      body: "From December 2026 they won’t get any charges or messages, and the utility shares will be split between everyone else.",
+      keeps: ["Past months and History stay as they are", "Their $950.00 deposit stays recorded until you return it"],
+    });
+  });
+
+  it("has no remove dialog for the primary tenant, and no deposit line without a deposit", () => {
+    expect(form(PERSON_IDS.priya).removeDialog).toBeNull();
+    expect(form(PERSON_IDS.sam).removeDialog?.keeps).toEqual(["Past months and History stay as they are"]);
+  });
+
+  it("adds the third line when something goes with them", () => {
+    const config: HouseholdConfig = {
+      ...NOV_2026_CONFIG,
+      recurring: [{ id: "r", label: "Parking", amountCents: 1000, personId: PERSON_IDS.sam }],
+      templates: { ...NOV_2026_CONFIG.templates, sectionTitles: { [PERSON_IDS.sam]: "Sam's" } },
+    };
+    const body = buildHouseholdForm({ month: "2026-12", config, activeConfig: config, personId: PERSON_IDS.sam, people: PEOPLE });
+    expect(body.removeDialog?.keeps.at(-1)).toBe("Their recurring charges and message settings go with them");
+  });
+
   it("gives a tenant their values, text and the link to remove them", () => {
     const body = householdFormResponseSchema.parse(form(PERSON_IDS.jordan));
     expect(body.title).toBe("Edit Jordan");

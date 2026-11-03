@@ -20,9 +20,7 @@ function countErrors(edit: HouseholdAddPersonEdit, config: HouseholdConfig): Rec
     const taken = config.people.reduce((sum, p) => sum + p.airconUnits, 0);
     const left = config.categories.aircon.totalUnits - taken;
     if (edit.airconUnits < 0) errors.airconUnits = "Enter 0 or more.";
-    else if (edit.airconUnits > left) {
-      errors.airconUnits = left === 0 ? "The house has no aircon units left." : `The house has only ${left} left.`;
-    }
+    else if (edit.airconUnits > left) errors.airconUnits = "Invalid entry.";
   }
   return errors;
 }

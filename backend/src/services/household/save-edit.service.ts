@@ -9,11 +9,13 @@ import {
   type HouseholdEditPreviewResponse,
   type HouseholdEditSaveResponse,
   type HouseholdPersonEdit,
+  type HouseholdRemovePersonEdit,
   type PersonColor,
 } from "@splithouse/shared";
 import { ApiError } from "@/lib/api";
 import { planAddPerson } from "@/lib/household/plan-add-person";
 import { planHouseholdEdit, versionInEffect, type HouseholdEditPlan } from "@/lib/household/plan-edit";
+import { planRemovePerson } from "@/lib/household/plan-remove-person";
 import { getActiveMonth, type ActiveMonthDb } from "@/services/months/active-month.service";
 
 const VERSION_SELECT = { id: true, startsFromMonth: true, schemaVersion: true, config: true } as const;
@@ -97,6 +99,19 @@ async function loadPlan(db: HouseholdEditReadDb, edit: HouseholdPersonEdit) {
   };
 }
 
+/** Plans removing someone in next month's version. */
+async function loadRemovePlan(db: HouseholdEditReadDb, edit: HouseholdRemovePersonEdit) {
+  const { month, base, existing } = await loadContext(db);
+  if (!base.config.people.some((p) => p.personId === edit.personId)) {
+    throw new ApiError(404, "no_person", "This person is not in the household next month.");
+  }
+  return {
+    month,
+    existing,
+    plan: planRemovePerson(edit.personId, base.config),
+  };
+}
+
 /** Stores a dated save: updates the version starting next month while no month has opened using it, or creates it. */
 async function storeVersion(
   tx: HouseholdEditTx,
@@ -127,6 +142,14 @@ async function saveAddPerson(tx: HouseholdEditTx, edit: HouseholdAddPersonEdit):
 
   await tx.person.create({ data: { id, name, whatsappE164: edit.whatsappE164, color: edit.color, isOwner: false } });
   await storeVersion(tx, month, existing, nextConfig);
+  return { savedFromMonth: month };
+}
+
+/** Checks and stores a removal: next month's version without them. Their `Person` row stays for past months. */
+async function saveRemovePerson(tx: HouseholdEditTx, edit: HouseholdRemovePersonEdit): Promise<HouseholdEditSaveResponse> {
+  const { plan, month, existing } = await loadRemovePlan(tx, edit);
+  if (!plan.nextConfig) throw new ApiError(422, "invalid_edit", Object.values(plan.errors).join(" "));
+  await storeVersion(tx, month, existing, plan.nextConfig);
   return { savedFromMonth: month };
 }
 
@@ -162,6 +185,10 @@ export async function previewHouseholdEdit(db: HouseholdEditReadDb, edit: Househ
     const { canSave, errors } = planAddPerson(edit, randomUUID(), base.config);
     return { groups: [], canSave, errors };
   }
+  if (edit.kind === "removePerson") {
+    const { plan } = await loadRemovePlan(db, edit);
+    return { groups: [], canSave: plan.canSave, errors: plan.errors };
+  }
   const { plan } = await loadPlan(db, edit);
   return {
     groups: plan.groups,
@@ -174,7 +201,7 @@ export async function previewHouseholdEdit(db: HouseholdEditReadDb, edit: Househ
  * Saves an edit in one transaction, running the preview's checks again. Name, WhatsApp and color go on
  * the `Person` row; dated values start next month, updating the version starting then while no month has
  * opened using it, or creating one from the version in effect. An edit that changes only the row stores no
- * version. Adding a person creates their row and adds them to that version.
+ * version. Adding a person creates their row and adds them to that version; removing one takes them out of it.
  *
  * @param db - The Prisma client, or a fake in tests.
  * @param edit - The edit.
@@ -185,7 +212,11 @@ export async function previewHouseholdEdit(db: HouseholdEditReadDb, edit: Househ
  */
 export async function saveHouseholdEdit(db: HouseholdEditDb, edit: HouseholdEdit): Promise<HouseholdEditSaveResponse> {
   try {
-    return await db.$transaction((tx) => (edit.kind === "addPerson" ? saveAddPerson(tx, edit) : savePersonEdit(tx, edit)));
+    return await db.$transaction((tx) => {
+      if (edit.kind === "addPerson") return saveAddPerson(tx, edit);
+      if (edit.kind === "removePerson") return saveRemovePerson(tx, edit);
+      return savePersonEdit(tx, edit);
+    });
   } catch (err) {
     if (isUniqueViolation(err)) {
       throw new ApiError(409, "version_conflict", "This month was just changed. Try again.");

@@ -108,10 +108,10 @@ describe("planAddPerson", () => {
   });
 
   it("refuses more aircon units than the house has left", () => {
-    expect(plan({ airconUnits: 5 }).errors.airconUnits).toBe("The house has only 4 left.");
+    expect(plan({ airconUnits: 5 }).errors.airconUnits).toBe("Invalid entry.");
     expect(plan({ airconUnits: 4 }).canSave).toBe(true);
     const { aircon } = NOV_2026_CONFIG.categories;
     const full = { ...NOV_2026_CONFIG, categories: { ...NOV_2026_CONFIG.categories, aircon: { ...aircon, totalUnits: 2 } } };
-    expect(planAddPerson({ ...filled, airconUnits: 1 }, ID, full).errors.airconUnits).toBe("The house has no aircon units left.");
+    expect(planAddPerson({ ...filled, airconUnits: 1 }, ID, full).errors.airconUnits).toBe("Invalid entry.");
   });
 });
