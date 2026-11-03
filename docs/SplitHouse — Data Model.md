@@ -27,12 +27,33 @@ Stack it assumes: Postgres on Neon, Prisma, Next.js route handlers on Vercel, Be
 ### HouseholdVersion
 `id`, `startsFromMonth` (unique), `schemaVersion`, `config` (JSON validated in code), `createdAt`. Immutable.
 
-`config` holds:
-- **Per person:** fixed rent in cents, utility shares (stored as thousandths, so 1.5 shares is 1500), aircon units, payment route per charge type (`DIRECT` or `VIA` another person), due day per charge type, deposit held.
-- **Per category (rent, utilities, aircon):** total shares or units, and the remainder split between Francis and Primary tenant in basis points (5000/5000 by default).
-- **Utilities bill due day:** an optional fixed day of the month (1 to 31). Home uses it to place the bill row before a bill exists; the due date of an uploaded bill supersedes it.
+`config` (`schemaVersion` 2) holds:
+- **Rooms:** see Rooms below.
+- **Per person:** `roomId`, utility shares (stored as thousandths, so 1.5 shares is 1500), payment route per charge type (`DIRECT` or `VIA` another person), due day per charge type, deposit held.
+- **Rent category:** `landlordRentCents`, `landlordDueDay` (required, 1 to 31; shown on the Household rent card, and nothing is charged or reminded from it), and the split between Francis and Primary tenant in basis points (5000/5000 by default).
+- **Utilities category:** `totalShares`, the same split, and `billDueDay`, an optional fixed day of the month (1 to 31). Home uses it to place the bill row before a bill exists; the due date of an uploaded bill supersedes it.
+- **Aircon category:** only the same split. The total comes from the rooms.
 - **Recurring charges:** label, amount in cents, person, optional end month (Starhub $27.50 for Primary tenant).
 - **Message templates:** monthly breakdown and nudge, per-person overrides, custom line labels, and optional custom section titles per person (the title of the breakdown section holding that person's lines, without the colon; without one it reads "Yours" or "{name}'s (please collect)"). Template text is sent as written, including any WhatsApp `*bold*` markers in it.
+
+### Rooms
+A list inside `config`, not a table, so a room change starts next month like any other dated edit. Every room has `id`, `roomType`, `name` and `airconUnits`. `roomType` is set when the room is created and never edited.
+
+| `roomType` | Extra fields | People | Can be removed |
+| --- | --- | --- | --- |
+| `MASTER` | None; its rent is calculated, never stored | Francis and Primary tenant | No |
+| `TENANT` | `rentCents`, `includeInTotal` | One tenant, or empty | Only when empty |
+| `COMMON` | None | None | Yes |
+
+- **A person points to their room** with `roomId`. A room's people are worked out from that, and a room with no one in it is empty. Nothing stores "empty". One tenant per `TENANT` room is a check, not part of the shape, so one room to many tenants can come later. Moving a tenant between rooms is not supported: they are removed and re-added.
+- **Master rent** = `landlordRentCents` minus the `rentCents` of occupied `TENANT` rooms with `includeInTotal` on. Francis and Primary tenant split it by basis points.
+- **`includeInTotal` off:** the rent is still charged to the tenant, but it is not part of what goes to the landlord.
+- **An empty `TENANT` room** keeps its `rentCents` and `includeInTotal` for the next tenant. Until someone moves in it is not subtracted, so Francis and Primary tenant cover it.
+- **Aircon:** the total is the sum of every room's `airconUnits`. A tenant pays for their room's units. Francis and Primary tenant split all the others, including those in common and empty rooms.
+- **Utility shares and the deposit** belong to the person, so a tenant who leaves takes their shares out of `totalShares`.
+- **The rooms stat** counts `MASTER` and `TENANT` rooms, occupied or not.
+
+These amounts are worked out by one pure backend helper, `lib/household/room-amounts.ts`: `masterRentCents`, `totalAirconUnits`, `sharedAirconUnits`, `roomCount`, `roomOf` and `peopleIn`.
 
 ### Month
 `month` (unique `YYYY-MM`), `householdVersionId` (the version pinned when the month opened), `openedAt`. Status (bill missing, messages unsent, collecting, settled) is derived, not stored.
@@ -53,9 +74,6 @@ For one-offs added from the Add charge sheet: `id`, `scope` (`SHARED` or `PERSON
 ### MessageEvent
 `id`, `month`, `personId`, `kind` (`MONTHLY` or `NUDGE`), `chargeId` (nullable), `renderedText`, `openedAt`. The app cannot know whether WhatsApp actually sent anything, so this records when the chat was opened.
 
-### Task
-`id`, `type` (`SAVINGS_TRANSFER`), `month`, `chargeId`, `amountCents`, `doneAt`. Created when Tenant 2's rent is marked received.
-
 ### Settings
 One row: notification toggles per channel and type. Theme stays on the device.
 
@@ -71,6 +89,7 @@ Better Auth tables (`user`, `session`, `account`, `verification`). Sign-in is al
 - **Corrections** are charges with `correctsMonth` set, positive or negative, landing on the next payment.
 - **Short payment:** there is no carry. Mark paid records the amount received, and any shortfall is history only. To collect it later, Francis adds a one-off charge by hand. The carry-or-let-go choice in the Mark paid design (the Radio in the gluestack mapping) is removed at build time; the sheet just shows the difference.
 - **Validation:** utilities shares add to the bill's Current Charges and aircon shares add to the charge total, as hard checks in the engine. Bill lines adding up to Current Charges is only a warning.
+- **Room checks on every config:** room ids are unique; room names are unique, ignoring case; there is exactly one `MASTER` room; every `roomId` exists; Francis and Primary tenant are in the `MASTER` room; a tenant is in a `TENANT` room; a `TENANT` room has at most one tenant; master rent is not below zero (exactly zero is allowed); the household has at least one aircon unit.
 - **Fixtures:** the Nov 2026 data below is the seed and the test data.
 
 ## Nov 2026 fixtures (cents)
@@ -84,10 +103,20 @@ Better Auth tables (`user`, `session`, `account`, `verification`). Sign-in is al
 | Tenant 2 utilities | | 8246 | 1833 | | 10079 |
 | Francis (own share) | 167500 | 12369 | 3667 | | 183536 |
 
+Landlord rent 430000, due on the 1st.
+
+| Room | `roomType` | `rentCents` | `includeInTotal` | `airconUnits` | Who |
+| --- | --- | --- | --- | --- | --- |
+| Master room | `MASTER` | 335000 (calculated) | | 1 | Francis, Primary tenant |
+| Room 2 | `TENANT` | 95000 | On | 1 | Tenant 1 |
+| Room 3 | `TENANT` | 95000 | Off | 1 | Tenant 2 |
+| Living room | `COMMON` | | | 2 | |
+| Utility room | `COMMON` | | | 1 | |
+
 Checks:
 - Utilities: 12369 + 8246 + 8246 + 12369 = 41230 (the bill).
-- Aircon: 3667 + 1833 + 1833 + 3667 = 11000.
-- Landlord rent: 95000 (Tenant 1) + 335000 (master) = 430000. Tenant 2's 95000 is not landlord rent.
+- Aircon: 3667 + 1833 + 1833 + 3667 = 11000, across 6 units: 1 each for the tenants, and 4 split between Francis and Primary tenant.
+- Landlord rent: 95000 (Room 2) + 335000 (master) = 430000. Room 3's 95000 is not landlord rent.
 - Primary tenant's message total without aircon: 167500 + 12369 + 2750 + 8246 = 190865.
 
 ## Other settled points (no open items)
