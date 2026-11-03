@@ -100,7 +100,6 @@ The design calls for three Android channels with their own importance levels, ac
 | --- | --- | --- | --- |
 | Upload this month's utilities bill | Action needed (heads-up) | About the 2nd, repeats daily until done | Opens bill upload |
 | Collect Tenant 1's rent | Action needed (heads-up) | Last working day before the 1st, if unpaid | Paid, Nudge |
-| Transfer $950 to savings | Action needed (heads-up) | Tenant 2's rent marked received | Opens the task |
 | Pay utilities bill: collected $X of $Y | Action needed (heads-up) | Before the bill's due date | Opens Home |
 | Did {name} pay {charge}? | Payment checks | Each charge's due date, if unpaid | Paid, Nudge |
 | Unusual bill, aircon servicing due, month settled | FYI (silent) | When triggered | None |
