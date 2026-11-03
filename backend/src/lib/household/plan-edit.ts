@@ -7,9 +7,9 @@ import {
   householdConfigSchema,
   requiredText,
   type HouseholdConfig,
-  type HouseholdEdit,
   type HouseholdEditGroup,
   type HouseholdEditRow,
+  type HouseholdPersonEdit,
   type PersonColor,
   type PersonConfig,
 } from "@splithouse/shared";
@@ -34,7 +34,7 @@ export interface EditPerson {
 
 /** What `planHouseholdEdit` reads. */
 export interface HouseholdEditPlanInput {
-  edit: HouseholdEdit;
+  edit: HouseholdPersonEdit;
   person: EditPerson;
   /** Everyone's names, by person id, for the routes in the summary. */
   names: Map<string, string>;
@@ -76,8 +76,15 @@ export function versionInEffect(versions: ParsedVersion[], month: string): Parse
   return sorted.findLast((v) => v.startsFromMonth <= month) ?? null;
 }
 
-/** The checks on the dated values. Errors here keep the edit from being applied. */
-function datedFieldErrors(edit: HouseholdEdit, person: PersonConfig, people: PersonConfig[]): Record<string, string> {
+/**
+ * The checks on the dated values. Errors here keep the edit from being applied.
+ *
+ * @param edit - The edit.
+ * @param person - The person's entry before the edit.
+ * @param people - Everyone in the version.
+ * @returns The messages by request field name.
+ */
+export function datedFieldErrors(edit: HouseholdPersonEdit, person: PersonConfig, people: PersonConfig[]): Record<string, string> {
   const errors: Record<string, string> = {};
   for (const field of AMOUNT_FIELDS) {
     const value = edit[field];
@@ -120,8 +127,14 @@ function datedFieldErrors(edit: HouseholdEdit, person: PersonConfig, people: Per
   return errors;
 }
 
-/** The checks on the `Person` fields, and what changes on the row. */
-function planPersonChanges(edit: HouseholdEdit, person: EditPerson) {
+/**
+ * The checks on the `Person` fields, and what changes on the row.
+ *
+ * @param edit - The edit.
+ * @param person - The `Person` row before the edit.
+ * @returns The errors by request field name, the row's changes and the summary rows.
+ */
+export function planPersonChanges(edit: HouseholdPersonEdit, person: EditPerson) {
   const errors: Record<string, string> = {};
   const changes: HouseholdEditPlan["personChanges"] = {};
   const rows: HouseholdEditRow[] = [];

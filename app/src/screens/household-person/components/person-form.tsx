@@ -1,25 +1,19 @@
 import { zodResolver } from '@hookform/resolvers/zod';
-import { useRouter } from 'expo-router';
 import { Undo } from 'lucide-react-native';
 import { useForm, useWatch } from 'react-hook-form';
 import { KeyboardAvoidingView, ScrollView, View } from 'react-native';
 
 import {
-  Alert,
   Button,
   ConfirmDialog,
   CountInput,
-  DEFAULT_FAILED_MESSAGE,
   MoneyInput,
   PhoneInput,
   Screen,
   SubpageFooter,
   SubpageHeader,
   TextInput,
-  useSuccessToast,
 } from '@/components';
-import { useDebouncedValue, useHouseholdEditPreview, useSaveHouseholdEdit, useUnsavedGuard } from '@/hooks';
-import { ApiRequestError } from '@/lib/api';
 import {
   hasUnpickedRoute,
   hasUnsavedChanges,
@@ -29,16 +23,12 @@ import {
   type PersonFormValues,
 } from '../helpers';
 import type { PersonFormProps } from '../types';
+import { useEditFlow } from '../use-edit-flow';
 import { ColorField } from './color-field';
+import { EditSaveActions } from './edit-save-actions';
 import { EditSummaryCard } from './edit-summary-card';
 import { FormSection } from './form-section';
 import { RouteField } from './route-field';
-
-/** How long the form has to stay still before the server previews it, in milliseconds. */
-const PREVIEW_DELAY_MS = 500;
-
-/** The message for a failed preview, or null for an unreachable server, which the app's own prompt covers. */
-const requestMessage = (error: Error | null) => (error instanceof ApiRequestError ? error.message : null);
 
 /**
  * The `editPerson` board: "Saved right away" (Name, WhatsApp, Color) and the dated group, which takes effect
@@ -48,9 +38,6 @@ const requestMessage = (error: Error | null) => (error instanceof ApiRequestErro
  * 9.8.
  */
 export function PersonForm({ form }: PersonFormProps) {
-  const router = useRouter();
-  const save = useSaveHouseholdEdit();
-  const showToast = useSuccessToast();
   const {
     control,
     formState: { isValid },
@@ -61,34 +48,9 @@ export function PersonForm({ form }: PersonFormProps) {
   });
 
   const values = useWatch({ control }) as PersonFormValues;
-  const edit = toHouseholdEdit(values, form);
-  const previewedEdit = useDebouncedValue(edit, PREVIEW_DELAY_MS);
-  const preview = useHouseholdEditPreview(previewedEdit);
-  const answered =
-    !preview.isPlaceholderData &&
-    preview.isSuccess &&
-    JSON.stringify(edit) === JSON.stringify(previewedEdit);
-  const answer = preview.data;
-  const errors = answer?.errors ?? {};
   const dirty = hasUnsavedChanges(values, form);
-
-  const leave = () => {
-    if (router.canGoBack()) router.back();
-    else router.replace('/household');
-  };
-  const guard = useUnsavedGuard({ dirty, busy: save.isPending, leave });
-
-  const onSave = () =>
-    save.mutate(edit, {
-      onSuccess: () => {
-        showToast('Changes saved');
-        router.dismissTo('/household');
-      },
-    });
-
-  // A failed save stops counting once the values change, so the button reads Save changes again.
-  const failed = save.isError && JSON.stringify(save.variables) === JSON.stringify(edit);
-  const noticeError = errors.form ?? requestMessage(preview.error);
+  const flow = useEditFlow(toHouseholdEdit(values, form), dirty);
+  const { errors, guard } = flow;
 
   return (
     <Screen>
@@ -96,7 +58,7 @@ export function PersonForm({ form }: PersonFormProps) {
       {/* Edge-to-edge Android does not resize for the keyboard, so the padding keeps the focused field in view. */}
       <KeyboardAvoidingView behavior="padding" className="flex-1">
         <ScrollView keyboardShouldPersistTaps="handled" contentContainerClassName="gap-4 px-4 pb-4 pt-2">
-          <View pointerEvents={save.isPending ? 'none' : 'auto'} className="gap-4">
+          <View pointerEvents={flow.saving ? 'none' : 'auto'} className="gap-4">
             <FormSection title="Saved right away" separated={false}>
               <TextInput
                 fieldControlProps={{
@@ -218,29 +180,15 @@ export function PersonForm({ form }: PersonFormProps) {
         </ScrollView>
       </KeyboardAvoidingView>
       <SubpageFooter>
-        <EditSummaryCard groups={answer?.groups ?? []} loading={dirty && !answered && !preview.isError} />
-        {noticeError ? <Alert variant="danger" message={noticeError} className="mb-1.5" /> : null}
-        {failed ? (
-          <Alert
-            variant="danger"
-            message={requestMessage(save.error) ?? DEFAULT_FAILED_MESSAGE}
-            className="mb-1.5"
-          />
-        ) : null}
-        <Button
-          label={save.isPending ? 'Saving' : failed ? 'Retry' : 'Save changes'}
-          loading={save.isPending}
-          // The save's refetch changes the loaded values, so the checks only count before it starts.
-          disabled={!save.isPending && (!isValid || hasUnpickedRoute(values) || !answered || !answer?.canSave)}
-          onPress={onSave}
-        />
+        <EditSummaryCard groups={flow.groups} loading={dirty && !flow.answered && !flow.previewFailed} />
+        <EditSaveActions flow={flow} disabled={!isValid || hasUnpickedRoute(values)} />
         {form.secondaryAction.kind === 'remove-person' ? (
-          <Button label={form.secondaryAction.label} variant="ghost-danger" disabled={save.isPending} />
+          <Button label={form.secondaryAction.label} variant="ghost-danger" disabled={flow.saving} />
         ) : (
           <Button
             label={form.secondaryAction.label}
             variant="ghost"
-            disabled={save.isPending}
+            disabled={flow.saving}
             onPress={guard.requestLeave}
           />
         )}

@@ -2,6 +2,8 @@ import { z } from 'zod';
 
 import {
   personColor,
+  type HouseholdAddFormResponse,
+  type HouseholdAddPersonEdit,
   type HouseholdFormResponse,
   type HouseholdPersonEdit,
 } from '@splithouse/shared';
@@ -26,9 +28,19 @@ export const personFormSchema = z.object({
   rentDueDay: z.number().nullable(),
   utilitiesDueDay: z.number().nullable(),
   rentCents: requiredAmount,
+  /** Only Add subtenant has this field; the split page edits it after that. */
+  utilityShares: z.number().nullable(),
+  /** Only Add subtenant has this field; the split page edits it after that. */
+  airconUnits: z.number().nullable(),
   depositCents: z.number().nullable(),
   rentVia: z.string().nullable(),
   utilitiesVia: z.string().nullable(),
+});
+
+/** Add subtenant's checks: the amounts it cannot send empty. Every other rule is the server's, through the preview. */
+export const addPersonFormSchema = personFormSchema.extend({
+  utilityShares: requiredAmount,
+  airconUnits: requiredAmount,
 });
 
 /**
@@ -53,9 +65,33 @@ export function toPersonFormValues(form: HouseholdFormResponse): PersonFormValue
     rentDueDay: values.rentDueDay,
     utilitiesDueDay: values.utilitiesDueDay,
     rentCents: values.amounts?.rentCents ?? 0,
+    utilityShares: null,
+    airconUnits: null,
     depositCents: values.amounts?.depositCents || null,
     rentVia: values.rentViaPersonId,
     utilitiesVia: values.utilitiesViaPersonId,
+  };
+}
+
+/**
+ * Add subtenant's starting values: everything empty and paid directly, on the server's default color.
+ *
+ * @param form The form response.
+ * @returns The form's values.
+ */
+export function toAddPersonFormValues(form: HouseholdAddFormResponse): PersonFormValues {
+  return {
+    name: '',
+    whatsapp: '',
+    color: form.color,
+    rentDueDay: null,
+    utilitiesDueDay: null,
+    rentCents: null,
+    utilityShares: null,
+    airconUnits: null,
+    depositCents: null,
+    rentVia: null,
+    utilitiesVia: null,
   };
 }
 
@@ -93,6 +129,44 @@ export function toHouseholdEdit(values: PersonFormValues, form: HouseholdFormRes
     if (deposit !== amounts.depositCents) edit.depositCents = deposit;
   }
   return edit;
+}
+
+/**
+ * Builds the new tenant from the form. An empty deposit is 0, and a route with nobody picked counts as direct,
+ * since {@link hasUnpickedRoute} stops Save for it.
+ *
+ * @param values The form's values.
+ * @returns The edit for the preview and the save.
+ */
+export function toAddPersonEdit(values: PersonFormValues): HouseholdAddPersonEdit {
+  return {
+    kind: 'addPerson',
+    name: values.name,
+    whatsappE164: whatsappOf(values.whatsapp),
+    color: values.color,
+    rentCents: values.rentCents,
+    utilityShares: values.utilityShares,
+    airconUnits: values.airconUnits,
+    depositCents: values.depositCents ?? 0,
+    rentDueDay: values.rentDueDay,
+    utilitiesDueDay: values.utilitiesDueDay,
+    rentViaPersonId: values.rentVia || null,
+    utilitiesViaPersonId: values.utilitiesVia || null,
+  };
+}
+
+/**
+ * Whether leaving Add subtenant would lose anything. A lone country code is nothing typed.
+ *
+ * @param values The form's values.
+ * @param form The form response, for the default color.
+ * @returns True when a field differs from how the form opened.
+ */
+export function hasAddPersonInput(values: PersonFormValues, form: HouseholdAddFormResponse): boolean {
+  const opened = toAddPersonFormValues(form);
+  return (Object.keys(opened) as (keyof PersonFormValues)[]).some((key) =>
+    key === 'whatsapp' ? whatsappOf(values.whatsapp) !== null : values[key] !== opened[key],
+  );
 }
 
 /**

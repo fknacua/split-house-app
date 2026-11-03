@@ -15,7 +15,7 @@ import { SplitSection } from './components/split-section';
 /**
  * The Household tab: the setup for one month. Every string comes from `GET /api/household`; this
  * screen lays it out and switches the month. Picking a month redraws the skeleton until it arrives.
- * View and Edit open the person's screens; the other edit buttons do nothing until their forms are built.
+ * View, Edit and Add subtenant open their screens; the other edit buttons do nothing until their forms are built.
  */
 export function Household() {
   const router = useRouter();
@@ -29,6 +29,8 @@ export function Household() {
       router.push({ pathname: '/household/person/[personId]', params: { personId: target.personId } });
     } else if (target.kind === 'edit-person') {
       router.push({ pathname: '/household/person/[personId]/edit', params: { personId: target.personId } });
+    } else if (target.kind === 'add-person') {
+      router.push('/household/add-person');
     }
   };
 
@@ -70,7 +72,12 @@ export function Household() {
                 <PersonCard key={person.personId} person={person} onOpen={openTarget} />
               ))}
             </View>
-            <Button label={loaded.addPerson.label} variant="outline" icon={UserPlus} />
+            <Button
+              label={loaded.addPerson.label}
+              variant="outline"
+              icon={UserPlus}
+              onPress={() => openTarget(loaded.addPerson.target)}
+            />
           </>
         ) : null}
       </ScrollView>

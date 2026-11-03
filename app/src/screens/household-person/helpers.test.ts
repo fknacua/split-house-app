@@ -1,10 +1,14 @@
 import { describe, expect, it } from 'vitest';
 
-import type { HouseholdFormResponse } from '@splithouse/shared';
+import type { HouseholdAddFormResponse, HouseholdFormResponse } from '@splithouse/shared';
 import {
+  addPersonFormSchema,
+  hasAddPersonInput,
   hasUnpickedRoute,
   hasUnsavedChanges,
   personFormSchema,
+  toAddPersonEdit,
+  toAddPersonFormValues,
   toHouseholdEdit,
   toPersonFormValues,
 } from './helpers';
@@ -146,5 +150,50 @@ describe('hasUnsavedChanges', () => {
 
   it('is true for an emptied amount, which the edit leaves out', () => {
     expect(hasUnsavedChanges({ ...values, rentCents: null }, form)).toBe(true);
+  });
+});
+
+describe('Add subtenant', () => {
+  const form: HouseholdAddFormResponse = {
+    title: 'Add subtenant',
+    sub: 'New person in the household',
+    datedTitle: 'From December 2026',
+    color: 'PURPLE',
+    colorName: 'Purple',
+    swatches: [{ color: 'PURPLE', name: 'Purple' }],
+    sentViaOptions: [],
+  };
+  const opened = toAddPersonFormValues(form);
+
+  it('opens empty, on the default color', () => {
+    expect(opened).toMatchObject({ name: '', whatsapp: '', color: 'PURPLE', rentCents: null, rentVia: null });
+  });
+
+  it('needs the rent, shares and units', () => {
+    expect(addPersonFormSchema.safeParse(opened).success).toBe(false);
+    const filled = { ...opened, rentCents: 90000, utilityShares: 1000, airconUnits: 1 };
+    expect(addPersonFormSchema.safeParse(filled).success).toBe(true);
+    expect(addPersonFormSchema.safeParse({ ...filled, airconUnits: null }).success).toBe(false);
+  });
+
+  it('sends an empty deposit as 0, a lone country code as no number and an unpicked route as direct', () => {
+    expect(toAddPersonEdit({ ...opened, whatsapp: '+65', rentVia: '' })).toMatchObject({
+      kind: 'addPerson',
+      whatsappE164: null,
+      depositCents: 0,
+      rentViaPersonId: null,
+    });
+  });
+
+  it('is not dirty when opened, or with only the country code', () => {
+    expect(hasAddPersonInput(opened, form)).toBe(false);
+    expect(hasAddPersonInput({ ...opened, whatsapp: '+65' }, form)).toBe(false);
+  });
+
+  it('is dirty once anything is entered', () => {
+    expect(hasAddPersonInput({ ...opened, name: 'C' }, form)).toBe(true);
+    expect(hasAddPersonInput({ ...opened, color: 'BLUE' }, form)).toBe(true);
+    expect(hasAddPersonInput({ ...opened, rentVia: '' }, form)).toBe(true);
+    expect(hasAddPersonInput({ ...opened, whatsapp: '+6581234567' }, form)).toBe(true);
   });
 });

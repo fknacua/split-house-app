@@ -55,6 +55,8 @@ export const queryKeys = {
    * @param personId The person.
    */
   householdForm: (personId: string) => ['household', 'form', personId] as const,
+  /** The Add subtenant screen. Under `allHousehold`, so an edit refreshes it too. */
+  householdAddForm: ['household', 'add-form'] as const,
   /**
    * What a Household edit would change, by the edit sent.
    * @param edit The edit sent to the preview.

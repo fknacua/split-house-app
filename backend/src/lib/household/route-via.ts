@@ -1,4 +1,4 @@
-import type { ChargeType, PersonConfig } from "@splithouse/shared";
+import type { ChargeType, HouseholdFormResponse, PersonConfig } from "@splithouse/shared";
 
 /**
  * The person a charge type goes via.
@@ -33,6 +33,24 @@ export function hasPayersVia(people: PersonConfig[], personId: string): boolean 
   return people.some((p) =>
     Object.values(p.routes).some((route) => route?.kind === "VIA" && route.viaPersonId === personId),
   );
+}
+
+/**
+ * Who a tenant's charge can be sent via: anyone in the version who pays directly, but them and the owner.
+ *
+ * @param people - Everyone in the version.
+ * @param names - Everyone's names, by person id.
+ * @param personId - The tenant, or null for one not in the version yet.
+ * @returns The people to pick from.
+ */
+export function sentViaChoices(
+  people: PersonConfig[],
+  names: Map<string, string>,
+  personId: string | null,
+): HouseholdFormResponse["sentViaOptions"] {
+  return people
+    .filter((p) => p.personId !== personId && p.role !== "OWNER" && !paysViaSomeone(p))
+    .map((p) => ({ personId: p.personId, name: names.get(p.personId) ?? "Someone" }));
 }
 
 /**

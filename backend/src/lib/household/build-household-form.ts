@@ -5,13 +5,14 @@ import {
   formatMonthLabel,
   PERSON_COLORS,
   TENANT_PERSON_COLORS,
+  type HouseholdAddFormResponse,
   type HouseholdConfig,
   type HouseholdFormResponse,
   type PersonColor,
 } from "@splithouse/shared";
 import { amountText } from "./amount-text";
-import { personColorName } from "./person-color";
-import { hasPayersVia, paysViaSomeone, routeText, viaOf } from "./route-via";
+import { nextPersonColor, personColorName } from "./person-color";
+import { hasPayersVia, routeText, sentViaChoices, viaOf } from "./route-via";
 import { personSubLine } from "./sub-line";
 
 const NONE = "—";
@@ -32,6 +33,28 @@ export interface HouseholdFormInput {
 /** Money without its `$`, since the label says SGD. */
 const plainMoney = (cents: number) => formatCents(cents).replace("$", "");
 const dayText = (day: number | undefined) => (day ? formatDayOrdinal(day) : NONE);
+
+/**
+ * The Add subtenant screen, display-ready. The default color is the first one nobody in the config uses.
+ *
+ * @param input - The month the tenant joins from, its config and everyone's rows.
+ * @returns The response for `GET /api/household/add-form`.
+ */
+export function buildAddPersonForm(input: Pick<HouseholdFormInput, "month" | "config" | "people">): HouseholdAddFormResponse {
+  const { config, month, people } = input;
+  const inConfig = new Set(config.people.map((p) => p.personId));
+  const color = nextPersonColor(people.filter((p) => inConfig.has(p.id)).map((p) => p.color));
+
+  return {
+    title: "Add subtenant",
+    sub: "New person in the household",
+    datedTitle: `From ${formatMonthLabel(month)}`,
+    color,
+    colorName: personColorName(color),
+    swatches: TENANT_PERSON_COLORS.map((c) => ({ color: c, name: personColorName(c) })),
+    sentViaOptions: sentViaChoices(config.people, new Map(people.map((p) => [p.id, p.name])), null),
+  };
+}
 
 /**
  * One person's Edit and View screens with their latest saved values, display-ready.
@@ -82,12 +105,7 @@ export function buildHouseholdForm(input: HouseholdFormInput): HouseholdFormResp
     },
     colorName: personColorName(row.color),
     swatches: colors.map((color) => ({ color, name: personColorName(color) })),
-    sentViaOptions:
-      isTenant && !hasPayersVia(config.people, personId)
-        ? config.people
-            .filter((p) => p.personId !== personId && p.role !== "OWNER" && !paysViaSomeone(p))
-            .map((p) => ({ personId: p.personId, name: names.get(p.personId) ?? "Someone" }))
-        : [],
+    sentViaOptions: isTenant && !hasPayersVia(config.people, personId) ? sentViaChoices(config.people, names, personId) : [],
     view: {
       details: [
         { label: "Name (used in messages)", value: row.name },

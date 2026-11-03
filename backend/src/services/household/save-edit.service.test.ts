@@ -1,5 +1,6 @@
 import {
   HOUSEHOLD_SCHEMA_VERSION,
+  type HouseholdAddPersonEdit,
   type HouseholdConfig,
   type HouseholdPersonEdit,
   type PersonColor,
@@ -63,6 +64,9 @@ function fakeDb(versions: VersionRow[] = [version("2026-11", NOV_2026_CONFIG)], 
       findMany: async () => state.people,
       update: async ({ where, data }) => {
         state.people = state.people.map((p) => (p.id === where.id ? { ...p, ...data } : p));
+      },
+      create: async ({ data }) => {
+        state.people.push(data);
       },
     },
   };
@@ -414,5 +418,74 @@ describe("saveHouseholdEdit", () => {
       status: 409,
       code: "version_conflict",
     });
+  });
+});
+
+describe("adding a person", () => {
+  const add: HouseholdAddPersonEdit = {
+    kind: "addPerson",
+    name: "Casey",
+    whatsappE164: null,
+    color: "PURPLE",
+    rentCents: 90000,
+    utilityShares: 1000,
+    airconUnits: 1,
+    depositCents: 0,
+    rentDueDay: 3,
+    utilitiesDueDay: 5,
+    rentViaPersonId: null,
+    utilitiesViaPersonId: null,
+  };
+  const dec = (versions: VersionRow[]) => versions.find((v) => v.startsFromMonth === "2026-12");
+  const inDec = (versions: VersionRow[]) => (dec(versions)?.config as HouseholdConfig).people;
+
+  it("previews with no groups and stores nothing", async () => {
+    const { db, state } = fakeDb();
+    expect(await previewHouseholdEdit(db, add)).toEqual({ groups: [], canSave: true, errors: {} });
+    expect(state.versions).toHaveLength(1);
+    expect(state.people).toHaveLength(4);
+  });
+
+  it("creates the row and next month's version, leaving this month's as it was", async () => {
+    const { db, state } = fakeDb();
+    expect(await saveHouseholdEdit(db, add)).toEqual({ savedFromMonth: "2026-12" });
+    const row = state.people[4];
+    expect(row).toMatchObject({ name: "Casey", whatsappE164: null, color: "PURPLE", isOwner: false });
+    expect(inDec(state.versions).at(-1)?.personId).toBe(row.id);
+    expect((state.versions[0].config as HouseholdConfig).people).toEqual(NOV_2026_CONFIG.people);
+  });
+
+  it("adds to the version already waiting for next month, so earlier edits stay", async () => {
+    const { db, state } = fakeDb([version("2026-11", NOV_2026_CONFIG), version("2026-12", JAN_2027_CONFIG)]);
+    await saveHouseholdEdit(db, add);
+    expect(state.versions).toHaveLength(2);
+    expect(inDec(state.versions).slice(0, -1)).toEqual(JAN_2027_CONFIG.people);
+  });
+
+  it("leaves no row behind when the version is locked", async () => {
+    const { db, state } = fakeDb(
+      [version("2026-11", NOV_2026_CONFIG), version("2026-12", JAN_2027_CONFIG)],
+      ["version-2026-12"],
+    );
+    await expect(saveHouseholdEdit(db, add)).rejects.toMatchObject({ status: 409, code: "version_locked" });
+    expect(state.people).toHaveLength(4);
+  });
+
+  it("refuses to save with a required field empty or a value wrong", async () => {
+    const { db, state } = fakeDb();
+    await expect(saveHouseholdEdit(db, { ...add, rentCents: null })).rejects.toMatchObject({
+      status: 422,
+      code: "invalid_edit",
+    });
+    await expect(saveHouseholdEdit(db, { ...add, airconUnits: 9 })).rejects.toMatchObject({
+      status: 422,
+      code: "invalid_edit",
+    });
+    expect(state.people).toHaveLength(4);
+    expect(state.versions).toHaveLength(1);
+  });
+
+  it("answers 409 no_household before first run", async () => {
+    await expect(saveHouseholdEdit(fakeDb([]).db, add)).rejects.toMatchObject({ status: 409, code: "no_household" });
   });
 });
