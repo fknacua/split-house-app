@@ -13,9 +13,9 @@ import {
   type PersonColor,
   type PersonConfig,
 } from "@splithouse/shared";
-import { amountText } from "./amount-text";
 import { applyHouseholdEdit } from "./apply-edit";
 import { personColorName } from "./person-color";
+import { hasPayersVia, paysViaSomeone, routeText, viaOf } from "./route-via";
 
 /** A version with its config parsed. */
 export interface ParsedVersion {
@@ -36,6 +36,8 @@ export interface EditPerson {
 export interface HouseholdEditPlanInput {
   edit: HouseholdEdit;
   person: EditPerson;
+  /** Everyone's names, by person id, for the routes in the summary. */
+  names: Map<string, string>;
   /** The month dated values start from: the one after the active month. */
   month: string;
   /** The version in effect at that month, with the person in it. */
@@ -55,7 +57,12 @@ export interface HouseholdEditPlan {
 
 const NONE = "—";
 const SPLIT_ERROR = "This comes from the split.";
-const AMOUNT_FIELDS = ["rentCents", "utilityShares", "airconUnits", "depositCents"] as const;
+const ROUTE_ERROR = "Only tenants can pay via someone.";
+const VIA_ERROR = "Choose someone else in the household.";
+const VIA_NOT_DIRECT_ERROR = "This person pays via someone, so choose someone who pays directly.";
+const HAS_PAYERS_ERROR = "Someone pays via this person, so they have to pay directly.";
+const DAY_ERROR = "Enter a day from 1 to 31.";
+const AMOUNT_FIELDS = ["rentCents", "depositCents"] as const;
 
 /**
  * Finds the version in effect at a month.
@@ -70,7 +77,7 @@ export function versionInEffect(versions: ParsedVersion[], month: string): Parse
 }
 
 /** The checks on the dated values. Errors here keep the edit from being applied. */
-function datedFieldErrors(edit: HouseholdEdit, person: PersonConfig): Record<string, string> {
+function datedFieldErrors(edit: HouseholdEdit, person: PersonConfig, people: PersonConfig[]): Record<string, string> {
   const errors: Record<string, string> = {};
   for (const field of AMOUNT_FIELDS) {
     const value = edit[field];
@@ -78,18 +85,36 @@ function datedFieldErrors(edit: HouseholdEdit, person: PersonConfig): Record<str
     if (person.role !== "TENANT" && value !== person[field]) errors[field] = SPLIT_ERROR;
     else if (value < 0) errors[field] = "Enter 0 or more.";
   }
-  const days = [
-    ["rentDueDay", edit.rentDueDay, "RENT"],
-    ["utilitiesDueDay", edit.utilitiesDueDay, "UTILITIES"],
+  const routes = [
+    ["rentViaPersonId", edit.rentViaPersonId, "RENT"],
+    ["utilitiesViaPersonId", edit.utilitiesViaPersonId, "UTILITIES"],
   ] as const;
-  for (const [field, day, type] of days) {
-    if (day === undefined) continue;
-    if (day === null) {
+  for (const [field, via, type] of routes) {
+    if (via === undefined || via === viaOf(person, type)) continue;
+    if (person.role !== "TENANT") {
+      errors[field] = ROUTE_ERROR;
+    } else if (via !== null) {
+      const target = people.find((p) => p.personId === via);
+      // One step only: everyone pays the owner directly, or via someone who does.
+      if (!target || target.personId === person.personId || target.role === "OWNER") errors[field] = VIA_ERROR;
+      else if (paysViaSomeone(target)) errors[field] = VIA_NOT_DIRECT_ERROR;
+      else if (hasPayersVia(people, person.personId)) errors[field] = HAS_PAYERS_ERROR;
+    }
+  }
+  const days = [
+    ["rentDueDay", edit.rentDueDay, edit.rentViaPersonId, "RENT"],
+    ["utilitiesDueDay", edit.utilitiesDueDay, edit.utilitiesViaPersonId, "UTILITIES"],
+  ] as const;
+  for (const [field, day, via, type] of days) {
+    const nextDay = day === undefined ? person.dueDays[type] : day;
+    const currentVia = viaOf(person, type);
+    const nextVia = via === undefined ? currentVia : via;
+    if (nextDay === undefined || nextDay === null) {
       // Someone paying via another person has no due day of their own, but a direct payer needs theirs.
-      const direct = person.routes[type]?.kind !== "VIA";
-      if (direct && person.dueDays[type] !== undefined) errors[field] = "Enter a day from 1 to 31.";
-    } else if (day < 1 || day > 31) {
-      errors[field] = "Enter a day from 1 to 31.";
+      const hadRouteOrDay = currentVia !== null || person.dueDays[type] !== undefined;
+      if (nextVia === null && hadRouteOrDay) errors[field] = DAY_ERROR;
+    } else if (nextDay < 1 || nextDay > 31) {
+      errors[field] = DAY_ERROR;
     }
   }
   return errors;
@@ -130,29 +155,22 @@ function planPersonChanges(edit: HouseholdEdit, person: EditPerson) {
   return { errors, changes, rows };
 }
 
-/** Maps a config check to the field it belongs to. */
-function configErrors(issues: { path: PropertyKey[]; message: string }[]): Record<string, string> {
-  const errors: Record<string, string> = {};
-  for (const { path, message } of issues) {
-    const field =
-      path[1] === "utilities" ? "utilityShares" : path[1] === "aircon" ? "airconUnits" : "form";
-    errors[field] ??= message;
-  }
-  return errors;
-}
-
 const dayText = (day: number | undefined) => (day ? formatDayOrdinal(day) : NONE);
 const depositText = (cents: number) => (cents ? formatCents(cents) : "None");
 
 /** The dated rows: only what differs between the two configs' entries for the person. */
-function datedRows(from: PersonConfig, to: PersonConfig): HouseholdEditRow[] {
+function datedRows(from: PersonConfig, to: PersonConfig, names: Map<string, string>): HouseholdEditRow[] {
   const rows: HouseholdEditRow[] = [
     { label: "Rent", from: formatCents(from.rentCents), to: formatCents(to.rentCents) },
     { label: "Rent due", from: dayText(from.dueDays.RENT), to: dayText(to.dueDays.RENT) },
-    { label: "Utility shares", from: amountText(from.utilityShares), to: amountText(to.utilityShares) },
     { label: "Utilities due", from: dayText(from.dueDays.UTILITIES), to: dayText(to.dueDays.UTILITIES) },
-    { label: "Aircon units", from: String(from.airconUnits), to: String(to.airconUnits) },
     { label: "Deposit", from: depositText(from.depositCents), to: depositText(to.depositCents) },
+    { label: "Rent paid", from: routeText(viaOf(from, "RENT"), names), to: routeText(viaOf(to, "RENT"), names) },
+    {
+      label: "Utilities paid",
+      from: routeText(viaOf(from, "UTILITIES"), names),
+      to: routeText(viaOf(to, "UTILITIES"), names),
+    },
   ];
   return rows.filter((row) => row.from !== row.to);
 }
@@ -167,25 +185,25 @@ function datedRows(from: PersonConfig, to: PersonConfig): HouseholdEditRow[] {
  * @returns The changes, the summary groups, the errors per field and whether Save is allowed.
  */
 export function planHouseholdEdit(input: HouseholdEditPlanInput): HouseholdEditPlan {
-  const { edit, person, month, base } = input;
+  const { edit, person, names, month, base } = input;
   const inBase = base.config.people.find((p) => p.personId === edit.personId);
   if (!inBase) throw new Error("The person is not in the version");
 
   const immediate = planPersonChanges(edit, person);
-  const errors = { ...immediate.errors, ...datedFieldErrors(edit, inBase) };
+  const datedErrors = datedFieldErrors(edit, inBase, base.config.people);
+  const errors = { ...immediate.errors, ...datedErrors };
   const groups: HouseholdEditGroup[] = [];
   if (immediate.rows.length > 0) groups.push({ title: "Saves now", rows: immediate.rows });
 
   let nextConfig: HouseholdConfig | null = null;
-  const datedInvalid = AMOUNT_FIELDS.some((f) => errors[f]) || !!errors.rentDueDay || !!errors.utilitiesDueDay;
-  if (!datedInvalid) {
+  if (Object.keys(datedErrors).length === 0) {
     const parsed = householdConfigSchema.safeParse(applyHouseholdEdit(base.config, edit));
     if (!parsed.success) {
-      Object.assign(errors, configErrors(parsed.error.issues));
+      errors.form = parsed.error.issues[0].message;
     } else {
       if (!isDeepStrictEqual(parsed.data, base.config)) nextConfig = parsed.data;
       const next = parsed.data.people.find((p) => p.personId === edit.personId) ?? inBase;
-      const rows = datedRows(inBase, next);
+      const rows = datedRows(inBase, next, names);
       if (rows.length > 0) groups.push({ title: `Saves from ${formatMonthShortLabel(month)}`, rows });
     }
   }

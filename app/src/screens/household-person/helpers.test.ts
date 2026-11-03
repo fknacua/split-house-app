@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest';
 
 import type { HouseholdFormResponse } from '@splithouse/shared';
 import {
+  hasUnpickedRoute,
   hasUnsavedChanges,
   personFormSchema,
   toHouseholdEdit,
@@ -24,7 +25,7 @@ function formFor(overrides: Partial<HouseholdFormResponse['values']> = {}): Hous
       utilitiesDueDay: 4,
       rentViaPersonId: null,
       utilitiesViaPersonId: null,
-      amounts: { rentCents: 95000, utilityShares: 1000, airconUnits: 1, depositCents: 95000 },
+      amounts: { rentCents: 95000, depositCents: 95000 },
       ...overrides,
     },
     colorName: 'Green',
@@ -39,7 +40,7 @@ const BASE = { kind: 'person', personId: 'p-jordan' };
 
 describe('toPersonFormValues', () => {
   it('shows no deposit as an empty field', () => {
-    const form = formFor({ amounts: { rentCents: 95000, utilityShares: 1000, airconUnits: 1, depositCents: 0 } });
+    const form = formFor({ amounts: { rentCents: 95000, depositCents: 0 } });
     expect(toPersonFormValues(form).depositCents).toBeNull();
   });
 
@@ -82,15 +83,44 @@ describe('toHouseholdEdit', () => {
     expect(toHouseholdEdit({ ...values, rentDueDay: null }, form)).toEqual({ ...BASE, rentDueDay: null });
   });
 
-  it('leaves out an empty rent, shares or units', () => {
-    const emptied = { ...values, rentCents: null, utilityShares: null, airconUnits: null };
-    expect(toHouseholdEdit(emptied, form)).toEqual(BASE);
+  it('sends a route picked, and null for one now paid directly', () => {
+    const via = formFor({ rentViaPersonId: 'p-priya' });
+    expect(toHouseholdEdit({ ...toPersonFormValues(via), rentVia: null, utilitiesVia: 'p-sam' }, via)).toEqual({
+      ...BASE,
+      rentViaPersonId: null,
+      utilitiesViaPersonId: 'p-sam',
+    });
+  });
+
+  it('sends nothing for a route that is the saved one', () => {
+    const via = formFor({ utilitiesViaPersonId: 'p-priya' });
+    expect(toHouseholdEdit(toPersonFormValues(via), via)).toEqual(BASE);
+  });
+
+  it('leaves out a route with nobody picked', () => {
+    expect(toHouseholdEdit({ ...values, rentVia: '' }, form)).toEqual(BASE);
+  });
+
+  it('leaves out an empty rent', () => {
+    expect(toHouseholdEdit({ ...values, rentCents: null }, form)).toEqual(BASE);
   });
 
   it('never sends amounts for someone with none', () => {
     const primary = formFor({ amounts: null });
     const edited = { ...toPersonFormValues(primary), rentCents: 5 };
     expect(toHouseholdEdit(edited, primary)).toEqual(BASE);
+  });
+});
+
+describe('hasUnpickedRoute', () => {
+  const values = toPersonFormValues(formFor());
+
+  it('is false for a direct route and a picked one', () => {
+    expect(hasUnpickedRoute({ ...values, rentVia: null, utilitiesVia: 'p-priya' })).toBe(false);
+  });
+
+  it('is true while either route has nobody picked', () => {
+    expect(hasUnpickedRoute({ ...values, utilitiesVia: '' })).toBe(true);
   });
 });
 
@@ -104,6 +134,14 @@ describe('hasUnsavedChanges', () => {
 
   it('is true for a changed field', () => {
     expect(hasUnsavedChanges({ ...values, color: 'BLUE' }, form)).toBe(true);
+  });
+
+  it('is true for a changed route', () => {
+    expect(hasUnsavedChanges({ ...values, rentVia: 'p-priya' }, form)).toBe(true);
+  });
+
+  it('is true for a route with nobody picked, which the edit leaves out', () => {
+    expect(hasUnsavedChanges({ ...values, utilitiesVia: '' }, form)).toBe(true);
   });
 
   it('is true for an emptied amount, which the edit leaves out', () => {

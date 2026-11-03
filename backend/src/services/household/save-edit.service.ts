@@ -23,10 +23,9 @@ export interface HouseholdEditReadDb extends ActiveMonthDb {
     }): Promise<{ id: string; startsFromMonth: string; schemaVersion: number; config: unknown }[]>;
   };
   person: {
-    findUnique(args: {
-      where: { id: string };
+    findMany(args: {
       select: typeof PERSON_SELECT;
-    }): Promise<{ id: string; name: string; whatsappE164: string | null; color: PersonColor; isOwner: boolean } | null>;
+    }): Promise<{ id: string; name: string; whatsappE164: string | null; color: PersonColor; isOwner: boolean }[]>;
   };
 }
 
@@ -60,10 +59,10 @@ function isUniqueViolation(err: unknown): boolean {
 
 /** Reads what the edit depends on and plans it. Also returns the row a dated save would update. */
 async function loadPlan(db: HouseholdEditReadDb, edit: HouseholdEdit) {
-  const [activeMonth, rows, person] = await Promise.all([
+  const [activeMonth, rows, people] = await Promise.all([
     getActiveMonth(db),
     db.householdVersion.findMany({ select: VERSION_SELECT }),
-    db.person.findUnique({ where: { id: edit.personId }, select: PERSON_SELECT }),
+    db.person.findMany({ select: PERSON_SELECT }),
   ]);
   if (rows.length === 0) throw new ApiError(409, "no_household", "Set up the household first.");
 
@@ -74,12 +73,13 @@ async function loadPlan(db: HouseholdEditReadDb, edit: HouseholdEdit) {
   const month = addMonths(activeMonth, 1);
   const base = versionInEffect(versions, month);
   if (!base) throw new ApiError(404, "no_version", "The household has no setup for next month.");
+  const person = people.find((p) => p.id === edit.personId);
   if (!person || !base.config.people.some((p) => p.personId === edit.personId)) {
     throw new ApiError(404, "no_person", "This person is not in the household next month.");
   }
   return {
     month,
-    plan: planHouseholdEdit({ edit, person, month, base }),
+    plan: planHouseholdEdit({ edit, person, names: new Map(people.map((p) => [p.id, p.name])), month, base }),
     existing: rows.find((row) => row.startsFromMonth === month) ?? null,
   };
 }

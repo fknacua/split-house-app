@@ -29,6 +29,19 @@ export interface ColorFieldProps {
   fallbackName: string;
 }
 
+/** Props for {@link RouteField}. */
+export interface RouteFieldProps {
+  control: Control<PersonFormValues>;
+  /** The form field holding the route. */
+  name: 'rentVia' | 'utilitiesVia';
+  /** e.g. `Rent paid`. */
+  label: string;
+  /** Who it can be sent via. With nobody to pick, only Directly can be chosen. */
+  options: HouseholdFormResponse['sentViaOptions'];
+  /** The server's message for the Sent via field. */
+  error?: string;
+}
+
 /** Props for {@link ColorSwatch}. */
 export interface ColorSwatchProps {
   color: PersonColor;

@@ -21,6 +21,7 @@ import {
 import { useDebouncedValue, useHouseholdEditPreview, useSaveHouseholdEdit, useUnsavedGuard } from '@/hooks';
 import { ApiRequestError } from '@/lib/api';
 import {
+  hasUnpickedRoute,
   hasUnsavedChanges,
   personFormSchema,
   toHouseholdEdit,
@@ -31,6 +32,7 @@ import type { PersonFormProps } from '../types';
 import { ColorField } from './color-field';
 import { EditSummaryCard } from './edit-summary-card';
 import { FormSection } from './form-section';
+import { RouteField } from './route-field';
 
 /** How long the form has to stay still before the server previews it, in milliseconds. */
 const PREVIEW_DELAY_MS = 500;
@@ -40,7 +42,7 @@ const requestMessage = (error: Error | null) => (error instanceof ApiRequestErro
 
 /**
  * The `editPerson` board: "Saved right away" (Name, WhatsApp, Color) and the dated group, which takes effect
- * next month (the amounts only for a tenant). It opens on the latest saved values. The summary lists only what
+ * next month (the amounts and routes only for a tenant). It opens on the latest saved values. The summary lists only what
  * changed in this edit, and with Save is in the footer. Save returns to the overview, on the month it was
  * showing, with a toast. Leaving with unsaved changes asks first. "Remove from household" does nothing until
  * 9.8.
@@ -106,7 +108,12 @@ export function PersonForm({ form }: PersonFormProps) {
                 }}
               />
               <PhoneInput
-                fieldControlProps={{ control, name: 'whatsapp', label: 'WhatsApp', error: errors.whatsappE164 }}
+                fieldControlProps={{
+                  control,
+                  name: 'whatsapp',
+                  label: 'WhatsApp (optional)',
+                  error: errors.whatsappE164,
+                }}
               />
               <ColorField control={control} swatches={form.swatches} fallbackName={form.colorName} />
             </FormSection>
@@ -141,18 +148,6 @@ export function PersonForm({ form }: PersonFormProps) {
                   </View>
                   <View className="flex-row items-start gap-3">
                     <CountInput
-                      kind="shares"
-                      placeholder="e.g. 1"
-                      fieldControlProps={{
-                        control,
-                        name: 'utilityShares',
-                        label: 'Utility shares',
-                        required: true,
-                        error: errors.utilityShares,
-                        className: 'min-w-0 flex-1',
-                      }}
-                    />
-                    <CountInput
                       kind="day"
                       placeholder="Day, e.g. 4th"
                       fieldControlProps={{
@@ -161,20 +156,6 @@ export function PersonForm({ form }: PersonFormProps) {
                         label: 'Utilities due',
                         required: true,
                         error: errors.utilitiesDueDay,
-                        className: 'min-w-0 flex-1',
-                      }}
-                    />
-                  </View>
-                  <View className="flex-row items-start gap-3">
-                    <CountInput
-                      kind="whole"
-                      placeholder="e.g. 1"
-                      fieldControlProps={{
-                        control,
-                        name: 'airconUnits',
-                        label: 'Aircon units',
-                        required: true,
-                        error: errors.airconUnits,
                         className: 'min-w-0 flex-1',
                       }}
                     />
@@ -189,6 +170,20 @@ export function PersonForm({ form }: PersonFormProps) {
                       }}
                     />
                   </View>
+                  <RouteField
+                    control={control}
+                    name="rentVia"
+                    label="Rent paid"
+                    options={form.sentViaOptions}
+                    error={errors.rentViaPersonId}
+                  />
+                  <RouteField
+                    control={control}
+                    name="utilitiesVia"
+                    label="Utilities paid"
+                    options={form.sentViaOptions}
+                    error={errors.utilitiesViaPersonId}
+                  />
                 </>
               ) : (
                 <View className="flex-row items-start gap-3">
@@ -236,7 +231,7 @@ export function PersonForm({ form }: PersonFormProps) {
           label={save.isPending ? 'Saving' : failed ? 'Retry' : 'Save changes'}
           loading={save.isPending}
           // The save's refetch changes the loaded values, so the checks only count before it starts.
-          disabled={!save.isPending && (!isValid || !answered || !answer?.canSave)}
+          disabled={!save.isPending && (!isValid || hasUnpickedRoute(values) || !answered || !answer?.canSave)}
           onPress={onSave}
         />
         {form.secondaryAction.kind === 'remove-person' ? (

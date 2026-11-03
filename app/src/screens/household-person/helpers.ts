@@ -26,12 +26,15 @@ export const personFormSchema = z.object({
   rentDueDay: z.number().nullable(),
   utilitiesDueDay: z.number().nullable(),
   rentCents: requiredAmount,
-  utilityShares: requiredAmount,
-  airconUnits: requiredAmount,
   depositCents: z.number().nullable(),
+  rentVia: z.string().nullable(),
+  utilitiesVia: z.string().nullable(),
 });
 
-/** The person form's values. Empty number fields are `null`; shares are thousandths. */
+/**
+ * The person form's values. Empty number fields are `null`. A route is `null` when paid directly, `''` when
+ * Via someone is chosen but nobody is picked yet, and otherwise the person it goes via.
+ */
 export type PersonFormValues = z.infer<typeof personFormSchema>;
 
 /**
@@ -50,9 +53,9 @@ export function toPersonFormValues(form: HouseholdFormResponse): PersonFormValue
     rentDueDay: values.rentDueDay,
     utilitiesDueDay: values.utilitiesDueDay,
     rentCents: values.amounts?.rentCents ?? 0,
-    utilityShares: values.amounts?.utilityShares ?? 0,
-    airconUnits: values.amounts?.airconUnits ?? 0,
     depositCents: values.amounts?.depositCents || null,
+    rentVia: values.rentViaPersonId,
+    utilitiesVia: values.utilitiesViaPersonId,
   };
 }
 
@@ -62,8 +65,8 @@ function whatsappOf(text: string): string | null {
 }
 
 /**
- * Builds the edit from what differs from the saved values. An empty rent, shares or units is left out,
- * since the schema stops Save for it; an empty deposit is 0 and an empty day clears it.
+ * Builds the edit from what differs from the saved values. An empty rent is left out, since the schema
+ * stops Save for it, and so is a route with nobody picked; an empty deposit is 0 and an empty day clears it.
  *
  * @param values The form's values.
  * @param form The loaded form response the values are compared with.
@@ -78,18 +81,28 @@ export function toHouseholdEdit(values: PersonFormValues, form: HouseholdFormRes
   if (values.color !== loaded.color) edit.color = values.color;
   if (values.rentDueDay !== loaded.rentDueDay) edit.rentDueDay = values.rentDueDay;
   if (values.utilitiesDueDay !== loaded.utilitiesDueDay) edit.utilitiesDueDay = values.utilitiesDueDay;
+  if (values.rentVia !== '' && values.rentVia !== loaded.rentViaPersonId) edit.rentViaPersonId = values.rentVia;
+  if (values.utilitiesVia !== '' && values.utilitiesVia !== loaded.utilitiesViaPersonId) {
+    edit.utilitiesViaPersonId = values.utilitiesVia;
+  }
 
   const amounts = loaded.amounts;
   if (amounts) {
     if (values.rentCents !== null && values.rentCents !== amounts.rentCents) edit.rentCents = values.rentCents;
-    if (values.utilityShares !== null && values.utilityShares !== amounts.utilityShares) {
-      edit.utilityShares = values.utilityShares;
-    }
-    if (values.airconUnits !== null && values.airconUnits !== amounts.airconUnits) edit.airconUnits = values.airconUnits;
     const deposit = values.depositCents ?? 0;
     if (deposit !== amounts.depositCents) edit.depositCents = deposit;
   }
   return edit;
+}
+
+/**
+ * Whether a route says Via someone with nobody picked yet, which keeps Save disabled.
+ *
+ * @param values The form's values.
+ * @returns True when either route still needs a person.
+ */
+export function hasUnpickedRoute(values: PersonFormValues): boolean {
+  return values.rentVia === '' || values.utilitiesVia === '';
 }
 
 /**
@@ -101,8 +114,6 @@ export function toHouseholdEdit(values: PersonFormValues, form: HouseholdFormRes
  */
 export function hasUnsavedChanges(values: PersonFormValues, form: HouseholdFormResponse): boolean {
   const { kind, personId, ...changes } = toHouseholdEdit(values, form);
-  const clearedAmount =
-    form.values.amounts !== null &&
-    (values.rentCents === null || values.utilityShares === null || values.airconUnits === null);
-  return Object.keys(changes).length > 0 || clearedAmount;
+  const clearedAmount = form.values.amounts !== null && values.rentCents === null;
+  return Object.keys(changes).length > 0 || clearedAmount || hasUnpickedRoute(values);
 }

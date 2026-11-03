@@ -40,13 +40,10 @@ beforeEach(() => {
       updateMany: async () => ({ count: 1 }),
     },
     person: {
-      findUnique: async () => ({
-        id: PERSON_IDS.jordan,
-        name: "Jordan",
-        whatsappE164: null,
-        color: "GREEN",
-        isOwner: false,
-      }),
+      findMany: async () => [
+        { id: PERSON_IDS.priya, name: "Priya", whatsappE164: null, color: "BLUE", isOwner: false },
+        { id: PERSON_IDS.jordan, name: "Jordan", whatsappE164: null, color: "GREEN", isOwner: false },
+      ],
       update: async () => ({}),
     },
   };
@@ -89,6 +86,8 @@ describe("POST /api/household/edits", () => {
   it.each([
     ["a broken rule", { ...EDIT, rentCents: -1 }, 422, "invalid_edit"],
     ["nothing to store", { ...EDIT, name: "Jordan", rentCents: 95000 }, 422, "no_changes"],
+    ["a route via themselves", { ...EDIT, rentViaPersonId: PERSON_IDS.jordan }, 422, "invalid_edit"],
+    ["an empty route person", { ...EDIT, rentViaPersonId: "" }, 400, "invalid_request"],
   ])("answers %s with the standard error", async (_name, body, status, code) => {
     const response = await SAVE(request(body), undefined);
     expect(response.status).toBe(status);

@@ -13,8 +13,6 @@ const person = (config: typeof NOV_2026_CONFIG, personId: string) => config.peop
 describe("applyHouseholdEdit", () => {
   it.each([
     ["rent", { rentCents: 100000 }, { rentCents: 100000 }],
-    ["shares", { utilityShares: 1500 }, { utilityShares: 1500 }],
-    ["units", { airconUnits: 2 }, { airconUnits: 2 }],
     ["deposit", { depositCents: 0 }, { depositCents: 0 }],
     ["rent due", { rentDueDay: 5 }, { dueDays: { RENT: 5, UTILITIES: 4, AIRCON: 4 } }],
     ["utilities due, which also sets aircon", { utilitiesDueDay: 9 }, { dueDays: { RENT: 1, UTILITIES: 9, AIRCON: 9 } }],
@@ -41,6 +39,29 @@ describe("applyHouseholdEdit", () => {
     const next = applyHouseholdEdit(NOV_2026_CONFIG, edit(PERSON_IDS.jordan, { rentCents: 100000 }));
     expect(person(next, PERSON_IDS.sam)).toEqual(person(before, PERSON_IDS.sam));
     expect(NOV_2026_CONFIG).toEqual(before);
+  });
+
+  it("sends rent via someone, leaving utilities alone", () => {
+    const next = applyHouseholdEdit(NOV_2026_CONFIG, edit(PERSON_IDS.jordan, { rentViaPersonId: PERSON_IDS.priya }));
+    expect(person(next, PERSON_IDS.jordan)?.routes).toEqual({ RENT: { kind: "VIA", viaPersonId: PERSON_IDS.priya } });
+  });
+
+  it("sets aircon with the utilities route", () => {
+    const via = { kind: "VIA", viaPersonId: PERSON_IDS.sam };
+    const next = applyHouseholdEdit(NOV_2026_CONFIG, edit(PERSON_IDS.jordan, { utilitiesViaPersonId: PERSON_IDS.sam }));
+    expect(person(next, PERSON_IDS.jordan)?.routes).toEqual({ UTILITIES: via, AIRCON: via });
+  });
+
+  it("clears the utilities and aircon routes when paid directly, leaving recurring alone", () => {
+    const recurring = { kind: "VIA" as const, viaPersonId: PERSON_IDS.priya };
+    const config = {
+      ...NOV_2026_CONFIG,
+      people: NOV_2026_CONFIG.people.map((p) =>
+        p.personId === PERSON_IDS.sam ? { ...p, routes: { ...p.routes, RECURRING: recurring } } : p,
+      ),
+    };
+    const next = applyHouseholdEdit(config, edit(PERSON_IDS.sam, { utilitiesViaPersonId: null }));
+    expect(person(next, PERSON_IDS.sam)?.routes).toEqual({ RECURRING: recurring });
   });
 
   it("leaves routes as they are", () => {
