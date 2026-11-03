@@ -214,6 +214,34 @@ describe("saveHouseholdEdit", () => {
     expect(state.people.find((p) => p.id === PERSON_IDS.jordan)).toMatchObject(expected);
   });
 
+  it("renames the primary tenant under Saves now, with no new version", async () => {
+    const { db, state } = fakeDb();
+    const rename = edit({ personId: PERSON_IDS.priya, name: "Pia" });
+    expect((await previewHouseholdEdit(db, rename)).groups).toEqual([
+      { title: "Saves now", rows: [{ label: "Name", from: "Priya", to: "Pia" }] },
+    ]);
+    expect(await saveHouseholdEdit(db, rename)).toEqual({ savedFromMonth: null });
+    expect(state.versions).toHaveLength(1);
+    expect(state.people.find((p) => p.id === PERSON_IDS.priya)?.name).toBe("Pia");
+  });
+
+  it("saves the primary tenant's due days from next month", async () => {
+    const { db, state } = fakeDb();
+    const dueDays = edit({ personId: PERSON_IDS.priya, rentDueDay: 9, utilitiesDueDay: 9 });
+    expect((await previewHouseholdEdit(db, dueDays)).groups).toEqual([
+      {
+        title: "Saves from Dec 2026",
+        rows: [
+          { label: "Rent due", from: "7th", to: "9th" },
+          { label: "Utilities due", from: "7th", to: "9th" },
+        ],
+      },
+    ]);
+    expect(await saveHouseholdEdit(db, dueDays)).toEqual({ savedFromMonth: "2026-12" });
+    const saved = (state.versions.at(-1)?.config as HouseholdConfig).people.find((p) => p.personId === PERSON_IDS.priya);
+    expect(saved?.dueDays).toMatchObject({ RENT: 9, UTILITIES: 9, AIRCON: 9 });
+  });
+
   it("clears a WhatsApp number", async () => {
     const { db, state } = fakeDb();
     await saveHouseholdEdit(db, edit({ whatsappE164: null }));

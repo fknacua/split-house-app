@@ -15,6 +15,8 @@ export const queryKeys = {
   history: ['history'] as const,
   /** @param month `YYYY-MM` key. */
   historyMonth: (month: string) => ['history', month] as const,
+  /** Every month's View bill. The prefix of `bill`, so a rename refreshes them all. */
+  allBills: ['bill'] as const,
   /** @param month `YYYY-MM` key of the month View bill shows. */
   bill: (month: string) => ['bill', month] as const,
   /** The mutation key of Home's Discard (the bill draft), so every Continue on Home can see that it is running. */
@@ -27,6 +29,8 @@ export const queryKeys = {
    * @param request The values sent to the check.
    */
   billCheck: (month: string, request: unknown) => ['bill-check', month, request] as const,
+  /** Every Mark paid sheet. The prefix of `chargePayment`, so a rename refreshes them all. */
+  allChargePayments: ['charge-payment'] as const,
   /** @param chargeId The charge whose Mark paid sheet this is. */
   chargePayment: (chargeId: string) => ['charge-payment', chargeId] as const,
   /** Every month's Record payment lists. The prefix of `paymentOptions`, so a payment refreshes them all. */
