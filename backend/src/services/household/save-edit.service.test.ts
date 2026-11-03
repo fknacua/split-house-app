@@ -60,7 +60,7 @@ function fakeDb(versions: VersionRow[] = [version("2026-11", NOV_2026_CONFIG)], 
       },
     },
     person: {
-      findUnique: async ({ where }) => state.people.find((p) => p.id === where.id) ?? null,
+      findMany: async () => state.people,
       update: async ({ where, data }) => {
         state.people = state.people.map((p) => (p.id === where.id ? { ...p, ...data } : p));
       },
@@ -98,7 +98,7 @@ describe("previewHouseholdEdit", () => {
     const { db, state } = fakeDb();
     const preview = await previewHouseholdEdit(
       db,
-      edit({ name: "Jo", color: "PURPLE", rentCents: 100000, airconUnits: 1 }),
+      edit({ name: "Jo", color: "PURPLE", rentCents: 100000, depositCents: 95000 }),
     );
     expect(preview.groups).toEqual([
       {
@@ -124,18 +124,20 @@ describe("previewHouseholdEdit", () => {
     expect(preview).toEqual({ groups: [], canSave: false, errors: {} });
   });
 
-  it("shows shares and due days as text", async () => {
-    const { groups } = await previewHouseholdEdit(fakeDb().db, edit({ utilityShares: 1500, utilitiesDueDay: 9 }));
-    expect(groups[0].rows).toEqual([
-      { label: "Utility shares", from: "1", to: "1.5" },
-      { label: "Utilities due", from: "4th", to: "9th" },
-    ]);
+  it("shows due days as text", async () => {
+    const { groups } = await previewHouseholdEdit(fakeDb().db, edit({ utilitiesDueDay: 9 }));
+    expect(groups[0].rows).toEqual([{ label: "Utilities due", from: "4th", to: "9th" }]);
+  });
+
+  it("ignores shares and units, which the split page edits", async () => {
+    const fields = { utilityShares: 1500, airconUnits: 2 } as Partial<HouseholdPersonEdit>;
+    expect(await previewHouseholdEdit(fakeDb().db, edit(fields))).toEqual({ groups: [], canSave: false, errors: {} });
   });
 
   it("lists only this edit's changes, not ones saved earlier for next month", async () => {
     const { db } = fakeDb([version("2026-11", NOV_2026_CONFIG), version("2026-12", JAN_2027_CONFIG)]);
-    const preview = await previewHouseholdEdit(db, edit({ airconUnits: 2 }));
-    expect(preview.groups[0].rows).toEqual([{ label: "Aircon units", from: "1", to: "2" }]);
+    const preview = await previewHouseholdEdit(db, edit({ depositCents: 12345 }));
+    expect(preview.groups[0].rows.map((row) => row.label)).toEqual(["Deposit"]);
   });
 
   it("has no groups when nothing changed, even with values saved earlier for next month", async () => {
@@ -150,8 +152,9 @@ describe("previewHouseholdEdit", () => {
     ["a negative rent", { rentCents: -1 }, "rentCents"],
     ["a day out of range", { rentDueDay: 32 }, "rentDueDay"],
     ["a direct payer's due day cleared", { rentDueDay: null }, "rentDueDay"],
-    ["more shares than the total", { utilityShares: 5001 }, "utilityShares"],
-    ["more units than the total", { airconUnits: 7 }, "airconUnits"],
+    ["a route via themselves", { rentViaPersonId: PERSON_IDS.jordan }, "rentViaPersonId"],
+    ["a route via the owner", { utilitiesViaPersonId: PERSON_IDS.alex }, "utilitiesViaPersonId"],
+    ["a route via someone not in the version", { rentViaPersonId: "person-nobody" }, "rentViaPersonId"],
   ])("returns %s as a field error", async (_name, fields, field) => {
     const preview = await previewHouseholdEdit(fakeDb().db, edit(fields));
     expect(preview.errors[field]).toBeTruthy();
@@ -170,9 +173,104 @@ describe("previewHouseholdEdit", () => {
     );
     expect(preview.errors).toEqual({});
   });
+
+  it("lists a changed route as text, without an aircon row", async () => {
+    const { groups, canSave } = await previewHouseholdEdit(
+      fakeDb().db,
+      edit({ rentViaPersonId: PERSON_IDS.priya, utilitiesViaPersonId: PERSON_IDS.priya }),
+    );
+    expect(groups[0].rows).toEqual([
+      { label: "Rent paid", from: "Directly", to: "Via Priya" },
+      { label: "Utilities paid", from: "Directly", to: "Via Priya" },
+    ]);
+    expect(canSave).toBe(true);
+  });
+
+  it("refuses a route via someone who pays via someone", async () => {
+    const preview = await previewHouseholdEdit(fakeDb().db, edit({ rentViaPersonId: PERSON_IDS.sam }));
+    expect(preview.errors.rentViaPersonId).toBe("This person pays via someone, so choose someone who pays directly.");
+    expect(preview.canSave).toBe(false);
+  });
+
+  it("refuses a route for someone others pay via", async () => {
+    const config: HouseholdConfig = {
+      ...NOV_2026_CONFIG,
+      people: NOV_2026_CONFIG.people.map((p) =>
+        p.personId === PERSON_IDS.sam ? { ...p, routes: { RENT: { kind: "VIA", viaPersonId: PERSON_IDS.jordan } } } : p,
+      ),
+    };
+    const { db } = fakeDb([version("2026-11", config)]);
+    const preview = await previewHouseholdEdit(db, edit({ utilitiesViaPersonId: PERSON_IDS.priya }));
+    expect(preview.errors.utilitiesViaPersonId).toBe("Someone pays via this person, so they have to pay directly.");
+    expect(preview.canSave).toBe(false);
+  });
+
+  it("has no groups when the route is the saved one", async () => {
+    const preview = await previewHouseholdEdit(
+      fakeDb().db,
+      edit({ personId: PERSON_IDS.sam, rentViaPersonId: null, utilitiesViaPersonId: PERSON_IDS.priya }),
+    );
+    expect(preview).toEqual({ groups: [], canSave: false, errors: {} });
+  });
+
+  it("does not let the primary tenant or the owner have a route", async () => {
+    for (const personId of [PERSON_IDS.priya, PERSON_IDS.alex]) {
+      const preview = await previewHouseholdEdit(fakeDb().db, edit({ personId, rentViaPersonId: PERSON_IDS.jordan }));
+      expect(preview.errors.rentViaPersonId).toBe("Only tenants can pay via someone.");
+      expect(preview.canSave).toBe(false);
+    }
+  });
+
+  it("asks for a due day when someone with none starts paying directly", async () => {
+    const preview = await previewHouseholdEdit(
+      fakeDb().db,
+      edit({ personId: PERSON_IDS.sam, utilitiesViaPersonId: null }),
+    );
+    expect(preview.errors.utilitiesDueDay).toBe("Enter a day from 1 to 31.");
+    expect(preview.canSave).toBe(false);
+  });
+
+  it("takes a direct route with the due day it needs", async () => {
+    const preview = await previewHouseholdEdit(
+      fakeDb().db,
+      edit({ personId: PERSON_IDS.sam, utilitiesViaPersonId: null, utilitiesDueDay: 7 }),
+    );
+    expect(preview.errors).toEqual({});
+    expect(preview.groups[0].rows).toEqual([
+      { label: "Utilities due", from: "—", to: "7th" },
+      { label: "Utilities paid", from: "Via Priya", to: "Directly" },
+    ]);
+  });
+
+  it("lets someone clear a due day once they pay via someone", async () => {
+    const preview = await previewHouseholdEdit(
+      fakeDb().db,
+      edit({ utilitiesViaPersonId: PERSON_IDS.priya, utilitiesDueDay: null }),
+    );
+    expect(preview.errors).toEqual({});
+    expect(preview.canSave).toBe(true);
+  });
 });
 
 describe("saveHouseholdEdit", () => {
+  it("stores a route on next month's version, and leaves the current one alone", async () => {
+    const { db, state } = fakeDb();
+    const saved = await saveHouseholdEdit(db, edit({ utilitiesViaPersonId: PERSON_IDS.priya }));
+    expect(saved).toEqual({ savedFromMonth: "2026-12" });
+    const via = { kind: "VIA", viaPersonId: PERSON_IDS.priya };
+    expect(jordanIn(state.versions[1])?.routes).toEqual({ UTILITIES: via, AIRCON: via });
+    expect(jordanIn(state.versions[0])?.routes).toEqual({});
+  });
+
+  it("refuses a route via the owner with 422", async () => {
+    const { db, state } = fakeDb();
+    await expect(saveHouseholdEdit(db, edit({ rentViaPersonId: PERSON_IDS.alex }))).rejects.toMatchObject({
+      status: 422,
+      code: "invalid_edit",
+    });
+    expect(state.versions).toHaveLength(1);
+  });
+
   it("creates a version for next month, from the version in effect", async () => {
     const { db, state } = fakeDb();
     expect(await saveHouseholdEdit(db, edit({ rentCents: 100000 }))).toEqual({ savedFromMonth: "2026-12" });
@@ -186,20 +284,24 @@ describe("saveHouseholdEdit", () => {
   it("adds three edits for one month to one version", async () => {
     const { db, state } = fakeDb();
     await saveHouseholdEdit(db, edit({ rentCents: 100000 }));
-    await saveHouseholdEdit(db, edit({ airconUnits: 2 }));
+    await saveHouseholdEdit(db, edit({ rentDueDay: 9 }));
     await saveHouseholdEdit(db, edit({ depositCents: 100000 }));
     expect(state.versions.map((v) => v.startsFromMonth)).toEqual(["2026-11", "2026-12"]);
-    expect(jordanIn(state.versions[1])).toMatchObject({ rentCents: 100000, airconUnits: 2, depositCents: 100000 });
+    expect(jordanIn(state.versions[1])).toMatchObject({
+      rentCents: 100000,
+      dueDays: { RENT: 9 },
+      depositCents: 100000,
+    });
   });
 
   it("refuses to update a version a month has opened using, storing nothing", async () => {
     const dec = version("2026-12", JAN_2027_CONFIG);
     const { db, state } = fakeDb([version("2026-11", NOV_2026_CONFIG), dec], [dec.id]);
-    await expect(saveHouseholdEdit(db, edit({ airconUnits: 2, name: "Jo" }))).rejects.toMatchObject({
+    await expect(saveHouseholdEdit(db, edit({ depositCents: 12345, name: "Jo" }))).rejects.toMatchObject({
       status: 409,
       code: "version_locked",
     });
-    expect(jordanIn(state.versions[1])?.airconUnits).toBe(1);
+    expect(jordanIn(state.versions[1])?.depositCents).not.toBe(12345);
     expect(state.people.find((p) => p.id === PERSON_IDS.jordan)?.name).toBe("Jordan");
   });
 
@@ -264,13 +366,6 @@ describe("saveHouseholdEdit", () => {
     state.people = state.people.map((p) => (p.isOwner ? { ...p, color: "BLUE" } : p));
     await saveHouseholdEdit(db, edit({ personId: PERSON_IDS.alex, color: "TEAL" }));
     expect(state.people.find((p) => p.isOwner)?.color).toBe("TEAL");
-  });
-
-  it("answers 422 invalid_edit when the config checks fail", async () => {
-    await expect(saveHouseholdEdit(fakeDb().db, edit({ utilityShares: 5001 }))).rejects.toMatchObject({
-      status: 422,
-      code: "invalid_edit",
-    });
   });
 
   it("answers 422 no_changes when there is nothing to store", async () => {

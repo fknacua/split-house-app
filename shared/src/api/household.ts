@@ -167,7 +167,7 @@ export const householdFormResponseSchema = z.object({
   datedTitle: z.string(),
   /** e.g. `These take effect from December 2026.` while saved values differ from the active month's; otherwise null. */
   pendingNote: z.string().nullable(),
-  /** The form's values. Shares are thousandths; a route's person is null when it is paid directly. */
+  /** The form's values. A route's person is null when it is paid directly. */
   values: z.object({
     name: z.string(),
     whatsappE164: z.string().nullable(),
@@ -180,8 +180,6 @@ export const householdFormResponseSchema = z.object({
     amounts: z
       .object({
         rentCents: z.number().int(),
-        utilityShares: z.number().int(),
-        airconUnits: z.number().int(),
         depositCents: z.number().int(),
       })
       .nullable(),
@@ -190,12 +188,16 @@ export const householdFormResponseSchema = z.object({
   colorName: z.string(),
   /** The colors that can be picked, in the order drawn. Teal is only offered to the owner. */
   swatches: z.array(z.object({ color: personColor, name: z.string() })),
-  /** Who a charge can be sent via: everyone in the version but this person and the owner. */
+  /**
+   * Who a tenant's charge can be sent via: anyone in the version who pays directly, but them and the owner.
+   * Empty for anyone else, and for a tenant someone already pays via.
+   */
   sentViaOptions: z.array(z.object({ personId: z.string(), name: z.string() })),
   /** The View screen's text, by section. */
   view: z.object({
     details: z.array(householdFormTextRowSchema),
     amounts: z.array(householdFormTextRowSchema),
+    /** Tenants only. */
     routes: z.array(householdFormTextRowSchema),
   }),
   /** The link under Save. */
@@ -222,14 +224,15 @@ export const householdPersonEditSchema = z.object({
   color: personColor.optional(),
   // Saved from next month, on the version.
   rentCents: z.number().int().optional(),
-  /** Thousandths: 1.5 shares is 1500. */
-  utilityShares: z.number().int().optional(),
-  airconUnits: z.number().int().optional(),
   depositCents: z.number().int().optional(),
   /** Null clears the day. */
   rentDueDay: z.number().int().nullable().optional(),
   /** Also sets the aircon due day. Null clears both. */
   utilitiesDueDay: z.number().int().nullable().optional(),
+  /** Who rent is sent via. Null means paid directly. Tenants only. */
+  rentViaPersonId: z.string().min(1).nullable().optional(),
+  /** Who utilities are sent via, which also sets aircon. Null means paid directly. Tenants only. */
+  utilitiesViaPersonId: z.string().min(1).nullable().optional(),
 });
 
 /** An edit to one person. Only the fields sent are applied. */

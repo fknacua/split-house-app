@@ -25,7 +25,7 @@ describe("buildHouseholdForm", () => {
     expect(body.title).toBe("Edit Jordan");
     expect(body.viewTitle).toBe("Jordan");
     expect(body.sub).toBe("Own room · pays you directly");
-    expect(body.values.amounts).toEqual({ rentCents: 95000, utilityShares: 1000, airconUnits: 1, depositCents: 95000 });
+    expect(body.values.amounts).toEqual({ rentCents: 95000, depositCents: 95000 });
     expect(body.values).toMatchObject({ rentDueDay: 1, utilitiesDueDay: 4, rentViaPersonId: null });
     expect(body.view.amounts).toEqual([
       { label: "Rent (SGD)", value: "950.00" },
@@ -66,11 +66,31 @@ describe("buildHouseholdForm", () => {
     expect(body.swatches[0]).toEqual({ color: "BLUE", name: "Blue" });
   });
 
-  it("offers everyone else but the owner as Sent via", () => {
-    expect(form(PERSON_IDS.jordan).sentViaOptions).toEqual([
-      { personId: PERSON_IDS.priya, name: "Priya" },
-      { personId: PERSON_IDS.sam, name: "Sam" },
-    ]);
+  it("offers only people who pay directly as Sent via, not the owner", () => {
+    expect(form(PERSON_IDS.jordan).sentViaOptions).toEqual([{ personId: PERSON_IDS.priya, name: "Priya" }]);
+  });
+
+  it("offers nobody to a tenant someone already pays via", () => {
+    const config: HouseholdConfig = {
+      ...NOV_2026_CONFIG,
+      people: NOV_2026_CONFIG.people.map((p) =>
+        p.personId === PERSON_IDS.sam ? { ...p, routes: { RENT: { kind: "VIA", viaPersonId: PERSON_IDS.jordan } } } : p,
+      ),
+    };
+    const body = buildHouseholdForm({
+      month: "2026-12",
+      config,
+      activeConfig: config,
+      personId: PERSON_IDS.jordan,
+      people: PEOPLE,
+    });
+    expect(body.sentViaOptions).toEqual([]);
+  });
+
+  it("gives the primary tenant no routes to view or pick from", () => {
+    const body = form(PERSON_IDS.priya);
+    expect(body.sentViaOptions).toEqual([]);
+    expect(body.view.routes).toEqual([]);
   });
 
   it("names next month in the dated group's title", () => {

@@ -5,14 +5,13 @@ import {
   formatMonthLabel,
   PERSON_COLORS,
   TENANT_PERSON_COLORS,
-  type ChargeType,
   type HouseholdConfig,
   type HouseholdFormResponse,
   type PersonColor,
-  type PersonConfig,
 } from "@splithouse/shared";
 import { amountText } from "./amount-text";
 import { personColorName } from "./person-color";
+import { hasPayersVia, paysViaSomeone, routeText, viaOf } from "./route-via";
 import { personSubLine } from "./sub-line";
 
 const NONE = "—";
@@ -34,12 +33,6 @@ export interface HouseholdFormInput {
 const plainMoney = (cents: number) => formatCents(cents).replace("$", "");
 const dayText = (day: number | undefined) => (day ? formatDayOrdinal(day) : NONE);
 
-/** The person a charge type goes via, or null when it is paid directly. */
-function viaOf(person: PersonConfig, type: ChargeType): string | null {
-  const route = person.routes[type];
-  return route?.kind === "VIA" ? route.viaPersonId : null;
-}
-
 /**
  * One person's Edit and View screens with their latest saved values, display-ready.
  *
@@ -57,7 +50,6 @@ export function buildHouseholdForm(input: HouseholdFormInput): HouseholdFormResp
   const isTenant = person.role === "TENANT";
   const rentVia = viaOf(person, "RENT");
   const utilitiesVia = viaOf(person, "UTILITIES");
-  const routeText = (via: string | null) => (via ? `Via ${names.get(via) ?? "someone"}` : "Directly");
   const dueRows = {
     rent: { label: "Rent due", value: dayText(person.dueDays.RENT) },
     utilities: { label: "Utilities due", value: dayText(person.dueDays.UTILITIES) },
@@ -84,17 +76,18 @@ export function buildHouseholdForm(input: HouseholdFormInput): HouseholdFormResp
       amounts: isTenant
         ? {
             rentCents: person.rentCents,
-            utilityShares: person.utilityShares,
-            airconUnits: person.airconUnits,
             depositCents: person.depositCents,
           }
         : null,
     },
     colorName: personColorName(row.color),
     swatches: colors.map((color) => ({ color, name: personColorName(color) })),
-    sentViaOptions: config.people
-      .filter((p) => p.personId !== personId && p.role !== "OWNER")
-      .map((p) => ({ personId: p.personId, name: names.get(p.personId) ?? "Someone" })),
+    sentViaOptions:
+      isTenant && !hasPayersVia(config.people, personId)
+        ? config.people
+            .filter((p) => p.personId !== personId && p.role !== "OWNER" && !paysViaSomeone(p))
+            .map((p) => ({ personId: p.personId, name: names.get(p.personId) ?? "Someone" }))
+        : [],
     view: {
       details: [
         { label: "Name (used in messages)", value: row.name },
@@ -110,10 +103,12 @@ export function buildHouseholdForm(input: HouseholdFormInput): HouseholdFormResp
             { label: "Deposit held (SGD)", value: person.depositCents ? plainMoney(person.depositCents) : "None" },
           ]
         : [dueRows.rent, dueRows.utilities],
-      routes: [
-        { label: "Rent paid", value: routeText(rentVia) },
-        { label: "Utilities paid", value: routeText(utilitiesVia) },
-      ],
+      routes: isTenant
+        ? [
+            { label: "Rent paid", value: routeText(rentVia, names) },
+            { label: "Utilities paid", value: routeText(utilitiesVia, names) },
+          ]
+        : [],
     },
     secondaryAction: isTenant
       ? { label: "Remove from household", kind: "remove-person" }
