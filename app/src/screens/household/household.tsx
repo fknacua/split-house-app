@@ -25,19 +25,10 @@ export function Household() {
   const loaded = isPlaceholderData ? undefined : data;
 
   const openTarget = (target: HouseholdTarget) => {
-    if (!loaded) return;
     if (target.kind === 'view-person') {
-      router.push({
-        pathname: '/household/person/[personId]',
-        params: { personId: target.personId, month: loaded.month },
-      });
+      router.push({ pathname: '/household/person/[personId]', params: { personId: target.personId } });
     } else if (target.kind === 'edit-person') {
-      // Only an upcoming month can be edited from; otherwise the form opens on the next month.
-      const shown = loaded.monthOptions.find((option) => option.month === loaded.month);
-      router.push({
-        pathname: '/household/person/[personId]/edit',
-        params: { personId: target.personId, ...(shown?.badge ? { month: loaded.month } : {}) },
-      });
+      router.push({ pathname: '/household/person/[personId]/edit', params: { personId: target.personId } });
     }
   };
 

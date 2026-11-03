@@ -1,7 +1,6 @@
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useRouter } from 'expo-router';
 import { Undo } from 'lucide-react-native';
-import { useEffect, useRef } from 'react';
 import { useForm, useWatch } from 'react-hook-form';
 import { KeyboardAvoidingView, ScrollView, View } from 'react-native';
 
@@ -11,9 +10,7 @@ import {
   ConfirmDialog,
   CountInput,
   DEFAULT_FAILED_MESSAGE,
-  FormField,
   MoneyInput,
-  MonthSelectField,
   PhoneInput,
   Screen,
   SubpageFooter,
@@ -25,7 +22,6 @@ import { useDebouncedValue, useHouseholdEditPreview, useSaveHouseholdEdit, useUn
 import { ApiRequestError } from '@/lib/api';
 import {
   hasUnsavedChanges,
-  mergeTypedValues,
   personFormSchema,
   toHouseholdEdit,
   toPersonFormValues,
@@ -43,21 +39,18 @@ const PREVIEW_DELAY_MS = 500;
 const requestMessage = (error: Error | null) => (error instanceof ApiRequestError ? error.message : null);
 
 /**
- * The `editPerson` board: "Saved right away" (Name, WhatsApp, Color) and "From a month you pick" (Starts
- * from and everything dated; the amounts only for a tenant). The summary, the later-version warning and
- * Save are in the footer, and all come from the preview. Save returns to the overview, on the month it was
+ * The `editPerson` board: "Saved right away" (Name, WhatsApp, Color) and the dated group, which takes effect
+ * next month (the amounts only for a tenant). It opens on the latest saved values. The summary lists only what
+ * changed in this edit, and with Save is in the footer. Save returns to the overview, on the month it was
  * showing, with a toast. Leaving with unsaved changes asks first. "Remove from household" does nothing until
  * 9.8.
  */
-export function PersonForm({ form, month, onMonthChange, monthLoaded, monthError }: PersonFormProps) {
+export function PersonForm({ form }: PersonFormProps) {
   const router = useRouter();
   const save = useSaveHouseholdEdit();
   const showToast = useSuccessToast();
   const {
     control,
-    getValues,
-    reset,
-    trigger,
     formState: { isValid },
   } = useForm<PersonFormValues>({
     resolver: zodResolver(personFormSchema),
@@ -65,23 +58,11 @@ export function PersonForm({ form, month, onMonthChange, monthLoaded, monthError
     defaultValues: toPersonFormValues(form),
   });
 
-  // Another month's response reloads the fields the user has not changed.
-  const shownForm = useRef(form);
-  useEffect(() => {
-    if (shownForm.current === form) return;
-    const oldValues = toPersonFormValues(shownForm.current);
-    shownForm.current = form;
-    reset(mergeTypedValues(getValues(), oldValues, toPersonFormValues(form)));
-    // The reset clears errors, and a field the user emptied still has one.
-    void trigger();
-  }, [form, getValues, reset, trigger]);
-
   const values = useWatch({ control }) as PersonFormValues;
   const edit = toHouseholdEdit(values, form);
   const previewedEdit = useDebouncedValue(edit, PREVIEW_DELAY_MS);
-  const preview = useHouseholdEditPreview(previewedEdit, monthLoaded);
+  const preview = useHouseholdEditPreview(previewedEdit);
   const answered =
-    monthLoaded &&
     !preview.isPlaceholderData &&
     preview.isSuccess &&
     JSON.stringify(edit) === JSON.stringify(previewedEdit);
@@ -105,7 +86,7 @@ export function PersonForm({ form, month, onMonthChange, monthLoaded, monthError
 
   // A failed save stops counting once the values change, so the button reads Save changes again.
   const failed = save.isError && JSON.stringify(save.variables) === JSON.stringify(edit);
-  const noticeError = errors.form ?? requestMessage(preview.error) ?? monthError;
+  const noticeError = errors.form ?? requestMessage(preview.error);
 
   return (
     <Screen>
@@ -130,16 +111,7 @@ export function PersonForm({ form, month, onMonthChange, monthLoaded, monthError
               <ColorField control={control} swatches={form.swatches} fallbackName={form.colorName} />
             </FormSection>
 
-            <FormSection title="From a month you pick" separated>
-              <FormField label="Starts from" error={errors.startsFromMonth}>
-                <MonthSelectField
-                  months={form.startsFromOptions}
-                  value={month}
-                  onChange={onMonthChange}
-                  accessibilityLabel="Starts from"
-                  invalid={!!errors.startsFromMonth}
-                />
-              </FormField>
+            <FormSection title={form.datedTitle} note={form.pendingNote} separated>
               {form.values.amounts ? (
                 <>
                   <View className="flex-row items-start gap-3">
@@ -252,9 +224,6 @@ export function PersonForm({ form, month, onMonthChange, monthLoaded, monthError
       </KeyboardAvoidingView>
       <SubpageFooter>
         <EditSummaryCard groups={answer?.groups ?? []} loading={dirty && !answered && !preview.isError} />
-        {answer?.laterVersionWarning ? (
-          <Alert variant="warning" message={answer.laterVersionWarning} className="mb-1.5" />
-        ) : null}
         {noticeError ? <Alert variant="danger" message={noticeError} className="mb-1.5" /> : null}
         {failed ? (
           <Alert

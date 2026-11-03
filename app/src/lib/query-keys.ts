@@ -49,9 +49,8 @@ export const queryKeys = {
   /**
    * One person's Edit and View screens. Under `allHousehold`, so an edit refreshes them too.
    * @param personId The person.
-   * @param month `YYYY-MM` key of the month to read, or null for the first Starts from option.
    */
-  householdForm: (personId: string, month: string | null) => ['household', 'form', personId, month] as const,
+  householdForm: (personId: string) => ['household', 'form', personId] as const,
   /**
    * What a Household edit would change, by the edit sent.
    * @param edit The edit sent to the preview.

@@ -1,7 +1,7 @@
-import { householdFormResponseSchema, type PersonColor } from "@splithouse/shared";
+import { householdFormResponseSchema, type HouseholdConfig, type PersonColor } from "@splithouse/shared";
 import { describe, expect, it } from "vitest";
-import { NOV_2026_CONFIG, PERSON_IDS } from "@/lib/fixtures/household";
-import { buildHouseholdForm, startsFromMonths } from "./build-household-form";
+import { JAN_2027_CONFIG, NOV_2026_CONFIG, PERSON_IDS } from "@/lib/fixtures/household";
+import { buildHouseholdForm } from "./build-household-form";
 
 const PEOPLE: { id: string; name: string; whatsappE164: string | null; color: PersonColor; isOwner: boolean }[] = [
   { id: PERSON_IDS.alex, name: "Alex", whatsappE164: null, color: "TEAL", isOwner: true },
@@ -10,27 +10,14 @@ const PEOPLE: { id: string; name: string; whatsappE164: string | null; color: Pe
   { id: PERSON_IDS.jordan, name: "Jordan", whatsappE164: "+6590000003", color: "GREEN", isOwner: false },
 ];
 
-const form = (personId: string, month = "2027-01") =>
+const form = (personId: string, activeConfig: HouseholdConfig | null = NOV_2026_CONFIG) =>
   buildHouseholdForm({
-    month,
-    startsFromOptions: ["2026-12", "2027-01"],
+    month: "2026-12",
     config: NOV_2026_CONFIG,
+    activeConfig,
     personId,
     people: PEOPLE,
   });
-
-describe("startsFromMonths", () => {
-  it("offers the 12 months after the active one", () => {
-    const months = startsFromMonths("2026-11", ["2026-08", "2026-11"]);
-    expect(months).toHaveLength(12);
-    expect(months[0]).toBe("2026-12");
-    expect(months.at(-1)).toBe("2027-11");
-  });
-
-  it("keeps an upcoming version further out", () => {
-    expect(startsFromMonths("2026-11", ["2028-06"]).at(-1)).toBe("2028-06");
-  });
-});
 
 describe("buildHouseholdForm", () => {
   it("gives a tenant their values, text and the link to remove them", () => {
@@ -85,8 +72,12 @@ describe("buildHouseholdForm", () => {
     ]);
   });
 
-  it("selects the month when it is an option, otherwise the first option", () => {
-    expect(form(PERSON_IDS.jordan, "2027-01").startsFrom).toBe("2027-01");
-    expect(form(PERSON_IDS.jordan, "2026-11").startsFrom).toBe("2026-12");
+  it("names next month in the dated group's title", () => {
+    expect(form(PERSON_IDS.jordan).datedTitle).toBe("From December 2026");
+  });
+
+  it("adds a note only while the saved values differ from the active month's", () => {
+    expect(form(PERSON_IDS.jordan).pendingNote).toBeNull();
+    expect(form(PERSON_IDS.jordan, JAN_2027_CONFIG).pendingNote).toBe("These take effect from December 2026.");
   });
 });

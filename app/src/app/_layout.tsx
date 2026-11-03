@@ -6,7 +6,7 @@ import { View } from 'react-native';
 import { BottomSheetModalProvider } from '@gorhom/bottom-sheet';
 import { QueryClientProvider } from '@tanstack/react-query';
 
-import { AppProvider, ServerUnreachableProvider } from '@/components';
+import { AppProvider, ServerUnreachableProvider, SuccessToastProvider } from '@/components';
 import { useAppFonts } from '@/hooks';
 import { useAppStateFocus } from '@/lib/focus-manager';
 import { queryClient } from '@/lib/query-client';
@@ -72,7 +72,9 @@ function RootShell() {
           <BottomSheetModalProvider>
             <ServerUnreachableProvider>
               <View className="flex-1 bg-background">
-                <SessionStack />
+                <SuccessToastProvider>
+                  <SessionStack />
+                </SuccessToastProvider>
               </View>
             </ServerUnreachableProvider>
           </BottomSheetModalProvider>

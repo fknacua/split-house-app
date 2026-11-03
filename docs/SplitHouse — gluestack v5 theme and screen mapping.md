@@ -152,7 +152,7 @@ Checked against gluestack v5's component list. Custom pieces are marked **custom
 | Mark paid, Record payment, Mark bill paid | BottomSheet, FormControl, Input, Select (From, For), DateTimePicker (Received on, Paid on), Radio (carry or let go), Alert, Button, Spinner | None | Saving and failed-save states |
 | Share bill | BottomSheet, Radio, Switch, Button | None. The system share sheet is Android's | None |
 | View bill | Card, Badge, Progress, Button, Skeleton | PDF viewer (**custom**, opened from the Open row) | Loading state |
-| Household | Card, FormControl, Input, Select (Applies to), Select (Starts from, as a month list), Switch, Alert, Progress, Skeleton | Connected button group: Directly or Via someone (**custom**); country-code prefix inside the WhatsApp field (**custom**); the per-person split bar, one segment per person in that person's color (**custom** Progress); the person color swatches (**custom**) | Loading state. Required markers added |
+| Household | Card, FormControl, Input, Select (Applies to), Switch, Alert, Progress, Skeleton | Connected button group: Directly or Via someone (**custom**); country-code prefix inside the WhatsApp field (**custom**); the per-person split bar, one segment per person in that person's color (**custom** Progress); the person color swatches (**custom**) | Loading state. Required markers added |
 | History | Card, Badge, Alert (month banner), Skeleton | Bottom navigation bar (**custom**) | Loading state |
 | Settings | Card, Switch, FormControl, Textarea (templates), Select (Applies to), Badge, Alert, Button | Connected button groups: theme, preview sample (**custom**, the preview sample group is compact); message preview card (**custom**) | Account card with Sign out. Notifications-blocked state |
 | First-run setup | Card, Progress, Button | Four-segment step indicator (**custom** Progress) | New step: Turn on reminders |
@@ -163,7 +163,7 @@ Checked against gluestack v5's component list. Custom pieces are marked **custom
 | Notifications | System UI. Copy, channel, actions and icon only | Not drawn in the app | The boards are a reference for the Android notification text |
 | Form controls (reference) | FormControl, Input, Textarea, Select, DateTimePicker | None | New reference boards |
 
-Date fields use gluestack's DateTimePicker as provided. v5's picker has date, time and datetime modes and no month-only mode, so month-only fields are a Select-style list.
+Date fields use gluestack's DateTimePicker as provided. v5's picker has date, time and datetime modes and no month-only mode, so month-only fields use the custom month picker (`MonthPicker`, on the Actionsheet) as they are moved to it. Until then Bill month is free text and Month being fixed is a list. Household edits have no month field.
 
 ## Changes from the brief and open points
 

@@ -24,7 +24,6 @@ const request = (body: unknown) =>
 const EDIT = {
   kind: "person",
   personId: PERSON_IDS.jordan,
-  startsFromMonth: "2027-01",
   name: "Jo",
   rentCents: 100000,
 };
@@ -60,7 +59,7 @@ describe("POST /api/household/edits/preview", () => {
     const response = await PREVIEW(request(EDIT), undefined);
     expect(response.status).toBe(200);
     const body = householdEditPreviewResponseSchema.parse(await response.json());
-    expect(body.groups.map((g) => g.title)).toEqual(["Saves now", "Saves from Jan 2027"]);
+    expect(body.groups.map((g) => g.title)).toEqual(["Saves now", "Saves from Dec 2026"]);
     expect(body.canSave).toBe(true);
   });
 
@@ -84,12 +83,10 @@ describe("POST /api/household/edits", () => {
   it("saves, parsing with the shared schema", async () => {
     const response = await SAVE(request(EDIT), undefined);
     expect(response.status).toBe(200);
-    expect(householdEditSaveResponseSchema.parse(await response.json()).savedFromMonth).toBe("2027-01");
+    expect(householdEditSaveResponseSchema.parse(await response.json()).savedFromMonth).toBe("2026-12");
   });
 
   it.each([
-    ["a malformed month", { ...EDIT, startsFromMonth: "nope" }, 400, "invalid_request"],
-    ["a month that has passed", { ...EDIT, startsFromMonth: "2026-11" }, 409, "month_locked"],
     ["a broken rule", { ...EDIT, rentCents: -1 }, 422, "invalid_edit"],
     ["nothing to store", { ...EDIT, name: "Jordan", rentCents: 95000 }, 422, "no_changes"],
   ])("answers %s with the standard error", async (_name, body, status, code) => {

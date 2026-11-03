@@ -1,0 +1,115 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Month picker</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&display=swap">
+<style>
+body{margin:0}
+button{cursor:pointer}
+</style>
+</helmet>
+<div style="width: 400px; height: 848px; box-sizing: border-box; padding: 8px; background: #0B0C0C; border-radius: 26px; font-family: Manrope, 'Segoe UI', system-ui, sans-serif; color: {{c.onSurface}}">
+<div style="position: relative; width: 384px; height: 832px; border-radius: 18px; overflow: hidden; background: {{c.background}}">
+
+<!-- Screen behind the sheet (the form that opened the picker) -->
+<div aria-hidden="true" style="padding: 48px 16px 0; display: flex; flex-direction: column; gap: 16px">
+<span style="font-size: 20px; line-height: 28px; font-weight: 800">{{bgTitle}}</span>
+<span style="font-size: 14px; line-height: 20px; font-weight: 700">{{title}}</span>
+<div style="height: 48px; border-radius: 12px; border: 1px solid {{c.outline}}"></div>
+<div style="height: 180px; border-radius: 20px; background: {{c.surface}}"></div>
+<div style="height: 220px; border-radius: 20px; background: {{c.surface}}"></div>
+</div>
+<div style="position: absolute; inset: 0; background: {{c.scrim}}"></div>
+<div style="position: absolute; top: 12px; left: 186px; width: 12px; height: 12px; border-radius: 6px; background: #050505; box-shadow: 0 0 0 2px #1C1D1E"></div>
+
+<!-- Month picker: bottom sheet, year header, 3 x 4 month grid. Picking a month selects it and closes the sheet. -->
+<section role="dialog" aria-label="{{title}}" style="position: absolute; left: 0; right: 0; bottom: 0; background: {{c.sheet}}; border-radius: 24px 24px 0 0; padding: 12px 16px 28px; display: flex; flex-direction: column; gap: 8px">
+<span aria-hidden="true" style="align-self: center; width: 36px; height: 4px; border-radius: 2px; background: {{c.track}}"></span>
+<h1 style="margin: 8px 0 0; text-align: center; font-size: 16px; line-height: 24px; font-weight: 800">{{title}}</h1>
+
+<div style="display: flex; align-items: center; justify-content: space-between; padding: 4px 0">
+<button aria-label="Previous year" aria-disabled="{{prevDisabled}}" onClick="{{prevYear}}" style="width: 48px; height: 48px; border: 0; border-radius: 24px; background: none; color: {{prevFg}}; display: flex; align-items: center; justify-content: center; font-family: inherit"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m15 18-6-6 6-6"></path></svg></button>
+<span aria-live="polite" style="font-size: 18px; line-height: 24px; font-weight: 800; font-variant-numeric: tabular-nums">{{year}}</span>
+<button aria-label="Next year" aria-disabled="{{nextDisabled}}" onClick="{{nextYear}}" style="width: 48px; height: 48px; border: 0; border-radius: 24px; background: none; color: {{nextFg}}; display: flex; align-items: center; justify-content: center; font-family: inherit"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m9 18 6-6-6-6"></path></svg></button>
+</div>
+
+<div role="listbox" aria-label="Month" style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px">
+<sc-for list="{{months}}" as="m" hint-placeholder-count="12">
+<sc-if value="{{m.enabled}}" hint-placeholder-val="{{true}}"><a role="option" href="{{m.href}}" aria-selected="{{m.selected}}" style="font-family: inherit; font-size: 15px; line-height: 20px; font-weight: {{m.weight}}; display: flex; align-items: center; justify-content: center; text-decoration: none; border: 0; border-radius: 24px; height: 48px; background: {{m.bg}}; color: {{m.fg}}">{{m.name}}</a></sc-if>
+<sc-if value="{{m.disabled}}" hint-placeholder-val="{{false}}"><span role="option" aria-disabled="true" aria-selected="false" style="font-family: inherit; font-size: 15px; line-height: 20px; font-weight: {{m.weight}}; display: flex; align-items: center; justify-content: center; text-decoration: none; border: 0; border-radius: 24px; height: 48px; background: {{m.bg}}; color: {{m.fg}}">{{m.name}}</span></sc-if>
+</sc-for>
+</div>
+</section>
+</div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"theme":{"editor":"enum","options":["light","dark"],"default":"light"},"title":{"editor":"string","default":"Starts from"},"bgTitle":{"editor":"string","default":"Edit Tenant 2"},"returnHref":{"editor":"string","default":""},"selectedYear":{"editor":"number","default":2027},"selectedMonth":{"editor":"number","default":0},"minYear":{"editor":"number","default":2027},"minMonth":{"editor":"number","default":0},"maxYear":{"editor":"number","default":2030},"maxMonth":{"editor":"number","default":11},"$preview":{"width":400,"height":848}}'>
+class Component extends DCLogic {
+  renderVals() {
+    var dark = this.props.theme === 'dark';
+    var c = dark ? {
+      background: '#111214', surface: '#1A1C1E', container: '#222427', sheet: '#222427',
+      onSurface: '#E3E3E6', onSurfaceVariant: '#C4C6CB', outline: '#8E9196', outlineVariant: '#2E3134',
+      primary: '#E2E2E6', onPrimary: '#1A1C1E', selected: '#2C2F33', onSelected: '#E3E3E6',
+      disabledBg: '#222427', disabledFg: '#5C5F64', track: '#3A3E43', scrim: 'rgba(0,0,0,0.6)',
+      success: '#66BB6A', successContainer: '#1B5E20', onSuccessContainer: '#CBE4CB',
+      warning: '#FFA726', warningContainer: '#66430F', onWarningContainer: '#FFE2B7', warningTint: '#332108', warningLine: '#F57C00',
+      danger: '#F44336', dangerTint: '#3B1511', dangerLine: '#D32F2F', onDangerTint: '#FFD9D6',
+      info: '#29B6F6', infoTint: '#082431', infoLine: '#1B76A0', infoContainer: '#104962', onInfoContainer: '#B8E7FB',
+      footShadow: '0 -8px 16px rgba(0,0,0,0.45)'
+    } : {
+      background: '#F5F5F7', surface: '#FFFFFF', container: '#E9EAED', sheet: '#FFFFFF',
+      onSurface: '#1A1C1E', onSurfaceVariant: '#45484C', outline: '#74777C', outlineVariant: '#E6E7EA',
+      primary: '#2B2F33', onPrimary: '#FFFFFF', selected: '#E6E7EA', onSelected: '#1A1C1E',
+      disabledBg: '#E9EAED', disabledFg: '#9A9DA2', track: '#D3D5D9', scrim: 'rgba(0,0,0,0.5)',
+      success: '#2E7D32', successContainer: '#C8E6C9', onSuccessContainer: '#1E4620',
+      warning: '#E65100', warningContainer: '#FBE2CC', onWarningContainer: '#663C00', warningTint: '#FFF4E5', warningLine: '#FBE2CC',
+      danger: '#D32F2F', dangerTint: '#FDEDED', dangerLine: '#F6D5D5', onDangerTint: '#5F2120',
+      info: '#0288D1', infoTint: '#E5F6FD', infoLine: '#CCE7F6', infoContainer: '#CCE7F6', onInfoContainer: '#014361',
+      footShadow: '0 -6px 14px rgba(0,0,0,0.14)'
+    };
+    var self = this;
+    var NAMES = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+    // Allowed range: minYear/minMonth to maxYear/maxMonth (inclusive). All 12 months always show; months outside the range use the disabled style.
+    // A year arrow is disabled when the year it leads to has no allowed month.
+    var num = function (v, d) { return v != null && v !== '' ? Number(v) : d; };
+    var minY = num(this.props.minYear, 2027);
+    var minM = num(this.props.minMonth, 0);
+    var maxY = num(this.props.maxYear, 2030);
+    var maxM = num(this.props.maxMonth, 11);
+    var st = this.state || {};
+    var selY = st.selY != null ? st.selY : num(this.props.selectedYear, 2027);
+    var selM = st.selM != null ? st.selM : num(this.props.selectedMonth, 0);
+    var year = st.year != null ? st.year : selY;
+    var ret = this.props.returnHref || (dark ? 'Household-EditPerson-Dark.dc.html' : 'Household-EditPerson-Light.dc.html');
+    var months = NAMES.map(function (n, i) {
+      var disabled = year < minY || (year === minY && i < minM) || year > maxY || (year === maxY && i > maxM);
+      var selected = year === selY && i === selM;
+      return {
+        // selected month in parentheses is the wireframe's notation; here it is filled primary
+        name: n, selected: selected, disabled: disabled,
+        bg: selected ? c.primary : 'transparent',
+        fg: selected ? c.onPrimary : (disabled ? c.disabledFg : c.onSurface),
+        weight: selected ? 800 : 600,
+        enabled: !disabled, href: ret
+      };
+    });
+    var prevDisabled = year <= minY;
+    var nextDisabled = year >= maxY;
+    return {
+      c: c, title: this.props.title || 'Starts from', bgTitle: this.props.bgTitle || 'Edit Tenant 2', year: String(year), months: months,
+      prevDisabled: String(prevDisabled), prevFg: prevDisabled ? c.disabledFg : c.onSurface, nextDisabled: String(nextDisabled), nextFg: nextDisabled ? c.disabledFg : c.onSurface,
+      prevYear: function () { if (!prevDisabled) self.setState({ year: year - 1 }); },
+      nextYear: function () { if (!nextDisabled) self.setState({ year: year + 1 }); }
+    };
+  }
+}
+</script>
+</body>
+</html>

@@ -56,43 +56,22 @@ export function toPersonFormValues(form: HouseholdFormResponse): PersonFormValue
   };
 }
 
-/**
- * The values after another month's response arrives: a field still at the old month's value takes the
- * new month's, and one the user changed keeps what they typed.
- *
- * @param current The form's values now.
- * @param oldValues The values the old month filled in.
- * @param newValues The values the new month fills in.
- * @returns The values to show.
- */
-export function mergeTypedValues(
-  current: PersonFormValues,
-  oldValues: PersonFormValues,
-  newValues: PersonFormValues,
-): PersonFormValues {
-  const merged = { ...newValues };
-  for (const key of Object.keys(merged) as (keyof PersonFormValues)[]) {
-    if (current[key] !== oldValues[key]) Object.assign(merged, { [key]: current[key] });
-  }
-  return merged;
-}
-
 /** An empty field and a lone country code both mean no number. */
 function whatsappOf(text: string): string | null {
   return text === '' || text === BARE_COUNTRY_CODE ? null : text;
 }
 
 /**
- * Builds the edit from what differs from the loaded month. An empty rent, shares or units is left out,
+ * Builds the edit from what differs from the saved values. An empty rent, shares or units is left out,
  * since the schema stops Save for it; an empty deposit is 0 and an empty day clears it.
  *
  * @param values The form's values.
  * @param form The loaded form response the values are compared with.
- * @returns The edit for the preview and the save, starting from the response's Starts from month.
+ * @returns The edit for the preview and the save.
  */
 export function toHouseholdEdit(values: PersonFormValues, form: HouseholdFormResponse): HouseholdPersonEdit {
   const loaded = form.values;
-  const edit: HouseholdPersonEdit = { kind: 'person', personId: form.personId, startsFromMonth: form.startsFrom };
+  const edit: HouseholdPersonEdit = { kind: 'person', personId: form.personId };
   if (values.name !== loaded.name) edit.name = values.name;
   const whatsapp = whatsappOf(values.whatsapp);
   if (whatsapp !== loaded.whatsappE164) edit.whatsappE164 = whatsapp;
@@ -114,14 +93,14 @@ export function toHouseholdEdit(values: PersonFormValues, form: HouseholdFormRes
 }
 
 /**
- * Whether leaving the form would lose anything. Changing only Starts from loses nothing.
+ * Whether leaving the form would lose anything.
  *
  * @param values The form's values.
  * @param form The loaded form response.
- * @returns True when a field differs from the loaded month.
+ * @returns True when a field differs from the saved values.
  */
 export function hasUnsavedChanges(values: PersonFormValues, form: HouseholdFormResponse): boolean {
-  const { kind, personId, startsFromMonth, ...changes } = toHouseholdEdit(values, form);
+  const { kind, personId, ...changes } = toHouseholdEdit(values, form);
   const clearedAmount =
     form.values.amounts !== null &&
     (values.rentCents === null || values.utilityShares === null || values.airconUnits === null);

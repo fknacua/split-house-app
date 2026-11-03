@@ -3,7 +3,7 @@ import { parseQuery, requireSession, route } from "@/lib/api";
 import { prisma } from "@/lib/prisma";
 import { getHouseholdForm } from "@/services/household/household-form.service";
 
-/** One person's Edit and View screens: `?personId=`, and `?month=` or the first Starts from option. */
+/** One person's Edit and View screens, with their latest saved values: `?personId=`. */
 export const GET = route(async (request) => {
   await requireSession(request);
   const query = parseQuery(request, householdFormQuerySchema);

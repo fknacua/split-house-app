@@ -3,7 +3,6 @@ import {
   e164Phone,
   formatCents,
   formatDayOrdinal,
-  formatMonthLabel,
   formatMonthShortLabel,
   householdConfigSchema,
   requiredText,
@@ -24,16 +23,6 @@ export interface ParsedVersion {
   config: HouseholdConfig;
 }
 
-/** The versions around a chosen month. */
-export interface VersionsAround {
-  /** The version in effect at the month: the edit starts from it. */
-  base: ParsedVersion | null;
-  /** The newest version starting before the month: the summary compares against it. */
-  before: ParsedVersion | null;
-  /** The next version starting after the month: it keeps its own values. */
-  later: ParsedVersion | null;
-}
-
 /** The `Person` row's fields an edit can read. */
 export interface EditPerson {
   id: string;
@@ -47,12 +36,10 @@ export interface EditPerson {
 export interface HouseholdEditPlanInput {
   edit: HouseholdEdit;
   person: EditPerson;
-  /** The active month: the newest opened, or the calendar month when later. */
-  activeMonth: string;
-  /** The version in effect at the chosen month, with the person in it. */
+  /** The month dated values start from: the one after the active month. */
+  month: string;
+  /** The version in effect at that month, with the person in it. */
   base: ParsedVersion;
-  before: ParsedVersion | null;
-  later: ParsedVersion | null;
 }
 
 /** What an edit would do. The preview returns it and the save stores it. */
@@ -63,9 +50,6 @@ export interface HouseholdEditPlan {
   nextConfig: HouseholdConfig | null;
   groups: HouseholdEditGroup[];
   errors: Record<string, string>;
-  /** A dated change was asked for on a month that can no longer change. */
-  monthBlocked: boolean;
-  laterVersionWarning: string | null;
   canSave: boolean;
 }
 
@@ -74,19 +58,15 @@ const SPLIT_ERROR = "This comes from the split.";
 const AMOUNT_FIELDS = ["rentCents", "utilityShares", "airconUnits", "depositCents"] as const;
 
 /**
- * Finds the versions around a month.
+ * Finds the version in effect at a month.
  *
  * @param versions - The versions, in any order.
- * @param month - The chosen month, `YYYY-MM`.
- * @returns The version in effect, the one before the month and the next one after it.
+ * @param month - The month, `YYYY-MM`.
+ * @returns The newest version starting on or before the month, or null.
  */
-export function versionsAround(versions: ParsedVersion[], month: string): VersionsAround {
+export function versionInEffect(versions: ParsedVersion[], month: string): ParsedVersion | null {
   const sorted = [...versions].sort((a, b) => a.startsFromMonth.localeCompare(b.startsFromMonth));
-  return {
-    base: sorted.findLast((v) => v.startsFromMonth <= month) ?? null,
-    before: sorted.findLast((v) => v.startsFromMonth < month) ?? null,
-    later: sorted.find((v) => v.startsFromMonth > month) ?? null,
-  };
+  return sorted.findLast((v) => v.startsFromMonth <= month) ?? null;
 }
 
 /** The checks on the dated values. Errors here keep the edit from being applied. */
@@ -181,16 +161,13 @@ function datedRows(from: PersonConfig, to: PersonConfig): HouseholdEditRow[] {
  * Works out what an edit would do, for the preview and the save alike. Pure: the service reads the
  * rows and stores the result.
  *
- * The summary compares the version before the chosen month with the new values, so edits added to an
- * upcoming version keep showing together. `canSave` looks at the version in effect instead: it says
- * whether a save would store anything.
+ * The summary compares the saved values with the new ones, so it lists only what this edit changes.
  *
- * @param input - The edit, the person, the active month and the versions around the chosen month.
+ * @param input - The edit, the person, the month dated values start from and the version in effect.
  * @returns The changes, the summary groups, the errors per field and whether Save is allowed.
  */
 export function planHouseholdEdit(input: HouseholdEditPlanInput): HouseholdEditPlan {
-  const { edit, person, activeMonth, base, before, later } = input;
-  const month = edit.startsFromMonth;
+  const { edit, person, month, base } = input;
   const inBase = base.config.people.find((p) => p.personId === edit.personId);
   if (!inBase) throw new Error("The person is not in the version");
 
@@ -208,14 +185,11 @@ export function planHouseholdEdit(input: HouseholdEditPlanInput): HouseholdEditP
     } else {
       if (!isDeepStrictEqual(parsed.data, base.config)) nextConfig = parsed.data;
       const next = parsed.data.people.find((p) => p.personId === edit.personId) ?? inBase;
-      const from = before?.config.people.find((p) => p.personId === edit.personId) ?? inBase;
-      const rows = datedRows(from, next);
+      const rows = datedRows(inBase, next);
       if (rows.length > 0) groups.push({ title: `Saves from ${formatMonthShortLabel(month)}`, rows });
     }
   }
 
-  const monthBlocked = nextConfig !== null && month <= activeMonth;
-  if (monthBlocked) errors.startsFromMonth = `Pick a month after ${formatMonthLabel(activeMonth)}.`;
   const hasChanges = nextConfig !== null || Object.keys(immediate.changes).length > 0;
 
   return {
@@ -223,11 +197,6 @@ export function planHouseholdEdit(input: HouseholdEditPlanInput): HouseholdEditP
     nextConfig,
     groups,
     errors,
-    monthBlocked,
-    laterVersionWarning:
-      nextConfig && later
-        ? `${formatMonthLabel(later.startsFromMonth)} keeps its own values, so this change stops there.`
-        : null,
     canSave: hasChanges && Object.keys(errors).length === 0,
   };
 }

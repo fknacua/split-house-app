@@ -84,7 +84,6 @@ function fakeDb(versions: VersionRow[] = [version("2026-11", NOV_2026_CONFIG)], 
 const edit = (fields: Partial<HouseholdPersonEdit> = {}): HouseholdPersonEdit => ({
   kind: "person",
   personId: PERSON_IDS.jordan,
-  startsFromMonth: "2027-01",
   ...fields,
 });
 
@@ -109,7 +108,7 @@ describe("previewHouseholdEdit", () => {
           { label: "Color", from: "Green", to: "Purple" },
         ],
       },
-      { title: "Saves from Jan 2027", rows: [{ label: "Rent", from: "$950.00", to: "$1,000.00" }] },
+      { title: "Saves from Dec 2026", rows: [{ label: "Rent", from: "$950.00", to: "$1,000.00" }] },
     ]);
     expect(preview.canSave).toBe(true);
     expect(preview.errors).toEqual({});
@@ -122,7 +121,7 @@ describe("previewHouseholdEdit", () => {
       fakeDb().db,
       edit({ name: "Jordan", color: "GREEN", rentCents: 95000, rentDueDay: 1, utilitiesDueDay: 4 }),
     );
-    expect(preview).toEqual({ groups: [], canSave: false, errors: {}, laterVersionWarning: null });
+    expect(preview).toEqual({ groups: [], canSave: false, errors: {} });
   });
 
   it("shows shares and due days as text", async () => {
@@ -133,24 +132,15 @@ describe("previewHouseholdEdit", () => {
     ]);
   });
 
-  it("compares with the version before the chosen month, not the one being added to", async () => {
-    const { db } = fakeDb([version("2026-11", NOV_2026_CONFIG), version("2027-01", JAN_2027_CONFIG)]);
+  it("lists only this edit's changes, not ones saved earlier for next month", async () => {
+    const { db } = fakeDb([version("2026-11", NOV_2026_CONFIG), version("2026-12", JAN_2027_CONFIG)]);
     const preview = await previewHouseholdEdit(db, edit({ airconUnits: 2 }));
-    expect(preview.groups[0].rows).toEqual([
-      { label: "Rent", from: "$950.00", to: "$1,000.00" },
-      { label: "Aircon units", from: "1", to: "2" },
-    ]);
+    expect(preview.groups[0].rows).toEqual([{ label: "Aircon units", from: "1", to: "2" }]);
   });
 
-  it("warns when a later version keeps its own values", async () => {
-    const { db } = fakeDb([version("2026-11", NOV_2026_CONFIG), version("2027-03", JAN_2027_CONFIG)]);
-    const preview = await previewHouseholdEdit(db, edit({ airconUnits: 2 }));
-    expect(preview.laterVersionWarning).toBe("March 2027 keeps its own values, so this change stops there.");
-  });
-
-  it("does not warn when only the person's row changes", async () => {
-    const { db } = fakeDb([version("2026-11", NOV_2026_CONFIG), version("2027-03", JAN_2027_CONFIG)]);
-    expect((await previewHouseholdEdit(db, edit({ name: "Jo" }))).laterVersionWarning).toBeNull();
+  it("has no groups when nothing changed, even with values saved earlier for next month", async () => {
+    const { db } = fakeDb([version("2026-11", NOV_2026_CONFIG), version("2026-12", JAN_2027_CONFIG)]);
+    expect((await previewHouseholdEdit(db, edit())).groups).toEqual([]);
   });
 
   it.each([
@@ -162,7 +152,6 @@ describe("previewHouseholdEdit", () => {
     ["a direct payer's due day cleared", { rentDueDay: null }, "rentDueDay"],
     ["more shares than the total", { utilityShares: 5001 }, "utilityShares"],
     ["more units than the total", { airconUnits: 7 }, "airconUnits"],
-    ["a dated change on the active month", { rentCents: 100000, startsFromMonth: "2026-11" }, "startsFromMonth"],
   ])("returns %s as a field error", async (_name, fields, field) => {
     const preview = await previewHouseholdEdit(fakeDb().db, edit(fields));
     expect(preview.errors[field]).toBeTruthy();
@@ -184,11 +173,11 @@ describe("previewHouseholdEdit", () => {
 });
 
 describe("saveHouseholdEdit", () => {
-  it("creates a version for a new month, from the version in effect", async () => {
+  it("creates a version for next month, from the version in effect", async () => {
     const { db, state } = fakeDb();
-    expect(await saveHouseholdEdit(db, edit({ rentCents: 100000 }))).toEqual({ savedFromMonth: "2027-01" });
+    expect(await saveHouseholdEdit(db, edit({ rentCents: 100000 }))).toEqual({ savedFromMonth: "2026-12" });
     expect(state.versions).toHaveLength(2);
-    const created = state.versions.find((v) => v.startsFromMonth === "2027-01");
+    const created = state.versions.find((v) => v.startsFromMonth === "2026-12");
     expect(created?.schemaVersion).toBe(HOUSEHOLD_SCHEMA_VERSION);
     expect(jordanIn(created)?.rentCents).toBe(100000);
     expect(jordanIn(state.versions[0])?.rentCents).toBe(95000);
@@ -199,33 +188,19 @@ describe("saveHouseholdEdit", () => {
     await saveHouseholdEdit(db, edit({ rentCents: 100000 }));
     await saveHouseholdEdit(db, edit({ airconUnits: 2 }));
     await saveHouseholdEdit(db, edit({ depositCents: 100000 }));
-    expect(state.versions.map((v) => v.startsFromMonth)).toEqual(["2026-11", "2027-01"]);
+    expect(state.versions.map((v) => v.startsFromMonth)).toEqual(["2026-11", "2026-12"]);
     expect(jordanIn(state.versions[1])).toMatchObject({ rentCents: 100000, airconUnits: 2, depositCents: 100000 });
   });
 
-  it("does not change a later version", async () => {
-    const { db, state } = fakeDb([version("2026-11", NOV_2026_CONFIG), version("2027-03", JAN_2027_CONFIG)]);
-    await saveHouseholdEdit(db, edit({ airconUnits: 2 }));
-    const later = state.versions.find((v) => v.startsFromMonth === "2027-03");
-    expect(jordanIn(later)?.airconUnits).toBe(1);
-  });
-
   it("refuses to update a version a month has opened using, storing nothing", async () => {
-    const jan = version("2027-01", JAN_2027_CONFIG);
-    const { db, state } = fakeDb([version("2026-11", NOV_2026_CONFIG), jan], [jan.id]);
+    const dec = version("2026-12", JAN_2027_CONFIG);
+    const { db, state } = fakeDb([version("2026-11", NOV_2026_CONFIG), dec], [dec.id]);
     await expect(saveHouseholdEdit(db, edit({ airconUnits: 2, name: "Jo" }))).rejects.toMatchObject({
       status: 409,
       code: "version_locked",
     });
     expect(jordanIn(state.versions[1])?.airconUnits).toBe(1);
     expect(state.people.find((p) => p.id === PERSON_IDS.jordan)?.name).toBe("Jordan");
-  });
-
-  it.each(["2026-10", "2026-11"])("answers 409 month_locked for a dated change from %s", async (startsFromMonth) => {
-    await expect(saveHouseholdEdit(fakeDb().db, edit({ rentCents: 100000, startsFromMonth }))).rejects.toMatchObject({
-      status: 409,
-      code: "month_locked",
-    });
   });
 
   it.each([
@@ -284,7 +259,7 @@ describe("saveHouseholdEdit", () => {
     });
   });
 
-  it("answers 404 no_person for someone not in the month's version", async () => {
+  it("answers 404 no_person for someone not in next month's version", async () => {
     const config = { ...NOV_2026_CONFIG, people: NOV_2026_CONFIG.people.filter((p) => p.personId !== PERSON_IDS.jordan) };
     await expect(saveHouseholdEdit(fakeDb([version("2026-11", config)]).db, edit({ name: "Jo" }))).rejects.toMatchObject({
       status: 404,
@@ -292,7 +267,7 @@ describe("saveHouseholdEdit", () => {
     });
   });
 
-  it("answers 404 no_version for a month before every version", async () => {
+  it("answers 404 no_version when no version covers next month", async () => {
     const { db } = fakeDb([version("2027-06", NOV_2026_CONFIG)]);
     await expect(saveHouseholdEdit(db, edit({ rentCents: 100000 }))).rejects.toMatchObject({
       status: 404,

@@ -3,11 +3,9 @@ import { describe, expect, it } from 'vitest';
 import type { HouseholdFormResponse } from '@splithouse/shared';
 import {
   hasUnsavedChanges,
-  mergeTypedValues,
   personFormSchema,
   toHouseholdEdit,
   toPersonFormValues,
-  type PersonFormValues,
 } from './helpers';
 
 function formFor(overrides: Partial<HouseholdFormResponse['values']> = {}): HouseholdFormResponse {
@@ -16,9 +14,8 @@ function formFor(overrides: Partial<HouseholdFormResponse['values']> = {}): Hous
     title: 'Edit Jordan',
     viewTitle: 'Jordan',
     sub: 'Own room · pays you directly',
-    month: '2026-12',
-    startsFrom: '2026-12',
-    startsFromOptions: ['2026-12', '2027-01'],
+    datedTitle: 'From December 2026',
+    pendingNote: null,
     values: {
       name: 'Jordan',
       whatsappE164: '+6581234567',
@@ -38,7 +35,7 @@ function formFor(overrides: Partial<HouseholdFormResponse['values']> = {}): Hous
   };
 }
 
-const BASE = { kind: 'person', personId: 'p-jordan', startsFromMonth: '2026-12' };
+const BASE = { kind: 'person', personId: 'p-jordan' };
 
 describe('toPersonFormValues', () => {
   it('shows no deposit as an empty field', () => {
@@ -56,7 +53,7 @@ describe('toHouseholdEdit', () => {
   const form = formFor();
   const values = toPersonFormValues(form);
 
-  it('sends nothing but the month when nothing changed', () => {
+  it('sends nothing but the person when nothing changed', () => {
     expect(toHouseholdEdit(values, form)).toEqual(BASE);
   });
 
@@ -111,24 +108,5 @@ describe('hasUnsavedChanges', () => {
 
   it('is true for an emptied amount, which the edit leaves out', () => {
     expect(hasUnsavedChanges({ ...values, rentCents: null }, form)).toBe(true);
-  });
-});
-
-describe('mergeTypedValues', () => {
-  const december: PersonFormValues = toPersonFormValues(formFor());
-  const january: PersonFormValues = { ...december, rentCents: 110000, airconUnits: 2 };
-
-  it('reloads a field the user did not change', () => {
-    expect(mergeTypedValues(december, december, january)).toEqual(january);
-  });
-
-  it('keeps what the user typed', () => {
-    const typed = { ...december, rentCents: 100000 };
-    expect(mergeTypedValues(typed, december, january)).toEqual({ ...january, rentCents: 100000 });
-  });
-
-  it('keeps a field the user emptied', () => {
-    const emptied = { ...december, rentCents: null };
-    expect(mergeTypedValues(emptied, december, january).rentCents).toBeNull();
   });
 });
