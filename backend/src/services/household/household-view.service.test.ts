@@ -104,6 +104,19 @@ describe("getHouseholdView", () => {
     expect(error).toMatchObject({ status: 404, code: "no_version" });
   });
 
+  it("shows someone added for next month only from that month", async () => {
+    const casey = { ...NOV_2026_CONFIG.people[3], personId: "person-casey" };
+    const withCasey = { ...NOV_2026_CONFIG, people: [...NOV_2026_CONFIG.people, casey] };
+    const db = fakeDb([version("2026-12", withCasey), version("2026-11", NOV_2026_CONFIG)]);
+    db.person.findMany = async () => [...PEOPLE, { id: casey.personId, name: "Casey", color: "PURPLE" }];
+
+    const names = async (month: string) => (await getHouseholdView(db, month)).people.map((p) => p.name);
+    expect(await names("2026-11")).not.toContain("Casey");
+    expect(await names("2026-12")).toContain("Casey");
+    const november = await getHouseholdView(db, "2026-11");
+    expect(november.splitRows.flatMap((row) => row.segments.map((s) => s.name))).not.toContain("Casey");
+  });
+
   it("does not open the month", async () => {
     const db = fakeDb();
     const create = vi.fn();

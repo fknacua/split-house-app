@@ -1,6 +1,13 @@
-import { addMonths, parseHouseholdConfig, type HouseholdFormQuery, type HouseholdFormResponse, type PersonColor } from "@splithouse/shared";
+import {
+  addMonths,
+  parseHouseholdConfig,
+  type HouseholdAddFormResponse,
+  type HouseholdFormQuery,
+  type HouseholdFormResponse,
+  type PersonColor,
+} from "@splithouse/shared";
 import { ApiError } from "@/lib/api";
-import { buildHouseholdForm } from "@/lib/household/build-household-form";
+import { buildAddPersonForm, buildHouseholdForm } from "@/lib/household/build-household-form";
 import { getActiveMonth, type ActiveMonthDb } from "@/services/months/active-month.service";
 
 const VERSION_SELECT = { startsFromMonth: true, schemaVersion: true, config: true } as const;
@@ -25,6 +32,27 @@ export interface HouseholdFormDb extends ActiveMonthDb {
       select: typeof PERSON_SELECT;
     }): Promise<{ id: string; name: string; whatsappE164: string | null; color: PersonColor; isOwner: boolean }[]>;
   };
+}
+
+/**
+ * Reads the Add subtenant form: the version in effect next month, which is what a new tenant joins. Read-only.
+ *
+ * @param db - The Prisma client, or a fake in tests.
+ * @returns The Add subtenant screen.
+ * @throws {ApiError} 409 `no_household` before first run; 404 `no_version` when no version covers next month.
+ */
+export async function getHouseholdAddForm(db: HouseholdFormDb): Promise<HouseholdAddFormResponse> {
+  const [activeMonth, versions, people] = await Promise.all([
+    getActiveMonth(db),
+    db.householdVersion.findMany({ orderBy: { startsFromMonth: "desc" }, select: VERSION_SELECT }),
+    db.person.findMany({ select: PERSON_SELECT }),
+  ]);
+  if (versions.length === 0) throw new ApiError(409, "no_household", "Set up the household first.");
+
+  const month = addMonths(activeMonth, 1);
+  const version = versions.find((v) => v.startsFromMonth <= month);
+  if (!version) throw new ApiError(404, "no_version", "The household has no setup for next month.");
+  return buildAddPersonForm({ month, config: parseHouseholdConfig(version.schemaVersion, version.config), people });
 }
 
 /**

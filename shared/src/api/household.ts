@@ -210,6 +210,17 @@ export const householdFormResponseSchema = z.object({
 /** `GET /api/household/form`: one person's Edit and View screens, with their latest saved values, ready to render. */
 export type HouseholdFormResponse = z.infer<typeof householdFormResponseSchema>;
 
+/** `GET /api/household/add-form`: the Add subtenant screen, ready to render. Its fields start empty. */
+export const householdAddFormResponseSchema = householdFormResponseSchema
+  .pick({ title: true, sub: true, datedTitle: true, colorName: true, swatches: true, sentViaOptions: true })
+  .extend({
+    /** The default: the first color nobody in the household uses. */
+    color: personColor,
+  });
+
+/** `GET /api/household/add-form`: the Add subtenant screen, ready to render. Its fields start empty. */
+export type HouseholdAddFormResponse = z.infer<typeof householdAddFormResponseSchema>;
+
 /**
  * An edit to one person. Only the fields sent are applied. Dated fields always start next month, which the
  * server works out. The rules on the values (a required name, a valid number, day 1 to 31) are checked by the
@@ -238,8 +249,38 @@ export const householdPersonEditSchema = z.object({
 /** An edit to one person. Only the fields sent are applied. */
 export type HouseholdPersonEdit = z.infer<typeof householdPersonEditSchema>;
 
+/**
+ * A new tenant, who joins from next month, which the server works out. A required field not filled yet is
+ * null or empty: the preview answers `canSave: false` with no error for it, so an untouched form stays calm.
+ */
+export const householdAddPersonEditSchema = z.object({
+  kind: z.literal('addPerson'),
+  name: z.string(),
+  whatsappE164: z.string().nullable(),
+  color: personColor,
+  rentCents: z.number().int().nullable(),
+  /** In thousandths of a share (1.5 shares = 1500). */
+  utilityShares: z.number().int().nullable(),
+  airconUnits: z.number().int().nullable(),
+  depositCents: z.number().int(),
+  /** Required unless rent is sent via someone. */
+  rentDueDay: z.number().int().nullable(),
+  /** Also sets the aircon due day. Required unless utilities are sent via someone. */
+  utilitiesDueDay: z.number().int().nullable(),
+  /** Who rent is sent via. Null means paid directly. */
+  rentViaPersonId: z.string().min(1).nullable(),
+  /** Who utilities are sent via, which also sets aircon. Null means paid directly. */
+  utilitiesViaPersonId: z.string().min(1).nullable(),
+});
+
+/** A new tenant, who joins from next month. */
+export type HouseholdAddPersonEdit = z.infer<typeof householdAddPersonEditSchema>;
+
 /** `POST /api/household/edits` and `.../preview` body: one typed edit. The app never sends a config. */
-export const householdEditSchema = z.discriminatedUnion('kind', [householdPersonEditSchema]);
+export const householdEditSchema = z.discriminatedUnion('kind', [
+  householdPersonEditSchema,
+  householdAddPersonEditSchema,
+]);
 
 /** `POST /api/household/edits` and `.../preview` body: one typed edit. The app never sends a config. */
 export type HouseholdEdit = z.infer<typeof householdEditSchema>;

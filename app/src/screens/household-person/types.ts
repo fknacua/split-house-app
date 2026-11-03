@@ -2,6 +2,7 @@ import type { ReactNode } from 'react';
 import type { Control } from 'react-hook-form';
 
 import type {
+  HouseholdAddFormResponse,
   HouseholdEditGroup,
   HouseholdEditRow,
   HouseholdFormResponse,
@@ -9,6 +10,7 @@ import type {
   PersonColor,
 } from '@splithouse/shared';
 import type { PersonFormValues } from './helpers';
+import type { useEditFlow } from './use-edit-flow';
 
 /** Props for {@link FormSection}. */
 export interface FormSectionProps {
@@ -69,6 +71,19 @@ export interface EditSummaryRowProps {
 export interface PersonFormProps {
   /** The loaded response. It fills the form when the form opens. */
   form: HouseholdFormResponse;
+}
+
+/** Props for {@link AddPersonForm}. */
+export interface AddPersonFormProps {
+  /** The loaded response. It sets the default color and the lists. */
+  form: HouseholdAddFormResponse;
+}
+
+/** Props for {@link EditSaveActions}. */
+export interface EditSaveActionsProps {
+  flow: ReturnType<typeof useEditFlow>;
+  /** The form's own checks stop the save. The server's answer counts as well. */
+  disabled: boolean;
 }
 
 /** Props for {@link ViewRow}. */

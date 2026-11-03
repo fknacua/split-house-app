@@ -10,6 +10,7 @@ export * from './use-history';
 export * from './use-history-month';
 export * from './use-home';
 export * from './use-household';
+export * from './use-household-add-form';
 export * from './use-household-edit-preview';
 export * from './use-household-form';
 export * from './use-load-bill-draft';

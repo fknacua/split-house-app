@@ -1,4 +1,4 @@
-import type { ChargeType, HouseholdConfig, HouseholdEdit, HouseholdPersonEdit, PersonConfig } from "@splithouse/shared";
+import type { ChargeType, HouseholdConfig, HouseholdPersonEdit, PersonConfig } from "@splithouse/shared";
 import { viaOf } from "./route-via";
 
 /** The due days after an edit. The utilities day also sets aircon, and an unchanged day leaves both as they are. */
@@ -40,6 +40,23 @@ function nextRoutes(person: PersonConfig, edit: HouseholdPersonEdit): PersonConf
 }
 
 /**
+ * Applies an edit's dated values to one person's config entry.
+ *
+ * @param person - The person's entry. Not changed.
+ * @param edit - The edit.
+ * @returns The new entry.
+ */
+export function applyPersonEdit(person: PersonConfig, edit: HouseholdPersonEdit): PersonConfig {
+  return {
+    ...person,
+    rentCents: edit.rentCents ?? person.rentCents,
+    depositCents: edit.depositCents ?? person.depositCents,
+    dueDays: nextDueDays(person, edit),
+    routes: nextRoutes(person, edit),
+  };
+}
+
+/**
  * Applies one typed edit to a config. Touches only the dated values: name, WhatsApp and color live on
  * the `Person` row. The result still has to go through `householdConfigSchema`.
  *
@@ -47,19 +64,30 @@ function nextRoutes(person: PersonConfig, edit: HouseholdPersonEdit): PersonConf
  * @param edit - The edit.
  * @returns The new config.
  */
-export function applyHouseholdEdit(config: HouseholdConfig, edit: HouseholdEdit): HouseholdConfig {
+export function applyHouseholdEdit(config: HouseholdConfig, edit: HouseholdPersonEdit): HouseholdConfig {
   return {
     ...config,
-    people: config.people.map((person) =>
-      person.personId === edit.personId
-        ? {
-            ...person,
-            rentCents: edit.rentCents ?? person.rentCents,
-            depositCents: edit.depositCents ?? person.depositCents,
-            dueDays: nextDueDays(person, edit),
-            routes: nextRoutes(person, edit),
-          }
-        : person,
-    ),
+    people: config.people.map((person) => (person.personId === edit.personId ? applyPersonEdit(person, edit) : person)),
+  };
+}
+
+/**
+ * Adds a tenant to a config. The utilities total grows by their shares, so everyone else's shares keep
+ * their size. The aircon total stays, since the units stay in the house, so the owner and primary tenant
+ * hand over the tenant's units. The result still has to go through `householdConfigSchema`.
+ *
+ * @param config - The config the edit starts from. Not changed.
+ * @param tenant - The new tenant's entry.
+ * @returns The new config.
+ */
+export function applyAddPerson(config: HouseholdConfig, tenant: PersonConfig): HouseholdConfig {
+  const { utilities } = config.categories;
+  return {
+    ...config,
+    people: [...config.people, tenant],
+    categories: {
+      ...config.categories,
+      utilities: { ...utilities, totalShares: utilities.totalShares + tenant.utilityShares },
+    },
   };
 }
