@@ -1,12 +1,25 @@
 import { describe, expect, it } from "vitest";
-import { NOV_2026_CONFIG, PERSON_IDS } from "@/lib/fixtures/household";
+import {
+  JAN_2027_CONFIG,
+  NOV_2026_CONFIG,
+  PERSON_IDS,
+  ROOM_IDS,
+  VERSION_A_CONFIG,
+} from "@/lib/fixtures/household";
 import {
   HOUSEHOLD_SCHEMA_VERSION,
   householdConfigSchema,
   parseHouseholdConfig,
+  type HouseholdConfig,
 } from "@splithouse/shared";
 
 const clone = () => structuredClone(NOV_2026_CONFIG);
+
+function tenantRoom(config: HouseholdConfig, id: string) {
+  const room = config.rooms.find((r) => r.id === id);
+  if (room?.roomType !== "TENANT") throw new Error(`${id} is not a tenant room`);
+  return room;
+}
 
 function messages(input: unknown) {
   const result = householdConfigSchema.safeParse(input);
@@ -14,18 +27,21 @@ function messages(input: unknown) {
 }
 
 describe("household config", () => {
-  it("accepts the Nov 2026 fixture", () => {
-    expect(householdConfigSchema.safeParse(NOV_2026_CONFIG).success).toBe(true);
+  it("accepts every fixture version", () => {
+    for (const config of [VERSION_A_CONFIG, NOV_2026_CONFIG, JAN_2027_CONFIG]) {
+      expect(messages(config)).toEqual([]);
+    }
     expect(parseHouseholdConfig(HOUSEHOLD_SCHEMA_VERSION, NOV_2026_CONFIG)).toEqual(NOV_2026_CONFIG);
   });
 
   it("fills defaults for optional fields", () => {
     const input = {
-      people: [{ personId: "a", role: "OWNER" }],
+      rooms: [{ id: "m", roomType: "MASTER", name: "Master room", airconUnits: 1 }],
+      people: [{ personId: "a", role: "OWNER", roomId: "m" }],
       categories: {
-        rent: { sharedRentCents: 0, ownerBps: 10000, primaryBps: 0 },
+        rent: { landlordRentCents: 0, landlordDueDay: 1, ownerBps: 10000, primaryBps: 0 },
         utilities: { totalShares: 1000, ownerBps: 10000, primaryBps: 0 },
-        aircon: { totalUnits: 1, ownerBps: 10000, primaryBps: 0 },
+        aircon: { ownerBps: 10000, primaryBps: 0 },
       },
       templates: { monthly: "m", nudge: "n" },
     };
@@ -38,6 +54,7 @@ describe("household config", () => {
 
   it("rejects an unknown schemaVersion", () => {
     expect(() => parseHouseholdConfig(99, NOV_2026_CONFIG)).toThrow(/schemaVersion/);
+    expect(() => parseHouseholdConfig(1, NOV_2026_CONFIG)).toThrow(/schemaVersion/);
   });
 
   it("rejects split percentages that do not add to 100%", () => {
@@ -101,5 +118,114 @@ describe("household config", () => {
     c.templates.sectionTitles = { "person-nobody": "Room 9", [PERSON_IDS.sam]: " " };
     expect(messages(c)).toEqual(expect.arrayContaining(["Unknown person"]));
     expect(messages(c)).toHaveLength(2);
+  });
+
+  describe("rooms", () => {
+    it("rejects a duplicate room id", () => {
+      const c = clone();
+      c.rooms[4].id = ROOM_IDS.living;
+      expect(messages(c)).toEqual(["Duplicate room"]);
+    });
+
+    it("rejects a duplicate room name, ignoring case", () => {
+      const c = clone();
+      c.rooms[4].name = "LIVING ROOM";
+      expect(messages(c)).toEqual(["Duplicate room name"]);
+    });
+
+    it("requires exactly one master room", () => {
+      const none = clone();
+      none.rooms = none.rooms.filter((r) => r.roomType !== "MASTER");
+      expect(messages(none)).toContain("Exactly one master room is required");
+
+      const two = clone();
+      two.rooms.push({ id: "room-second", roomType: "MASTER", name: "Second master", airconUnits: 0 });
+      expect(messages(two)).toEqual(["Exactly one master room is required"]);
+    });
+
+    it("rejects a person in an unknown room", () => {
+      const c = clone();
+      c.people[2].roomId = "room-nowhere";
+      expect(messages(c)).toEqual(["Unknown room"]);
+    });
+
+    it("keeps the owner and primary tenant in the master room", () => {
+      const c = clone();
+      c.people[1].roomId = ROOM_IDS.living;
+      expect(messages(c)).toEqual(["Owner and primary tenant belong in the master room"]);
+    });
+
+    it("keeps a tenant in a tenant room", () => {
+      for (const roomId of [ROOM_IDS.master, ROOM_IDS.living]) {
+        const c = clone();
+        c.people[2].roomId = roomId;
+        expect(messages(c)).toEqual(["A tenant belongs in a tenant room"]);
+      }
+    });
+
+    it("allows one tenant per room", () => {
+      const c = clone();
+      c.people[3].roomId = ROOM_IDS.room2;
+      expect(messages(c)).toEqual(["A tenant room holds one tenant"]);
+    });
+
+    it("rejects a master rent below zero and allows exactly zero", () => {
+      const c = clone();
+      c.categories.rent.landlordRentCents = 94999;
+      expect(messages(c)).toEqual(["Master room rent cannot be below zero"]);
+
+      c.categories.rent.landlordRentCents = 95000;
+      expect(messages(c)).toEqual([]);
+    });
+
+    it("leaves empty rooms and rooms outside the total out of the master rent check", () => {
+      const c = clone();
+      c.people = c.people.filter((p) => p.personId !== PERSON_IDS.sam);
+      c.categories.rent.landlordRentCents = 0;
+      expect(messages(c)).toEqual([]);
+    });
+
+    it("counts a room in the check once it is in the total", () => {
+      const c = clone();
+      tenantRoom(c, ROOM_IDS.room3).includeInTotal = true;
+      c.categories.rent.landlordRentCents = 189999;
+      expect(messages(c)).toEqual(["Master room rent cannot be below zero"]);
+    });
+
+    it("rejects a negative room rent", () => {
+      const c = clone();
+      tenantRoom(c, ROOM_IDS.room2).rentCents = -1;
+      expect(householdConfigSchema.safeParse(c).success).toBe(false);
+    });
+
+    it("requires at least one aircon unit", () => {
+      const c = clone();
+      c.rooms.forEach((r) => {
+        r.airconUnits = 0;
+      });
+      expect(messages(c)).toEqual(["The household needs at least one aircon unit"]);
+
+      c.rooms[3].airconUnits = 1;
+      expect(messages(c)).toEqual([]);
+    });
+
+    it("requires the landlord due day, from 1 to 31", () => {
+      const c = clone();
+      for (const day of [0, 32]) {
+        c.categories.rent.landlordDueDay = day;
+        expect(householdConfigSchema.safeParse(c).success).toBe(false);
+      }
+      const withoutDay: Record<string, unknown> = { ...c.categories.rent };
+      delete withoutDay.landlordDueDay;
+      expect(
+        householdConfigSchema.safeParse({ ...c, categories: { ...c.categories, rent: withoutDay } }).success,
+      ).toBe(false);
+    });
+
+    it("rejects utility shares on the owner or primary tenant", () => {
+      const c = clone();
+      c.people[1].utilityShares = 1000;
+      expect(messages(c)).toContain("Owner and primary tenant take the remainder, not fixed shares");
+    });
   });
 });
