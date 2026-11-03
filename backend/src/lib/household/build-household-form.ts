@@ -13,6 +13,7 @@ import {
 } from "@splithouse/shared";
 import { amountText } from "./amount-text";
 import { nextPersonColor, personColorName } from "./person-color";
+import { roomOf, tenantRentCents } from "./room-amounts";
 import { hasPayersVia, routeText, sentViaChoices, viaOf } from "./route-via";
 import { personSubLine } from "./sub-line";
 
@@ -101,6 +102,10 @@ export function buildHouseholdForm(input: HouseholdFormInput): HouseholdFormResp
   const colors = row.isOwner ? PERSON_COLORS : TENANT_PERSON_COLORS;
   const monthLabel = formatMonthLabel(month);
   const activePerson = activeConfig?.people.find((p) => p.personId === personId);
+  // A rent or units change sits on the room, not the person's entry.
+  const activeRoom = activeConfig && activePerson ? roomOf(activeConfig, personId) : null;
+  const room = roomOf(config, personId);
+  const rentCents = tenantRentCents(config, personId);
 
   return {
     personId,
@@ -108,7 +113,10 @@ export function buildHouseholdForm(input: HouseholdFormInput): HouseholdFormResp
     viewTitle: row.name,
     sub: personSubLine(config, personId, names),
     datedTitle: `From ${monthLabel}`,
-    pendingNote: isDeepStrictEqual(activePerson, person) ? null : `These take effect from ${monthLabel}.`,
+    pendingNote:
+      isDeepStrictEqual(activePerson, person) && isDeepStrictEqual(activeRoom, room)
+        ? null
+        : `These take effect from ${monthLabel}.`,
     values: {
       name: row.name,
       whatsappE164: row.whatsappE164,
@@ -119,7 +127,7 @@ export function buildHouseholdForm(input: HouseholdFormInput): HouseholdFormResp
       utilitiesViaPersonId: utilitiesVia,
       amounts: isTenant
         ? {
-            rentCents: person.rentCents,
+            rentCents,
             depositCents: person.depositCents,
           }
         : null,
@@ -134,11 +142,11 @@ export function buildHouseholdForm(input: HouseholdFormInput): HouseholdFormResp
       ],
       amounts: isTenant
         ? [
-            { label: "Rent (SGD)", value: plainMoney(person.rentCents) },
+            { label: "Rent (SGD)", value: plainMoney(rentCents) },
             dueRows.rent,
             { label: "Utility shares", value: amountText(person.utilityShares) },
             dueRows.utilities,
-            { label: "Aircon units", value: String(person.airconUnits) },
+            { label: "Aircon units", value: String(room.airconUnits) },
             { label: "Deposit held (SGD)", value: person.depositCents ? plainMoney(person.depositCents) : "None" },
           ]
         : [dueRows.rent, dueRows.utilities],

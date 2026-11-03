@@ -7,6 +7,7 @@ import {
 } from "@splithouse/shared";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { JAN_2027_CONFIG, NOV_2026_CONFIG, PERSON_IDS } from "@/lib/fixtures/household";
+import { masterRentCents, tenantRentCents } from "@/lib/household/room-amounts";
 import {
   previewHouseholdEdit,
   saveHouseholdEdit,
@@ -281,8 +282,31 @@ describe("saveHouseholdEdit", () => {
     expect(state.versions).toHaveLength(2);
     const created = state.versions.find((v) => v.startsFromMonth === "2026-12");
     expect(created?.schemaVersion).toBe(HOUSEHOLD_SCHEMA_VERSION);
-    expect(jordanIn(created)?.rentCents).toBe(100000);
-    expect(jordanIn(state.versions[0])?.rentCents).toBe(95000);
+    expect(tenantRentCents(created?.config as HouseholdConfig, PERSON_IDS.jordan)).toBe(100000);
+    expect(tenantRentCents(state.versions[0].config as HouseholdConfig, PERSON_IDS.jordan)).toBe(95000);
+  });
+
+  it("refuses a rent that would take the master rent below zero", async () => {
+    const { db, state } = fakeDb();
+    await expect(saveHouseholdEdit(db, edit({ personId: PERSON_IDS.sam, rentCents: 430001 }))).rejects.toMatchObject({
+      status: 422,
+      code: "invalid_edit",
+    });
+    expect(state.versions).toHaveLength(1);
+
+    const preview = await previewHouseholdEdit(db, edit({ personId: PERSON_IDS.sam, rentCents: 430001 }));
+    expect(preview.errors.form).toBe("Master room rent cannot be below zero");
+    expect(preview.canSave).toBe(false);
+  });
+
+  it("takes a rent rise in the total off the master rent, and not one outside it", async () => {
+    const inTotal = fakeDb();
+    await saveHouseholdEdit(inTotal.db, edit({ personId: PERSON_IDS.sam, rentCents: 100000 }));
+    expect(masterRentCents(inTotal.state.versions[1].config as HouseholdConfig)).toBe(330000);
+
+    const outside = fakeDb();
+    await saveHouseholdEdit(outside.db, edit({ rentCents: 100000 }));
+    expect(masterRentCents(outside.state.versions[1].config as HouseholdConfig)).toBe(335000);
   });
 
   it("adds three edits for one month to one version", async () => {
@@ -292,10 +316,10 @@ describe("saveHouseholdEdit", () => {
     await saveHouseholdEdit(db, edit({ depositCents: 100000 }));
     expect(state.versions.map((v) => v.startsFromMonth)).toEqual(["2026-11", "2026-12"]);
     expect(jordanIn(state.versions[1])).toMatchObject({
-      rentCents: 100000,
       dueDays: { RENT: 9 },
       depositCents: 100000,
     });
+    expect(tenantRentCents(state.versions[1].config as HouseholdConfig, PERSON_IDS.jordan)).toBe(100000);
   });
 
   it("refuses to update a version a month has opened using, storing nothing", async () => {
@@ -439,14 +463,31 @@ describe("adding a person", () => {
   const dec = (versions: VersionRow[]) => versions.find((v) => v.startsFromMonth === "2026-12");
   const inDec = (versions: VersionRow[]) => (dec(versions)?.config as HouseholdConfig).people;
 
-  it("previews with no groups and stores nothing", async () => {
+  it("is refused until 9.17, storing nothing", async () => {
+    const { db, state } = fakeDb();
+    expect(await previewHouseholdEdit(db, add)).toEqual({
+      groups: [],
+      canSave: false,
+      errors: { form: "Adding a subtenant is not available yet." },
+    });
+    await expect(saveHouseholdEdit(db, add)).rejects.toMatchObject({
+      status: 422,
+      code: "invalid_edit",
+      message: "Adding a subtenant is not available yet.",
+    });
+    expect(state.versions).toHaveLength(1);
+    expect(state.people).toHaveLength(4);
+  });
+
+  // Skipped until 9.17, when a new tenant picks a room. Rewrite these there.
+  it.skip("previews with no groups and stores nothing", async () => {
     const { db, state } = fakeDb();
     expect(await previewHouseholdEdit(db, add)).toEqual({ groups: [], canSave: true, errors: {} });
     expect(state.versions).toHaveLength(1);
     expect(state.people).toHaveLength(4);
   });
 
-  it("creates the row and next month's version, leaving this month's as it was", async () => {
+  it.skip("creates the row and next month's version, leaving this month's as it was", async () => {
     const { db, state } = fakeDb();
     expect(await saveHouseholdEdit(db, add)).toEqual({ savedFromMonth: "2026-12" });
     const row = state.people[4];
@@ -455,14 +496,14 @@ describe("adding a person", () => {
     expect((state.versions[0].config as HouseholdConfig).people).toEqual(NOV_2026_CONFIG.people);
   });
 
-  it("adds to the version already waiting for next month, so earlier edits stay", async () => {
+  it.skip("adds to the version already waiting for next month, so earlier edits stay", async () => {
     const { db, state } = fakeDb([version("2026-11", NOV_2026_CONFIG), version("2026-12", JAN_2027_CONFIG)]);
     await saveHouseholdEdit(db, add);
     expect(state.versions).toHaveLength(2);
     expect(inDec(state.versions).slice(0, -1)).toEqual(JAN_2027_CONFIG.people);
   });
 
-  it("leaves no row behind when the version is locked", async () => {
+  it.skip("leaves no row behind when the version is locked", async () => {
     const { db, state } = fakeDb(
       [version("2026-11", NOV_2026_CONFIG), version("2026-12", JAN_2027_CONFIG)],
       ["version-2026-12"],

@@ -105,8 +105,15 @@ describe("getHouseholdView", () => {
   });
 
   it("shows someone added for next month only from that month", async () => {
-    const casey = { ...NOV_2026_CONFIG.people[3], personId: "person-casey" };
-    const withCasey = { ...NOV_2026_CONFIG, people: [...NOV_2026_CONFIG.people, casey] };
+    const casey = { ...NOV_2026_CONFIG.people[3], personId: "person-casey", roomId: "room-4" };
+    const withCasey: HouseholdConfig = {
+      ...NOV_2026_CONFIG,
+      rooms: [
+        ...NOV_2026_CONFIG.rooms,
+        { id: "room-4", roomType: "TENANT", name: "Room 4", airconUnits: 0, rentCents: 90000, includeInTotal: false },
+      ],
+      people: [...NOV_2026_CONFIG.people, casey],
+    };
     const db = fakeDb([version("2026-12", withCasey), version("2026-11", NOV_2026_CONFIG)]);
     db.person.findMany = async () => [...PEOPLE, { id: casey.personId, name: "Casey", color: "PURPLE" }];
 

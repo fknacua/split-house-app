@@ -18,7 +18,8 @@ export function deriveSetupProgress(config: HouseholdConfig | null): SetupStep[]
   const done: Record<SetupStepId, boolean> = {
     rentAndRooms:
       config !== null &&
-      (config.categories.rent.sharedRentCents > 0 || config.people.some((p) => p.rentCents > 0)),
+      (config.categories.rent.landlordRentCents > 0 ||
+        config.rooms.some((room) => room.roomType === "TENANT" && room.rentCents > 0)),
     people: config !== null && config.people.some((p) => p.role === "TENANT"),
     yourSplit: config !== null && config.people.some((p) => p.role === "PRIMARY"),
     messages: false,

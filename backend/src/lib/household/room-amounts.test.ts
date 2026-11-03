@@ -12,6 +12,7 @@ import {
   roomCount,
   roomOf,
   sharedAirconUnits,
+  tenantRentCents,
   totalAirconUnits,
 } from "./room-amounts";
 
@@ -82,6 +83,14 @@ describe("roomOf", () => {
 
   it("throws for someone not in the config", () => {
     expect(() => roomOf(NOV_2026_CONFIG, "person-nobody")).toThrow(/person-nobody/);
+  });
+});
+
+describe("tenantRentCents", () => {
+  it("reads a tenant's room, and 0 for the owner and primary tenant", () => {
+    expect(tenantRentCents(JAN_2027_CONFIG, PERSON_IDS.sam)).toBe(95000);
+    expect(tenantRentCents(JAN_2027_CONFIG, PERSON_IDS.jordan)).toBe(100000);
+    expect(tenantRentCents(JAN_2027_CONFIG, PERSON_IDS.priya)).toBe(0);
   });
 });
 

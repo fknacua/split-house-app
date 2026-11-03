@@ -5,7 +5,7 @@ import {
   type PersonColor,
 } from "@splithouse/shared";
 import { describe, expect, it } from "vitest";
-import { NOV_2026_CONFIG, PERSON_IDS } from "@/lib/fixtures/household";
+import { NOV_2026_CONFIG, PERSON_IDS, ROOM_IDS } from "@/lib/fixtures/household";
 import { buildHouseholdView, type HouseholdViewInput } from "./build-household-view";
 
 const { alex, priya, sam, jordan } = PERSON_IDS;
@@ -150,9 +150,9 @@ describe("buildHouseholdView", () => {
 
   it("follows an uneven split, on the rows and the cards", () => {
     const config = withCategories({
-      rent: { sharedRentCents: 335000, ownerBps: 6000, primaryBps: 4000 },
+      rent: { landlordRentCents: 430000, landlordDueDay: 1, ownerBps: 6000, primaryBps: 4000 },
       utilities: { totalShares: 5000, ownerBps: 6000, primaryBps: 4000, billDueDay: 16 },
-      aircon: { totalUnits: 6, ownerBps: 6667, primaryBps: 3333 },
+      aircon: { ownerBps: 6667, primaryBps: 3333 },
     });
     const view = buildHouseholdView(input({ config }));
     expect(segmentsOf(view, "Rent").slice(0, 2).map((s) => s[1])).toEqual(["$2,010.00", "$1,340.00"]);
@@ -170,9 +170,9 @@ describe("buildHouseholdView", () => {
         .filter((p) => p.personId !== priya)
         .map((p) => (p.personId === sam ? { ...p, routes: {} } : p)),
       categories: {
-        rent: { sharedRentCents: 335000, ...remainder },
+        rent: { landlordRentCents: 430000, landlordDueDay: 1, ...remainder },
         utilities: { totalShares: 5000, ...remainder },
-        aircon: { totalUnits: 6, ...remainder },
+        aircon: remainder,
       },
       recurring: [],
     });
@@ -186,10 +186,26 @@ describe("buildHouseholdView", () => {
   it("keeps a person at zero in the row with a zero-width segment", () => {
     const config = {
       ...NOV_2026_CONFIG,
-      people: NOV_2026_CONFIG.people.map((p) => (p.personId === jordan ? { ...p, airconUnits: 0 } : p)),
+      rooms: NOV_2026_CONFIG.rooms.map((r) => (r.id === ROOM_IDS.room3 ? { ...r, airconUnits: 0 } : r)),
     };
     const jordanPart = segmentsOf(buildHouseholdView(input({ config })), "Aircon").find((s) => s[0] === "Jordan");
     expect(jordanPart).toEqual(["Jordan", "0", 0, "GREEN"]);
+  });
+
+  it("gives an empty room's rent and units to the owner and primary tenant", () => {
+    const config = { ...NOV_2026_CONFIG, people: NOV_2026_CONFIG.people.filter((p) => p.personId !== sam) };
+    const view = buildHouseholdView(input({ config }));
+    expect(segmentsOf(view, "Rent").map((s) => [s[0], s[1]])).toEqual([
+      ["You", "$2,150.00"],
+      ["Priya", "$2,150.00"],
+      ["Jordan", "$950.00"],
+    ]);
+    expect(segmentsOf(view, "Aircon").map((s) => [s[0], s[1]])).toEqual([
+      ["You", "2.5"],
+      ["Priya", "2.5"],
+      ["Jordan", "1"],
+    ]);
+    expect(view.landlord.stats[0]).toEqual({ value: "6", label: "aircon units" });
   });
 
   it("lists only the owner and primary tenant when there are no tenants", () => {
