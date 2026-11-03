@@ -203,7 +203,11 @@ Component and props are what to pass to the source file in `docs/design/source/`
 | Household · View Tenant 1 | `Household` | `state=viewTenant1` |
 | Household · Edit Tenant 2 from Jan 2027, preview | `Household` | `state=editPerson` |
 | Household · Edit Tenant 2, name, color and amounts | `Household` | `state=editPersonBoth` |
-| Household · Split doesn't add to 100% | `Household` | `state=splitError` |
+| Household · Excluded tenant on the overview | `Household` | `state=overviewExcluded` |
+| Household split · Unchanged | `Splits` | `state=unchanged` |
+| Household split · Changed | `Splits` | `state=changed` |
+| Household split · Warning and excluded | `Splits` | `state=warning` |
+| Household split · Error | `Splits` | `state=error` |
 | Household · Edit Primary Tenant, rename | `Household` | `state=editPrimary` |
 | Household · Edit Tenant 1 | `Household` | `state=editTenant1` |
 | Household · Edit landlord rent from Jan 2027 | `Household` | `state=editHome` |

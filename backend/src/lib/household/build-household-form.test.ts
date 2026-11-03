@@ -51,7 +51,8 @@ describe("buildHouseholdForm", () => {
   });
 
   it("gives the primary tenant no amounts and a Cancel link", () => {
-    const body = form(PERSON_IDS.priya);
+    const body = householdFormResponseSchema.parse(form(PERSON_IDS.priya));
+    expect(body.title).toBe("Edit Priya");
     expect(body.values.amounts).toBeNull();
     expect(body.view.amounts.map((r) => r.label)).toEqual(["Rent due", "Utilities due"]);
     expect(body.secondaryAction).toEqual({ label: "Cancel", kind: "cancel" });
