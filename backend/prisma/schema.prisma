@@ -124,10 +124,6 @@ enum PersonColor {
   SLATE
 }
 
-enum TaskType {
-  SAVINGS_TRANSFER
-}
-
 // People are never hard-deleted because charges reference them. Removing someone
 // is a new HouseholdVersion that stops including them.
 model Person {
@@ -270,7 +266,6 @@ model Charge {
   chargeGroup      ChargeGroup?     @relation(fields: [chargeGroupId], references: [id])
   householdVersion HouseholdVersion @relation(fields: [householdVersionId], references: [id])
   messageEvents    MessageEvent[]
-  tasks            Task[]
 
   @@index([month])
   @@index([personId, month])
@@ -294,21 +289,6 @@ model MessageEvent {
 
   @@index([month, personId])
   @@map("message_event")
-}
-
-model Task {
-  id          String    @id @default(cuid())
-  type        TaskType
-  month       String
-  chargeId    String
-  amountCents Int
-  doneAt      DateTime?
-  createdAt   DateTime  @default(now())
-
-  charge Charge @relation(fields: [chargeId], references: [id])
-
-  @@index([month])
-  @@map("task")
 }
 
 // Single row (id is always "singleton"): notification toggles per channel and type.
