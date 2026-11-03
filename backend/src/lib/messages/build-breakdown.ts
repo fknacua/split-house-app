@@ -1,6 +1,7 @@
 import { formatCents, type HouseholdConfig } from "@splithouse/shared";
 import type { ChargeCategory } from "@/generated/prisma/enums";
 import { chargeDueDate } from "@/lib/home/due-dates";
+import { roomOf, sharedAirconUnits, totalAirconUnits } from "@/lib/household/room-amounts";
 import { lineLabel } from "./line-label";
 
 /** A charge, as much of it as a breakdown needs. */
@@ -73,22 +74,16 @@ function formatAmount(value: number): string {
 }
 
 /**
- * A person's part of a share category (utilities shares in thousandths, aircon units): a tenant's
- * own number, or the owner's or primary tenant's split of what the tenants don't take.
+ * A person's aircon units: a tenant's room's units, or the owner's or primary tenant's split of
+ * every other unit in the home. Null for someone not in the config.
  */
-function partOf(
-  config: HouseholdConfig,
-  personId: string,
-  total: number,
-  tenantPart: (p: HouseholdConfig["people"][number]) => number,
-  primaryBps: number,
-): number | null {
+function airconUnitsOf(config: HouseholdConfig, personId: string): number | null {
   const person = config.people.find((p) => p.personId === personId);
   if (!person) return null;
-  if (person.role === "TENANT") return tenantPart(person);
-  const remainder = total - config.people.reduce((s, p) => s + (p.role === "TENANT" ? tenantPart(p) : 0), 0);
-  const primaryPart = (remainder * primaryBps) / 10000;
-  return person.role === "PRIMARY" ? primaryPart : remainder - primaryPart;
+  if (person.role === "TENANT") return roomOf(config, personId).airconUnits;
+  const shared = sharedAirconUnits(config);
+  const primaryPart = (shared * config.categories.aircon.primaryBps) / 10000;
+  return person.role === "PRIMARY" ? primaryPart : shared - primaryPart;
 }
 
 /**
@@ -101,10 +96,10 @@ function working(input: BreakdownInput, charge: BreakdownCharge): string | null 
     return input.billCents === null ? null : `(total bill ${formatCents(input.billCents)})`;
   }
   if (charge.category === "AIRCON") {
-    const { aircon } = input.config.categories;
-    const units = partOf(input.config, charge.personId, aircon.totalUnits, (p) => p.airconUnits, aircon.primaryBps);
+    const units = airconUnitsOf(input.config, charge.personId);
     if (units === null) return null;
-    return `(${formatAmount(units)}/${aircon.totalUnits} ${aircon.totalUnits === 1 ? "unit" : "units"})`;
+    const total = totalAirconUnits(input.config);
+    return `(${formatAmount(units)}/${total} ${total === 1 ? "unit" : "units"})`;
   }
   return null;
 }

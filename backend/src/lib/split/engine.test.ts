@@ -1,5 +1,7 @@
+import type { HouseholdConfig } from "@splithouse/shared";
 import { describe, expect, it } from "vitest";
-import { NOV_2026_CONFIG, PERSON_IDS } from "@/lib/fixtures/household";
+import { JAN_2027_CONFIG, NOV_2026_CONFIG, PERSON_IDS, ROOM_IDS } from "@/lib/fixtures/household";
+import { roomOf, totalAirconUnits } from "@/lib/household/room-amounts";
 import {
   SplitEngineError,
   buildMonthCharges,
@@ -106,6 +108,68 @@ describe("buildMonthCharges (Nov 2026 fixture)", () => {
   });
 });
 
+describe("buildMonthCharges (rooms)", () => {
+  function rentByPerson(config: HouseholdConfig) {
+    return Object.fromEntries(
+      buildMonthCharges(config, MONTH)
+        .filter((c) => c.category === "RENT")
+        .map((c) => [c.personId, c.amountCents]),
+    );
+  }
+
+  it("charges nobody for an empty room, and the owner and primary tenant cover it", () => {
+    const config = {
+      ...NOV_2026_CONFIG,
+      people: NOV_2026_CONFIG.people.filter((p) => p.personId !== PERSON_IDS.sam),
+    };
+    expect(rentByPerson(config)).toEqual({
+      [PERSON_IDS.jordan]: 95000,
+      [PERSON_IDS.alex]: 215000,
+      [PERSON_IDS.priya]: 215000,
+    });
+  });
+
+  it("still charges the tenant of a room not in the total, without moving the master rent", () => {
+    expect(rentByPerson(JAN_2027_CONFIG)).toEqual({
+      [PERSON_IDS.sam]: 95000,
+      [PERSON_IDS.jordan]: 100000,
+      [PERSON_IDS.alex]: 167500,
+      [PERSON_IDS.priya]: 167500,
+    });
+  });
+
+  it("takes a room's rent off the master rent once it is in the total", () => {
+    const config = {
+      ...NOV_2026_CONFIG,
+      rooms: NOV_2026_CONFIG.rooms.map((room) =>
+        room.id === ROOM_IDS.room3 ? { ...room, includeInTotal: true } : room,
+      ),
+    };
+    expect(rentByPerson(config)).toEqual({
+      [PERSON_IDS.sam]: 95000,
+      [PERSON_IDS.jordan]: 95000,
+      [PERSON_IDS.alex]: 120000,
+      [PERSON_IDS.priya]: 120000,
+    });
+  });
+
+  it("adds no rent for common rooms", () => {
+    const config: HouseholdConfig = {
+      ...NOV_2026_CONFIG,
+      rooms: [...NOV_2026_CONFIG.rooms, { id: "room-study", roomType: "COMMON", name: "Study", airconUnits: 1 }],
+    };
+    expect(rentByPerson(config)).toEqual(rentByPerson(NOV_2026_CONFIG));
+  });
+
+  it("charges nothing for a tenant room with no rent", () => {
+    const config = {
+      ...NOV_2026_CONFIG,
+      rooms: NOV_2026_CONFIG.rooms.map((room) => (room.id === ROOM_IDS.room3 ? { ...room, rentCents: 0 } : room)),
+    };
+    expect(rentByPerson(config)).not.toHaveProperty(PERSON_IDS.jordan);
+  });
+});
+
 describe("buildUtilitiesCharges (Nov 2026 fixture)", () => {
   const charges = buildUtilitiesCharges(NOV_2026_CONFIG, { month: MONTH, currentChargesCents: 41230 });
 
@@ -140,11 +204,11 @@ describe("Nov 2026 fixture totals", () => {
   const utilitiesCharges = buildUtilitiesCharges(NOV_2026_CONFIG, { month: MONTH, currentChargesCents: 41230 });
   const airconAmounts = splitShareCategory(
     11000,
-    6,
-    [
-      { personId: PERSON_IDS.sam, units: 1 },
-      { personId: PERSON_IDS.jordan, units: 1 },
-    ],
+    totalAirconUnits(NOV_2026_CONFIG),
+    [PERSON_IDS.sam, PERSON_IDS.jordan].map((personId) => ({
+      personId,
+      units: roomOf(NOV_2026_CONFIG, personId).airconUnits,
+    })),
     { ownerPersonId: PERSON_IDS.alex, primaryPersonId: PERSON_IDS.priya, primaryBps: 5000 },
   );
 

@@ -156,6 +156,51 @@ describe("buildBreakdown", () => {
     expect(b.dueDate).toBe("2026-11-01");
   });
 
+  describe("aircon working from rooms", () => {
+    function airconWorking(config: BreakdownInput["config"], personId: string) {
+      const charges = [charge(personId, "AIRCON", "Aircon", 1000, null)];
+      return buildBreakdown(input(personId, { config, charges })).sections[0].lines[0].working;
+    }
+
+    it("reads the sample household's units: 2 of 6 each for the owner and primary tenant", () => {
+      expect(airconWorking(NOV_2026_CONFIG, alex)).toBe("(2/6 units)");
+      expect(airconWorking(NOV_2026_CONFIG, priya)).toBe("(2/6 units)");
+      expect(airconWorking(NOV_2026_CONFIG, sam)).toBe("(1/6 units)");
+    });
+
+    it("moves an empty room's units to the owner and primary tenant, with the total unchanged", () => {
+      const config = { ...NOV_2026_CONFIG, people: NOV_2026_CONFIG.people.filter((p) => p.personId !== sam) };
+      expect(airconWorking(config, priya)).toBe("(2.5/6 units)");
+      expect(airconWorking(config, alex)).toBe("(2.5/6 units)");
+      expect(airconWorking(config, jordan)).toBe("(1/6 units)");
+    });
+
+    it("keeps the tenant of a room not in the total paying for their units", () => {
+      expect(airconWorking(NOV_2026_CONFIG, jordan)).toBe("(1/6 units)");
+    });
+
+    it("counts common rooms in the total and gives their units to the owner and primary tenant", () => {
+      const config: BreakdownInput["config"] = {
+        ...NOV_2026_CONFIG,
+        rooms: [...NOV_2026_CONFIG.rooms, { id: "room-study", roomType: "COMMON", name: "Study", airconUnits: 2 }],
+      };
+      expect(airconWorking(config, priya)).toBe("(3/8 units)");
+      expect(airconWorking(config, sam)).toBe("(1/8 units)");
+    });
+
+    it("follows the split, not an even half", () => {
+      const config = structuredClone(NOV_2026_CONFIG);
+      config.categories.aircon = { ownerBps: 7500, primaryBps: 2500 };
+      expect(airconWorking(config, priya)).toBe("(1/6 units)");
+      expect(airconWorking(config, alex)).toBe("(3/6 units)");
+    });
+
+    it("has no working for someone no longer in the config", () => {
+      const config = { ...NOV_2026_CONFIG, people: NOV_2026_CONFIG.people.filter((p) => p.personId !== sam) };
+      expect(airconWorking(config, sam)).toBeNull();
+    });
+  });
+
   it("keeps charges paid through someone out of the owing person's own message", () => {
     const b = buildBreakdown(input(sam));
 

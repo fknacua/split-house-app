@@ -1,4 +1,5 @@
 import { dueDateKey, type ChargeType, type HouseholdConfig, type PersonConfig } from "@splithouse/shared";
+import { masterRentCents, roomOf } from "@/lib/household/room-amounts";
 
 // Pure split engine (see docs/SplitHouse — Data Model.md "Split engine" and
 // "Rounding rule"). No Prisma, no Date.now: every input is passed in.
@@ -130,8 +131,8 @@ function personOrThrow(config: HouseholdConfig, personId: string): PersonConfig 
   return person;
 }
 
-// Rent (fixed tenant rent plus the shared room split) and recurring charges
-// for a month, from the household config alone.
+// Rent (each tenant's room rent plus the master room split) and recurring
+// charges for a month, from the household config alone.
 export function buildMonthCharges(config: HouseholdConfig, month: string): EngineCharge[] {
   const owner = config.people.find((p) => p.role === "OWNER");
   if (!owner) throw new SplitEngineError("Config has no owner");
@@ -140,12 +141,13 @@ export function buildMonthCharges(config: HouseholdConfig, month: string): Engin
   const charges: EngineCharge[] = [];
 
   for (const person of config.people) {
-    if (person.role === "TENANT" && person.rentCents > 0) {
+    const room = roomOf(config, person.personId);
+    if (room.roomType === "TENANT" && room.rentCents > 0) {
       charges.push({
         personId: person.personId,
         category: "RENT",
         label: "Rent",
-        amountCents: person.rentCents,
+        amountCents: room.rentCents,
         payViaPersonId: routeFor(person, "RENT"),
         dueDate: dueDateKey(month, person.dueDays.RENT),
       });
@@ -153,7 +155,7 @@ export function buildMonthCharges(config: HouseholdConfig, month: string): Engin
   }
 
   const sharedRent = splitRemainderByBps(
-    config.categories.rent.sharedRentCents,
+    masterRentCents(config),
     owner.personId,
     primary?.personId ?? null,
     config.categories.rent.primaryBps,
