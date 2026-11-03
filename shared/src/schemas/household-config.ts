@@ -6,7 +6,7 @@ import { cents, monthKey } from "./primitives";
  * Money is integer cents, shares are thousandths (1.5 shares = 1500), splits are
  * basis points (5000 = 50%). Bump it when the shape changes.
  */
-export const HOUSEHOLD_SCHEMA_VERSION = 1;
+export const HOUSEHOLD_SCHEMA_VERSION = 2;
 
 /** The charge types a person can have a route and due day for. */
 export const CHARGE_TYPES = ["RENT", "UTILITIES", "AIRCON", "RECURRING"] as const;
@@ -40,15 +40,33 @@ const route = z.discriminatedUnion("kind", [
   z.object({ kind: z.literal("VIA"), viaPersonId: z.string().min(1) }),
 ]);
 
+const roomFields = {
+  id: z.string().min(1),
+  name: z.string().trim().min(1),
+  airconUnits: nonNegativeInt,
+};
+
+// A room's people are worked out from each person's roomId. Nothing stores "empty".
+const room = z.discriminatedUnion("roomType", [
+  // The owner and primary tenant's room. Its rent is calculated, never stored.
+  z.object({ ...roomFields, roomType: z.literal("MASTER") }),
+  // An empty room keeps its rent and includeInTotal for the next tenant.
+  z.object({
+    ...roomFields,
+    roomType: z.literal("TENANT"),
+    rentCents: nonNegativeInt,
+    // Off: the rent is still charged to the tenant, but it is not part of what goes to the landlord.
+    includeInTotal: z.boolean(),
+  }),
+  z.object({ ...roomFields, roomType: z.literal("COMMON") }),
+]);
+
 const personConfig = z.object({
   personId: z.string().min(1),
   role,
-  // Fixed rent for tenants with their own room. Owner and primary tenant get their
-  // rent from the remainder split of the rent category instead.
-  rentCents: nonNegativeInt.default(0),
+  roomId: z.string().min(1),
   // Tenants only. Owner and primary tenant take the remainder of the total.
   utilityShares: nonNegativeInt.default(0),
-  airconUnits: nonNegativeInt.default(0),
   // Missing entry means DIRECT / no due day set.
   routes: chargeTypeRecord(route).default({}),
   dueDays: chargeTypeRecord(dueDay).default({}),
@@ -63,8 +81,9 @@ const remainderCategory = z.object({
 });
 
 const rentCategory = remainderCategory.extend({
-  // The shared (master) room rent split between owner and primary tenant.
-  sharedRentCents: nonNegativeInt,
+  landlordRentCents: nonNegativeInt,
+  // Shown on the Household rent card. Nothing is charged or reminded from it.
+  landlordDueDay: dueDay,
 });
 
 const utilitiesCategory = remainderCategory.extend({
@@ -72,10 +91,6 @@ const utilitiesCategory = remainderCategory.extend({
   // Day of the month the utilities bill is due. Home uses it before a bill exists;
   // an uploaded bill's own due date supersedes it.
   billDueDay: dueDay.optional(),
-});
-
-const airconCategory = remainderCategory.extend({
-  totalUnits: z.number().int().positive(),
 });
 
 const recurringCharge = z.object({
@@ -107,17 +122,18 @@ const templates = z.object({
 });
 
 /**
- * The household settings of one version: people, the rent, utilities and
- * aircon categories, recurring charges and message templates. Rejects configs
- * whose shares, percentages or references do not add up.
+ * The household settings of one version: rooms, people, the rent, utilities
+ * and aircon categories, recurring charges and message templates. Rejects
+ * configs whose rooms, shares, percentages or references do not add up.
  */
 export const householdConfigSchema = z
   .object({
+    rooms: z.array(room),
     people: z.array(personConfig).min(1),
     categories: z.object({
       rent: rentCategory,
       utilities: utilitiesCategory,
-      aircon: airconCategory,
+      aircon: remainderCategory,
     }),
     recurring: z.array(recurringCharge).default([]),
     templates,
@@ -125,6 +141,23 @@ export const householdConfigSchema = z
   .superRefine((config, ctx) => {
     const issue = (path: (string | number)[], message: string) =>
       ctx.addIssue({ code: "custom", path, message });
+
+    const roomsById = new Map(config.rooms.map((r) => [r.id, r]));
+    const seenRoomIds = new Set<string>();
+    const seenRoomNames = new Set<string>();
+    config.rooms.forEach((r, i) => {
+      if (seenRoomIds.has(r.id)) issue(["rooms", i, "id"], "Duplicate room");
+      seenRoomIds.add(r.id);
+      const name = r.name.toLowerCase();
+      if (seenRoomNames.has(name)) issue(["rooms", i, "name"], "Duplicate room name");
+      seenRoomNames.add(name);
+    });
+    if (config.rooms.filter((r) => r.roomType === "MASTER").length !== 1) {
+      issue(["rooms"], "Exactly one master room is required");
+    }
+    if (config.rooms.reduce((s, r) => s + r.airconUnits, 0) < 1) {
+      issue(["rooms"], "The household needs at least one aircon unit");
+    }
 
     const ids = new Set<string>();
     config.people.forEach((p, i) => {
@@ -137,13 +170,22 @@ export const householdConfigSchema = z
     if (owners.length !== 1) issue(["people"], "Exactly one owner is required");
     if (primaries.length > 1) issue(["people"], "At most one primary tenant");
 
+    const occupiedRooms = new Set<string>();
     config.people.forEach((p, i) => {
-      if (p.role !== "TENANT" && (p.rentCents || p.utilityShares || p.airconUnits)) {
-        issue(
-          ["people", i],
-          "Owner and primary tenant take the remainder, not fixed rent, shares or units",
-        );
+      if (p.role !== "TENANT" && p.utilityShares) {
+        issue(["people", i], "Owner and primary tenant take the remainder, not fixed shares");
       }
+      const home = roomsById.get(p.roomId);
+      if (!home) {
+        issue(["people", i, "roomId"], "Unknown room");
+      } else if (p.role !== "TENANT" && home.roomType !== "MASTER") {
+        issue(["people", i, "roomId"], "Owner and primary tenant belong in the master room");
+      } else if (p.role === "TENANT" && home.roomType !== "TENANT") {
+        issue(["people", i, "roomId"], "A tenant belongs in a tenant room");
+      } else if (p.role === "TENANT" && occupiedRooms.has(p.roomId)) {
+        issue(["people", i, "roomId"], "A tenant room holds one tenant");
+      }
+      occupiedRooms.add(p.roomId);
       for (const [type, r] of Object.entries(p.routes)) {
         if (r?.kind !== "VIA") continue;
         if (r.viaPersonId === p.personId) {
@@ -174,9 +216,14 @@ export const householdConfigSchema = z
     if (tenantShares > utilities.totalShares) {
       issue(["categories", "utilities", "totalShares"], "Tenant shares exceed the total");
     }
-    const tenantUnits = config.people.reduce((s, p) => s + p.airconUnits, 0);
-    if (tenantUnits > aircon.totalUnits) {
-      issue(["categories", "aircon", "totalUnits"], "Tenant units exceed the total");
+
+    // Only this sum lives here. The amounts themselves are in the backend's room-amounts helper.
+    const includedRent = config.rooms.reduce(
+      (s, r) => (r.roomType === "TENANT" && r.includeInTotal && occupiedRooms.has(r.id) ? s + r.rentCents : s),
+      0,
+    );
+    if (includedRent > rent.landlordRentCents) {
+      issue(["categories", "rent", "landlordRentCents"], "Master room rent cannot be below zero");
     }
 
     const recurringIds = new Set<string>();
@@ -203,6 +250,9 @@ export type HouseholdConfigInput = z.input<typeof householdConfigSchema>;
 
 /** One person's entry in a household config. */
 export type PersonConfig = HouseholdConfig["people"][number];
+
+/** One room in a household config. */
+export type HouseholdRoom = HouseholdConfig["rooms"][number];
 
 /**
  * Parses the JSON stored on a HouseholdVersion.
