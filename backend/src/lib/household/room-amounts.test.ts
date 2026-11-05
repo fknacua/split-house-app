@@ -7,6 +7,7 @@ import {
   VERSION_A_CONFIG,
 } from "@/lib/fixtures/household";
 import {
+  isRentInTotal,
   masterRentCents,
   peopleIn,
   roomCount,
@@ -22,6 +23,15 @@ function without(personId: string) {
     people: NOV_2026_CONFIG.people.filter((p) => p.personId !== personId),
   };
 }
+
+describe("isRentInTotal", () => {
+  it("is false only for a tenant room with Include in total off", () => {
+    expect(isRentInTotal(NOV_2026_CONFIG, PERSON_IDS.jordan)).toBe(false);
+    expect(isRentInTotal(NOV_2026_CONFIG, PERSON_IDS.sam)).toBe(true);
+    expect(isRentInTotal(NOV_2026_CONFIG, PERSON_IDS.priya)).toBe(true);
+    expect(isRentInTotal(NOV_2026_CONFIG, PERSON_IDS.alex)).toBe(true);
+  });
+});
 
 describe("masterRentCents", () => {
   it("subtracts only the occupied rooms in the total, matching the fixtures", () => {

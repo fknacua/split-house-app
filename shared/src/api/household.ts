@@ -13,6 +13,7 @@ export type HouseholdViewQuery = z.infer<typeof householdViewQuerySchema>;
 /** Where a Household button leads. The app navigates; it decides nothing. */
 export const householdTargetSchema = z.discriminatedUnion('kind', [
   z.object({ kind: z.literal('edit-home') }),
+  z.object({ kind: z.literal('edit-splits') }),
   z.object({ kind: z.literal('edit-person'), personId: z.string() }),
   z.object({ kind: z.literal('view-person'), personId: z.string() }),
   z.object({ kind: z.literal('add-person') }),
@@ -46,9 +47,9 @@ export type HouseholdMonthOption = z.infer<typeof householdMonthOptionSchema>;
 
 /** A small stat tile on the landlord card. */
 export const householdStatSchema = z.object({
-  /** e.g. `6`. */
+  /** e.g. `3`. */
   value: z.string(),
-  /** e.g. `aircon units`. */
+  /** e.g. `rooms`. */
   label: z.string(),
 });
 
@@ -59,7 +60,7 @@ export type HouseholdStat = z.infer<typeof householdStatSchema>;
 export const householdFactSchema = z.object({
   /** e.g. `Rent · due 28th`. */
   label: z.string(),
-  /** e.g. `$950.00`. */
+  /** e.g. `$X,XXX.XX`. */
   value: z.string(),
 });
 
@@ -74,8 +75,6 @@ export const householdPersonSchema = z.object({
   name: z.string(),
   /** The avatar's fill. */
   color: personColor,
-  /** e.g. `Own room · utilities and aircon via Priya`. */
-  sub: z.string(),
   facts: z.array(householdFactSchema),
   /** The buttons in the order drawn. Empty on the owner's card and for someone not in the household next month. */
   actions: z.array(householdActionSchema),
@@ -89,11 +88,13 @@ export const householdSplitSegmentSchema = z.object({
   personId: z.string(),
   /** e.g. `Priya`, or `You` for the owner. */
   name: z.string(),
-  /** e.g. `$1,675.00`, `1.5`. */
+  /** e.g. `$X,XXX.XX`, `1.5`. */
   value: z.string(),
   /** The segment's width, 0 to 100. A person at 0 has no segment but stays in the legend. */
   percent: z.number().min(0).max(100),
   color: personColor,
+  /** False for a tenant whose room's rent is not part of the landlord rent: a hollow ring, a muted value and no bar segment. */
+  inTotal: z.boolean(),
 });
 
 /** One person's part of a Household split row: a bar segment and a legend entry. */
@@ -103,11 +104,13 @@ export type HouseholdSplitSegment = z.infer<typeof householdSplitSegmentSchema>;
 export const householdSplitRowSchema = z.object({
   /** e.g. `Rent`. */
   label: z.string(),
-  /** The total, e.g. `$5,250.00 across the home`, `5 shares`. */
+  /** The total, e.g. `$X,XXX.XX`, `5 shares`. */
   detail: z.string(),
   /** The owner first, then the primary tenant, then the tenants. */
   segments: z.array(householdSplitSegmentSchema),
-  /** The bar read out, e.g. `Rent: You $1,675.00, Priya $1,675.00`. */
+  /** e.g. `Not in total: Jordan`. Null when everyone is in the total. */
+  note: z.string().nullable(),
+  /** The bar read out, e.g. `Rent: You $X,XXX.XX, Priya $X,XXX.XX`. */
   accessibilityLabel: z.string(),
 });
 
@@ -123,11 +126,17 @@ export const householdViewResponseSchema = z.object({
   /** Newest first. */
   monthOptions: z.array(householdMonthOptionSchema),
   landlord: z.object({
+    /** e.g. `Landlord rent · due 1st of the month`. */
+    label: z.string(),
+    /** e.g. `$X,XXX.XX`. */
+    amount: z.string(),
     stats: z.array(householdStatSchema),
     edit: householdActionSchema,
   }),
   /** The "Household split" rows: rent, utilities and aircon. */
   splitRows: z.array(householdSplitRowSchema),
+  /** The heading's Edit splits button. */
+  editSplits: householdActionSchema,
   people: z.array(householdPersonSchema),
   addPerson: householdActionSchema,
 });
@@ -147,7 +156,7 @@ export type HouseholdFormQuery = z.infer<typeof householdFormQuerySchema>;
 export const householdFormTextRowSchema = z.object({
   /** e.g. `Rent (SGD)`. */
   label: z.string(),
-  /** e.g. `1,000.00`, `None`, `—`. */
+  /** e.g. `X,XXX.XX`, `None`, `—`. */
   value: z.string(),
 });
 
@@ -309,9 +318,9 @@ export type HouseholdEdit = z.infer<typeof householdEditSchema>;
 export const householdEditRowSchema = z.object({
   /** e.g. `Rent due`. The screen is already about the person, so it has no name in it. */
   label: z.string(),
-  /** e.g. `$950.00`. */
+  /** e.g. `$X,XXX.XX`. */
   from: z.string(),
-  /** e.g. `$1,000.00`. */
+  /** e.g. `$X,XXX.XX`. */
   to: z.string(),
 });
 

@@ -10,9 +10,9 @@ import { formatMonthName } from './month';
 export interface PaymentDifference {
   /** `short` when less was received than expected, `over` when more. */
   kind: 'short' | 'over';
-  /** e.g. `$63.65 short of $1,963.65` or `$20.00 over $1,963.65`. */
+  /** e.g. `$X,XXX.XX short of $X,XXX.XX` or `$X,XXX.XX over $X,XXX.XX`. */
   title: string;
-  /** What it means, e.g. `November stays $63.65 short until you edit the payment or add a correction.` */
+  /** What it means, e.g. `November stays $X,XXX.XX short until you edit the payment or add a correction.` */
   text: string;
 }
 

@@ -3,7 +3,7 @@ import { parseArgs } from "node:util";
 import { prisma } from "@/lib/prisma";
 import { openMonthIfNeeded } from "@/lib/month-open";
 import { HOUSEHOLD_SCHEMA_VERSION, type PersonColor } from "@splithouse/shared";
-import { JAN_2027_CONFIG, NOV_2026_CONFIG, PERSON_IDS, VERSION_A_CONFIG } from "@/lib/fixtures/household";
+import { JAN_2027_CONFIG, NOV_2026_CONFIG, PERSON_IDS, ROOM_IDS, VERSION_A_CONFIG } from "@/lib/fixtures/household";
 import { buildMonthCharges, buildUtilitiesCharges, type EngineCharge } from "@/lib/split/engine";
 import { BILL_FIXTURE } from "@/lib/fixtures/bill";
 import { generateBillFixturePdf } from "@/lib/fixtures/generate-bill-pdf";
@@ -42,10 +42,12 @@ const SCENARIOS = {
   fullyCollected: { devNow: "2026-11-10T09:00:00+08:00" },
   // As collecting, but every charge is paid and the bill is marked paid.
   settled: { devNow: "2026-11-29T09:00:00+08:00" },
-  // As settled, but Priya's rent came in $63.65 short, so her Recipient page shows `paidDifferent`.
+  // As settled, but Priya's rent came in $X,XXX.XX short, so her Recipient page shows `paidDifferent`.
   shortPaid: { devNow: "2026-11-29T09:00:00+08:00" },
   // As upload, plus a December 2026 version that no month has opened: saved values not in effect yet.
   householdUpcoming: { devNow: "2026-11-03T09:00:00+08:00" },
+  // As upload, but Room 3 is part of the landlord rent, so everyone is in the Rent row's total.
+  householdRoom3InTotal: { devNow: "2026-11-03T09:00:00+08:00" },
 } as const;
 
 type ScenarioName = keyof typeof SCENARIOS;
@@ -247,7 +249,7 @@ async function seedOctober(versionAId: string) {
     currentChargesCents: 42800,
   });
   const samRent = oct.rentAndRecurring.find((c) => c.personId === PERSON_IDS.sam)!;
-  await markPaid(samRent.id, PERSON_IDS.sam, "2026-10-29", samRent.amountCents - 2000); // short by $20, history only, no carry
+  await markPaid(samRent.id, PERSON_IDS.sam, "2026-10-29", samRent.amountCents - 2000); // short by $X,XXX.XX, history only, no carry
   const jordanRent = oct.rentAndRecurring.find((c) => c.personId === PERSON_IDS.jordan)!;
   // left unpaid on purpose
   for (const charge of [...oct.rentAndRecurring, ...oct.utilities]) {
@@ -282,7 +284,7 @@ async function seedOctober(versionAId: string) {
     createdAt: "2026-10-05T10:00:00+08:00",
     householdVersionId: versionAId,
   });
-  // Sam overpaid September's utilities by $5.00: a credit, added on 2 Oct and paid out on 12 Oct.
+  // Sam overpaid September's utilities by $X,XXX.XX: a credit, added on 2 Oct and paid out on 12 Oct.
   const samCredit = await insertCharge({
     personId: PERSON_IDS.sam,
     category: "CORRECTION",
@@ -306,8 +308,15 @@ async function main() {
   const versionA = await prisma.householdVersion.create({
     data: { startsFromMonth: "2026-08", schemaVersion: HOUSEHOLD_SCHEMA_VERSION, config: VERSION_A_CONFIG },
   });
+  const novemberConfig =
+    scenario === "householdRoom3InTotal"
+      ? {
+          ...NOV_2026_CONFIG,
+          rooms: NOV_2026_CONFIG.rooms.map((r) => (r.id === ROOM_IDS.room3 ? { ...r, includeInTotal: true } : r)),
+        }
+      : NOV_2026_CONFIG;
   await prisma.householdVersion.create({
-    data: { startsFromMonth: "2026-11", schemaVersion: HOUSEHOLD_SCHEMA_VERSION, config: NOV_2026_CONFIG },
+    data: { startsFromMonth: "2026-11", schemaVersion: HOUSEHOLD_SCHEMA_VERSION, config: novemberConfig },
   });
   if (scenario === "householdUpcoming") {
     await prisma.householdVersion.create({
@@ -455,13 +464,13 @@ async function main() {
           where: { month: "2026-11", paidCents: null, personId: { not: PERSON_IDS.alex } },
         });
         for (const c of unpaid) await markPaid(c.id, c.payViaPersonId ?? c.personId, "2026-11-27");
-        // Jordan's $15 correction from October came in with the rest, so nothing he pays is left open.
+        // Jordan's $X,XXX.XX correction from October came in with the rest, so nothing he pays is left open.
         const correction = await prisma.charge.findFirstOrThrow({
           where: { month: "2026-10", personId: PERSON_IDS.jordan, category: "CORRECTION" },
         });
         await markPaid(correction.id, PERSON_IDS.jordan, "2026-11-27");
         if (scenario === "shortPaid") {
-          // Priya sent $63.65 less than her rent, so her total reads $1,900.00 of $1,963.65.
+          // Priya sent $X,XXX.XX less than her rent, so her total reads $X,XXX.XX of $X,XXX.XX.
           const priyaRent = find(PERSON_IDS.priya, "RENT");
           await markPaid(priyaRent.id, PERSON_IDS.priya, "2026-11-27", priyaRent.amountCents - 6365);
         }

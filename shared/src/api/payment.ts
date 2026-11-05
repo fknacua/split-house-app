@@ -21,7 +21,7 @@ export const chargePaymentResponseSchema = z.object({
   title: z.string(),
   /** Home's row title and the charge's month, e.g. `Rent · Jordan · November`. */
   subtitle: z.string(),
-  /** What the charge asks for, e.g. `$1,963.65`. */
+  /** What the charge asks for, e.g. `$X,XXX.XX`. */
   expected: z.string(),
   /** `expected` in cents, so the sheet can tell when the amount received differs. */
   expectedCents: positiveCents,
@@ -64,7 +64,7 @@ export const paymentOptionChargeSchema = z.object({
   label: z.string(),
   /**
    * The sheet for this charge in Record payment's words: title `Record payment`, subtitle `Money
-   * you received for November` (the charge's own month), button `Record $950.00`. Choosing the
+   * you received for November` (the charge's own month), button `Record $X,XXX.XX`. Choosing the
    * charge swaps the sheet's text to this.
    */
   sheet: chargePaymentResponseSchema,
@@ -77,7 +77,7 @@ export type PaymentOptionCharge = z.infer<typeof paymentOptionChargeSchema>;
 export const paymentOptionPersonSchema = z.object({
   personId: z.string(),
   name: z.string(),
-  /** e.g. `2 unpaid · $1,050.79`, or `1 upcoming · $950.00` when none is overdue or due within 7 days. */
+  /** e.g. `2 unpaid · $X,XXX.XX`, or `1 upcoming · $X,XXX.XX` when none is overdue or due within 7 days. */
   detail: z.string(),
   /**
    * Their unpaid charges and the unpaid charges paid through them: the newest opened month's

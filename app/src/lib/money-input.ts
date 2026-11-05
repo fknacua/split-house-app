@@ -12,7 +12,7 @@ export { parseMoneyToCents };
 
 /**
  * Renders integer cents as plain editable text, with no `$` or thousands
- * commas, e.g. `186286` -> `1862.86`. Money inputs show this while focused.
+ * commas, e.g. `XXXX.XX`. Money inputs show this while focused.
  *
  * @param amountCents Amount in integer cents.
  * @returns The editable text.
@@ -25,7 +25,7 @@ export function centsToInputText(amountCents: number): string {
 /**
  * Cleans text typed or pasted into a money input: drops everything except
  * digits, one decimal point and (when allowed) a leading `-`, and keeps at
- * most 2 decimals. Partial text such as `1862.` or `-` is kept so typing is
+ * most 2 decimals. Partial text such as `XXXX.` or `-` is kept so typing is
  * not interrupted.
  *
  * @param text The raw text from the input.

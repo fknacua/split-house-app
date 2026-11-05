@@ -34,13 +34,13 @@ export const homeStepSchema = z.object({
 /** One step of the month progress bar. */
 export type HomeStep = z.infer<typeof homeStepSchema>;
 
-/** A small figure in the hero, e.g. `You're fronting` with `$2,725.83`. */
+/** A small figure in the hero, e.g. `You're fronting` with `$X,XXX.XX`. */
 export const homeTileSchema = z.object({
   label: z.string(),
   value: z.string(),
 });
 
-/** A small figure in the hero, e.g. `You're fronting` with `$2,725.83`. */
+/** A small figure in the hero, e.g. `You're fronting` with `$X,XXX.XX`. */
 export type HomeTile = z.infer<typeof homeTileSchema>;
 
 /** A hero body made of a title, a line of text and two tiles. */
@@ -62,15 +62,15 @@ export const homeHeroBodySchema = z.discriminatedUnion('kind', [
     kind: z.literal('collecting'),
     fronting: z.object({
       label: z.string(),
-      /** e.g. `$2,725.83`. */
+      /** e.g. `$X,XXX.XX`. */
       value: z.string(),
-      /** e.g. `Rent, aircon and other charges paid for others · $0.00 back so far`. */
+      /** e.g. `Rent, aircon and other charges paid for others · $X,XXX.XX back so far`. */
       note: z.string(),
     }),
     coverage: z.object({
       /** e.g. `Utilities bill covered`. */
       label: z.string(),
-      /** e.g. `$123.69 of $412.30`. */
+      /** e.g. `$X,XXX.XX of $X,XXX.XX`. */
       text: z.string(),
       /** 0 to 100, for the progress bar. */
       percent: z.number().int().min(0).max(100),
@@ -132,7 +132,7 @@ export const homeHeroSchema = z.object({
   dueToday: z.object({
     /** e.g. `Jordan’s utilities are due today`. */
     text: z.string(),
-    /** e.g. `$82.46`. The total when more than one payment is due. */
+    /** e.g. `$X,XXX.XX`. The total when more than one payment is due. */
     amount: z.string(),
   }).nullable(),
 });
@@ -148,7 +148,7 @@ export const homeRowSchema = z.object({
   dueDate: dateKey.nullable(),
   /** e.g. `Rent · Tenant 2`. */
   title: z.string(),
-  /** e.g. `$950.00`, or `—` while it depends on a bill that is not in yet. */
+  /** e.g. `$X,XXX.XX`, or `—` while it depends on a bill that is not in yet. */
   amount: z.string(),
   /** Small line under the title, e.g. `Pays via Primary tenant`. Null when there is nothing to add. */
   detail: z.string().nullable(),

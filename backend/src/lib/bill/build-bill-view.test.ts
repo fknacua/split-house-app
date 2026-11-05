@@ -23,7 +23,7 @@ function toRows(charges: EngineCharge[]): BillViewChargeRow[] {
   }));
 }
 
-/** November's rent, recurring and utilities charges once the $412.30 bill is saved. */
+/** November's rent, recurring and utilities charges once the $X,XXX.XX bill is saved. */
 function novemberCharges(): BillViewChargeRow[] {
   return toRows([
     ...buildMonthCharges(NOV_2026_CONFIG, "2026-11"),

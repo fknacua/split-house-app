@@ -61,7 +61,7 @@ describe("GET /api/months/:month/recipients/:personId", () => {
     expect(response.status).toBe(200);
     const recipient = recipientResponseSchema.parse(await response.json());
     expect(recipient).toMatchObject({
-      header: { name: "Priya", sub: "Master room · pays you directly" },
+      header: { name: "Priya", sub: "Pays you directly" },
       amountCard: { amount: "$1,757.46", statusLine: { text: "Due 7 Nov · includes Sam’s share" } },
       primaryAction: { label: "Send on WhatsApp", enabled: true },
     });

@@ -87,6 +87,19 @@ export function tenantRentCents(config: HouseholdConfig, personId: string): numb
 }
 
 /**
+ * Whether a person's rent is part of the landlord rent.
+ *
+ * @param config - A parsed household config.
+ * @param personId - The person to look up.
+ * @returns False only for someone in a tenant room with "Include in total" off.
+ * @throws {Error} When the person is not in this config.
+ */
+export function isRentInTotal(config: HouseholdConfig, personId: string): boolean {
+  const room = roomOf(config, personId);
+  return room.roomType !== "TENANT" || room.includeInTotal;
+}
+
+/**
  * Lists the people in a room.
  *
  * @param config - A parsed household config.

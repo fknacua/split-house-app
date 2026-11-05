@@ -12,3 +12,16 @@ export const PERSON_COLOR_BG: Record<PersonColor, string> = {
   BROWN: 'bg-person-brown',
   SLATE: 'bg-person-slate',
 };
+
+/** The border class for each person color, for a hollow ring. Written out in full for the same reason. */
+export const PERSON_COLOR_BORDER: Record<PersonColor, string> = {
+  BLUE: 'border-person-blue',
+  ORANGE: 'border-person-orange',
+  GREEN: 'border-person-green',
+  PURPLE: 'border-person-purple',
+  PINK: 'border-person-pink',
+  TEAL: 'border-person-teal',
+  GOLD: 'border-person-gold',
+  BROWN: 'border-person-brown',
+  SLATE: 'border-person-slate',
+};

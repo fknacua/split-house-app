@@ -62,8 +62,13 @@ export function Household() {
         {error ? <Alert variant="danger" message={error.message} /> : null}
         {loaded ? (
           <>
-            <LandlordCard stats={loaded.landlord.stats} edit={loaded.landlord.edit} />
-            <SplitSection rows={loaded.splitRows} />
+            <LandlordCard
+              label={loaded.landlord.label}
+              amount={loaded.landlord.amount}
+              stats={loaded.landlord.stats}
+              edit={loaded.landlord.edit}
+            />
+            <SplitSection rows={loaded.splitRows} edit={loaded.editSplits} onOpen={openTarget} />
             <View className="gap-2">
               <Text accessibilityRole="header" className="px-1 font-manrope-bold text-label text-on-surface">
                 People

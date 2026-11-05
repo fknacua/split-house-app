@@ -5,11 +5,11 @@
 
 /**
  * Formats integer cents as dollars with 2 decimals and thousands separators,
- * e.g. `186286` -> `$1,862.86`. Negative amounts (correction charges) show the
- * minus before the dollar sign, e.g. `-1500` -> `-$15.00`.
+ * e.g. `$X,XXX.XX`. Negative amounts (correction charges) show the
+ * minus before the dollar sign, e.g. `-$X,XXX.XX`.
  *
- * @param amountCents Amount in integer cents. e.g 186286 for $1,862.86
- * @returns The formatted amount. e.g. `$1,862.86` or `-$1,862.86`.
+ * @param amountCents Amount in integer cents.
+ * @returns The formatted amount. e.g. `$X,XXX.XX` or `-$X,XXX.XX`.
  * @throws {RangeError} When `amountCents` is not an integer.
  */
 export function formatCents(amountCents: number): string {
@@ -25,7 +25,7 @@ export function formatCents(amountCents: number): string {
 }
 
 /**
- * Parses money text to integer cents, e.g. `1,862.86` -> `186286`. Accepts an optional
+ * Parses money text, e.g. `X,XXX.XX`, to integer cents. Accepts an optional
  * leading `-` (before the `$`, as `formatCents` writes it), an optional `$`, thousands
  * commas, and up to 2 decimals. Works on the digits as text, so there is no float rounding.
  *

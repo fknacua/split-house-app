@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { buildUnusualBillWarning } from "./unusual-bill";
 
-// An average of $400.00.
+// An average of $X,XXX.XX.
 const RECENT = [38000, 40000, 42000];
 
 describe("buildUnusualBillWarning", () => {

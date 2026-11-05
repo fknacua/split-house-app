@@ -25,8 +25,8 @@ export interface MoneyInputOwnProps {
 /**
  * Bare money input: the 48px outlined field with no label or form state. The value is integer
  * cents, or `null` while the field is empty or the text is not yet an amount. While focused it
- * shows the text being typed (`1862.`), so typing is never rewritten; on blur it shows the
- * formatted amount (`$1,862.86`).
+ * shows the text being typed (`XXXX.`), so typing is never rewritten; on blur it shows the
+ * formatted amount (`$X,XXX.XX`).
  */
 const BareMoneyInput = forwardRef<
   ComponentRef<typeof NativeInputField>,

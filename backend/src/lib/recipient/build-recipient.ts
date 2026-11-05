@@ -18,7 +18,7 @@ import {
 import type { ChargeCategory, MessageKind } from "@/generated/prisma/enums";
 import { chargeBadge, HOME_BADGES } from "@/lib/home/badges";
 import { chargeDueDate } from "@/lib/home/due-dates";
-import { joinWords, personSubLine, ROUTE_WORDS } from "@/lib/household/sub-line";
+import { joinWords, personRouteLine, ROUTE_WORDS } from "@/lib/household/sub-line";
 import type { BreakdownCharge } from "@/lib/messages/build-breakdown";
 import { renderMonthlyMessage, renderNudgeMessage, type MonthlyMessage } from "@/lib/messages/render";
 import { whatsappLink } from "@/lib/messages/whatsapp-link";
@@ -299,7 +299,7 @@ function overdueRecipient(
   };
 }
 
-/** `$63.65 short` or `$20.00 over` for a payment that differs from its charge; null when it matches. */
+/** `$X,XXX.XX short` or `$X,XXX.XX over` for a payment that differs from its charge; null when it matches. */
 function chargeGap(charge: RecipientChargeRow): string | null {
   const paid = charge.paidCents ?? charge.amountCents;
   if (paid === charge.amountCents) return null;
@@ -390,7 +390,7 @@ function paidRecipient(input: RecipientInput, names: Map<string, string>, header
 export function buildRecipient(input: RecipientInput): RecipientResponse {
   const { month, person } = input;
   const names = new Map(input.people.map((p) => [p.id, p.name]));
-  const header = { name: person.name, sub: personSubLine(input.config, person.id, names) };
+  const header = { name: person.name, sub: personRouteLine(input.config, person.id, names) };
   // Credits can't be marked paid yet (Phase 11), so an unpaid one doesn't hold the page back.
   const toPay = input.charges.filter((c) => c.amountCents > 0);
   if (input.billCents !== null && toPay.length > 0 && toPay.every((c) => c.paidCents !== null)) {

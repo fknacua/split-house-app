@@ -1,5 +1,5 @@
 /**
- * One best-effort line read from a bill, e.g. `{ label: "Electricity", cents: 28150 }`. `cents` is
+ * One best-effort line read from a bill, e.g. `{ label: "Electricity", cents: XXXXX }`. `cents` is
  * `null` when the bill has the line's heading but its amount could not be read.
  */
 export type ParsedBillLine = {

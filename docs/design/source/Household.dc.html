@@ -37,7 +37,7 @@ body{margin:0}
 <a href="{{editHomeHref}}" aria-label="Edit landlord rent and rooms" style="background: {{c.selected}}; color: {{c.onSelected}}; border-radius: 24px; padding: 16px 18px; display: flex; flex-direction: column; gap: 12px; text-decoration: none">
 <div style="display: flex; justify-content: space-between; align-items: flex-start; gap: 8px">
 <div style="display: flex; flex-direction: column; gap: 2px">
-<span style="font-size: 12px; line-height: 16px; font-weight: 600">Household rent · due 1st of the month</span>
+<span style="font-size: 12px; line-height: 16px; font-weight: 600">Landlord rent · due 1st of the month</span>
 <span style="font-size: 34px; line-height: 40px; font-weight: 800; font-variant-numeric: tabular-nums">$4,300.00</span>
 </div>
 <!-- gluestack Badge -->
@@ -227,20 +227,42 @@ Add subtenant
 
 <sc-if value="{{isEditPerson}}" hint-placeholder-val="{{true}}">
 <sc-for list="{{groups}}" as="g" hint-placeholder-count="2">
-<section style="display: flex; flex-direction: column; gap: 16px; padding-top: {{g.padTop}}; border-top: 1px solid {{g.divider}}">
+<section style="display: flex; flex-direction: column; gap: 16px; margin-top: {{g.mt}}; padding-top: {{g.padTop}}; border-top: 1px solid {{g.divider}}">
 <div style="display: flex; flex-direction: column; gap: 2px; padding: 0 4px">
 <h2 style="margin: 0; font-size: 14px; line-height: 20px; font-weight: 700">{{g.title}}</h2>
 </div>
-<sc-if value="{{g.hasFrom}}" hint-placeholder-val="{{false}}">
-<!-- gluestack FormControl + Select (month list, bottom sheet): Starts from -->
+<sc-if value="{{g.hasRoomSel}}" hint-placeholder-val="{{false}}">
+<!-- gluestack FormControl + Select: Room (empty tenant rooms only) -->
 <div style="display: flex; flex-direction: column; gap: 6px">
-<label id="fromPLabel" style="font-size: 14px; line-height: 20px; font-weight: 700; color: {{c.onSurface}}">Starts from</label>
-<a href="{{pickHref}}" aria-haspopup="dialog" aria-labelledby="fromPLabel fromPValue" style="width: 100%; height: 48px; box-sizing: border-box; padding: 0 14px; border: 1px solid {{c.outline}}; border-radius: 12px; background: {{c.surface}}; display: flex; align-items: center; gap: 8px; font-family: inherit; color: {{c.onSurface}}; text-align: left; text-decoration: none">
-<span id="fromPValue" style="flex-grow: 1; min-width: 0; font-size: 16px; line-height: 24px; font-weight: 500">January 2027</span>
-<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="flex-shrink: 0; color: {{c.onSurface}}"><path d="M8 2v4"></path><path d="M16 2v4"></path><rect width="18" height="18" x="3" y="4" rx="2"></rect><path d="M3 10h18"></path></svg>
-</a>
+<span id="roomSelLabel" style="font-size: 14px; line-height: 20px; font-weight: 700; color: {{c.onSurface}}">Room<span aria-hidden="true" style="color: {{c.danger}}"> *</span></span>
+<button aria-haspopup="listbox" aria-labelledby="roomSelLabel" aria-disabled="{{g.roomDisabled}}" style="width: 100%; height: 48px; box-sizing: border-box; padding: 0 14px; border: 1px solid {{g.roomBorder}}; border-radius: 12px; background: {{g.roomBg}}; display: flex; align-items: center; gap: 8px; font-family: inherit; color: {{g.roomFg}}; text-align: left">
+<span style="flex-grow: 1; min-width: 0; font-size: 16px; line-height: 24px; font-weight: 500">{{g.roomValue}}</span>
+<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="flex-shrink: 0; color: {{c.onSurfaceVariant}}"><path d="m6 9 6 6 6-6"></path></svg>
+</button>
 </div>
 </sc-if>
+<sc-if value="{{g.hasNoRoom}}" hint-placeholder-val="{{false}}">
+<!-- gluestack Alert, info -->
+<div role="status" style="background: {{c.infoTint}}; border: 1px solid {{c.infoLine}}; border-radius: 12px; padding: 10px 14px; display: flex; align-items: center; gap: 10px; font-size: 14px; line-height: 20px; font-weight: 700; color: {{c.onInfoContainer}}">
+<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="{{c.info}}" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="flex-shrink: 0"><circle cx="12" cy="12" r="10"></circle><path d="M12 16v-4"></path><path d="M12 8h.01"></path></svg>
+No empty rooms
+</div>
+</sc-if>
+<sc-if value="{{g.hasRoomFacts}}" hint-placeholder-val="{{false}}">
+<div style="display: flex; flex-wrap: wrap; gap: 16px 12px">
+<sc-for list="{{g.roomFacts}}" as="rf" hint-placeholder-count="4">
+<div style="width: calc(50% - 6px); min-width: 0; display: flex; flex-direction: column; gap: 6px">
+<span style="font-size: 14px; line-height: 20px; font-weight: 700; color: {{c.onSurface}}">{{rf.label}}</span>
+<span style="font-size: 16px; line-height: 24px; font-weight: 500; font-variant-numeric: tabular-nums; color: {{c.onSurface}}">{{rf.value}}</span>
+</div>
+</sc-for>
+</div>
+</sc-if>
+<sc-if value="{{g.hasRoomLink}}" hint-placeholder-val="{{false}}">
+<!-- gluestack Button, link -->
+<a href="{{landlordHref}}" style="align-self: flex-start; margin: -8px 0; min-height: 48px; padding: 0 4px; display: flex; align-items: center; gap: 6px; font-size: 14px; line-height: 20px; font-weight: 700; color: {{c.primary}}; text-decoration: none">{{g.roomLinkLabel}}<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m9 18 6-6-6-6"></path></svg></a>
+</sc-if>
+<sc-if value="{{g.hasFields}}" hint-placeholder-val="{{true}}">
 <div style="display: flex; flex-wrap: wrap; align-items: flex-end; gap: 16px 12px">
 <sc-for list="{{g.fields}}" as="f" hint-placeholder-count="4">
 <sc-if value="{{f.notPhone}}" hint-placeholder-val="{{true}}">
@@ -274,6 +296,7 @@ Add subtenant
 </sc-if>
 </sc-for>
 </div>
+</sc-if>
 <sc-if value="{{g.hasColor}}" hint-placeholder-val="{{false}}">
 <div style="display: flex; flex-direction: column; gap: 10px">
 <div style="display: flex; align-items: center; justify-content: space-between; gap: 8px">
@@ -360,13 +383,14 @@ Add subtenant
 </div>
 </div>
 </x-dc>
-<script type="text/x-dc" data-dc-script data-props='{"state":{"editor":"enum","options":["view","overviewExcluded","loading","editHome","addPerson","editPerson","editPersonBoth","editPrimary","editTenant1","viewPerson","viewPrimary","viewTenant1"],"default":"view"},"theme":{"editor":"enum","options":["light","dark"],"default":"light"},"$preview":{"width":400,"height":848}}'>
+<script type="text/x-dc" data-dc-script data-props='{"state":{"editor":"enum","options":["view","loading","addPerson","addPersonRoom","addPersonNoRoom","editPerson","editPersonBoth","editPrimary","editTenant1","viewPerson","viewPrimary","viewTenant1"],"default":"view"},"theme":{"editor":"enum","options":["light","dark"],"default":"light"},"$preview":{"width":400,"height":848}}'>
 class Component extends DCLogic {
   renderVals() {
     var dark = this.props.theme === 'dark';
     var st = this.props.state || 'view';
-    var exclRent = st === 'overviewExcluded' ? ['Tenant 2'] : [];
-    if (st === 'overviewExcluded') st = 'view';
+    var exclRent = ['Tenant 2'];
+    var addVariant = st;
+    if (/^addPerson/.test(st)) st = 'addPerson';
     var ro = /^view[A-Z]/.test(st);
     var viewOf = ro ? ('edit' + st.slice(4)) : '';
     if (ro) st = viewOf;
@@ -402,11 +426,10 @@ class Component extends DCLogic {
     var viewing = st === 'view' || st === 'loading';
     var v = {
       c: c, isView: viewing, isLoading: st === 'loading', isLoaded: st !== 'loading',
-      isEdit: !viewing, isEditPerson: st === 'editPerson' || st === 'editPrimary' || st === 'editTenant1' || st === 'editHome' || st === 'addPerson',
+      isEdit: !viewing, isEditPerson: st === 'editPerson' || st === 'editPrimary' || st === 'editTenant1' || st === 'addPerson',
       addHref: dark ? 'Household-AddPerson-Dark.dc.html' : 'Household-AddPerson-Light.dc.html',
-      saveLabel: 'Save changes', hasPays: st !== 'editHome',
-      pickHref: dark ? 'MonthPicker-Dark.dc.html' : 'MonthPicker-Light.dc.html',
-      editHomeHref: dark ? 'Household-EditHome-Dark.dc.html' : 'Household-EditHome-Light.dc.html',
+      saveLabel: 'Save changes', hasPays: true,
+      editHomeHref: dark ? 'LandlordRooms-Unchanged-Dark.dc.html' : 'LandlordRooms.dc.html', landlordHref: dark ? 'LandlordRooms-Unchanged-Dark.dc.html' : 'LandlordRooms.dc.html',
       homeHref: dark ? 'Home-Upload-Dark.dc.html' : 'Main.dc.html',
       historyHref: dark ? 'History-List-Dark.dc.html' : 'History.dc.html',
       settingsHref: dark ? 'Settings-View-Dark.dc.html' : 'Settings.dc.html',
@@ -420,17 +443,13 @@ class Component extends DCLogic {
       ],
       people: [
         { initial: 'PT', name: 'Primary Tenant', role: 'Master room · pays you directly', href: dark ? 'Household-EditPrimary-Dark.dc.html' : 'Household-EditPrimary-Light.dc.html', facts: [
-          { label: 'Rent · due 7th', value: '$1,675.00' }, { label: 'Utilities · due 7th', value: '1.5 shares' },
-          { label: 'Aircon', value: '2 units' }, { label: 'WhatsApp', value: '+65 [number]' } ] },
-        { initial: 'T1', name: 'Tenant 1', role: 'Room 2 · subtenant', href: dark ? 'Household-EditTenant1-Dark.dc.html' : 'Household-EditTenant1-Light.dc.html', facts: [
-          { label: 'Rent · due 28th', value: '$950.00 direct' }, { label: 'Utilities · due 7th', value: '1 share via Primary Tenant' },
-          { label: 'Aircon', value: '1 unit' }, { label: 'Messages', value: 'In Primary Tenant’s' } ] },
-        { initial: 'T2', name: 'Tenant 2', role: 'Room 3 · subtenant', href: editPersonHref, facts: [
-          { label: 'Rent · due 1st', value: '$950.00 → savings' }, { label: 'Utilities · due 4th', value: '1 share' },
-          { label: 'Aircon', value: '1 unit' }, { label: 'Deposit', value: '$950.00 held' } ] },
+          { label: 'Rent · due 7th', value: '$1,675.00' }, { label: 'Utilities · due 7th', value: '1.5 shares' } ] },
+        { initial: 'T1', name: 'Tenant 1', role: 'Room 2 · utilities and aircon via Primary Tenant', href: dark ? 'Household-EditTenant1-Dark.dc.html' : 'Household-EditTenant1-Light.dc.html', facts: [
+          { label: 'Rent · due 28th', value: '$950.00' }, { label: 'Utilities · due 7th', value: '1 share' } ] },
+        { initial: 'T2', name: 'Tenant 2', role: 'Room 3 · pays you directly', href: editPersonHref, facts: [
+          { label: 'Rent · due 1st', value: '$950.00' }, { label: 'Utilities · due 4th', value: '1 share' } ] },
         { initial: 'Y', name: 'You', role: 'Master room · pays landlord & utilities', href: '#', facts: [
-          { label: 'Rent share', value: '$1,675.00' }, { label: 'Utilities', value: '1.5 shares' },
-          { label: 'Aircon', value: '2 units' }, { label: 'Leftover cents', value: 'Absorbed by you' } ] }
+          { label: 'Rent share', value: '$1,675.00' }, { label: 'Utilities', value: '1.5 shares' } ] }
       ],
       splits: [
         { label: 'Rent', detail: '$5,250.00 across the home', divider: 'transparent', segs: [['You', '$1,675', 1675], ['Primary Tenant', '$1,675', 1675], ['Tenant 1', '$950', 950], ['Tenant 2', '$950', 950]] },
@@ -493,7 +512,7 @@ class Component extends DCLogic {
       return { isRow: true, isHead: false, label: label, from: from, to: to, changed: !!from, strike: from ? 'line-through' : 'none' };
     };
     var head = function (label) { return { isRow: false, isHead: true, label: label }; };
-    var NOW = 'Saves now', JAN = 'Saves from Jan 2027';
+    var NOW = 'Saves now', JAN = 'Saves from Dec 2026';
     // Rent and utilities each have their own route: paid directly, or sent via another person
     var payGroups = function (rentVia, utilVia) {
       return [
@@ -503,49 +522,34 @@ class Component extends DCLogic {
     };
     v.payGroups = [];
     v.payLabel = 'Pays'; v.hasPayNote = false; v.payNote = ''; v.hasPreviewNote = false; v.previewNote = '';
-    v.previewTitle = 'New amounts from Jan 2027';
+    v.previewTitle = '';
+    var room = null;
     if (st === 'addPerson') {
       v.editTitle = 'Add subtenant'; v.editSub = 'New person in the household';
+      var picked = addVariant === 'addPersonRoom', noRoom = addVariant === 'addPersonNoRoom';
       v.fields = [
         field('name', 'Name (used in messages)', '', false, true, 'e.g. first name'),
-        field('rent', 'Rent (SGD)', '', false, false, '0.00'), field('rentDue', 'Rent due', '', false, false, 'Day, e.g. 1st'),
-        field('shares', 'Utility shares', '', false, false, 'e.g. 1'), field('utilDue', 'Utilities due', '', false, false, 'Day, e.g. 4th'),
-        field('units', 'Aircon units', '', false, false, 'e.g. 1'), field('deposit', 'Deposit held (SGD)', '', false, false, 'Optional'),
+        field('shares', 'Utility shares', '', false, false, 'e.g. 1'), field('rentDue', 'Rent due', '', false, false, 'Day, e.g. 1st'),
+        field('utilDue', 'Utilities due', '', false, false, 'Day, e.g. 4th'), field('deposit', 'Deposit held (SGD)', '', false, false, 'Optional'),
         field('wa', 'WhatsApp', '', false, true, '8123 4567')
       ];
       v.payGroups = payGroups(null, null);
-      v.previewTitle = 'New amounts from Jan 2027';
       v.preview = []; v.noChanges = true; // Add has no summary: the form is the summary
+      room = { sel: true, value: picked ? 'Room 3' : 'Choose a room', empty: !picked, disabled: noRoom, noRoom: noRoom,
+        facts: picked ? [ { label: 'Rent (SGD)', value: '$950.00' }, { label: 'Aircon units', value: '1' } ] : [], link: noRoom, linkLabel: 'Open Landlord & rooms' };
       v.saveLabel = 'Save changes'; v.saveDisabled = 'true'; v.saveBg = c.disabledBg; v.saveFg = c.disabledFg;
-      v.secondaryLabel = 'Cancel'; v.secondaryFg = c.primary;
-    } else if (st === 'editHome') {
-      v.editTitle = 'Landlord & rooms'; v.editSub = 'Rent you pay the landlord';
-      v.fields = [
-        field('landlord', 'Landlord rent (SGD)', '4,400.00', true), field('landlordDue', 'Pay landlord on', '1st'),
-        field('master', 'Master room rent (SGD)', '3,450.00'), field('room2', 'Room 2 rent (SGD)', '950.00'),
-        field('units', 'Total aircon units', '6', false, true)
-      ];
-      v.previewTitle = 'New amounts from Jan 2027';
-      v.preview = [
-        head(JAN),
-        row('Landlord rent', '$4,300.00', '$4,400.00'),
-        row('Your rent share', '$1,675.00', '$1,725.00'),
-        row('Primary Tenant’s rent', '$1,675.00', '$1,725.00')
-      ];
-      v.saveLabel = 'Save changes';
-      v.saveDisabled = 'false'; v.saveBg = c.primary; v.saveFg = c.onPrimary;
       v.secondaryLabel = 'Cancel'; v.secondaryFg = c.primary;
     } else if (st === 'editPerson') {
       v.editTitle = 'Edit Tenant 2'; v.editSub = 'Room 3 · subtenant';
       v.fields = [
         field('name', 'Name (used in messages)', 'Jordan', false, true),
-        field('rent', 'Rent (SGD)', '1,000.00', true), field('rentDue', 'Rent due', '1st'),
-        field('shares', 'Utility shares', '1'), field('utilDue', 'Utilities due', '4th'),
-        field('units', 'Aircon units', '1'), field('deposit', 'Deposit held (SGD)', '950.00'),
+        field('rentDue', 'Rent due', ro ? '1st' : '3rd', true), field('utilDue', 'Utilities due', '4th'),
+        field('deposit', 'Deposit held (SGD)', '950.00'),
         field('wa', 'WhatsApp', '[number]', false, true)
       ];
       v.payGroups = payGroups(null, null);
-      v.preview = (both ? [ head(NOW), row('Name', 'Tenant 2', 'Jordan'), row('Color', 'Green', 'Purple') ] : []).concat([ head(JAN), row('Tenant 2 rent', '$950.00', '$1,000.00'), row('Moved to savings', '$950.00', '$1,000.00') ]);
+      room = { facts: [ { label: 'Room', value: 'Room 3' }, { label: 'Rent (SGD)', value: '$950.00' }, { label: 'Utility shares', value: '1', roOnly: true }, { label: 'Aircon units', value: '1' } ], link: true, linkLabel: 'Change on Landlord & rooms' };
+      v.preview = (both ? [ head(NOW), row('Name', 'Tenant 2', 'Jordan'), row('Color', 'Green', 'Purple') ] : []).concat([ head(JAN), row('Rent due', '1st', '3rd') ]);
       v.saveLabel = 'Save changes';
       v.saveDisabled = 'false'; v.saveBg = c.primary; v.saveFg = c.onPrimary;
       v.secondaryLabel = 'Remove from household'; v.secondaryFg = c.danger;
@@ -565,25 +569,38 @@ class Component extends DCLogic {
       v.editTitle = 'Edit Tenant 1'; v.editSub = 'Room 2 · subtenant';
       v.fields = [
         field('name', 'Name (used in messages)', 'Sam', false, true),
-        field('rent', 'Rent (SGD)', '950.00'), field('rentDue', 'Rent due', '28th'),
-        field('shares', 'Utility shares', '1'), field('utilDue', 'Utilities due', '7th'),
-        field('units', 'Aircon units', '1'), field('deposit', 'Deposit held (SGD)', '', false, false, 'None'),
+        field('rentDue', 'Rent due', '28th'), field('utilDue', 'Utilities due', '7th'),
+        field('deposit', 'Deposit held (SGD)', '', false, false, 'None'),
         field('wa', 'WhatsApp (optional)', '', false, true, '8123 4567')
       ];
       v.payGroups = payGroups(null, 'Primary Tenant');
+      room = { facts: [ { label: 'Room', value: 'Room 2' }, { label: 'Rent (SGD)', value: '$950.00' }, { label: 'Utility shares', value: '1', roOnly: true }, { label: 'Aircon units', value: '1' } ], link: true, linkLabel: 'Change on Landlord & rooms' };
       v.hasPayNote = true; v.payNote = 'Anything sent via Primary Tenant shows as a separate section in their message, so they don’t get one of their own.';
       v.preview = []; v.noChanges = true;
       v.saveLabel = 'Save changes'; v.saveDisabled = 'true'; v.saveBg = c.disabledBg; v.saveFg = c.disabledFg;
       v.secondaryLabel = 'Remove from household'; v.secondaryFg = c.danger;
     }
-    // Group the form: immediate fields first, then dated fields under their own "Starts from"
+    // Group the form: immediate fields, then the room, then the dated fields (titled with the month they apply from)
     if (v.fields) {
       var imm = v.fields.filter(function (f) { return f.immediate; });
       var dated = v.fields.filter(function (f) { return !f.immediate; });
+      var mk = function (o) {
+        var g = { title: '', hasColor: false, fields: [], hasRoomSel: false, roomValue: '', roomFg: c.onSurface, roomBg: c.surface, roomBorder: c.outline, roomDisabled: 'false',
+          hasNoRoom: false, hasRoomFacts: false, roomFacts: [], hasRoomLink: false, roomLinkLabel: '' };
+        Object.keys(o).forEach(function (k) { g[k] = o[k]; });
+        g.hasFields = g.fields.length > 0;
+        return g;
+      };
       v.groups = [];
-      if (imm.length) v.groups.push({ title: ro ? 'Details' : 'Saved right away', sub: ro ? '' : 'Updates everywhere, including past months and History.', hasFrom: false, hasColor: true, fields: imm });
-      v.groups.push({ title: ro ? 'Amounts' : 'From a month you pick', sub: ro ? '' : 'Previous months keep their old values.', hasFrom: !ro, hasColor: false, fields: dated });
-      v.groups.forEach(function (g, i) { g.divider = i === 0 ? 'transparent' : c.outlineVariant; g.padTop = i === 0 ? '4px' : '18px'; });
+      if (imm.length) v.groups.push(mk({ title: (ro || /^addPerson/.test(addVariant)) ? 'Details' : 'Saved right away', hasColor: true, fields: imm }));
+      if (room) {
+        var rf = room.facts.filter(function (f) { return ro || !f.roOnly; });
+        v.groups.push(mk({ title: 'Room', hasRoomSel: !!room.sel, roomValue: room.value || '', roomFg: room.empty ? c.onSurfaceVariant : c.onSurface,
+          roomBg: room.disabled ? c.disabledBg : c.surface, roomBorder: room.disabled ? c.outlineVariant : c.outline, roomDisabled: room.disabled ? 'true' : 'false',
+          hasNoRoom: !!room.noRoom, hasRoomFacts: rf.length > 0, roomFacts: rf, hasRoomLink: !!room.link && !ro || (!!room.link && room.noRoom), roomLinkLabel: room.linkLabel || '' }));
+      }
+      v.groups.push(mk({ title: ro ? 'Amounts' : 'From December 2026', fields: dated }));
+      v.groups.forEach(function (g, i) { g.divider = i === 0 ? 'transparent' : c.outlineVariant; g.padTop = i === 0 ? '4px' : '18px'; g.mt = (i === 0 && !ro && (st === 'editPerson' || both)) ? '-440px' : ((i === 0 && (addVariant === 'addPersonRoom' || addVariant === 'addPersonNoRoom')) ? '-440px' : '0px'); });
     }
     // Colour: default per person, then whatever was tapped
     var defaultColor = both ? 3 : { editPerson: 2, editPrimary: 0, editTenant1: 1, addPerson: 3 }[st];
@@ -613,7 +630,7 @@ class Component extends DCLogic {
       if (v.fields) v.fields.forEach(function (f) { f.showStar = f.required; });
     }
     var T = dark ? 'Dark' : 'Light';
-    v.secondaryHref = /^Remove/.test(v.secondaryLabel || '') ? (dark ? 'Confirm-RemovePerson-Dark.dc.html' : 'Confirm.dc.html') : viewHref;
+    v.secondaryHref = /^Remove/.test(v.secondaryLabel || '') ? (st === 'editTenant1' ? 'Confirm-RemovePersonIncluded-' + T + '.dc.html' : (dark ? 'Confirm-RemovePerson-Dark.dc.html' : 'Confirm.dc.html')) : viewHref;
     if (st === 'editPerson') v.backHref = 'Confirm-Discard-' + T + '.dc.html';
     return v;
   }

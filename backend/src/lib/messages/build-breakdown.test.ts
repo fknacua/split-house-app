@@ -33,7 +33,7 @@ function charge(
   };
 }
 
-// November from the Data Model fixtures, with the $412.30 bill saved.
+// November from the Data Model fixtures, with the $X,XXX.XX bill saved.
 const NOV_CHARGES: BreakdownCharge[] = [
   charge(alex, "RENT", "Rent", 167500, null),
   charge(alex, "UTILITIES", "Utilities", 12369, null),
