@@ -310,6 +310,108 @@ export const householdHomeFormResponseSchema = z.object({
 /** `GET /api/household/home-form`: the Landlord & rooms screen, with the latest saved values, ready to render. */
 export type HouseholdHomeFormResponse = z.infer<typeof householdHomeFormResponseSchema>;
 
+/** What a split card works out: what is left to split and each person's part of it. */
+export const householdSplitAmountSchema = z.object({
+  /** e.g. `$X,XXX.XX`, `3`, `4`. */
+  left: z.string(),
+  /** e.g. `$X,XXX.XX`, `1.5 shares`, `2 units`; `—` when nothing is left to split. */
+  owner: z.string(),
+  /** The same for the primary tenant. Null when there is none. */
+  primary: z.string().nullable(),
+});
+
+/** What a split card works out: what is left to split and each person's part of it. */
+export type HouseholdSplitAmount = z.infer<typeof householdSplitAmountSchema>;
+
+/** What the three split cards work out, on the form and again on each preview. */
+export const householdSplitAmountsSchema = z.object({
+  rent: householdSplitAmountSchema,
+  utilities: householdSplitAmountSchema,
+  aircon: householdSplitAmountSchema,
+});
+
+/** What the three split cards work out, on the form and again on each preview. */
+export type HouseholdSplitAmounts = z.infer<typeof householdSplitAmountsSchema>;
+
+/** A tenant's read-only row on the Rent or Aircon card. */
+export const householdSplitRoomRowSchema = z.object({
+  personId: z.string(),
+  /** e.g. `Jordan · Room 3`. */
+  name: z.string(),
+  color: personColor,
+  /** e.g. `$X,XXX.XX`, `1`. */
+  value: z.string(),
+  /** False for a room not in the landlord rent: a hollow ring and the `Not in total` marker. Always true on Aircon. */
+  inTotal: z.boolean(),
+});
+
+/** A tenant's read-only row on the Rent or Aircon card. */
+export type HouseholdSplitRoomRow = z.infer<typeof householdSplitRoomRowSchema>;
+
+/** `GET /api/household/split-form`: the Household split screen, with the latest saved values, ready to render. */
+export const householdSplitFormResponseSchema = z.object({
+  /** `Household split`. */
+  title: z.string(),
+  /** The heading above the cards, e.g. `From December 2026`. */
+  datedTitle: z.string(),
+  /** e.g. `These take effect from December 2026.` while saved values differ from the active month's; otherwise null. */
+  pendingNote: z.string().nullable(),
+  /** e.g. `Split between you and Priya`. Null with no primary tenant, when the split control is left out. */
+  splitTitle: z.string().nullable(),
+  /** The left side of each split control. */
+  owner: z.object({ name: z.string(), color: personColor }),
+  /** The right side of each split control. Null with no primary tenant. */
+  primary: z.object({ name: z.string(), color: personColor }).nullable(),
+  values: z.object({
+    /** Each tenant's shares input, in thousandths of a share (1.5 shares = 1500). */
+    tenantShares: z.array(
+      z.object({
+        personId: z.string(),
+        name: z.string(),
+        color: personColor,
+        utilityShares: z.number().int(),
+      }),
+    ),
+    /** In thousandths of a share. */
+    totalShares: z.number().int(),
+    /** In basis points (5000 = 50%). The owner has the rest. */
+    rentPrimaryBps: z.number().int(),
+    utilitiesPrimaryBps: z.number().int(),
+    airconPrimaryBps: z.number().int(),
+  }),
+  rent: z.object({
+    /** `Rent (SGD)`. */
+    title: z.string(),
+    rows: z.array(householdSplitRoomRowSchema),
+    /** `Shared rent`, beside the amounts' `left`. */
+    leftLabel: z.string(),
+  }),
+  utilities: z.object({
+    /** `Utilities (shares)`. */
+    title: z.string(),
+    /** `Total shares`, the input's label. */
+    totalLabel: z.string(),
+    /** `Left to split`, beside the amounts' `left`. */
+    leftLabel: z.string(),
+  }),
+  aircon: z.object({
+    /** `Aircon (units)`. */
+    title: z.string(),
+    rows: z.array(householdSplitRoomRowSchema),
+    /** `Left to split`, beside the amounts' `left`. */
+    leftLabel: z.string(),
+    /** `Total units`. */
+    totalLabel: z.string(),
+    /** e.g. `6`. */
+    total: z.string(),
+  }),
+  /** The saved values' amounts, until a preview answers. */
+  amounts: householdSplitAmountsSchema,
+});
+
+/** `GET /api/household/split-form`: the Household split screen, with the latest saved values, ready to render. */
+export type HouseholdSplitFormResponse = z.infer<typeof householdSplitFormResponseSchema>;
+
 /** Changes to a saved room. Only the fields sent are applied, and null or an empty name means the field was cleared. */
 export const householdRoomEditSchema = z.object({
   id: z.string().min(1),
@@ -428,12 +530,41 @@ export const householdRemovePersonEditSchema = z.object({
 /** Removes a tenant from next month. */
 export type HouseholdRemovePersonEdit = z.infer<typeof householdRemovePersonEditSchema>;
 
+/**
+ * An edit to the Household split, which always starts next month, which the server works out. Only the fields sent
+ * are applied, and null means the field was cleared, which is an error. The preview answers errors under
+ * `tenantShares.{personId}`, `totalShares`, `rentPrimaryBps`, `utilitiesPrimaryBps`, `airconPrimaryBps` and
+ * `leftToSplit` (tenants taking every share), and warnings under `tenantShares.{personId}`.
+ */
+export const householdSplitEditSchema = z.object({
+  kind: z.literal('split'),
+  tenantShares: z.array(
+    z.object({
+      personId: z.string().min(1),
+      /** In thousandths of a share (1.5 shares = 1500). */
+      utilityShares: z.number().int().nullable(),
+    }),
+  ),
+  /** In thousandths of a share. */
+  totalShares: z.number().int().nullable().optional(),
+  /** In basis points (5000 = 50%), 1% to 99%. The owner has the rest. */
+  rentPrimaryBps: z.number().int().nullable().optional(),
+  /** In basis points, 1% to 99%. The owner has the rest. */
+  utilitiesPrimaryBps: z.number().int().nullable().optional(),
+  /** In basis points, 1% to 99%. The owner has the rest. */
+  airconPrimaryBps: z.number().int().nullable().optional(),
+});
+
+/** An edit to the Household split, which always starts next month. */
+export type HouseholdSplitEdit = z.infer<typeof householdSplitEditSchema>;
+
 /** `POST /api/household/edits` and `.../preview` body: one typed edit. The app never sends a config. */
 export const householdEditSchema = z.discriminatedUnion('kind', [
   householdPersonEditSchema,
   householdAddPersonEditSchema,
   householdRemovePersonEditSchema,
   householdHomeEditSchema,
+  householdSplitEditSchema,
 ]);
 
 /** `POST /api/household/edits` and `.../preview` body: one typed edit. The app never sends a config. */
@@ -470,10 +601,12 @@ export const householdEditPreviewResponseSchema = z.object({
   canSave: z.boolean(),
   /** Messages by request field name; `form` for one that belongs to no field. */
   errors: z.record(z.string(), z.string()),
-  /** Messages that still allow Save, by request field name. Only for a `home` edit. */
+  /** Messages that still allow Save, by request field name. Only for a `home` or `split` edit. */
   warnings: z.record(z.string(), z.string()).optional(),
   /** The master room's calculated rent, e.g. `$X,XXX.XX`, or null while it can't be worked out. Only for a `home` edit. */
   masterRent: z.string().nullable().optional(),
+  /** What the split cards work out from the values sent, reading an empty field as 0. Only for a `split` edit. */
+  amounts: householdSplitAmountsSchema.optional(),
 });
 
 /** `POST /api/household/edits/preview`: what the edit would change. Nothing is stored. */

@@ -4,6 +4,7 @@ import {
   type HouseholdConfig,
   type HouseholdHomeEdit,
   type HouseholdPersonEdit,
+  type HouseholdSplitEdit,
   type PersonColor,
 } from "@splithouse/shared";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
@@ -598,6 +599,80 @@ describe("editing landlord and rooms", () => {
     const { db, state } = fakeDb();
     await saveHouseholdEdit(db, home({ rooms: [{ id: ROOM_IDS.room2, rentCents: 0 }] }));
     expect(masterRentCents(configOf(state.versions[1]))).toBe(430000);
+  });
+});
+
+describe("editing the household split", () => {
+  const split = (fields: Partial<HouseholdSplitEdit> = {}): HouseholdSplitEdit => ({ kind: "split", tenantShares: [], ...fields });
+  const configOf = (row: VersionRow | undefined) => row?.config as HouseholdConfig;
+
+  it("previews with the summary, warnings and amounts, and stores nothing", async () => {
+    const { db, state } = fakeDb();
+    const preview = await previewHouseholdEdit(db, split({ tenantShares: [{ personId: PERSON_IDS.sam, utilityShares: 0 }] }));
+    expect(preview).toMatchObject({
+      canSave: true,
+      errors: {},
+      warnings: { [`tenantShares.${PERSON_IDS.sam}`]: "Sam utilities is 0" },
+    });
+    expect(preview.groups[0].title).toBe("Saves from Dec 2026");
+    expect(preview.amounts?.utilities).toEqual({ left: "4", owner: "2 shares", primary: "2 shares" });
+    expect(state.versions).toHaveLength(1);
+  });
+
+  it("creates next month's version, leaving the current one and the people alone", async () => {
+    const { db, state } = fakeDb();
+    const peopleBefore = structuredClone(state.people);
+    await expect(saveHouseholdEdit(db, split({ utilitiesPrimaryBps: 4000 }))).resolves.toEqual({ savedFromMonth: "2026-12" });
+    expect(state.versions.map((v) => v.startsFromMonth)).toEqual(["2026-11", "2026-12"]);
+    expect(configOf(state.versions[0]).categories.utilities.primaryBps).toBe(5000);
+    expect(configOf(state.versions[1]).categories.utilities).toMatchObject({ ownerBps: 6000, primaryBps: 4000 });
+    expect(state.people).toEqual(peopleBefore);
+  });
+
+  it("adds to a version that starts next month, so several edits add up", async () => {
+    const { db, state } = fakeDb();
+    await saveHouseholdEdit(db, split({ utilitiesPrimaryBps: 4000 }));
+    await saveHouseholdEdit(db, split({ totalShares: 6000 }));
+    expect(state.versions).toHaveLength(2);
+    expect(configOf(state.versions[1]).categories.utilities).toMatchObject({ primaryBps: 4000, totalShares: 6000 });
+  });
+
+  it("refuses a version a month has opened using", async () => {
+    const { db } = fakeDb(
+      [version("2026-11", NOV_2026_CONFIG), version("2026-12", NOV_2026_CONFIG)],
+      ["version-2026-12"],
+    );
+    await expect(saveHouseholdEdit(db, split({ utilitiesPrimaryBps: 4000 }))).rejects.toMatchObject({
+      status: 409,
+      code: "version_locked",
+    });
+  });
+
+  it("refuses a failed rule with 422, storing nothing", async () => {
+    const { db, state } = fakeDb();
+    await expect(saveHouseholdEdit(db, split({ totalShares: 2000 }))).rejects.toMatchObject({ status: 422, code: "invalid_edit" });
+    await expect(
+      saveHouseholdEdit(db, split({ tenantShares: [{ personId: PERSON_IDS.sam, utilityShares: null }] })),
+    ).rejects.toMatchObject({ status: 422, code: "invalid_edit" });
+    expect(state.versions).toHaveLength(1);
+  });
+
+  it("refuses an edit with nothing to save", async () => {
+    const { db } = fakeDb();
+    await expect(saveHouseholdEdit(db, split({ totalShares: 5000 }))).rejects.toMatchObject({ status: 422, code: "no_changes" });
+  });
+
+  it("allows Save past a warning", async () => {
+    const { db, state } = fakeDb();
+    await saveHouseholdEdit(db, split({ tenantShares: [{ personId: PERSON_IDS.sam, utilityShares: 0 }] }));
+    expect(configOf(state.versions[1]).people.find((p) => p.personId === PERSON_IDS.sam)?.utilityShares).toBe(0);
+  });
+
+  it("still needs a direct payer's utilities due day at 0 shares, since it also sets aircon", async () => {
+    const { db } = fakeDb();
+    await saveHouseholdEdit(db, split({ tenantShares: [{ personId: PERSON_IDS.jordan, utilityShares: 0 }] }));
+    const cleared = await previewHouseholdEdit(db, edit({ utilitiesDueDay: null }));
+    expect(cleared.errors.utilitiesDueDay).toBe("Enter a day from 1 to 31.");
   });
 });
 

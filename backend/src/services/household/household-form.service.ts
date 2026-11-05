@@ -6,11 +6,13 @@ import {
   type HouseholdFormQuery,
   type HouseholdFormResponse,
   type HouseholdHomeFormResponse,
+  type HouseholdSplitFormResponse,
   type PersonColor,
 } from "@splithouse/shared";
 import { ApiError } from "@/lib/api";
 import { buildHomeForm } from "@/lib/household/build-home-form";
 import { buildAddPersonForm, buildHouseholdForm } from "@/lib/household/build-household-form";
+import { buildSplitForm } from "@/lib/household/build-split-form";
 import { getActiveMonth, type ActiveMonthDb } from "@/services/months/active-month.service";
 
 const VERSION_SELECT = { startsFromMonth: true, schemaVersion: true, config: true } as const;
@@ -89,6 +91,20 @@ export async function getHouseholdHomeForm(db: HouseholdFormDb): Promise<Househo
   const next = await readNextVersion(db);
   const activeConfig = await readActiveConfig(db, next);
   return buildHomeForm({ month: next.month, config: next.config, activeConfig, people: next.people });
+}
+
+/**
+ * Reads the Household split form with the latest saved values: the version in effect next month, which is what new
+ * edits build on. The active month's version tells whether those values have taken effect yet. Read-only.
+ *
+ * @param db - The Prisma client, or a fake in tests.
+ * @returns The Household split screen.
+ * @throws {ApiError} 409 `no_household` before first run; 404 `no_version` when no version covers next month.
+ */
+export async function getHouseholdSplitForm(db: HouseholdFormDb): Promise<HouseholdSplitFormResponse> {
+  const next = await readNextVersion(db);
+  const activeConfig = await readActiveConfig(db, next);
+  return buildSplitForm({ month: next.month, config: next.config, activeConfig, people: next.people });
 }
 
 /**

@@ -71,6 +71,17 @@ describe("POST /api/household/edits/preview", () => {
     expect(body.canSave).toBe(true);
   });
 
+  it("returns a split edit's summary, amounts and warnings, parsing with the shared schema", async () => {
+    const split = { kind: "split", tenantShares: [{ personId: PERSON_IDS.jordan, utilityShares: 0 }] };
+    const response = await PREVIEW(request(split), undefined);
+    expect(response.status).toBe(200);
+    const body = householdEditPreviewResponseSchema.parse(await response.json());
+    expect(body.groups.map((g) => g.title)).toEqual(["Saves from Dec 2026"]);
+    expect(body.amounts?.utilities.left).toBe("4");
+    expect(body.warnings).toEqual({ [`tenantShares.${PERSON_IDS.jordan}`]: "Jordan utilities is 0" });
+    expect(body.canSave).toBe(true);
+  });
+
   it("answers a rule failure with 200 and the field's error", async () => {
     const response = await PREVIEW(request({ ...EDIT, depositCents: -1 }), undefined);
     expect(response.status).toBe(200);

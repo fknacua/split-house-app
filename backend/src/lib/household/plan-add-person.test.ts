@@ -88,6 +88,11 @@ describe("planAddPerson", () => {
     expect(plan(fields)).toMatchObject({ nextConfig: null, errors: {}, canSave: false });
   });
 
+  it("still needs the utilities day at 0 shares, since it also sets aircon", () => {
+    expect(plan({ utilityShares: 0, utilitiesDueDay: null })).toMatchObject({ nextConfig: null, canSave: false });
+    expect(plan({ utilityShares: 0 }).canSave).toBe(true);
+  });
+
   it("needs no due day for a charge sent via someone, and sets aircon's route with utilities", () => {
     const result = plan({ utilitiesViaPersonId: PERSON_IDS.priya, utilitiesDueDay: null });
     expect(result.canSave).toBe(true);
