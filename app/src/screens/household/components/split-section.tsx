@@ -7,7 +7,7 @@ import { SplitRow } from './split-row';
 
 /**
  * "Household split": the heading with Edit splits, and a card with a row for rent, utilities and
- * aircon. Edit splits does nothing until the split page is built (9.20).
+ * aircon. Edit splits opens the split page.
  */
 export function SplitSection({ rows, edit, onOpen }: SplitSectionProps) {
   return (

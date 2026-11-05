@@ -323,11 +323,25 @@ export const householdSplitAmountSchema = z.object({
 /** What a split card works out: what is left to split and each person's part of it. */
 export type HouseholdSplitAmount = z.infer<typeof householdSplitAmountSchema>;
 
+/** A card split by count: its amounts, and the same counts as numbers for the count fields. */
+export const householdSplitCountAmountSchema = householdSplitAmountSchema.extend({
+  /** In thousandths of a share or unit. All 0 when nothing is left to split. */
+  counts: z.object({
+    left: z.number().int(),
+    owner: z.number().int(),
+    /** Null when there is no primary tenant. */
+    primary: z.number().int().nullable(),
+  }),
+});
+
+/** A card split by count: its amounts, and the same counts as numbers for the count fields. */
+export type HouseholdSplitCountAmount = z.infer<typeof householdSplitCountAmountSchema>;
+
 /** What the three split cards work out, on the form and again on each preview. */
 export const householdSplitAmountsSchema = z.object({
   rent: householdSplitAmountSchema,
-  utilities: householdSplitAmountSchema,
-  aircon: householdSplitAmountSchema,
+  utilities: householdSplitCountAmountSchema,
+  aircon: householdSplitCountAmountSchema,
 });
 
 /** What the three split cards work out, on the form and again on each preview. */
@@ -376,8 +390,6 @@ export const householdSplitFormResponseSchema = z.object({
     totalShares: z.number().int(),
     /** In basis points (5000 = 50%). The owner has the rest. */
     rentPrimaryBps: z.number().int(),
-    utilitiesPrimaryBps: z.number().int(),
-    airconPrimaryBps: z.number().int(),
   }),
   rent: z.object({
     /** `Rent (SGD)`. */
@@ -533,8 +545,9 @@ export type HouseholdRemovePersonEdit = z.infer<typeof householdRemovePersonEdit
 /**
  * An edit to the Household split, which always starts next month, which the server works out. Only the fields sent
  * are applied, and null means the field was cleared, which is an error. The preview answers errors under
- * `tenantShares.{personId}`, `totalShares`, `rentPrimaryBps`, `utilitiesPrimaryBps`, `airconPrimaryBps` and
- * `leftToSplit` (tenants taking every share), and warnings under `tenantShares.{personId}`.
+ * `tenantShares.{personId}`, `totalShares`, `rentPrimaryBps`, `utilitiesPrimaryShares`, `airconPrimaryUnits` and
+ * `leftToSplit` (tenants taking every share), and warnings under `tenantShares.{personId}`, `rentPrimaryBps`,
+ * `utilitiesPrimaryShares` and `airconPrimaryUnits` (someone at 0, which still allows Save).
  */
 export const householdSplitEditSchema = z.object({
   kind: z.literal('split'),
@@ -547,12 +560,15 @@ export const householdSplitEditSchema = z.object({
   ),
   /** In thousandths of a share. */
   totalShares: z.number().int().nullable().optional(),
-  /** In basis points (5000 = 50%), 1% to 99%. The owner has the rest. */
+  /** In basis points (5000 = 50%), 0% to 100%. The owner has the rest. */
   rentPrimaryBps: z.number().int().nullable().optional(),
-  /** In basis points, 1% to 99%. The owner has the rest. */
-  utilitiesPrimaryBps: z.number().int().nullable().optional(),
-  /** In basis points, 1% to 99%. The owner has the rest. */
-  airconPrimaryBps: z.number().int().nullable().optional(),
+  /**
+   * The primary tenant's part of what is left, in thousandths of a share, with the owner taking the rest. The server
+   * stores it as a percent. Not sent means the saved percent stays, so both parts follow what is left.
+   */
+  utilitiesPrimaryShares: z.number().int().nullable().optional(),
+  /** The same for aircon, in thousandths of a unit. */
+  airconPrimaryUnits: z.number().int().nullable().optional(),
 });
 
 /** An edit to the Household split, which always starts next month. */

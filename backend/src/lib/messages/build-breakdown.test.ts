@@ -61,6 +61,27 @@ function input(recipientId: string, overrides: Partial<BreakdownInput> = {}): Br
   };
 }
 
+describe("buildBreakdown for a primary tenant at 0 utilities, with a tenant paying via her", () => {
+  const samUtilities = charge(sam, "UTILITIES", "Utilities", 8246, null, { payViaPersonId: priya });
+
+  it("shows her rent and what she collects, with no utilities line of her own", () => {
+    const b = buildBreakdown(input(priya, { charges: [charge(priya, "RENT", "Rent", 167500, "2026-11-07"), samUtilities] }));
+    expect(b.sections.map((s) => [s.title, s.subtotal])).toEqual([
+      ["Yours:", "$1,675.00"],
+      ["Sam’s (please collect):", "$82.46"],
+    ]);
+    expect(b.sections[0].lines.map((l) => l.label)).toEqual(["Rent"]);
+    expect(b.totalCents).toBe(175746);
+  });
+
+  it("shows only what she collects once her rent is paid", () => {
+    const paidRent = charge(priya, "RENT", "Rent", 167500, "2026-11-07", { paidCents: 167500 });
+    const b = buildBreakdown(input(priya, { charges: [paidRent, samUtilities] }));
+    expect(b.sections.map((s) => [s.title, s.subtotal])).toEqual([["Sam’s (please collect):", "$82.46"]]);
+    expect(b.totalCents).toBe(8246);
+  });
+});
+
 describe("buildBreakdown", () => {
   it("gives the primary tenant their section and Sam's, titled, with subtotals", () => {
     const b = buildBreakdown(input(priya));

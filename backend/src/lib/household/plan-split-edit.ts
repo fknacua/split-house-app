@@ -39,8 +39,8 @@ export interface SplitEditPlan {
 
 const NEGATIVE_ERROR = "Enter 0 or more.";
 const PERCENT_ERROR = "Enter a percentage";
-const MIN_PRIMARY_BPS = 100;
-const MAX_PRIMARY_BPS = 9900;
+const WHOLE_BPS = 10000;
+const NO_PRIMARY_ERROR = "There is no primary tenant to split with.";
 
 const nameOf = (names: Map<string, string>, personId: string) => names.get(personId) ?? "Someone";
 
@@ -67,22 +67,50 @@ function tenantChecks(edit: HouseholdSplitEdit, config: HouseholdConfig, names: 
   return { errors, warnings };
 }
 
-/** The checks on the percents: an empty field always, and a changed value's range. A saved value is never refused. */
+/** The checks on the rent percent: 0% to 100%. An unchanged saved value is never refused. */
 function percentErrors(edit: HouseholdSplitEdit, config: HouseholdConfig): Record<string, string> {
+  const bps = edit.rentPrimaryBps;
+  if (bps === undefined || bps === config.categories.rent.primaryBps) return {};
+  if (!config.people.some((p) => p.role === "PRIMARY")) return { form: NO_PRIMARY_ERROR };
+  return bps === null || bps < 0 || bps > WHOLE_BPS ? { rentPrimaryBps: PERCENT_ERROR } : {};
+}
+
+/** The message for a typed count: empty, or outside 0 to what is left. Either person can have all of it. */
+function countError(count: number | null | undefined, left: number, word: string): string | null {
+  if (count === undefined) return null;
+  if (count === null) return `Enter the ${word}`;
+  return count < 0 || count > left ? `Only ${amountText(Math.max(left, 0))} left to split` : null;
+}
+
+/** The checks on the typed counts. With no shares left, only `leftToSplit` answers on Utilities. */
+function countErrors(edit: HouseholdSplitEdit, applied: HouseholdConfig): Record<string, string> {
+  const { primary, shares, units } = remaindersOf(applied);
+  const isSent = edit.utilitiesPrimaryShares !== undefined || edit.airconPrimaryUnits !== undefined;
+  if (isSent && !primary) return { form: NO_PRIMARY_ERROR };
   const errors: Record<string, string> = {};
-  const { rent, utilities, aircon } = config.categories;
-  const hasPrimary = config.people.some((p) => p.role === "PRIMARY");
-  const fields = [
-    ["rentPrimaryBps", edit.rentPrimaryBps, rent.primaryBps],
-    ["utilitiesPrimaryBps", edit.utilitiesPrimaryBps, utilities.primaryBps],
-    ["airconPrimaryBps", edit.airconPrimaryBps, aircon.primaryBps],
-  ] as const;
-  for (const [field, bps, saved] of fields) {
-    if (bps === undefined || bps === saved) continue;
-    if (!hasPrimary) errors.form = "There is no primary tenant to split with.";
-    else if (bps === null || bps < MIN_PRIMARY_BPS || bps > MAX_PRIMARY_BPS) errors[field] = PERCENT_ERROR;
-  }
+  const sharesError = shares.total > 0 ? countError(edit.utilitiesPrimaryShares, shares.total, "shares") : null;
+  if (sharesError) errors.utilitiesPrimaryShares = sharesError;
+  const unitsError = countError(edit.airconPrimaryUnits, units.total, "units");
+  if (unitsError) errors.airconPrimaryUnits = unitsError;
   return errors;
+}
+
+/** A warning for each card that leaves the owner or primary tenant at 0, which still allows Save. A field with an error has only that. */
+function zeroWarnings(applied: HouseholdConfig, errors: Record<string, string>, names: Map<string, string>): Record<string, string> {
+  const { primary, rent, shares, units } = remaindersOf(applied);
+  if (!primary) return {};
+  const cards = [
+    ["rentPrimaryBps", "rent", rent],
+    ["utilitiesPrimaryShares", "utilities", shares],
+    ["airconPrimaryUnits", "aircon", units],
+  ] as const;
+  const warnings: Record<string, string> = {};
+  for (const [field, word, part] of cards) {
+    if (part.total <= 0 || errors[field]) continue;
+    if (part.primary === 0) warnings[field] = `${nameOf(names, primary.personId)} ${word} is 0`;
+    else if (part.owner === 0) warnings[field] = `Your ${word} is 0`;
+  }
+  return warnings;
 }
 
 /** The checks on the total, which needs shares left over for the owner and primary tenant. */
@@ -134,7 +162,13 @@ export function planSplitEdit(input: SplitEditPlanInput): SplitEditPlan {
   const { edit, names, month, base } = input;
   const applied = applySplitEdit(base.config, edit);
   const tenants = tenantChecks(edit, base.config, names);
-  const errors = { ...tenants.errors, ...percentErrors(edit, base.config), ...totalErrors(edit, applied, names) };
+  const errors: Record<string, string> = {
+    ...tenants.errors,
+    ...percentErrors(edit, base.config),
+    ...countErrors(edit, applied),
+    ...totalErrors(edit, applied, names),
+  };
+  const warnings = { ...tenants.warnings, ...zeroWarnings(applied, errors, names) };
 
   const groups: HouseholdEditGroup[] = [];
   let nextConfig: HouseholdConfig | null = null;
@@ -153,7 +187,7 @@ export function planSplitEdit(input: SplitEditPlanInput): SplitEditPlan {
     nextConfig,
     groups,
     errors,
-    warnings: tenants.warnings,
+    warnings,
     amounts: splitAmounts(applied),
     canSave: nextConfig !== null && Object.keys(errors).length === 0,
   };

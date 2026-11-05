@@ -59,7 +59,7 @@ export function buildSplitForm(input: SplitFormInput): HouseholdSplitFormRespons
   const owner = config.people.find((p) => p.role === "OWNER");
   if (!owner) throw new Error("Config has no owner");
   const primary = config.people.find((p) => p.role === "PRIMARY") ?? null;
-  const { rent, utilities, aircon } = config.categories;
+  const { rent, utilities } = config.categories;
   const monthLabel = formatMonthLabel(month);
   const isPending = !activeConfig || !isDeepStrictEqual(comparableValues(activeConfig), comparableValues(config));
   const tenants = tenantsOf(config);
@@ -81,8 +81,6 @@ export function buildSplitForm(input: SplitFormInput): HouseholdSplitFormRespons
       })),
       totalShares: utilities.totalShares,
       rentPrimaryBps: rent.primaryBps,
-      utilitiesPrimaryBps: utilities.primaryBps,
-      airconPrimaryBps: aircon.primaryBps,
     },
     rent: {
       title: "Rent (SGD)",

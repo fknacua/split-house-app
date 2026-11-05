@@ -1,5 +1,5 @@
 import { type ComponentRef, forwardRef, useState } from 'react';
-import type { KeyboardTypeOptions } from 'react-native';
+import { type KeyboardTypeOptions, Text } from 'react-native';
 
 import { type BareInputProps, withFormControlledFieldOf } from '@/components/form-field/';
 import { Input as NativeInput, InputField as NativeInputField } from '@/components/ui/input';
@@ -58,6 +58,10 @@ export interface CountInputOwnProps {
   /** How the value is typed and shown. */
   kind: CountInputKind;
   placeholder?: string;
+  /** Shown after the value, such as `%`. */
+  suffix?: string;
+  /** Lines the text up on the right, for a number in a row of numbers. */
+  alignRight?: boolean;
 }
 
 /**
@@ -67,19 +71,23 @@ export interface CountInputOwnProps {
 const BareCountInput = forwardRef<
   ComponentRef<typeof NativeInputField>,
   BareInputProps<number | null> & CountInputOwnProps
->(function BareCountInput({ value, onChange, onBlur, accessibilityLabel, invalid, disabled, kind, placeholder }, ref) {
+>(function BareCountInput(
+  { value, onChange, onBlur, accessibilityLabel, invalid, warned, disabled, kind, placeholder, suffix, alignRight },
+  ref,
+) {
   const { keyboardType, maxLength, clean, read, editText, shownText } = KINDS[kind];
   // The text being typed, only while focused; null means show the value as read.
   const [draft, setDraft] = useState<string | null>(null);
 
   return (
-    <NativeInput isInvalid={invalid} isDisabled={disabled}>
+    <NativeInput isInvalid={invalid} isDisabled={disabled} className={warned ? 'border-2 border-warning px-[13px]' : undefined}>
       <NativeInputField
         ref={ref}
         value={draft ?? (value === null ? '' : shownText(value))}
         placeholder={placeholder}
         keyboardType={keyboardType}
         accessibilityLabel={accessibilityLabel}
+        textAlign={alignRight ? 'right' : undefined}
         className={disabled ? 'text-on-disabled' : undefined}
         style={{ fontVariant: ['tabular-nums'] }}
         onFocus={() => setDraft(value === null ? '' : editText(value))}
@@ -94,6 +102,7 @@ const BareCountInput = forwardRef<
           onBlur?.();
         }}
       />
+      {suffix ? <Text className="font-manrope-medium text-field text-on-surface-variant">{suffix}</Text> : null}
     </NativeInput>
   );
 });
@@ -105,6 +114,8 @@ const BareCountInput = forwardRef<
  *
  * @param kind - `whole`, `day` or `shares`.
  * @param placeholder - Shown while empty.
+ * @param suffix - Shown after the value, such as `%`.
+ * @param alignRight - Lines the text up on the right.
  * @param value - The number, or `null` when empty (standalone only).
  * @param onChange - Called with the number, or `null` while the text is empty (standalone only).
  * @param fieldControlProps - Binds the input to a form field (form-controlled only).

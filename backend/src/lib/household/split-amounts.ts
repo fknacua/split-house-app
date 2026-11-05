@@ -1,9 +1,28 @@
-import { formatCents, type HouseholdConfig, type HouseholdSplitAmounts } from "@splithouse/shared";
+import { formatCents, type HouseholdConfig, type HouseholdSplitAmounts, type HouseholdSplitCountAmount } from "@splithouse/shared";
 import { amountText, countText } from "./amount-text";
-import { masterRentCents, sharedAirconUnits } from "./room-amounts";
+import { masterRentCents } from "./room-amounts";
 import { remaindersOf } from "./split-remainders";
 
 const NONE = "—";
+
+/** One card split by count. With nothing left, the amounts read `—` and the counts 0. */
+function countAmount(
+  part: { total: number; owner: number; primary: number },
+  hasPrimary: boolean,
+  word: string,
+): HouseholdSplitCountAmount {
+  const hasLeft = part.total > 0;
+  return {
+    left: amountText(Math.max(part.total, 0)),
+    owner: hasLeft ? countText(part.owner, word) : NONE,
+    primary: hasPrimary ? (hasLeft ? countText(part.primary, word) : NONE) : null,
+    counts: {
+      left: Math.max(part.total, 0),
+      owner: hasLeft ? part.owner : 0,
+      primary: hasPrimary ? (hasLeft ? part.primary : 0) : null,
+    },
+  };
+}
 
 /**
  * What the Household split cards work out, on the form and on each preview.
@@ -14,22 +33,13 @@ const NONE = "—";
  */
 export function splitAmounts(config: HouseholdConfig): HouseholdSplitAmounts {
   const { primary, rent, shares, units } = remaindersOf(config);
-  const hasShares = shares.total > 0;
   return {
     rent: {
       left: formatCents(masterRentCents(config)),
       owner: formatCents(rent.owner),
       primary: primary ? formatCents(rent.primary) : null,
     },
-    utilities: {
-      left: amountText(Math.max(shares.total, 0)),
-      owner: hasShares ? countText(shares.owner, "share") : NONE,
-      primary: primary ? (hasShares ? countText(shares.primary, "share") : NONE) : null,
-    },
-    aircon: {
-      left: String(sharedAirconUnits(config)),
-      owner: countText(units.owner, "unit"),
-      primary: primary ? countText(units.primary, "unit") : null,
-    },
+    utilities: countAmount(shares, primary !== null, "share"),
+    aircon: countAmount(units, primary !== null, "unit"),
   };
 }

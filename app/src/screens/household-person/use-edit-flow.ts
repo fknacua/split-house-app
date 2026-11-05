@@ -62,6 +62,8 @@ export function useEditFlow(edit: HouseholdEdit, dirty: boolean) {
     warnings: answer?.warnings ?? {},
     /** The master room's rent for the values last answered. Undefined until a Landlord & rooms answer arrives. */
     masterRent: answer?.masterRent,
+    /** What the split cards work out for the values last answered. Undefined until a Household split answer arrives. */
+    splitAmounts: answer?.amounts,
     saving: save.isPending,
     // A failed save stops counting once the values change, so the button reads Save changes again.
     failed: save.isError && JSON.stringify(save.variables) === JSON.stringify(edit),
