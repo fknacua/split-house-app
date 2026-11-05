@@ -27,6 +27,8 @@ export const HOME_BADGES = {
   recipientPaidLess: { label: "Paid less", tone: "warning" },
   /** Recipient: every charge has a payment, and more came in than was asked (not drawn). */
   recipientPaidMore: { label: "Paid more", tone: "info" },
+  /** Landlord & rooms: a tenant room with no one in it. */
+  roomEmpty: { label: "Empty", tone: "neutral" },
 } as const satisfies Record<string, BadgeContent>;
 
 /** A charge due within this many days shows `Due in N days`. Further out it is `Sent, unpaid` or `Upcoming`. */

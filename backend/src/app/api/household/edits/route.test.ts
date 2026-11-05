@@ -13,7 +13,7 @@ import {
   householdEditSaveResponseSchema,
 } from "@splithouse/shared";
 import { ApiError, requireSession } from "@/lib/api";
-import { NOV_2026_CONFIG, PERSON_IDS } from "@/lib/fixtures/household";
+import { NOV_2026_CONFIG, PERSON_IDS, ROOM_IDS } from "@/lib/fixtures/household";
 import { prisma } from "@/lib/prisma";
 import { POST as PREVIEW } from "./preview/route";
 import { POST as SAVE } from "./route";
@@ -57,6 +57,17 @@ describe("POST /api/household/edits/preview", () => {
     expect(response.status).toBe(200);
     const body = householdEditPreviewResponseSchema.parse(await response.json());
     expect(body.groups.map((g) => g.title)).toEqual(["Saves now", "Saves from Dec 2026"]);
+    expect(body.canSave).toBe(true);
+  });
+
+  it("returns a home edit's summary, master rent and warnings, parsing with the shared schema", async () => {
+    const home = { kind: "home", rooms: [{ id: ROOM_IDS.room2, rentCents: 0 }], newRooms: [], removedRoomIds: [] };
+    const response = await PREVIEW(request(home), undefined);
+    expect(response.status).toBe(200);
+    const body = householdEditPreviewResponseSchema.parse(await response.json());
+    expect(body.groups.map((g) => g.title)).toEqual(["Saves from Dec 2026"]);
+    expect(body.masterRent).toBe("$4,300.00");
+    expect(body.warnings).toEqual({ [`rooms.${ROOM_IDS.room2}.rentCents`]: "Room 2 rent is 0" });
     expect(body.canSave).toBe(true);
   });
 

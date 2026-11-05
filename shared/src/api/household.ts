@@ -240,6 +240,109 @@ export const householdAddFormResponseSchema = householdFormResponseSchema
 /** `GET /api/household/add-form`: the Add subtenant screen, ready to render. Its fields start empty. */
 export type HouseholdAddFormResponse = z.infer<typeof householdAddFormResponseSchema>;
 
+/** One room on the Landlord & rooms screen. */
+export const householdHomeRoomSchema = z.object({
+  id: z.string(),
+  roomType: z.enum(['MASTER', 'TENANT', 'COMMON']),
+  /** The card's title: `Master room`, `Tenant room` or `Common room`. */
+  title: z.string(),
+  name: z.string(),
+  airconUnits: z.number().int(),
+  /** Null for anything but a tenant room. */
+  rentCents: z.number().int().nullable(),
+  /** Null for anything but a tenant room. */
+  includeInTotal: z.boolean().nullable(),
+  /** The master room's calculated rent, e.g. `$X,XXX.XX`. Null for any other room. */
+  calculatedRent: z.string().nullable(),
+  /** The read-only Shared by or Tenant value, e.g. `You + Priya`, `Jordan`. Null for an empty or common room. */
+  occupants: z.string().nullable(),
+  /** `Empty` on a tenant room with no one in it; otherwise null. */
+  badge: badgeSchema.nullable(),
+  /** Whether the card has Remove room: a common room or an empty tenant room. */
+  canRemove: z.boolean(),
+});
+
+/** One room on the Landlord & rooms screen. */
+export type HouseholdHomeRoom = z.infer<typeof householdHomeRoomSchema>;
+
+/** `GET /api/household/home-form`: the Landlord & rooms screen, with the latest saved values, ready to render. */
+export const householdHomeFormResponseSchema = z.object({
+  /** `Landlord & rooms`. */
+  title: z.string(),
+  /** `Rent you pay the landlord`. */
+  sub: z.string(),
+  /** The heading above the cards, e.g. `From December 2026`. */
+  datedTitle: z.string(),
+  /** e.g. `These take effect from December 2026.` while saved values differ from the active month's; otherwise null. */
+  pendingNote: z.string().nullable(),
+  values: z.object({
+    landlordRentCents: z.number().int(),
+    landlordDueDay: z.number().int(),
+    /** Optional, so null when not set. */
+    billDueDay: z.number().int().nullable(),
+  }),
+  /** The master room, then tenant rooms, then common rooms, each in saved order. */
+  rooms: z.array(householdHomeRoomSchema),
+});
+
+/** `GET /api/household/home-form`: the Landlord & rooms screen, with the latest saved values, ready to render. */
+export type HouseholdHomeFormResponse = z.infer<typeof householdHomeFormResponseSchema>;
+
+/** Changes to a saved room. Only the fields sent are applied, and null or an empty name means the field was cleared. */
+export const householdRoomEditSchema = z.object({
+  id: z.string().min(1),
+  name: z.string().optional(),
+  airconUnits: z.number().int().nullable().optional(),
+  /** Tenant rooms only. */
+  rentCents: z.number().int().nullable().optional(),
+  /** Tenant rooms only. */
+  includeInTotal: z.boolean().optional(),
+});
+
+/** Changes to a saved room. Only the fields sent are applied. */
+export type HouseholdRoomEdit = z.infer<typeof householdRoomEditSchema>;
+
+/** A room to add. Its type is set here and never edited. Null or an empty name means the field is empty. */
+export const householdNewRoomSchema = z.discriminatedUnion('roomType', [
+  z.object({
+    roomType: z.literal('TENANT'),
+    name: z.string(),
+    airconUnits: z.number().int().nullable(),
+    rentCents: z.number().int().nullable(),
+    includeInTotal: z.boolean(),
+  }),
+  z.object({
+    roomType: z.literal('COMMON'),
+    name: z.string(),
+    airconUnits: z.number().int().nullable(),
+  }),
+]);
+
+/** A room to add. Its type is set here and never edited. */
+export type HouseholdNewRoom = z.infer<typeof householdNewRoomSchema>;
+
+/**
+ * An edit to Landlord & rooms, which always starts next month, which the server works out. Only the fields sent
+ * are applied, and a saved room not listed stays as it is. The preview answers errors under `landlordRentCents`,
+ * `landlordDueDay`, `billDueDay`, `rooms.{id}.{field}` and `newRooms.{index}.{field}`.
+ */
+export const householdHomeEditSchema = z.object({
+  kind: z.literal('home'),
+  /** Null means the field was cleared, which is an error. */
+  landlordRentCents: z.number().int().nullable().optional(),
+  /** Null means the field was cleared, which is an error. */
+  landlordDueDay: z.number().int().nullable().optional(),
+  /** Null clears the day, which is allowed. */
+  billDueDay: z.number().int().nullable().optional(),
+  rooms: z.array(householdRoomEditSchema),
+  newRooms: z.array(householdNewRoomSchema),
+  /** Only empty rooms can go, and never the master room. */
+  removedRoomIds: z.array(z.string().min(1)),
+});
+
+/** An edit to Landlord & rooms, which always starts next month. */
+export type HouseholdHomeEdit = z.infer<typeof householdHomeEditSchema>;
+
 /**
  * An edit to one person. Only the fields sent are applied. Dated fields always start next month, which the
  * server works out. The rules on the values (a required name, a valid number, day 1 to 31) are checked by the
@@ -309,6 +412,7 @@ export const householdEditSchema = z.discriminatedUnion('kind', [
   householdPersonEditSchema,
   householdAddPersonEditSchema,
   householdRemovePersonEditSchema,
+  householdHomeEditSchema,
 ]);
 
 /** `POST /api/household/edits` and `.../preview` body: one typed edit. The app never sends a config. */
@@ -345,6 +449,10 @@ export const householdEditPreviewResponseSchema = z.object({
   canSave: z.boolean(),
   /** Messages by request field name; `form` for one that belongs to no field. */
   errors: z.record(z.string(), z.string()),
+  /** Messages that still allow Save, by request field name. Only for a `home` edit. */
+  warnings: z.record(z.string(), z.string()).optional(),
+  /** The master room's calculated rent, e.g. `$X,XXX.XX`, or null while it can't be worked out. Only for a `home` edit. */
+  masterRent: z.string().nullable().optional(),
 });
 
 /** `POST /api/household/edits/preview`: what the edit would change. Nothing is stored. */

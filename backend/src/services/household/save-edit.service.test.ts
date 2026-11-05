@@ -2,11 +2,12 @@ import {
   HOUSEHOLD_SCHEMA_VERSION,
   type HouseholdAddPersonEdit,
   type HouseholdConfig,
+  type HouseholdHomeEdit,
   type HouseholdPersonEdit,
   type PersonColor,
 } from "@splithouse/shared";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { JAN_2027_CONFIG, NOV_2026_CONFIG, PERSON_IDS } from "@/lib/fixtures/household";
+import { JAN_2027_CONFIG, NOV_2026_CONFIG, PERSON_IDS, ROOM_IDS } from "@/lib/fixtures/household";
 import { masterRentCents, tenantRentCents } from "@/lib/household/room-amounts";
 import {
   previewHouseholdEdit,
@@ -528,6 +529,95 @@ describe("adding a person", () => {
 
   it("answers 409 no_household before first run", async () => {
     await expect(saveHouseholdEdit(fakeDb([]).db, add)).rejects.toMatchObject({ status: 409, code: "no_household" });
+  });
+});
+
+describe("editing landlord and rooms", () => {
+  const home = (fields: Partial<HouseholdHomeEdit> = {}): HouseholdHomeEdit => ({
+    kind: "home",
+    rooms: [],
+    newRooms: [],
+    removedRoomIds: [],
+    ...fields,
+  });
+  const configOf = (row: VersionRow | undefined) => row?.config as HouseholdConfig;
+
+  it("previews with the summary, warnings and master rent, and stores nothing", async () => {
+    const { db, state } = fakeDb();
+    const preview = await previewHouseholdEdit(db, home({ landlordRentCents: 440000 }));
+    expect(preview).toMatchObject({
+      canSave: true,
+      errors: {},
+      warnings: {},
+      masterRent: "$3,450.00",
+    });
+    expect(preview.groups[0].title).toBe("Saves from Dec 2026");
+    expect(state.versions).toHaveLength(1);
+  });
+
+  it("creates next month's version, leaving the current one and the people alone", async () => {
+    const { db, state } = fakeDb();
+    const peopleBefore = structuredClone(state.people);
+    await expect(saveHouseholdEdit(db, home({ landlordRentCents: 440000 }))).resolves.toEqual({ savedFromMonth: "2026-12" });
+    expect(state.versions.map((v) => v.startsFromMonth)).toEqual(["2026-11", "2026-12"]);
+    expect(configOf(state.versions[0]).categories.rent.landlordRentCents).toBe(430000);
+    expect(configOf(state.versions[1]).categories.rent.landlordRentCents).toBe(440000);
+    expect(masterRentCents(configOf(state.versions[1]))).toBe(345000);
+    expect(state.people).toEqual(peopleBefore);
+  });
+
+  it("adds to a version that starts next month, so several edits add up", async () => {
+    const { db, state } = fakeDb();
+    await saveHouseholdEdit(db, home({ landlordRentCents: 440000 }));
+    await saveHouseholdEdit(db, home({ landlordDueDay: 5 }));
+    expect(state.versions).toHaveLength(2);
+    expect(configOf(state.versions[1]).categories.rent).toMatchObject({ landlordRentCents: 440000, landlordDueDay: 5 });
+  });
+
+  it("stores a new room with a server-made id", async () => {
+    const { db, state } = fakeDb();
+    await saveHouseholdEdit(db, home({ newRooms: [{ roomType: "COMMON", name: "Study", airconUnits: 1 }] }));
+    const added = configOf(state.versions[1]).rooms.at(-1);
+    expect(added).toMatchObject({ roomType: "COMMON", name: "Study", airconUnits: 1 });
+    expect(added?.id).toBeTruthy();
+  });
+
+  it("refuses a version a month has opened using", async () => {
+    const { db } = fakeDb(
+      [version("2026-11", NOV_2026_CONFIG), version("2026-12", NOV_2026_CONFIG)],
+      ["version-2026-12"],
+    );
+    await expect(saveHouseholdEdit(db, home({ landlordRentCents: 440000 }))).rejects.toMatchObject({
+      status: 409,
+      code: "version_locked",
+    });
+  });
+
+  it("refuses a failed rule with 422, storing nothing", async () => {
+    const { db, state } = fakeDb();
+    await expect(saveHouseholdEdit(db, home({ landlordRentCents: 90000 }))).rejects.toMatchObject({
+      status: 422,
+      code: "invalid_edit",
+    });
+    await expect(saveHouseholdEdit(db, home({ removedRoomIds: [ROOM_IDS.room2] }))).rejects.toMatchObject({
+      status: 422,
+      code: "invalid_edit",
+    });
+    expect(state.versions).toHaveLength(1);
+  });
+
+  it("refuses an edit with nothing to save", async () => {
+    const { db } = fakeDb();
+    await expect(saveHouseholdEdit(db, home({ landlordRentCents: 430000 }))).rejects.toMatchObject({
+      status: 422,
+      code: "no_changes",
+    });
+  });
+
+  it("allows Save past a warning", async () => {
+    const { db, state } = fakeDb();
+    await saveHouseholdEdit(db, home({ rooms: [{ id: ROOM_IDS.room2, rentCents: 0 }] }));
+    expect(masterRentCents(configOf(state.versions[1]))).toBe(430000);
   });
 });
 
