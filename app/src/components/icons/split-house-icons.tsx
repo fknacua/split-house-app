@@ -287,12 +287,12 @@ const ICONS: Record<IconName, React.ReactElement> = {
 type IconProps = {
   name: IconName;
   size?: number;
-  color?: string;
+  color: string;
   strokeWidth?: number;
 };
 
-/** 24px grid, 2px round stroke. Color defaults to black; pass your theme color. */
-export function Icon({ name, size = 24, color = '#000000', strokeWidth = 2 }: IconProps) {
+/** 24px grid, 2px round stroke. Pass your theme color. */
+export function Icon({ name, size = 24, color, strokeWidth = 2 }: IconProps) {
   return (
     <Svg
       width={size}
@@ -309,10 +309,10 @@ export function Icon({ name, size = 24, color = '#000000', strokeWidth = 2 }: Ic
   );
 }
 
-type MarkProps = { size?: number; left?: string; right?: string };
+type MarkProps = { size?: number; left: string; right: string };
 
 /** The two-tone SplitHouse logo mark (for login / empty states). */
-export function SplitHouseMark({ size = 96, left = '#FFFFFF', right = '#FFC857' }: MarkProps) {
+export function SplitHouseMark({ size = 96, left, right }: MarkProps) {
   return (
     <Svg width={size} height={size} viewBox="20 20 68 68">
       <Path d="M50 33.8 31 52v24h19z" fill={left} stroke={left} strokeWidth={3} strokeLinejoin="round" />

@@ -48,7 +48,7 @@ describe("deriveSetupProgress", () => {
     expect(stepDone(noRent).rentAndRooms).toBe(false);
   });
 
-  it("leaves People and Your split open when there is only the owner", () => {
+  it("leaves People and Household split open when there is only the owner", () => {
     const ownerOnly: HouseholdConfig = {
       ...NOV_2026_CONFIG,
       people: NOV_2026_CONFIG.people.filter((p) => p.role === "OWNER"),
