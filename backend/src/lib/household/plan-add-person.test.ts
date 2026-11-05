@@ -1,17 +1,23 @@
 import { describe, expect, it } from "vitest";
-import type { HouseholdAddPersonEdit } from "@splithouse/shared";
-import { NOV_2026_CONFIG, PERSON_IDS } from "@/lib/fixtures/household";
+import type { HouseholdAddPersonEdit, HouseholdConfig } from "@splithouse/shared";
+import { NOV_2026_CONFIG, PERSON_IDS, ROOM_IDS } from "@/lib/fixtures/household";
 import { planAddPerson } from "./plan-add-person";
+import { masterRentCents, sharedAirconUnits, totalAirconUnits } from "./room-amounts";
 
 const ID = "person-casey";
+const ROOM_ID = "room-4";
+const withRoom = (includeInTotal: boolean, rentCents = 90000): HouseholdConfig => ({
+  ...NOV_2026_CONFIG,
+  rooms: [...NOV_2026_CONFIG.rooms, { id: ROOM_ID, roomType: "TENANT", name: "Room 4", airconUnits: 1, rentCents, includeInTotal }],
+});
+const CONFIG = withRoom(true);
 const filled: HouseholdAddPersonEdit = {
   kind: "addPerson",
   name: "  Casey ",
   whatsappE164: "+6590000004",
   color: "PURPLE",
-  rentCents: 90000,
+  roomId: ROOM_ID,
   utilityShares: 1000,
-  airconUnits: 1,
   depositCents: 90000,
   rentDueDay: 3,
   utilitiesDueDay: 5,
@@ -22,36 +28,17 @@ const empty: HouseholdAddPersonEdit = {
   ...filled,
   name: "",
   whatsappE164: null,
-  rentCents: null,
+  roomId: null,
   utilityShares: null,
-  airconUnits: null,
   depositCents: 0,
   rentDueDay: null,
   utilitiesDueDay: null,
 };
-const plan = (fields: Partial<HouseholdAddPersonEdit> = {}) => planAddPerson({ ...filled, ...fields }, ID, NOV_2026_CONFIG);
+const plan = (fields: Partial<HouseholdAddPersonEdit> = {}) => planAddPerson({ ...filled, ...fields }, ID, CONFIG);
 
-describe("planAddPerson until 9.17", () => {
-  it("refuses a complete tenant with a clear error and no new config", () => {
-    expect(plan()).toEqual({
-      name: "Casey",
-      nextConfig: null,
-      errors: { form: "Adding a subtenant is not available yet." },
-      canSave: false,
-    });
-  });
-
-  it("still reports a wrong field beside the refusal", () => {
-    const { errors } = plan({ utilityShares: -1, airconUnits: 5 });
-    expect(errors.utilityShares).toBe("Enter 0 or more.");
-    expect(errors.airconUnits).toBe("Invalid entry.");
-  });
-});
-
-// Skipped until 9.17, when a new tenant picks a room. Rewrite these there.
-describe.skip("planAddPerson", () => {
-  it("adds the tenant, with the utilities total following and the aircon total staying", () => {
-    const { categories } = NOV_2026_CONFIG;
+describe("planAddPerson", () => {
+  it("puts the tenant in the room, with the utilities total following", () => {
+    const { categories } = CONFIG;
     const result = plan();
     expect(result).toMatchObject({ name: "Casey", errors: {}, canSave: true });
     expect(result.nextConfig?.categories.utilities.totalShares).toBe(categories.utilities.totalShares + 1000);
@@ -59,28 +46,42 @@ describe.skip("planAddPerson", () => {
     expect(result.nextConfig?.people.at(-1)).toEqual({
       personId: ID,
       role: "TENANT",
-      rentCents: 90000,
+      roomId: ROOM_ID,
       utilityShares: 1000,
-      airconUnits: 1,
       routes: {},
       dueDays: { RENT: 3, UTILITIES: 5, AIRCON: 5 },
       depositCents: 90000,
     });
   });
 
-  it("leaves everyone else's entries as they are", () => {
-    expect(plan().nextConfig?.people.slice(0, -1)).toEqual(NOV_2026_CONFIG.people);
+  it("leaves everyone else's entries and the rooms as they are", () => {
+    const { nextConfig } = plan();
+    expect(nextConfig?.people.slice(0, -1)).toEqual(CONFIG.people);
+    expect(nextConfig?.rooms).toEqual(CONFIG.rooms);
+  });
+
+  it("takes the room's rent off the master rent and its units off the shared ones, with the aircon total staying", () => {
+    const next = plan().nextConfig as HouseholdConfig;
+    expect(masterRentCents(next)).toBe(masterRentCents(CONFIG) - 90000);
+    expect(sharedAirconUnits(next)).toBe(sharedAirconUnits(CONFIG) - 1);
+    expect(totalAirconUnits(next)).toBe(totalAirconUnits(CONFIG));
+  });
+
+  it("leaves the master rent alone for a room not in the total, and still moves its units", () => {
+    const config = withRoom(false);
+    const next = planAddPerson(filled, ID, config).nextConfig as HouseholdConfig;
+    expect(masterRentCents(next)).toBe(masterRentCents(config));
+    expect(sharedAirconUnits(next)).toBe(sharedAirconUnits(config) - 1);
   });
 
   it("shows no errors on an empty form, and no Save", () => {
-    expect(planAddPerson(empty, ID, NOV_2026_CONFIG)).toEqual({ name: null, nextConfig: null, errors: {}, canSave: false });
+    expect(planAddPerson(empty, ID, CONFIG)).toEqual({ name: null, nextConfig: null, errors: {}, canSave: false });
   });
 
   it.each([
     ["name", { name: "   " }],
-    ["rent", { rentCents: null }],
+    ["room", { roomId: null }],
     ["shares", { utilityShares: null }],
-    ["units", { airconUnits: null }],
     ["rent day", { rentDueDay: null }],
     ["utilities day", { utilitiesDueDay: null }],
   ])("keeps Save disabled without the %s", (_, fields) => {
@@ -98,17 +99,15 @@ describe.skip("planAddPerson", () => {
     });
   });
 
-  it("allows 0 shares and units and no WhatsApp number", () => {
-    expect(plan({ utilityShares: 0, airconUnits: 0, whatsappE164: null }).canSave).toBe(true);
+  it("allows 0 shares and no WhatsApp number", () => {
+    expect(plan({ utilityShares: 0, whatsappE164: null }).canSave).toBe(true);
   });
 
   it.each([
     ["whatsappE164", { whatsappE164: "12" }, "Enter a valid phone number."],
     ["color", { color: "TEAL" }, "Teal is only for you."],
-    ["rentCents", { rentCents: -1 }, "Enter 0 or more."],
     ["depositCents", { depositCents: -1 }, "Enter 0 or more."],
     ["utilityShares", { utilityShares: -1 }, "Enter 0 or more."],
-    ["airconUnits", { airconUnits: -1 }, "Enter 0 or more."],
     ["rentDueDay", { rentDueDay: 32 }, "Enter a day from 1 to 31."],
     ["utilitiesDueDay", { utilitiesDueDay: 0 }, "Enter a day from 1 to 31."],
     ["rentViaPersonId", { rentViaPersonId: PERSON_IDS.alex }, "Choose someone else in the household."],
@@ -124,11 +123,23 @@ describe.skip("planAddPerson", () => {
     expect(result).toMatchObject({ nextConfig: null, canSave: false });
   });
 
-  it("refuses more aircon units than the house has left", () => {
-    expect(plan({ airconUnits: 5 }).errors.airconUnits).toBe("Invalid entry.");
-    expect(plan({ airconUnits: 4 }).canSave).toBe(true);
-    const { aircon } = NOV_2026_CONFIG.categories;
-    const full = { ...NOV_2026_CONFIG, categories: { ...NOV_2026_CONFIG.categories, aircon: { ...aircon, totalUnits: 2 } } };
-    expect(planAddPerson({ ...filled, airconUnits: 1 }, ID, full).errors.airconUnits).toBe("Invalid entry.");
+  it.each([
+    ["taken", ROOM_IDS.room3],
+    ["the master room", ROOM_IDS.master],
+    ["a common room", ROOM_IDS.living],
+    ["unknown", "room-nowhere"],
+  ])("refuses a room that is %s", (_, roomId) => {
+    const result = plan({ roomId });
+    expect(result.errors.roomId).toBe("Choose an empty room.");
+    expect(result).toMatchObject({ nextConfig: null, canSave: false });
+  });
+
+  it("refuses a room whose rent would take the master rent below zero", () => {
+    const config = withRoom(true, masterRentCents(NOV_2026_CONFIG) + 1);
+    expect(planAddPerson(filled, ID, config)).toMatchObject({
+      nextConfig: null,
+      errors: { form: "Master room rent cannot be below zero" },
+      canSave: false,
+    });
   });
 });

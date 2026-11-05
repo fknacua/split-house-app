@@ -30,17 +30,21 @@ export const personFormSchema = z.object({
   rentCents: requiredAmount,
   /** Only Add subtenant has this field; the split page edits it after that. */
   utilityShares: z.number().nullable(),
-  /** Only Add subtenant has this field; the split page edits it after that. */
-  airconUnits: z.number().nullable(),
+  /** Only Add subtenant has this field, and `''` means none is picked yet. A tenant's room never changes after that. */
+  roomId: z.string(),
   depositCents: z.number().nullable(),
   rentVia: z.string().nullable(),
   utilitiesVia: z.string().nullable(),
 });
 
-/** Add subtenant's checks: the amounts it cannot send empty. Every other rule is the server's, through the preview. */
+/**
+ * Add subtenant's checks: the room and shares it cannot send empty. It has no rent field, since the rent comes with
+ * the room. Every other rule is the server's, through the preview.
+ */
 export const addPersonFormSchema = personFormSchema.extend({
+  rentCents: z.number().nullable(),
   utilityShares: requiredAmount,
-  airconUnits: requiredAmount,
+  roomId: z.string().min(1, 'Choose a room.'),
 });
 
 /**
@@ -66,7 +70,7 @@ export function toPersonFormValues(form: HouseholdFormResponse): PersonFormValue
     utilitiesDueDay: values.utilitiesDueDay,
     rentCents: values.amounts?.rentCents ?? 0,
     utilityShares: null,
-    airconUnits: null,
+    roomId: '',
     depositCents: values.amounts?.depositCents || null,
     rentVia: values.rentViaPersonId,
     utilitiesVia: values.utilitiesViaPersonId,
@@ -88,7 +92,7 @@ export function toAddPersonFormValues(form: HouseholdAddFormResponse): PersonFor
     utilitiesDueDay: null,
     rentCents: null,
     utilityShares: null,
-    airconUnits: null,
+    roomId: '',
     depositCents: null,
     rentVia: null,
     utilitiesVia: null,
@@ -144,9 +148,8 @@ export function toAddPersonEdit(values: PersonFormValues): HouseholdAddPersonEdi
     name: values.name,
     whatsappE164: whatsappOf(values.whatsapp),
     color: values.color,
-    rentCents: values.rentCents,
+    roomId: values.roomId || null,
     utilityShares: values.utilityShares,
-    airconUnits: values.airconUnits,
     depositCents: values.depositCents ?? 0,
     rentDueDay: values.rentDueDay,
     utilitiesDueDay: values.utilitiesDueDay,

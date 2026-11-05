@@ -235,6 +235,15 @@ export const householdAddFormResponseSchema = householdFormResponseSchema
   .extend({
     /** The default: the first color nobody in the household uses. */
     color: personColor,
+    /** The empty tenant rooms a new tenant can pick, in saved order. Empty when every room is taken or none exists. */
+    rooms: z.array(
+      z.object({
+        id: z.string(),
+        name: z.string(),
+        /** What the form shows once the room is picked: its rent and aircon units. */
+        facts: z.array(householdFormTextRowSchema),
+      }),
+    ),
   });
 
 /** `GET /api/household/add-form`: the Add subtenant screen, ready to render. Its fields start empty. */
@@ -392,10 +401,10 @@ export const householdAddPersonEditSchema = z.object({
   name: z.string(),
   whatsappE164: z.string().nullable(),
   color: personColor,
-  rentCents: z.number().int().nullable(),
+  /** An empty tenant room. Its rent and units come with it. */
+  roomId: z.string().min(1).nullable(),
   /** In thousandths of a share (1.5 shares = 1500). */
   utilityShares: z.number().int().nullable(),
-  airconUnits: z.number().int().nullable(),
   depositCents: z.number().int(),
   /** Required unless rent is sent via someone. */
   rentDueDay: z.number().int().nullable(),

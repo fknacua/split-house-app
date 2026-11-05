@@ -452,61 +452,48 @@ describe("adding a person", () => {
     name: "Casey",
     whatsappE164: null,
     color: "PURPLE",
-    rentCents: 90000,
+    roomId: "room-4",
     utilityShares: 1000,
-    airconUnits: 1,
     depositCents: 0,
     rentDueDay: 3,
     utilitiesDueDay: 5,
     rentViaPersonId: null,
     utilitiesViaPersonId: null,
   };
+  /** The config with an empty Room 4 for the new tenant. */
+  const withRoom = (config: HouseholdConfig): HouseholdConfig => ({
+    ...config,
+    rooms: [...config.rooms, { id: "room-4", roomType: "TENANT", name: "Room 4", airconUnits: 1, rentCents: 90000, includeInTotal: true }],
+  });
   const dec = (versions: VersionRow[]) => versions.find((v) => v.startsFromMonth === "2026-12");
   const inDec = (versions: VersionRow[]) => (dec(versions)?.config as HouseholdConfig).people;
 
-  it("is refused until 9.17, storing nothing", async () => {
-    const { db, state } = fakeDb();
-    expect(await previewHouseholdEdit(db, add)).toEqual({
-      groups: [],
-      canSave: false,
-      errors: { form: "Adding a subtenant is not available yet." },
-    });
-    await expect(saveHouseholdEdit(db, add)).rejects.toMatchObject({
-      status: 422,
-      code: "invalid_edit",
-      message: "Adding a subtenant is not available yet.",
-    });
-    expect(state.versions).toHaveLength(1);
-    expect(state.people).toHaveLength(4);
-  });
-
-  // Skipped until 9.17, when a new tenant picks a room. Rewrite these there.
-  it.skip("previews with no groups and stores nothing", async () => {
-    const { db, state } = fakeDb();
+  it("previews with no groups and stores nothing", async () => {
+    const { db, state } = fakeDb([version("2026-11", withRoom(NOV_2026_CONFIG))]);
     expect(await previewHouseholdEdit(db, add)).toEqual({ groups: [], canSave: true, errors: {} });
     expect(state.versions).toHaveLength(1);
     expect(state.people).toHaveLength(4);
   });
 
-  it.skip("creates the row and next month's version, leaving this month's as it was", async () => {
-    const { db, state } = fakeDb();
+  it("creates the row and next month's version, leaving this month's as it was", async () => {
+    const { db, state } = fakeDb([version("2026-11", withRoom(NOV_2026_CONFIG))]);
     expect(await saveHouseholdEdit(db, add)).toEqual({ savedFromMonth: "2026-12" });
     const row = state.people[4];
     expect(row).toMatchObject({ name: "Casey", whatsappE164: null, color: "PURPLE", isOwner: false });
-    expect(inDec(state.versions).at(-1)?.personId).toBe(row.id);
+    expect(inDec(state.versions).at(-1)).toMatchObject({ personId: row.id, roomId: "room-4" });
     expect((state.versions[0].config as HouseholdConfig).people).toEqual(NOV_2026_CONFIG.people);
   });
 
-  it.skip("adds to the version already waiting for next month, so earlier edits stay", async () => {
-    const { db, state } = fakeDb([version("2026-11", NOV_2026_CONFIG), version("2026-12", JAN_2027_CONFIG)]);
+  it("adds to the version already waiting for next month, so earlier edits stay", async () => {
+    const { db, state } = fakeDb([version("2026-11", NOV_2026_CONFIG), version("2026-12", withRoom(JAN_2027_CONFIG))]);
     await saveHouseholdEdit(db, add);
     expect(state.versions).toHaveLength(2);
     expect(inDec(state.versions).slice(0, -1)).toEqual(JAN_2027_CONFIG.people);
   });
 
-  it.skip("leaves no row behind when the version is locked", async () => {
+  it("leaves no row behind when the version is locked", async () => {
     const { db, state } = fakeDb(
-      [version("2026-11", NOV_2026_CONFIG), version("2026-12", JAN_2027_CONFIG)],
+      [version("2026-11", NOV_2026_CONFIG), version("2026-12", withRoom(JAN_2027_CONFIG))],
       ["version-2026-12"],
     );
     await expect(saveHouseholdEdit(db, add)).rejects.toMatchObject({ status: 409, code: "version_locked" });
@@ -514,14 +501,31 @@ describe("adding a person", () => {
   });
 
   it("refuses to save with a required field empty or a value wrong", async () => {
-    const { db, state } = fakeDb();
-    await expect(saveHouseholdEdit(db, { ...add, rentCents: null })).rejects.toMatchObject({
+    const { db, state } = fakeDb([version("2026-11", withRoom(NOV_2026_CONFIG))]);
+    await expect(saveHouseholdEdit(db, { ...add, roomId: null })).rejects.toMatchObject({
       status: 422,
       code: "invalid_edit",
     });
-    await expect(saveHouseholdEdit(db, { ...add, airconUnits: 9 })).rejects.toMatchObject({
+    await expect(saveHouseholdEdit(db, { ...add, utilityShares: -1 })).rejects.toMatchObject({
       status: 422,
       code: "invalid_edit",
+    });
+    expect(state.people).toHaveLength(4);
+    expect(state.versions).toHaveLength(1);
+  });
+
+  it("refuses a room that was taken since the form opened, storing nothing", async () => {
+    const { db, state } = fakeDb();
+    const taken = { ...add, roomId: ROOM_IDS.room3 };
+    expect(await previewHouseholdEdit(db, taken)).toEqual({
+      groups: [],
+      canSave: false,
+      errors: { roomId: "Choose an empty room." },
+    });
+    await expect(saveHouseholdEdit(db, taken)).rejects.toMatchObject({
+      status: 422,
+      code: "invalid_edit",
+      message: "Choose an empty room.",
     });
     expect(state.people).toHaveLength(4);
     expect(state.versions).toHaveLength(1);

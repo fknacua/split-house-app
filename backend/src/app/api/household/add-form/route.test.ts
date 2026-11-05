@@ -8,7 +8,7 @@ vi.mock("@/lib/prisma", () => ({ prisma: {} }));
 
 import { HOUSEHOLD_SCHEMA_VERSION, householdAddFormResponseSchema } from "@splithouse/shared";
 import { ApiError, requireSession } from "@/lib/api";
-import { NOV_2026_CONFIG, PERSON_IDS } from "@/lib/fixtures/household";
+import { NOV_2026_CONFIG, PERSON_IDS, ROOM_IDS } from "@/lib/fixtures/household";
 import { prisma } from "@/lib/prisma";
 import { GET } from "./route";
 
@@ -61,6 +61,30 @@ describe("GET /api/household/add-form", () => {
     expect(body.sentViaOptions).toEqual([
       { personId: PERSON_IDS.priya, name: "Priya" },
       { personId: PERSON_IDS.jordan, name: "Jordan" },
+    ]);
+  });
+
+  it("lists no rooms when every tenant room is taken", async () => {
+    const body = householdAddFormResponseSchema.parse(await (await GET(request(), undefined)).json());
+    expect(body.rooms).toEqual([]);
+  });
+
+  it("lists only empty tenant rooms, with their rent and units", async () => {
+    const config = {
+      ...NOV_2026_CONFIG,
+      people: NOV_2026_CONFIG.people.filter((p) => p.personId !== PERSON_IDS.jordan),
+    };
+    useHousehold([{ ...VERSION, config }]);
+    const body = householdAddFormResponseSchema.parse(await (await GET(request(), undefined)).json());
+    expect(body.rooms).toEqual([
+      {
+        id: ROOM_IDS.room3,
+        name: "Room 3",
+        facts: [
+          { label: "Rent (SGD)", value: "$950.00" },
+          { label: "Aircon units", value: "1" },
+        ],
+      },
     ]);
   });
 

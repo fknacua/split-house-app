@@ -44,6 +44,15 @@ export interface RouteFieldProps {
   error?: string;
 }
 
+/** Props for {@link RoomField}. */
+export interface RoomFieldProps {
+  control: Control<PersonFormValues>;
+  /** The empty tenant rooms. None shows the no-room state. */
+  rooms: HouseholdAddFormResponse['rooms'];
+  /** The server's message for the Room field. */
+  error?: string;
+}
+
 /** Props for {@link ColorSwatch}. */
 export interface ColorSwatchProps {
   color: PersonColor;
