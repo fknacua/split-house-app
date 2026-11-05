@@ -27,14 +27,13 @@ Stack it assumes: Postgres on Neon, Prisma, Next.js route handlers on Vercel, Be
 ### HouseholdVersion
 `id`, `startsFromMonth` (unique), `schemaVersion`, `config` (JSON validated in code), `createdAt`. Immutable.
 
-`config` (`schemaVersion` 2) holds:
+`config` (`schemaVersion` 3) holds:
 - **Rooms:** see Rooms below.
 - **Per person:** `roomId`, utility shares (stored as thousandths, so 1.5 shares is 1500), payment route per charge type (`DIRECT` or `VIA` another person), due day per charge type, deposit held. Recurring charges have no route or day of their own: they follow the person's utilities route and due day, and a `RECURRING` entry is accepted but not used.
 - **Rent category:** `landlordRentCents`, `landlordDueDay` (required, 1 to 31; shown on the Household rent card, and nothing is charged or reminded from it), and the split between Francis and Primary tenant in basis points (5000/5000 by default).
 - **Utilities category:** `totalShares`, the same split, and `billDueDay`, an optional fixed day of the month (1 to 31). Home uses it to place the bill row before a bill exists; the due date of an uploaded bill supersedes it.
 - **Aircon category:** only the same split. The total comes from the rooms.
 - **Recurring charges:** label, amount in cents (above zero), person (Primary tenant or a tenant), optional end month, the last month charged (Starhub $27.50 for Primary tenant).
-- **Message templates:** monthly breakdown and nudge, per-person overrides, custom line labels, and optional custom section titles per person (the title of the breakdown section holding that person's lines, without the colon; without one it reads "Yours" or "{name}'s (please collect)"). Template text is sent as written, including any WhatsApp `*bold*` markers in it.
 
 ### Rooms
 A list inside `config`, not a table, so a room change starts next month like any other dated edit. Every room has `id`, `roomType`, `name` and `airconUnits`. `roomType` is set when the room is created and never edited.
@@ -76,6 +75,9 @@ For one-offs added from the Add charge sheet: `id`, `scope` (`SHARED` or `PERSON
 
 ### Settings
 One row: notification toggles per channel and type. Theme stays on the device.
+
+### MessageTemplates
+One row, `templates` (JSON validated in code), `updatedAt`. Not versioned: a save applies immediately to every message not yet sent, since wording changes no money and what was sent stays in `MessageEvent.renderedText`. With no row yet, the Brief's default text is used. It holds the monthly breakdown and nudge text, per-person overrides, custom line labels, and optional custom section titles per person (the title of the breakdown section holding that person's lines, without the colon; without one it reads "Yours" or "{name}'s (please collect)"). Template text is sent as written, including any WhatsApp `*bold*` markers in it.
 
 ### Auth
 Better Auth tables (`user`, `session`, `account`, `verification`). Sign-in is allowed only for Francis's Google account, checked on the backend against a configured email. Signing in on a new phone revokes other sessions.

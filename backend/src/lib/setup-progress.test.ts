@@ -53,7 +53,6 @@ describe("deriveSetupProgress", () => {
       ...NOV_2026_CONFIG,
       people: NOV_2026_CONFIG.people.filter((p) => p.role === "OWNER"),
       recurring: [],
-      templates: { ...NOV_2026_CONFIG.templates, overrides: [] },
       categories: {
         rent: { ...NOV_2026_CONFIG.categories.rent, ownerBps: 10000, primaryBps: 0 },
         utilities: { ...NOV_2026_CONFIG.categories.utilities, ownerBps: 10000, primaryBps: 0 },

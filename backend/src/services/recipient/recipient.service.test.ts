@@ -1,6 +1,7 @@
 import { HOUSEHOLD_SCHEMA_VERSION } from "@splithouse/shared";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { NOV_2026_CONFIG, PERSON_IDS } from "@/lib/fixtures/household";
+import { DEFAULT_MESSAGE_TEMPLATES } from "@/lib/messages/default-templates";
 import { buildRecipient, type RecipientChargeRow } from "@/lib/recipient/build-recipient";
 import { getRecipient, type RecipientDb } from "./recipient.service";
 
@@ -28,6 +29,7 @@ const JORDAN_RENT: RecipientChargeRow = {
 function fakeDb({ open = true, bill = true } = {}) {
   const queries: Record<string, unknown> = {};
   const db: RecipientDb = {
+    messageTemplates: { findUnique: async () => null },
     month: {
       findFirst: async () => ({ month: "2026-11" }),
       findUnique: async () =>
@@ -62,6 +64,7 @@ describe("getRecipient", () => {
         month: "2026-11",
         today: "2026-11-01",
         config: NOV_2026_CONFIG,
+        templates: DEFAULT_MESSAGE_TEMPLATES,
         person: { id: PERSON_IDS.jordan, name: "Jordan", whatsappE164: "+6580000000" },
         people: PEOPLE.map((p) => ({ id: p.id, name: p.name })),
         billCents: 41230,

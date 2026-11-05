@@ -37,6 +37,15 @@ async function main() {
         config: file.config,
       },
     }),
+    ...(file.templates
+      ? [
+          prisma.messageTemplates.upsert({
+            where: { id: "singleton" },
+            create: { templates: file.templates },
+            update: { templates: file.templates },
+          }),
+        ]
+      : []),
   ]);
   const opened = await openMonthIfNeeded(prisma, file.startsFromMonth);
   const charges = await prisma.charge.count({ where: { month: file.startsFromMonth } });

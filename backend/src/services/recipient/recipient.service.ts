@@ -8,6 +8,7 @@ import {
   type RecipientMessageEvent,
 } from "@/lib/recipient/build-recipient";
 import { getActiveMonth, type ActiveMonthDb } from "@/services/months/active-month.service";
+import { readMessageTemplates, type MessageTemplatesDb } from "@/services/templates/message-templates.service";
 
 const CHARGE_SELECT = {
   id: true,
@@ -35,7 +36,7 @@ interface RecipientChargesWhere {
 }
 
 /** The slice of the Prisma client this service uses, so tests can pass an in-memory fake. */
-export interface RecipientDb extends ActiveMonthDb {
+export interface RecipientDb extends ActiveMonthDb, MessageTemplatesDb {
   month: ActiveMonthDb["month"] & {
     findUnique(args: {
       where: { month: string };
@@ -65,8 +66,8 @@ export interface RecipientDb extends ActiveMonthDb {
 }
 
 /**
- * Reads the month with its pinned household version, the people, the bill's total, the charges the
- * person pays and their message events: what `buildRecipient` and the message renderers read.
+ * Reads the month with its pinned household version, the current wording, the people, the bill's total, the charges
+ * the person pays and their message events: what `buildRecipient` and the message renderers read.
  * Read-only.
  *
  * @param db - The Prisma client, or a fake in tests.
@@ -77,7 +78,7 @@ export interface RecipientDb extends ActiveMonthDb {
  * person, the owner, or someone not in the month's household version.
  */
 export async function loadRecipientInput(db: RecipientDb, month: string, personId: string): Promise<RecipientInput> {
-  const [opened, people, bill, charges, messages, activeMonth] = await Promise.all([
+  const [opened, people, bill, charges, messages, activeMonth, templates] = await Promise.all([
     db.month.findUnique({
       where: { month },
       select: { householdVersion: { select: { schemaVersion: true, config: true } } },
@@ -95,6 +96,7 @@ export async function loadRecipientInput(db: RecipientDb, month: string, personI
     }),
     db.messageEvent.findMany({ where: { month, personId }, select: MESSAGE_SELECT }),
     getActiveMonth(db),
+    readMessageTemplates(db),
   ]);
   if (!opened) throw new ApiError(404, "no_month", "This month isn’t open.");
 
@@ -109,6 +111,7 @@ export async function loadRecipientInput(db: RecipientDb, month: string, personI
     month,
     today: todayKey(now()),
     config,
+    templates,
     person: { id: person.id, name: person.name, whatsappE164: person.whatsappE164 },
     people: people.map((p) => ({ id: p.id, name: p.name })),
     billCents: bill?.currentChargesCents ?? null,

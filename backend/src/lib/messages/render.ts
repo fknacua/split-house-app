@@ -4,6 +4,8 @@ import {
   formatMonthShortLabel,
   TEMPLATE_PLACEHOLDERS,
   type HouseholdConfig,
+  type MessagePreview,
+  type MessageTemplates,
 } from "@splithouse/shared";
 import type { ChargeCategory } from "@/generated/prisma/enums";
 import { chargeDueDate } from "@/lib/home/due-dates";
@@ -40,15 +42,15 @@ export function fillTemplate(template: string, values: TemplateValues): string {
 /**
  * The template a person's message uses: their own override for the kind, or the household's.
  *
- * @param config - The config pinned to the month.
+ * @param templates - The message wording.
  * @param personId - Who the message goes to.
  * @param kind - The monthly breakdown or the nudge.
  * @returns The template text.
  */
-export function templateFor(config: HouseholdConfig, personId: string, kind: MessageKind): string {
-  const override = config.templates.overrides.find((o) => o.personId === personId && o.kind === kind);
+export function templateFor(templates: MessageTemplates, personId: string, kind: MessageKind): string {
+  const override = templates.overrides.find((o) => o.personId === personId && o.kind === kind);
   if (override) return override.text;
-  return kind === "MONTHLY" ? config.templates.monthly : config.templates.nudge;
+  return kind === "MONTHLY" ? templates.monthly : templates.nudge;
 }
 
 /** A monthly breakdown message, filled in. */
@@ -104,7 +106,7 @@ export function renderMonthlyMessage(input: MonthlyMessageInput): MonthlyMessage
     total: formatCents(breakdown.totalCents),
     ...(breakdown.dueDate ? { dueDate: formatDateShort(breakdown.dueDate) } : {}),
   };
-  const own = templateFor(input.config, input.recipientId, "MONTHLY");
+  const own = templateFor(input.templates, input.recipientId, "MONTHLY");
   const template = breakdown.dueDate ? own : withoutDueDateLines(own);
   const [head, ...rest] = template.split("{lines}");
   const tail = rest.join("{lines}").replace(/^\n+/, "");
@@ -117,6 +119,35 @@ export function renderMonthlyMessage(input: MonthlyMessageInput): MonthlyMessage
       : [],
     breakdown,
   };
+}
+
+/**
+ * A monthly message in the parts the preview card shows.
+ *
+ * @param message - The rendered message.
+ * @returns The intro, sections, outro and exact text.
+ */
+export function monthlyMessagePreview(message: MonthlyMessage): MessagePreview {
+  return {
+    intro: message.before,
+    sections: message.breakdown.sections.map((s) => ({
+      title: s.title,
+      lines: s.lines.map((l) => ({ label: l.label, amount: l.amount, working: l.working })),
+      subtotal: s.subtotal,
+    })),
+    outro: message.afterLines,
+    text: message.text,
+  };
+}
+
+/**
+ * A nudge in the parts the preview card shows: all intro, since it has no lines.
+ *
+ * @param text - The rendered nudge.
+ * @returns The intro, the empty sections and outro, and the exact text.
+ */
+export function nudgeMessagePreview(text: string): MessagePreview {
+  return { intro: text, sections: [], outro: [], text };
 }
 
 /** A charge, as much of it as a nudge needs. */
@@ -136,6 +167,8 @@ export interface NudgeMessageInput {
   recipientName: string;
   /** The config pinned to the charge's month. */
   config: HouseholdConfig;
+  /** The current wording. */
+  templates: MessageTemplates;
   charge: NudgeCharge;
 }
 
@@ -144,15 +177,15 @@ export interface NudgeMessageInput {
  * the line label as is (`Rent`), `{month}` the charge's month (`Nov 2026`), `{amount}` its amount
  * and `{dueDate}` its due date (`1 Nov`).
  *
- * @param input - The recipient, the config and the charge.
+ * @param input - The recipient, the config, the wording and the charge.
  * @returns The message text, exactly as it is sent.
  */
 export function renderNudgeMessage(input: NudgeMessageInput): string {
-  const { charge, config } = input;
+  const { charge, config, templates } = input;
   const dueDate = chargeDueDate(charge.month, config, charge);
-  return fillTemplate(templateFor(config, input.recipientId, "NUDGE"), {
+  return fillTemplate(templateFor(templates, input.recipientId, "NUDGE"), {
     name: input.recipientName,
-    charge: lineLabel(config, charge),
+    charge: lineLabel(templates, charge),
     month: formatMonthShortLabel(charge.month),
     amount: formatCents(charge.amountCents),
     ...(dueDate ? { dueDate: formatDateShort(dueDate) } : {}),

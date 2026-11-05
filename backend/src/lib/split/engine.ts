@@ -192,10 +192,12 @@ export function buildMonthCharges(config: HouseholdConfig, month: string): Engin
 }
 
 // Utilities charges for a saved bill: tenant shares plus the owner/primary
-// remainder. Hard check: the split must add up to the bill's current charges.
+// remainder, stored under the given label. Hard check: the split must add up to
+// the bill's current charges.
 export function buildUtilitiesCharges(
   config: HouseholdConfig,
   bill: { month: string; currentChargesCents: number },
+  label = "Utilities",
 ): EngineCharge[] {
   const owner = config.people.find((p) => p.role === "OWNER");
   if (!owner) throw new SplitEngineError("Config has no owner");
@@ -218,7 +220,6 @@ export function buildUtilitiesCharges(
     throw new SplitEngineError("Utilities split does not add up to the bill's current charges");
   }
 
-  const label = config.templates.lineLabels.UTILITIES ?? "Utilities";
   // A 0% split leaves nothing to charge, as with a tenant at 0 shares.
   return Object.entries(amounts).filter(([, amountCents]) => amountCents !== 0).map(([personId, amountCents]) => {
     const person = personOrThrow(config, personId);

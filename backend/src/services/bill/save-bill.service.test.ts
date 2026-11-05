@@ -28,6 +28,7 @@ function fakeDb({ hasDraft = true, hasBill = false, open = true } = {}) {
     charges: [] as Record<string, unknown>[],
   };
   const tx: SaveBillTx = {
+    messageTemplates: { findUnique: async () => null },
     billDraft: {
       findUnique: async () => state.draft,
       deleteMany: async () => {

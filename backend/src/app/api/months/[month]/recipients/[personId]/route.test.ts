@@ -28,6 +28,7 @@ function useNovember(open: boolean) {
     paidOn: null,
   });
   Object.assign(prisma, {
+    messageTemplates: { findUnique: async () => null },
     month: {
       findFirst: async () => ({ month: "2026-11" }),
       findUnique: async () =>

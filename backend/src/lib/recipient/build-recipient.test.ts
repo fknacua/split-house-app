@@ -1,6 +1,7 @@
 import { recipientResponseSchema, type RecipientResponse } from "@splithouse/shared";
 import { describe, expect, it } from "vitest";
 import { NOV_2026_CONFIG, PERSON_IDS } from "@/lib/fixtures/household";
+import { DEFAULT_MESSAGE_TEMPLATES } from "@/lib/messages/default-templates";
 import { whatsappLink } from "@/lib/messages/whatsapp-link";
 import { buildRecipient, type RecipientChargeRow, type RecipientInput } from "./build-recipient";
 
@@ -66,6 +67,7 @@ function input(personId: string, charges: RecipientChargeRow[], overrides: Parti
     month: "2026-11",
     today: "2026-11-01",
     config: NOV_2026_CONFIG,
+    templates: DEFAULT_MESSAGE_TEMPLATES,
     person: { id: personId, name: NAMES.get(personId)!, whatsappE164: PHONE },
     people: PEOPLE,
     billCents: 41230,

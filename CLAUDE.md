@@ -24,6 +24,7 @@ App SplitHouse, repo split-house-app, Android package com.splithouse.app, scheme
 - Every endpoint's request and response schemas live in `shared/src/api/` and both sides import them. Never redefine an API type in backend/ or app/. Backend tests assert real responses parse with the shared schema.
 - One split engine: a pure function in backend/ only. The app never calculates splits; Add charge and Household previews call preview endpoints. Unit tests use the Nov 2026 fixtures in the Data Model doc.
 - Household settings are versions with a starts-from month, and an edit always starts next month, the month after the current one (the first setup version is the exception). A version is immutable once a month has opened using it; until then, more edits for that month are added to it. Charges are created with their amounts stored and are never recalculated. Fix history with correction charges.
+- Message templates are not versioned: the text, per-person versions, line labels and section titles live in one current record, and a save applies immediately to every message not yet sent. What was sent stays stored on its `MessageEvent`.
 - Payments are paid fields on the Charge. No carry-over of short payments.
 - WhatsApp: text-only wa.me chats, opened by Francis one at a time. Never send anything automatically. Record when a chat was opened or nudged.
 - Online only. When the backend can't be reached, show the blocking "Can't reach the server" prompt with Retry. The free database sleeps after 5 minutes idle, so cold starts are normal.

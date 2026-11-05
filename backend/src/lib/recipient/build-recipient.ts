@@ -8,6 +8,7 @@ import {
   formatPaymentDifference,
   type ChargeType,
   type HouseholdConfig,
+  type MessageTemplates,
   type RecipientAction,
   type RecipientAmountCard,
   type RecipientChargeRow as RecipientChargeRowView,
@@ -20,7 +21,13 @@ import { chargeBadge, HOME_BADGES } from "@/lib/home/badges";
 import { chargeDueDate } from "@/lib/home/due-dates";
 import { joinWords, personRouteLine, ROUTE_WORDS } from "@/lib/household/sub-line";
 import type { BreakdownCharge } from "@/lib/messages/build-breakdown";
-import { renderMonthlyMessage, renderNudgeMessage, type MonthlyMessage } from "@/lib/messages/render";
+import {
+  monthlyMessagePreview,
+  nudgeMessagePreview,
+  renderMonthlyMessage,
+  renderNudgeMessage,
+  type MonthlyMessage,
+} from "@/lib/messages/render";
 import { whatsappLink } from "@/lib/messages/whatsapp-link";
 
 /** A charge row, as much of it as Recipient needs. */
@@ -41,6 +48,8 @@ export interface RecipientInput {
   today: string;
   /** The config pinned to `month`. */
   config: HouseholdConfig;
+  /** The current wording. */
+  templates: MessageTemplates;
   /** Who the screen is for: a person in `config` who is not the owner. `whatsappE164` is null without a number. */
   person: { id: string; name: string; whatsappE164: string | null };
   /** Everyone, for names in the sub line and the message. */
@@ -123,6 +132,7 @@ export function recipientMonthlyMessage(input: RecipientInput): MonthlyMessage {
     recipientId: input.person.id,
     recipientName: input.person.name,
     config: input.config,
+    templates: input.templates,
     billCents: input.billCents,
     people: input.people,
     charges: input.charges,
@@ -166,7 +176,13 @@ function openCharges(input: RecipientInput, names: Map<string, string>): OpenCha
       const overdue = dueDate !== null && dueDate < input.today;
       let nudge: RecipientNudgeTarget | null = null;
       if (overdue) {
-        const text = renderNudgeMessage({ recipientId: person.id, recipientName: person.name, config: input.config, charge });
+        const text = renderNudgeMessage({
+          recipientId: person.id,
+          recipientName: person.name,
+          config: input.config,
+          templates: input.templates,
+          charge,
+        });
         nudge = {
           kind: "nudge-whatsapp",
           month: input.month,
@@ -254,6 +270,7 @@ function overdueRecipient(
     recipientId: person.id,
     recipientName: person.name,
     config: input.config,
+    templates: input.templates,
     charge: chosen.charge,
   });
   const status = [`${chosen.title} overdue since ${formatDateShort(chosen.dueDate!)}`];
@@ -274,10 +291,7 @@ function overdueRecipient(
     message: {
       label: chosen.nudgedOn ? "Last nudge" : "Nudge",
       meta: chosen.nudgedOn ? `Sent ${formatDateShort(chosen.nudgedOn)}` : "Nudge template",
-      intro: nudgeText,
-      sections: [],
-      outro: [],
-      text: nudgeText,
+      ...nudgeMessagePreview(nudgeText),
       editTemplate: { label: "Edit template", icon: null, enabled: true, target: { kind: "edit-template", template: "NUDGE" } },
     },
     allPaid: null,
@@ -428,14 +442,7 @@ export function buildRecipient(input: RecipientInput): RecipientResponse {
     message: {
       label: sentOn ? "Sent message" : "Message",
       meta: sentOn ? `Sent ${formatDateShort(sentOn)}` : "Monthly breakdown template",
-      intro: message.before,
-      sections: message.breakdown.sections.map((s) => ({
-        title: s.title,
-        lines: s.lines.map((l) => ({ label: l.label, amount: l.amount, working: l.working })),
-        subtotal: s.subtotal,
-      })),
-      outro: message.afterLines,
-      text: message.text,
+      ...monthlyMessagePreview(message),
       editTemplate,
     },
     allPaid: null,

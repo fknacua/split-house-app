@@ -157,12 +157,8 @@ export const recipientMessageOutroLineSchema = z.object({
 /** One line of the template's text after the sections. */
 export type RecipientMessageOutroLine = z.infer<typeof recipientMessageOutroLineSchema>;
 
-/** The message card: a preview in parts, and the exact text that is sent and copied. */
-export const recipientMessageSchema = z.object({
-  /** e.g. `Message`, `Sent message` once the chat was opened, or `Nudge` / `Last nudge` in the overdue layout. */
-  label: z.string(),
-  /** e.g. `Monthly breakdown template`, `Nudge template`, or `Sent 2 Nov`. */
-  meta: z.string(),
+/** A rendered message: a preview in parts, and the exact text that is sent and copied. Recipient and the template editor both show it. */
+export const messagePreviewSchema = z.object({
   /** The template's text before the sections, e.g. `Hi Priya! Eto na yung breakdown for Nov 2026 😊`; a nudge is all intro. */
   intro: z.string(),
   /** Empty when the message has no lines, e.g. a nudge. */
@@ -171,6 +167,17 @@ export const recipientMessageSchema = z.object({
   outro: z.array(recipientMessageOutroLineSchema),
   /** The whole message as sent and copied (Copy as plain text), with `*bold*` section titles and line breaks. */
   text: z.string(),
+});
+
+/** A rendered message: a preview in parts, and the exact text that is sent and copied. */
+export type MessagePreview = z.infer<typeof messagePreviewSchema>;
+
+/** The message card: a preview in parts, and the exact text that is sent and copied. */
+export const recipientMessageSchema = messagePreviewSchema.extend({
+  /** e.g. `Message`, `Sent message` once the chat was opened, or `Nudge` / `Last nudge` in the overdue layout. */
+  label: z.string(),
+  /** e.g. `Monthly breakdown template`, `Nudge template`, or `Sent 2 Nov`. */
+  meta: z.string(),
   /** The Edit template link in the card's header. */
   editTemplate: recipientActionSchema,
 });

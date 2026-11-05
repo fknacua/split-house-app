@@ -9,6 +9,7 @@ export * from './api/me';
 export * from './api/payment';
 export * from './api/recipient';
 export * from './api/settings';
+export * from './api/templates';
 export * from './lib/bill';
 export * from './lib/date';
 export * from './lib/money';

@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { NOV_2026_CONFIG, PERSON_IDS } from "@/lib/fixtures/household";
+import { DEFAULT_MESSAGE_TEMPLATES } from "@/lib/messages/default-templates";
 import type { BreakdownCharge } from "./build-breakdown";
 import { lineLabel } from "./line-label";
 import { fillTemplate, renderMonthlyMessage, renderNudgeMessage, templateFor, type NudgeCharge } from "./render";
@@ -47,12 +48,13 @@ const NOV_CHARGES: BreakdownCharge[] = [
   charge(jordan, "AIRCON", "Aircon", 1833, "2026-11-04"),
 ];
 
-function monthly(recipientId: string, recipientName: string, config = NOV_2026_CONFIG) {
+function monthly(recipientId: string, recipientName: string, templates = DEFAULT_MESSAGE_TEMPLATES) {
   return renderMonthlyMessage({
     month: "2026-11",
     recipientId,
     recipientName,
-    config,
+    config: NOV_2026_CONFIG,
+    templates,
     billCents: 41230,
     people: PEOPLE,
     charges: NOV_CHARGES,
@@ -60,10 +62,7 @@ function monthly(recipientId: string, recipientName: string, config = NOV_2026_C
 }
 
 function withOverride(personId: string, kind: "MONTHLY" | "NUDGE", text: string) {
-  return {
-    ...NOV_2026_CONFIG,
-    templates: { ...NOV_2026_CONFIG.templates, overrides: [{ personId, kind, text }] },
-  };
+  return { ...DEFAULT_MESSAGE_TEMPLATES, overrides: [{ personId, kind, text }] };
 }
 
 describe("fillTemplate", () => {
@@ -84,24 +83,21 @@ describe("fillTemplate", () => {
 
 describe("templateFor", () => {
   it("uses the person's override for the kind, or the household's template", () => {
-    const config = withOverride(jordan, "MONTHLY", "Hello {name}");
+    const templates = withOverride(jordan, "MONTHLY", "Hello {name}");
 
-    expect(templateFor(config, jordan, "MONTHLY")).toBe("Hello {name}");
-    expect(templateFor(config, jordan, "NUDGE")).toBe(NOV_2026_CONFIG.templates.nudge);
-    expect(templateFor(config, priya, "MONTHLY")).toBe(NOV_2026_CONFIG.templates.monthly);
+    expect(templateFor(templates, jordan, "MONTHLY")).toBe("Hello {name}");
+    expect(templateFor(templates, jordan, "NUDGE")).toBe(DEFAULT_MESSAGE_TEMPLATES.nudge);
+    expect(templateFor(templates, priya, "MONTHLY")).toBe(DEFAULT_MESSAGE_TEMPLATES.monthly);
   });
 });
 
 describe("lineLabel", () => {
   it("keeps a recurring charge's own label even with a custom recurring label", () => {
-    const config = {
-      ...NOV_2026_CONFIG,
-      templates: { ...NOV_2026_CONFIG.templates, lineLabels: { RECURRING: "Internet", AIRCON: "Aircon" } },
-    };
+    const templates = { ...DEFAULT_MESSAGE_TEMPLATES, lineLabels: { RECURRING: "Internet", AIRCON: "Aircon" } };
 
-    expect(lineLabel(config, { category: "RECURRING", label: "Starhub" })).toBe("Starhub");
-    expect(lineLabel(config, { category: "AIRCON", label: "Aircon one-off" })).toBe("Aircon");
-    expect(lineLabel(config, { category: "CORRECTION", label: "Correction: September utilities" })).toBe(
+    expect(lineLabel(templates, { category: "RECURRING", label: "Starhub" })).toBe("Starhub");
+    expect(lineLabel(templates, { category: "AIRCON", label: "Aircon one-off" })).toBe("Aircon");
+    expect(lineLabel(templates, { category: "CORRECTION", label: "Correction: September utilities" })).toBe(
       "Correction: September utilities",
     );
   });
@@ -150,6 +146,7 @@ describe("renderMonthlyMessage", () => {
       recipientId: jordan,
       recipientName: "Jordan",
       config: NOV_2026_CONFIG,
+      templates: DEFAULT_MESSAGE_TEMPLATES,
       billCents: 41230,
       people: PEOPLE,
       charges: [{ ...charge(jordan, "CORRECTION", "Correction: September utilities", 1500, null), month: "2026-10" }],
@@ -196,14 +193,14 @@ describe("renderNudgeMessage", () => {
 
   it("renders the Brief's Tagalog nudge default", () => {
     expect(
-      renderNudgeMessage({ recipientId: jordan, recipientName: "Jordan", config: NOV_2026_CONFIG, charge: jordanRent }),
+      renderNudgeMessage({ recipientId: jordan, recipientName: "Jordan", config: NOV_2026_CONFIG, templates: DEFAULT_MESSAGE_TEMPLATES, charge: jordanRent }),
     ).toBe("Hi Jordan! Paalala lang, yung Rent for Nov 2026 ($950.00) ay due nung 1 Nov. Salamat! 🙏");
   });
 
   it("uses the recipient's nudge override", () => {
-    const config = withOverride(jordan, "NUDGE", "{name}: {charge} {amount}, {dueDate}");
+    const templates = withOverride(jordan, "NUDGE", "{name}: {charge} {amount}, {dueDate}");
 
-    expect(renderNudgeMessage({ recipientId: jordan, recipientName: "Jordan", config, charge: jordanRent })).toBe(
+    expect(renderNudgeMessage({ recipientId: jordan, recipientName: "Jordan", config: NOV_2026_CONFIG, templates, charge: jordanRent })).toBe(
       "Jordan: Rent $950.00, 1 Nov",
     );
   });
@@ -219,7 +216,7 @@ describe("renderNudgeMessage", () => {
     };
 
     expect(
-      renderNudgeMessage({ recipientId: priya, recipientName: "Priya", config: NOV_2026_CONFIG, charge: samUtilities }),
+      renderNudgeMessage({ recipientId: priya, recipientName: "Priya", config: NOV_2026_CONFIG, templates: DEFAULT_MESSAGE_TEMPLATES, charge: samUtilities }),
     ).toBe("Hi Priya! Paalala lang, yung Utilities bill for Nov 2026 ($82.46) ay due nung 7 Nov. Salamat! 🙏");
   });
 });
