@@ -62,7 +62,8 @@ const ROUTE_ERROR = "Only tenants can pay via someone.";
 const VIA_ERROR = "Choose someone else in the household.";
 const VIA_NOT_DIRECT_ERROR = "This person pays via someone, so choose someone who pays directly.";
 const HAS_PAYERS_ERROR = "Someone pays via this person, so they have to pay directly.";
-const DAY_ERROR = "Enter a day from 1 to 31.";
+/** The message for a due day that is empty or not from 1 to 31. */
+export const DAY_ERROR = "Enter a day from 1 to 31.";
 const AMOUNT_FIELDS = ["rentCents", "depositCents"] as const;
 
 /**

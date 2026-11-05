@@ -1,4 +1,13 @@
-import type { ChargeType, HouseholdConfig, HouseholdPersonEdit, PersonConfig } from "@splithouse/shared";
+import type {
+  ChargeType,
+  HouseholdConfig,
+  HouseholdHomeEdit,
+  HouseholdNewRoom,
+  HouseholdPersonEdit,
+  HouseholdRoom,
+  HouseholdRoomEdit,
+  PersonConfig,
+} from "@splithouse/shared";
 import { viaOf } from "./route-via";
 
 /** The due days after an edit. The utilities day also sets aircon, and an unchanged day leaves both as they are. */
@@ -72,6 +81,65 @@ export function applyHouseholdEdit(config: HouseholdConfig, edit: HouseholdPerso
       room.id === roomId && room.roomType === "TENANT" ? { ...room, rentCents: edit.rentCents ?? room.rentCents } : room,
     ),
     people: config.people.map((person) => (person.personId === edit.personId ? applyPersonEdit(person, edit) : person)),
+  };
+}
+
+/** A saved room after an edit. A cleared field keeps its saved value, since the plan refuses it first. */
+function applyRoomEdit(room: HouseholdRoom, edit: HouseholdRoomEdit | undefined): HouseholdRoom {
+  if (!edit) return room;
+  const shared = { name: edit.name ?? room.name, airconUnits: edit.airconUnits ?? room.airconUnits };
+  if (room.roomType !== "TENANT") return { ...room, ...shared };
+  return {
+    ...room,
+    ...shared,
+    rentCents: edit.rentCents ?? room.rentCents,
+    includeInTotal: edit.includeInTotal ?? room.includeInTotal,
+  };
+}
+
+/** A new room's entry. An empty field reads as 0, since the plan refuses it first. */
+function newRoom(room: HouseholdNewRoom, id: string): HouseholdRoom {
+  const units = room.airconUnits ?? 0;
+  return room.roomType === "TENANT"
+    ? { ...room, id, airconUnits: units, rentCents: room.rentCents ?? 0 }
+    : { ...room, id, airconUnits: units };
+}
+
+/**
+ * Applies a Landlord & rooms edit to a config. Master rent and the aircon total are worked out from the
+ * result, so nothing else changes. The result still has to go through `householdConfigSchema`.
+ *
+ * @param config - The config the edit starts from. Not changed.
+ * @param edit - The edit.
+ * @param newRoomIds - The id for each of `edit.newRooms`, in order.
+ * @returns The new config, with new rooms after the saved ones.
+ */
+export function applyHomeEdit(config: HouseholdConfig, edit: HouseholdHomeEdit, newRoomIds: string[]): HouseholdConfig {
+  const { rent, utilities } = config.categories;
+  const { billDueDay: savedBillDueDay, ...utilitiesRest } = utilities;
+  const billDueDay = edit.billDueDay === undefined ? savedBillDueDay : (edit.billDueDay ?? undefined);
+  return {
+    ...config,
+    rooms: [
+      ...config.rooms
+        .filter((room) => !edit.removedRoomIds.includes(room.id))
+        .map((room) =>
+          applyRoomEdit(
+            room,
+            edit.rooms.find((e) => e.id === room.id),
+          ),
+        ),
+      ...edit.newRooms.map((room, i) => newRoom(room, newRoomIds[i])),
+    ],
+    categories: {
+      ...config.categories,
+      rent: {
+        ...rent,
+        landlordRentCents: edit.landlordRentCents ?? rent.landlordRentCents,
+        landlordDueDay: edit.landlordDueDay ?? rent.landlordDueDay,
+      },
+      utilities: billDueDay === undefined ? utilitiesRest : { ...utilitiesRest, billDueDay },
+    },
   };
 }
 

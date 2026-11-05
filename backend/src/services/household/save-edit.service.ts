@@ -8,6 +8,7 @@ import {
   type HouseholdEdit,
   type HouseholdEditPreviewResponse,
   type HouseholdEditSaveResponse,
+  type HouseholdHomeEdit,
   type HouseholdPersonEdit,
   type HouseholdRemovePersonEdit,
   type PersonColor,
@@ -15,6 +16,7 @@ import {
 import { ApiError } from "@/lib/api";
 import { planAddPerson } from "@/lib/household/plan-add-person";
 import { planHouseholdEdit, versionInEffect, type HouseholdEditPlan } from "@/lib/household/plan-edit";
+import { planHomeEdit } from "@/lib/household/plan-home-edit";
 import { planRemovePerson } from "@/lib/household/plan-remove-person";
 import { getActiveMonth, type ActiveMonthDb } from "@/services/months/active-month.service";
 
@@ -112,6 +114,22 @@ async function loadRemovePlan(db: HouseholdEditReadDb, edit: HouseholdRemovePers
   };
 }
 
+/** Plans a Landlord & rooms edit to next month's version, with new ids for any rooms it adds. */
+async function loadHomePlan(db: HouseholdEditReadDb, edit: HouseholdHomeEdit) {
+  const { month, base, people, existing } = await loadContext(db);
+  return {
+    month,
+    existing,
+    plan: planHomeEdit({
+      edit,
+      names: new Map(people.map((p) => [p.id, p.name])),
+      month,
+      base,
+      newRoomIds: edit.newRooms.map(() => randomUUID()),
+    }),
+  };
+}
+
 /** Stores a dated save: updates the version starting next month while no month has opened using it, or creates it. */
 async function storeVersion(
   tx: HouseholdEditTx,
@@ -153,6 +171,16 @@ async function saveRemovePerson(tx: HouseholdEditTx, edit: HouseholdRemovePerson
   return { savedFromMonth: month };
 }
 
+/** Checks and stores a Landlord & rooms edit: next month's version only, inside the caller's transaction. */
+async function saveHomeEdit(tx: HouseholdEditTx, edit: HouseholdHomeEdit): Promise<HouseholdEditSaveResponse> {
+  const { plan, month, existing } = await loadHomePlan(tx, edit);
+  const messages = Object.values(plan.errors);
+  if (messages.length > 0) throw new ApiError(422, "invalid_edit", messages.join(" "));
+  if (!plan.nextConfig) throw new ApiError(422, "no_changes", "There is nothing to save.");
+  await storeVersion(tx, month, existing, plan.nextConfig);
+  return { savedFromMonth: month };
+}
+
 /** Checks and stores an edit to someone, inside the caller's transaction. */
 async function savePersonEdit(tx: HouseholdEditTx, edit: HouseholdPersonEdit): Promise<HouseholdEditSaveResponse> {
   const { plan, month, existing } = await loadPlan(tx, edit);
@@ -189,6 +217,16 @@ export async function previewHouseholdEdit(db: HouseholdEditReadDb, edit: Househ
     const { plan } = await loadRemovePlan(db, edit);
     return { groups: [], canSave: plan.canSave, errors: plan.errors };
   }
+  if (edit.kind === "home") {
+    const { plan } = await loadHomePlan(db, edit);
+    return {
+      groups: plan.groups,
+      canSave: plan.canSave,
+      errors: plan.errors,
+      warnings: plan.warnings,
+      masterRent: plan.masterRent,
+    };
+  }
   const { plan } = await loadPlan(db, edit);
   return {
     groups: plan.groups,
@@ -202,6 +240,7 @@ export async function previewHouseholdEdit(db: HouseholdEditReadDb, edit: Househ
  * the `Person` row; dated values start next month, updating the version starting then while no month has
  * opened using it, or creating one from the version in effect. An edit that changes only the row stores no
  * version. Adding a person creates their row and adds them to that version; removing one takes them out of it.
+ * A Landlord & rooms edit changes only that version.
  *
  * @param db - The Prisma client, or a fake in tests.
  * @param edit - The edit.
@@ -215,6 +254,7 @@ export async function saveHouseholdEdit(db: HouseholdEditDb, edit: HouseholdEdit
     return await db.$transaction((tx) => {
       if (edit.kind === "addPerson") return saveAddPerson(tx, edit);
       if (edit.kind === "removePerson") return saveRemovePerson(tx, edit);
+      if (edit.kind === "home") return saveHomeEdit(tx, edit);
       return savePersonEdit(tx, edit);
     });
   } catch (err) {
