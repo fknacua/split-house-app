@@ -19,6 +19,8 @@ export interface LandlordCardProps {
   stats: HouseholdStat[];
   /** The Edit badge on the card. */
   edit: HouseholdAction;
+  /** Opens the card's edit target. */
+  onOpen: (target: HouseholdTarget) => void;
 }
 
 /** Props for {@link LandlordStat}. */

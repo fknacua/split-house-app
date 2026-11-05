@@ -59,6 +59,9 @@ export function useEditFlow(edit: HouseholdEdit, dirty: boolean) {
     canSave: answered && answer?.canSave === true,
     groups: answer?.groups ?? [],
     errors,
+    warnings: answer?.warnings ?? {},
+    /** The master room's rent for the values last answered. Undefined until a Landlord & rooms answer arrives. */
+    masterRent: answer?.masterRent,
     saving: save.isPending,
     // A failed save stops counting once the values change, so the button reads Save changes again.
     failed: save.isError && JSON.stringify(save.variables) === JSON.stringify(edit),

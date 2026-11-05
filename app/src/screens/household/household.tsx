@@ -15,7 +15,7 @@ import { SplitSection } from './components/split-section';
 /**
  * The Household tab: the setup for one month. Every string comes from `GET /api/household`; this
  * screen lays it out and switches the month. Picking a month redraws the skeleton until it arrives.
- * View, Edit and Add subtenant open their screens; the other edit buttons do nothing until their forms are built.
+ * View, Edit, Add subtenant and the rent card open their screens; Edit splits does nothing until its form is built.
  */
 export function Household() {
   const router = useRouter();
@@ -31,6 +31,8 @@ export function Household() {
       router.push({ pathname: '/household/person/[personId]/edit', params: { personId: target.personId } });
     } else if (target.kind === 'add-person') {
       router.push('/household/add-person');
+    } else if (target.kind === 'edit-home') {
+      router.push('/household/landlord-rooms');
     }
   };
 
@@ -67,6 +69,7 @@ export function Household() {
               amount={loaded.landlord.amount}
               stats={loaded.landlord.stats}
               edit={loaded.landlord.edit}
+              onOpen={openTarget}
             />
             <SplitSection rows={loaded.splitRows} edit={loaded.editSplits} onOpen={openTarget} />
             <View className="gap-2">

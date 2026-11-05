@@ -17,6 +17,8 @@ export interface FieldControlProps<T extends FieldValues> {
   helper?: string;
   /** Overrides the form state's error, for a server error that is not on the field yet. */
   error?: string;
+  /** A server warning that still allows Save: amber text under the control. An error replaces it. */
+  warning?: string;
   disabled?: boolean;
   className?: string;
 }
@@ -32,6 +34,7 @@ export interface FieldBinding<V = string> {
   ref: Ref<any>;
   accessibilityLabel: string;
   invalid: boolean;
+  warned: boolean;
   disabled?: boolean;
 }
 
@@ -48,6 +51,8 @@ export interface StandaloneFieldProps<V = string> {
   onBlur?: () => void;
   /** Draws the error border. */
   invalid?: boolean;
+  /** Draws the amber border. An input that can show a warning reads it; the others ignore it. */
+  warned?: boolean;
   disabled?: boolean;
   /** Accessibility label, for when the input is used without a visible label. */
   accessibilityLabel?: string;
@@ -64,6 +69,7 @@ export interface FormControlledFieldProps<T extends FieldValues> {
   onChange?: never;
   onBlur?: never;
   invalid?: never;
+  warned?: never;
   disabled?: never;
   accessibilityLabel?: never;
 }

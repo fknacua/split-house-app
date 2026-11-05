@@ -62,13 +62,14 @@ export function withFormControlledFieldOf<Own extends object, R, V>(
         },
         [fieldRef, ref]
       );
-      const { label, required, helper, disabled, className } = fieldControlProps;
+      const { label, required, helper, warning, disabled, className } = fieldControlProps;
       return (
         <FormField
           label={label}
           required={required}
           helper={helper}
           error={message}
+          warning={warning}
           disabled={disabled}
           className={className}
         >

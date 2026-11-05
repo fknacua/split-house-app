@@ -7,14 +7,14 @@ import { LandlordStat } from './landlord-stat';
 
 /**
  * The card at the top of Household, in the selected tone: the landlord rent and its due day, the Edit
- * badge and the stat tiles. The whole card is the edit target, and does nothing until Landlord & rooms
- * is built (9.16).
+ * badge and the stat tiles. The whole card is the edit target, and opens Landlord & rooms.
  */
-export function LandlordCard({ label, amount, stats, edit }: LandlordCardProps) {
+export function LandlordCard({ label, amount, stats, edit, onOpen }: LandlordCardProps) {
   return (
     <Pressable
       accessibilityRole="button"
       accessibilityLabel="Edit landlord rent and rooms"
+      onPress={() => onOpen(edit.target)}
       className="gap-3 rounded-dialog bg-selected px-4.5 py-4"
     >
       <View className="flex-row items-start justify-between gap-2">
