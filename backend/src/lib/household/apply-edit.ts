@@ -201,6 +201,22 @@ export function applyAddPerson(config: HouseholdConfig, tenant: PersonConfig): H
 }
 
 /**
+ * Adds a recurring charge to a config, or replaces the saved one with its id, keeping its place in the list. The
+ * result still has to go through `householdConfigSchema`.
+ *
+ * @param config - The config the edit starts from. Not changed.
+ * @param charge - The charge.
+ * @returns The new config.
+ */
+export function applyRecurringCharge(config: HouseholdConfig, charge: HouseholdConfig["recurring"][number]): HouseholdConfig {
+  const isSaved = config.recurring.some((r) => r.id === charge.id);
+  return {
+    ...config,
+    recurring: isSaved ? config.recurring.map((r) => (r.id === charge.id ? charge : r)) : [...config.recurring, charge],
+  };
+}
+
+/**
  * Takes a tenant out of a config, with their recurring charges, template overrides and section title. Their room
  * stays, now empty, keeping its rent for the next tenant. The utilities total falls by their shares, so everyone
  * else's shares keep their size. The aircon total stays, since the units stay in the house, so the owner and primary

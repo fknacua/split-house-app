@@ -39,6 +39,53 @@ const version = (startsFromMonth: string, config: HouseholdConfig): VersionRow =
   config,
 });
 
+describe("recurring charges", () => {
+  const edit = { kind: "recurring", chargeId: null, label: "Parking", amountCents: 1000, personId: PERSON_IDS.jordan, endMonth: null } as const;
+  const recurringOf = (row: VersionRow | undefined) => (row?.config as HouseholdConfig).recurring;
+
+  it("adds a charge to next month's version, leaving the opened month alone", async () => {
+    const { db, state } = fakeDb();
+    expect(await saveHouseholdEdit(db, edit)).toEqual({ savedFromMonth: "2026-12" });
+    expect(recurringOf(state.versions.find((v) => v.startsFromMonth === "2026-11"))).toHaveLength(1);
+    expect(recurringOf(state.versions.find((v) => v.startsFromMonth === "2026-12"))?.at(-1)?.label).toBe("Parking");
+  });
+
+  it("adds to next month's version when one is already upcoming", async () => {
+    const { db, state } = fakeDb([version("2026-11", NOV_2026_CONFIG), version("2026-12", JAN_2027_CONFIG)]);
+    await saveHouseholdEdit(db, edit);
+    await saveHouseholdEdit(db, { ...edit, label: "Storage" });
+    expect(state.versions).toHaveLength(2);
+    expect(recurringOf(state.versions[1])?.map((r) => r.label).slice(-2)).toEqual(["Parking", "Storage"]);
+  });
+
+  it("refuses to change a version a month has opened using", async () => {
+    const next = version("2026-12", NOV_2026_CONFIG);
+    const { db } = fakeDb([version("2026-11", NOV_2026_CONFIG), next], [next.id]);
+    await expect(saveHouseholdEdit(db, edit)).rejects.toMatchObject({ status: 409, code: "version_locked" });
+  });
+
+  it("answers the preview's errors, and refuses them on save", async () => {
+    const { db } = fakeDb();
+    const bad = { ...edit, amountCents: 0 };
+    const preview = await previewHouseholdEdit(db, bad);
+    expect(preview).toMatchObject({ canSave: false, errors: { amountCents: "Enter an amount." } });
+    await expect(saveHouseholdEdit(db, bad)).rejects.toMatchObject({ status: 422, code: "invalid_edit" });
+  });
+
+  it("removes a charge from next month only", async () => {
+    const { db, state } = fakeDb();
+    await saveHouseholdEdit(db, { kind: "removeRecurring", chargeId: "recurring-starhub" });
+    expect(recurringOf(state.versions.find((v) => v.startsFromMonth === "2026-11"))).toHaveLength(1);
+    expect(recurringOf(state.versions.find((v) => v.startsFromMonth === "2026-12"))).toEqual([]);
+  });
+
+  it("answers 404 for a charge not running next month", async () => {
+    const { db } = fakeDb();
+    await expect(previewHouseholdEdit(db, { ...edit, chargeId: "nope" })).rejects.toMatchObject({ status: 404, code: "no_charge" });
+    await expect(saveHouseholdEdit(db, { kind: "removeRecurring", chargeId: "nope" })).rejects.toMatchObject({ status: 404, code: "no_charge" });
+  });
+});
+
 /** An in-memory household. `lockedIds` are versions a month has opened using. */
 function fakeDb(versions: VersionRow[] = [version("2026-11", NOV_2026_CONFIG)], lockedIds: string[] = []) {
   const state = {

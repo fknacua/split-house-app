@@ -1,8 +1,12 @@
+import type { LucideIcon } from 'lucide-react-native';
 import type {
   HouseholdAction,
+  HouseholdCard as HouseholdCardData,
   HouseholdFact,
   HouseholdMonthOption,
   HouseholdPerson,
+  HouseholdRecurring,
+  HouseholdRecurringCharge,
   HouseholdSplitRow,
   HouseholdSplitSegment,
   HouseholdStat,
@@ -41,10 +45,43 @@ export interface MonthSelectProps {
   onChange: (month: string) => void;
 }
 
-/** Props for {@link PersonCard}. */
-export interface PersonCardProps {
+/** The tabs under the landlord card. */
+export type HouseholdTab = 'split' | 'people' | 'recurring';
+
+/** Props for {@link HouseholdSkeleton}. */
+export interface HouseholdSkeletonProps {
+  /** The tab whose content to stand in for. */
+  tab: HouseholdTab;
+}
+
+/** Props for {@link TabHeading}. */
+export interface TabHeadingProps {
+  /** The heading, e.g. `People`. */
+  title: string;
+  /** A line under the heading. */
+  note?: string | null;
+  /** The button at its right, e.g. `Add subtenant`. */
+  actionLabel: string;
+  /** The button's icon. */
+  actionIcon: LucideIcon;
+  /** Called by the button. */
+  onAction: () => void;
+}
+
+/** Props for {@link PeopleSection}. */
+export interface PeopleSectionProps {
+  /** Everyone's cards. */
+  people: HouseholdPerson[];
+  /** The heading's Add subtenant button. */
+  add: HouseholdAction;
+  /** Opens where a button leads. */
+  onOpen: (target: HouseholdTarget) => void;
+}
+
+/** Props for {@link HouseholdCard}. */
+export interface HouseholdCardProps {
   /** The initial, color, name, facts and buttons. */
-  person: HouseholdPerson;
+  card: HouseholdCardData;
   /** Opens where a button leads. */
   onOpen: (target: HouseholdTarget) => void;
 }
@@ -63,6 +100,32 @@ export interface SplitSectionProps {
   edit: HouseholdAction;
   /** Opens where the button leads. */
   onOpen: (target: HouseholdTarget) => void;
+}
+
+/** Props for {@link RecurringSection}. */
+export interface RecurringSectionProps {
+  /** The card's text and the sheet's values. */
+  recurring: HouseholdRecurring;
+}
+
+/** Props for {@link RecurringSheet}. */
+export interface RecurringSheetProps {
+  /** The sheet's titles and choices. */
+  sheet: HouseholdRecurring['sheet'];
+  /** The saved charge to edit, or null to add one. */
+  charge: HouseholdRecurringCharge | null;
+  /** Called on Remove charge, once the sheet has been told to close. */
+  onRemove: (charge: HouseholdRecurringCharge) => void;
+  /** Called after the sheet has closed, by any route. */
+  onClose: () => void;
+}
+
+/** Props for {@link RemoveRecurringDialog}. */
+export interface RemoveRecurringDialogProps {
+  /** The charge to remove, or null when the dialog is closed. */
+  charge: HouseholdRecurringCharge | null;
+  /** Called on Cancel and after the charge is removed. */
+  onClose: () => void;
 }
 
 /** Props for {@link SplitRow}. */

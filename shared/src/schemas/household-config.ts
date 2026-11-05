@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { cents, monthKey } from "./primitives";
+import { monthKey, positiveCents } from "./primitives";
 
 /**
  * Version of the shape of `HouseholdVersion.config` (see docs/SplitHouse — Data Model.md).
@@ -8,7 +8,10 @@ import { cents, monthKey } from "./primitives";
  */
 export const HOUSEHOLD_SCHEMA_VERSION = 2;
 
-/** The charge types a person can have a route and due day for. */
+/**
+ * The charge types a person can have a route and due day for. A recurring charge reads the person's
+ * utilities route and day, so a `RECURRING` entry is accepted but not used.
+ */
 export const CHARGE_TYPES = ["RENT", "UTILITIES", "AIRCON", "RECURRING"] as const;
 
 /** One of {@link CHARGE_TYPES}. */
@@ -96,8 +99,10 @@ const utilitiesCategory = remainderCategory.extend({
 const recurringCharge = z.object({
   id: z.string().min(1),
   label: z.string().trim().min(1),
-  amountCents: cents,
+  // Above zero, since a $0 charge can't be marked paid and would stop the month settling.
+  amountCents: positiveCents,
   personId: z.string().min(1),
+  // The last month charged.
   endMonth: monthKey.optional(),
 });
 

@@ -24,6 +24,8 @@ function routeWords(config: HouseholdConfig, personId: string, names: Map<string
   const person = config.people.find((p) => p.personId === personId);
   const viaTypes = new Map<string, ChargeType[]>();
   for (const type of CHARGE_TYPES) {
+    // A recurring charge reads the utilities route, so a `RECURRING` entry does nothing.
+    if (type === "RECURRING") continue;
     const route = person?.routes[type];
     if (route?.kind === "VIA") viaTypes.set(route.viaPersonId, [...(viaTypes.get(route.viaPersonId) ?? []), type]);
   }

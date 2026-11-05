@@ -42,7 +42,7 @@ export const VERSION_A_CONFIG: HouseholdConfig = {
       roomId: ROOM_IDS.master,
       utilityShares: 0,
       routes: {},
-      dueDays: { RENT: 7, UTILITIES: 7, AIRCON: 7, RECURRING: 7 },
+      dueDays: { RENT: 7, UTILITIES: 7, AIRCON: 7 },
       depositCents: 0,
     },
     {
@@ -94,7 +94,7 @@ export const NOV_2026_CONFIG: HouseholdConfig = {
       roomId: ROOM_IDS.master,
       utilityShares: 0,
       routes: {},
-      dueDays: { RENT: 7, UTILITIES: 7, AIRCON: 7, RECURRING: 7 },
+      dueDays: { RENT: 7, UTILITIES: 7, AIRCON: 7 },
       depositCents: 0,
     },
     {
