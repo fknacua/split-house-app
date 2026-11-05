@@ -7,7 +7,7 @@ const OPTIONAL: ReadonlySet<SetupStepId> = new Set(["messages", "reminders"]);
  *
  * - Rent & rooms: the landlord rent or a tenant's room rent is set.
  * - People: at least one tenant is on the household.
- * - Your split: the owner and the primary tenant exist, so the remainder has someone to share
+ * - Household split: the owner and the primary tenant exist, so the remainder has someone to share
  *   between. (A saved version always has its percentages adding to 100%.)
  * - Messages and Reminders are optional and nothing records them yet, so they stay not done.
  *   Reminders depend on the phone's notification permission, which the server cannot see.

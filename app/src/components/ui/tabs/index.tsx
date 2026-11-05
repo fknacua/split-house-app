@@ -1,3 +1,4 @@
+/* eslint-disable react-hooks/rules-of-hooks -- gluestack's copy: the context is always set inside Tabs and the platform never changes, so hook order is stable. */
 'use client';
 import React, { useEffect, useRef, useMemo } from 'react';
 import { createTabs, TabsContext } from '@gluestack-ui/core/tabs/creator';
