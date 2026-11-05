@@ -615,14 +615,14 @@ describe("editing the household split", () => {
       warnings: { [`tenantShares.${PERSON_IDS.sam}`]: "Sam utilities is 0" },
     });
     expect(preview.groups[0].title).toBe("Saves from Dec 2026");
-    expect(preview.amounts?.utilities).toEqual({ left: "4", owner: "2 shares", primary: "2 shares" });
+    expect(preview.amounts?.utilities).toMatchObject({ left: "4", owner: "2 shares", primary: "2 shares" });
     expect(state.versions).toHaveLength(1);
   });
 
   it("creates next month's version, leaving the current one and the people alone", async () => {
     const { db, state } = fakeDb();
     const peopleBefore = structuredClone(state.people);
-    await expect(saveHouseholdEdit(db, split({ utilitiesPrimaryBps: 4000 }))).resolves.toEqual({ savedFromMonth: "2026-12" });
+    await expect(saveHouseholdEdit(db, split({ utilitiesPrimaryShares: 1200 }))).resolves.toEqual({ savedFromMonth: "2026-12" });
     expect(state.versions.map((v) => v.startsFromMonth)).toEqual(["2026-11", "2026-12"]);
     expect(configOf(state.versions[0]).categories.utilities.primaryBps).toBe(5000);
     expect(configOf(state.versions[1]).categories.utilities).toMatchObject({ ownerBps: 6000, primaryBps: 4000 });
@@ -631,7 +631,7 @@ describe("editing the household split", () => {
 
   it("adds to a version that starts next month, so several edits add up", async () => {
     const { db, state } = fakeDb();
-    await saveHouseholdEdit(db, split({ utilitiesPrimaryBps: 4000 }));
+    await saveHouseholdEdit(db, split({ utilitiesPrimaryShares: 1200 }));
     await saveHouseholdEdit(db, split({ totalShares: 6000 }));
     expect(state.versions).toHaveLength(2);
     expect(configOf(state.versions[1]).categories.utilities).toMatchObject({ primaryBps: 4000, totalShares: 6000 });
@@ -642,7 +642,7 @@ describe("editing the household split", () => {
       [version("2026-11", NOV_2026_CONFIG), version("2026-12", NOV_2026_CONFIG)],
       ["version-2026-12"],
     );
-    await expect(saveHouseholdEdit(db, split({ utilitiesPrimaryBps: 4000 }))).rejects.toMatchObject({
+    await expect(saveHouseholdEdit(db, split({ utilitiesPrimaryShares: 1200 }))).rejects.toMatchObject({
       status: 409,
       code: "version_locked",
     });

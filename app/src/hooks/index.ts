@@ -14,6 +14,7 @@ export * from './use-household-add-form';
 export * from './use-household-edit-preview';
 export * from './use-household-form';
 export * from './use-household-home-form';
+export * from './use-household-split-form';
 export * from './use-load-bill-draft';
 export * from './use-open-bill-pdf';
 export * from './use-mark-bill-paid';

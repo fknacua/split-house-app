@@ -45,6 +45,7 @@ function SessionStack() {
         <Stack.Screen name="household/person/[personId]/edit" />
         <Stack.Screen name="household/add-person" />
         <Stack.Screen name="household/landlord-rooms" />
+        <Stack.Screen name="household/split" />
         <Stack.Screen name="__gallery" />
       </Stack.Protected>
     </Stack>

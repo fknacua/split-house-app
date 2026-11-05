@@ -161,6 +161,8 @@ export function buildMonthCharges(config: HouseholdConfig, month: string): Engin
     config.categories.rent.primaryBps,
   );
   for (const [personId, amountCents] of Object.entries(sharedRent)) {
+    // A 0% split leaves nothing to charge, as with a tenant room at no rent.
+    if (amountCents === 0) continue;
     const person = personOrThrow(config, personId);
     charges.push({
       personId,
@@ -216,7 +218,8 @@ export function buildUtilitiesCharges(
   }
 
   const label = config.templates.lineLabels.UTILITIES ?? "Utilities";
-  return Object.entries(amounts).map(([personId, amountCents]) => {
+  // A 0% split leaves nothing to charge, as with a tenant at 0 shares.
+  return Object.entries(amounts).filter(([, amountCents]) => amountCents !== 0).map(([personId, amountCents]) => {
     const person = personOrThrow(config, personId);
     return {
       personId,

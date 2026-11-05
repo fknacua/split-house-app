@@ -15,7 +15,7 @@ import { SplitSection } from './components/split-section';
 /**
  * The Household tab: the setup for one month. Every string comes from `GET /api/household`; this
  * screen lays it out and switches the month. Picking a month redraws the skeleton until it arrives.
- * View, Edit, Add subtenant and the rent card open their screens; Edit splits does nothing until its form is built.
+ * View, Edit, Add subtenant, the rent card and Edit splits open their screens.
  */
 export function Household() {
   const router = useRouter();
@@ -33,6 +33,8 @@ export function Household() {
       router.push('/household/add-person');
     } else if (target.kind === 'edit-home') {
       router.push('/household/landlord-rooms');
+    } else if (target.kind === 'edit-splits') {
+      router.push('/household/split');
     }
   };
 

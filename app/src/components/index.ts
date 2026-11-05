@@ -35,6 +35,7 @@ export * from './select-link';
 export * from './server-error-dialog';
 export * from './server-unreachable-provider';
 export * from './skeletons';
+export * from './split-slider';
 export * from './subpage-footer';
 export * from './success-toast';
 export * from './spinner';

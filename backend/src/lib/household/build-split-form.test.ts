@@ -30,8 +30,6 @@ describe("buildSplitForm", () => {
         ],
         totalShares: 5000,
         rentPrimaryBps: 5000,
-        utilitiesPrimaryBps: 5000,
-        airconPrimaryBps: 5000,
       },
       rent: {
         title: "Rent (SGD)",
@@ -54,14 +52,14 @@ describe("buildSplitForm", () => {
       },
       amounts: {
         rent: { left: "$3,350.00", owner: "$1,675.00", primary: "$1,675.00" },
-        utilities: { left: "3", owner: "1.5 shares", primary: "1.5 shares" },
-        aircon: { left: "4", owner: "2 units", primary: "2 units" },
+        utilities: { left: "3", owner: "1.5 shares", primary: "1.5 shares", counts: { left: 3000, owner: 1500, primary: 1500 } },
+        aircon: { left: "4", owner: "2 units", primary: "2 units", counts: { left: 4000, owner: 2000, primary: 2000 } },
       },
     });
   });
 
   it("shows the note while a saved split differs from the active month's", () => {
-    const next = applySplitEdit(NOV_2026_CONFIG, { kind: "split", tenantShares: [], utilitiesPrimaryBps: 4000 });
+    const next = applySplitEdit(NOV_2026_CONFIG, { kind: "split", tenantShares: [], utilitiesPrimaryShares: 1200 });
     expect(form(next).pendingNote).toBe("These take effect from December 2026.");
   });
 

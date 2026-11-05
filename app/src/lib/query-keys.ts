@@ -59,6 +59,8 @@ export const queryKeys = {
   householdAddForm: ['household', 'add-form'] as const,
   /** The Landlord & rooms screen. Under `allHousehold`, so an edit refreshes it too. */
   householdHomeForm: ['household', 'home-form'] as const,
+  /** The Household split screen. Under `allHousehold`, so an edit refreshes it too. */
+  householdSplitForm: ['household', 'split-form'] as const,
   /**
    * What a Household edit would change, by the edit sent.
    * @param edit The edit sent to the preview.

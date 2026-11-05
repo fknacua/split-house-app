@@ -199,6 +199,59 @@ describe("buildUtilitiesCharges (Nov 2026 fixture)", () => {
   });
 });
 
+describe("someone at 0% of a split", () => {
+  const atPrimaryBps = (primaryBps: number): HouseholdConfig => {
+    const split = { primaryBps, ownerBps: 10000 - primaryBps };
+    const { rent, utilities } = NOV_2026_CONFIG.categories;
+    return {
+      ...NOV_2026_CONFIG,
+      categories: { ...NOV_2026_CONFIG.categories, rent: { ...rent, ...split }, utilities: { ...utilities, ...split } },
+    };
+  };
+  const BILL = { month: "2026-12", currentChargesCents: 41230 };
+  const amountOf = (charges: { personId: string; amountCents: number }[], personId: string) =>
+    charges.find((c) => c.personId === personId)?.amountCents;
+  const sum = (charges: { amountCents: number }[]) => charges.reduce((s, c) => s + c.amountCents, 0);
+
+  it("gives the primary tenant no charge at 0%, and the owner all of it", () => {
+    const config = atPrimaryBps(0);
+    const rent = buildMonthCharges(config, "2026-12").filter((c) => c.category === "RENT");
+    const utilities = buildUtilitiesCharges(config, BILL);
+    expect(amountOf(rent, PERSON_IDS.priya)).toBeUndefined();
+    expect(amountOf(rent, PERSON_IDS.alex)).toBe(335000);
+    expect(amountOf(utilities, PERSON_IDS.priya)).toBeUndefined();
+    expect(amountOf(utilities, PERSON_IDS.alex)).toBe(24738);
+  });
+
+  it("gives the owner no charge at 0%, and the primary tenant all of it", () => {
+    const config = atPrimaryBps(10000);
+    expect(amountOf(buildMonthCharges(config, "2026-12"), PERSON_IDS.alex)).toBeUndefined();
+    const utilities = buildUtilitiesCharges(config, BILL);
+    expect(amountOf(utilities, PERSON_IDS.alex)).toBeUndefined();
+    expect(amountOf(utilities, PERSON_IDS.priya)).toBe(24738);
+  });
+
+  it.each([0, 10000])("leaves the tenants' amounts and the totals as they are at %i basis points", (bps) => {
+    const utilities = buildUtilitiesCharges(atPrimaryBps(bps), BILL);
+    expect(sum(utilities)).toBe(41230);
+    expect(amountOf(utilities, PERSON_IDS.sam)).toBe(8246);
+    expect(amountOf(utilities, PERSON_IDS.jordan)).toBe(8246);
+    const rent = buildMonthCharges(atPrimaryBps(bps), "2026-12").filter((c) => c.category === "RENT");
+    expect(sum(rent)).toBe(525000);
+  });
+
+  it("creates no charge at $0 for anyone", () => {
+    const config = atPrimaryBps(0);
+    const charges = [...buildMonthCharges(config, "2026-12"), ...buildUtilitiesCharges(config, BILL)];
+    expect(charges.every((c) => c.amountCents !== 0)).toBe(true);
+  });
+
+  it("keeps a tenant's route via the primary tenant when she is at 0%", () => {
+    const sam = buildUtilitiesCharges(atPrimaryBps(0), BILL).find((c) => c.personId === PERSON_IDS.sam);
+    expect(sam?.payViaPersonId).toBe(PERSON_IDS.priya);
+  });
+});
+
 describe("Nov 2026 fixture totals", () => {
   const monthCharges = buildMonthCharges(NOV_2026_CONFIG, MONTH);
   const utilitiesCharges = buildUtilitiesCharges(NOV_2026_CONFIG, { month: MONTH, currentChargesCents: 41230 });

@@ -9,6 +9,8 @@ import type {
   HouseholdSplitEdit,
   PersonConfig,
 } from "@splithouse/shared";
+import { SHARE_SCALE } from "./amount-text";
+import { sharedAirconUnits } from "./room-amounts";
 import { viaOf } from "./route-via";
 
 /** The due days after an edit. The utilities day also sets aircon, and an unchanged day leaves both as they are. */
@@ -144,6 +146,12 @@ function applyPrimaryBps<T extends { ownerBps: number; primaryBps: number }>(cat
   return primaryBps === null || primaryBps === undefined ? category : { ...category, primaryBps, ownerBps: 10000 - primaryBps };
 }
 
+/** The percent a typed count comes to. Null for a count the plan refuses or nothing to split, which keeps the saved percent. */
+function primaryBpsFromCount(count: number | null | undefined, left: number): number | null {
+  if (count === null || count === undefined || left <= 0 || count < 0 || count > left) return null;
+  return Math.round((count / left) * 10000);
+}
+
 /**
  * Applies a Household split edit to a config. An empty shares field reads as 0, since the plan refuses it first and
  * the preview still works out the amounts from the rest. The result still has to go through `householdConfigSchema`.
@@ -154,19 +162,19 @@ function applyPrimaryBps<T extends { ownerBps: number; primaryBps: number }>(cat
  */
 export function applySplitEdit(config: HouseholdConfig, edit: HouseholdSplitEdit): HouseholdConfig {
   const { rent, utilities, aircon } = config.categories;
+  const people = config.people.map((person) => {
+    const sent = edit.tenantShares.find((t) => t.personId === person.personId);
+    return sent && person.role === "TENANT" ? { ...person, utilityShares: sent.utilityShares ?? 0 } : person;
+  });
+  const totalShares = edit.totalShares === undefined ? utilities.totalShares : (edit.totalShares ?? 0);
+  const left = totalShares - people.reduce((sum, p) => sum + p.utilityShares, 0);
   return {
     ...config,
-    people: config.people.map((person) => {
-      const sent = edit.tenantShares.find((t) => t.personId === person.personId);
-      return sent && person.role === "TENANT" ? { ...person, utilityShares: sent.utilityShares ?? 0 } : person;
-    }),
+    people,
     categories: {
       rent: applyPrimaryBps(rent, edit.rentPrimaryBps),
-      utilities: {
-        ...applyPrimaryBps(utilities, edit.utilitiesPrimaryBps),
-        totalShares: edit.totalShares === undefined ? utilities.totalShares : (edit.totalShares ?? 0),
-      },
-      aircon: applyPrimaryBps(aircon, edit.airconPrimaryBps),
+      utilities: { ...applyPrimaryBps(utilities, primaryBpsFromCount(edit.utilitiesPrimaryShares, left)), totalShares },
+      aircon: applyPrimaryBps(aircon, primaryBpsFromCount(edit.airconPrimaryUnits, sharedAirconUnits(config) * SHARE_SCALE)),
     },
   };
 }
