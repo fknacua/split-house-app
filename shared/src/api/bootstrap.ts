@@ -1,6 +1,5 @@
 import { z } from 'zod';
 import { monthKey } from '../schemas/primitives';
-import { notificationSettingsSchema } from '../schemas/settings';
 import { setupStepSchema } from '../schemas/setup';
 
 /** `GET /api/bootstrap`: what the app needs right after sign-in and on launch. */
@@ -11,8 +10,6 @@ export const bootstrapResponseSchema = z.object({
   currentMonth: monthKey,
   /** The first-run checklist, in display order. */
   setupProgress: z.array(setupStepSchema),
-  /** Notification toggles, used to rebuild the reminders on this phone. */
-  settings: z.object({ notifications: notificationSettingsSchema }),
 });
 
 /** `GET /api/bootstrap`: what the app needs right after sign-in and on launch. */

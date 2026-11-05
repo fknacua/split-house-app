@@ -1,8 +1,4 @@
-import {
-  parseHouseholdConfig,
-  parseNotificationSettings,
-  type BootstrapResponse,
-} from "@splithouse/shared";
+import { parseHouseholdConfig, type BootstrapResponse } from "@splithouse/shared";
 import { deriveSetupProgress } from "@/lib/setup-progress";
 import { getActiveMonth, type ActiveMonthDb } from "@/services/months/active-month.service";
 
@@ -12,9 +8,6 @@ export interface BootstrapDb extends ActiveMonthDb {
     findFirst(args: {
       orderBy: { startsFromMonth: "desc" };
     }): Promise<{ schemaVersion: number; config: unknown } | null>;
-  };
-  settings: {
-    findUnique(args: { where: { id: string } }): Promise<{ notifications: unknown } | null>;
   };
 }
 
@@ -26,9 +19,8 @@ export interface BootstrapDb extends ActiveMonthDb {
  * @throws When the newest version has a `schemaVersion` this code does not know.
  */
 export async function getBootstrap(db: BootstrapDb): Promise<BootstrapResponse> {
-  const [version, settingsRow, activeMonth] = await Promise.all([
+  const [version, activeMonth] = await Promise.all([
     db.householdVersion.findFirst({ orderBy: { startsFromMonth: "desc" } }),
-    db.settings.findUnique({ where: { id: "singleton" } }),
     getActiveMonth(db),
   ]);
   const config = version ? parseHouseholdConfig(version.schemaVersion, version.config) : null;
@@ -36,6 +28,5 @@ export async function getBootstrap(db: BootstrapDb): Promise<BootstrapResponse> 
     hasHousehold: version !== null,
     currentMonth: activeMonth,
     setupProgress: deriveSetupProgress(config),
-    settings: { notifications: parseNotificationSettings(settingsRow?.notifications) },
   };
 }
