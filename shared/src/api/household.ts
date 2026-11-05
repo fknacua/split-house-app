@@ -247,7 +247,8 @@ export const householdHomeRoomSchema = z.object({
   /** The card's title: `Master room`, `Tenant room` or `Common room`. */
   title: z.string(),
   name: z.string(),
-  airconUnits: z.number().int(),
+  /** Null only for a room First run has not filled in yet (11.3). */
+  airconUnits: z.number().int().nullable(),
   /** Null for anything but a tenant room. */
   rentCents: z.number().int().nullable(),
   /** Null for anything but a tenant room. */
@@ -276,13 +277,24 @@ export const householdHomeFormResponseSchema = z.object({
   /** e.g. `These take effect from December 2026.` while saved values differ from the active month's; otherwise null. */
   pendingNote: z.string().nullable(),
   values: z.object({
-    landlordRentCents: z.number().int(),
-    landlordDueDay: z.number().int(),
+    /** Null only before First run has filled it in (11.3). */
+    landlordRentCents: z.number().int().nullable(),
+    /** Null only before First run has filled it in (11.3). */
+    landlordDueDay: z.number().int().nullable(),
     /** Optional, so null when not set. */
     billDueDay: z.number().int().nullable(),
   }),
   /** The master room, then tenant rooms, then common rooms, each in saved order. */
   rooms: z.array(householdHomeRoomSchema),
+  /** The types Add room offers, with the title and badge a new room's card shows. */
+  newRoomTypes: z.array(
+    z.object({
+      roomType: z.enum(['TENANT', 'COMMON']),
+      /** e.g. `Tenant room`. */
+      title: z.string(),
+      badge: badgeSchema.nullable(),
+    }),
+  ),
 });
 
 /** `GET /api/household/home-form`: the Landlord & rooms screen, with the latest saved values, ready to render. */

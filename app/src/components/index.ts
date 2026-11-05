@@ -9,6 +9,7 @@ export * from './badge';
 export * from './bottom-nav';
 export * from './button';
 export * from './card';
+export * from './checkbox';
 export * from './chip';
 export * from './confirm-dialog';
 export * from './connected-button-group';

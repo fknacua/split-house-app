@@ -13,7 +13,7 @@ import type { FieldBinding, FieldControlProps } from '../types';
  * `error` override if given, otherwise the form state's error.
  */
 export function useFormControlledField<T extends FieldValues, V = string>(
-  { control, name, label, error, disabled }: FieldControlProps<T>,
+  { control, name, label, error, warning, disabled }: FieldControlProps<T>,
   emptyValue: V = '' as V
 ): { binding: FieldBinding<V>; message: string | undefined } {
   const { field, fieldState } = useController({ control, name });
@@ -27,6 +27,7 @@ export function useFormControlledField<T extends FieldValues, V = string>(
       ref: field.ref,
       accessibilityLabel: label,
       invalid: !!message,
+      warned: !message && !!warning,
       disabled,
     },
   };

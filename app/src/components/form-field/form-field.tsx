@@ -1,5 +1,7 @@
-import { CircleAlert } from "lucide-react-native";
+import { CircleAlert, TriangleAlert } from "lucide-react-native";
 import { ReactNode } from "react";
+import { Text, View } from "react-native";
+import { Icon } from '@/components/icon';
 import {
   FormControl,
   FormControlError,
@@ -21,6 +23,7 @@ import {
  * @param required - Shows the red required marker after the label.
  * @param helper - Hint text under the control. Replaced by `error` while there is one.
  * @param error - Error text under the control, with the alert icon. Also turns the control invalid.
+ * @param warning - Amber text under the control, with the warning icon. Replaced by `error`, and replaces `helper`.
  * @param disabled - Dims the label and disables the control.
  * @param children - The control itself, such as an input.
  * @param className - Extra classes for the outer wrapper.
@@ -30,6 +33,7 @@ export function FormField({
   required,
   helper,
   error,
+  warning,
   disabled,
   children,
   className,
@@ -38,6 +42,7 @@ export function FormField({
   required?: boolean;
   helper?: string;
   error?: string;
+  warning?: string;
   disabled?: boolean;
   children: ReactNode;
   className?: string;
@@ -60,6 +65,11 @@ export function FormField({
           <FormControlErrorIcon as={CircleAlert} />
           <FormControlErrorText>{error}</FormControlErrorText>
         </FormControlError>
+      ) : warning ? (
+        <View className="mt-1.5 flex-row items-center gap-1">
+          <Icon as={TriangleAlert} size={14} className="text-warning" />
+          <Text className="font-manrope-semibold text-caption text-warning">{warning}</Text>
+        </View>
       ) : helper ? (
         <FormControlHelper>
           <FormControlHelperText>{helper}</FormControlHelperText>

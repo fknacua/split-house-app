@@ -96,5 +96,9 @@ export function buildHomeForm(input: HomeFormInput): HouseholdHomeFormResponse {
     rooms: ROOM_ORDER.flatMap((type) => config.rooms.filter((room) => room.roomType === type)).map((room) =>
       roomCard(config, room, names),
     ),
+    newRoomTypes: [
+      { roomType: "TENANT", title: ROOM_TITLES.TENANT, badge: HOME_BADGES.roomEmpty },
+      { roomType: "COMMON", title: ROOM_TITLES.COMMON, badge: null },
+    ],
   };
 }

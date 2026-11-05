@@ -33,6 +33,7 @@ import {
   BottomNavBar,
   Button,
   type ButtonVariant,
+  Checkbox,
   Card,
   ChipGroup,
   ConfirmDialog,
@@ -397,6 +398,7 @@ function PickersDemo() {
       switchDisabledOff: false,
     },
   });
+  const [bareCheckbox, setBareCheckbox] = useState(true);
   const [bareSwitch, setBareSwitch] = useState(false);
   const [bareSwitchRow, setBareSwitchRow] = useState(true);
   const switchOn = useWatch({ control, name: 'switchOn' });
@@ -537,6 +539,13 @@ function PickersDemo() {
         Bare values: {bareWho === '' ? '(none)' : bareWho} / {bareMonth === '' ? '(none)' : bareMonth} /{' '}
         {barePickedMonth === '' ? '(none)' : barePickedMonth}
       </Text>
+
+      <Text className="font-manrope-bold text-sheet-title text-on-surface">Checkbox</Text>
+      <TouchTargetCheck>
+        <Checkbox label="Include in total" value={bareCheckbox} onChange={setBareCheckbox} />
+      </TouchTargetCheck>
+      <Checkbox label="Disabled, on" value onChange={() => {}} disabled />
+      <Checkbox label="Disabled, off" value={false} onChange={() => {}} disabled />
 
       <Text className="font-manrope-bold text-sheet-title text-on-surface">Switch</Text>
       <TouchTargetCheck>

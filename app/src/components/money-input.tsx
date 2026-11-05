@@ -38,6 +38,7 @@ const BareMoneyInput = forwardRef<
     onBlur,
     accessibilityLabel,
     invalid,
+    warned,
     disabled,
     placeholder = '$0.00',
     allowNegative,
@@ -78,7 +79,11 @@ const BareMoneyInput = forwardRef<
 
   return (
     <View className="flex-row items-center gap-2">
-      <NativeInput isInvalid={invalid} isDisabled={disabled} className="flex-1">
+      <NativeInput
+        isInvalid={invalid}
+        isDisabled={disabled}
+        className={warned ? 'flex-1 border-2 border-warning px-[13px]' : 'flex-1'}
+      >
         <NativeInputField
           ref={ref}
           value={shown}
