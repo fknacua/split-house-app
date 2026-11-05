@@ -2,7 +2,6 @@ import type { HouseholdPersonEdit } from "@splithouse/shared";
 import { describe, expect, it } from "vitest";
 import { NOV_2026_CONFIG, PERSON_IDS } from "@/lib/fixtures/household";
 import { applyHouseholdEdit } from "./apply-edit";
-import { tenantRentCents } from "./room-amounts";
 
 const edit = (personId: string, fields: Partial<HouseholdPersonEdit>): HouseholdPersonEdit => ({
   kind: "person",
@@ -23,16 +22,10 @@ describe("applyHouseholdEdit", () => {
     expect(person(next, PERSON_IDS.jordan)).toMatchObject(expected);
   });
 
-  it("writes a rent edit to the tenant's room, leaving the other rooms and the landlord rent", () => {
-    const next = applyHouseholdEdit(NOV_2026_CONFIG, edit(PERSON_IDS.jordan, { rentCents: 100000 }));
-    expect(tenantRentCents(next, PERSON_IDS.jordan)).toBe(100000);
-    expect(tenantRentCents(next, PERSON_IDS.sam)).toBe(95000);
-    expect(next.categories.rent).toEqual(NOV_2026_CONFIG.categories.rent);
-  });
-
-  it("leaves the rooms as they are without a rent edit", () => {
+  it("leaves the rooms and the landlord rent as they are", () => {
     const next = applyHouseholdEdit(NOV_2026_CONFIG, edit(PERSON_IDS.jordan, { depositCents: 0 }));
     expect(next.rooms).toEqual(NOV_2026_CONFIG.rooms);
+    expect(next.categories.rent).toEqual(NOV_2026_CONFIG.categories.rent);
   });
 
   it("leaves the aircon day alone when the utilities day does not change", () => {
@@ -48,7 +41,7 @@ describe("applyHouseholdEdit", () => {
 
   it("changes nobody else, and not the config it was given", () => {
     const before = structuredClone(NOV_2026_CONFIG);
-    const next = applyHouseholdEdit(NOV_2026_CONFIG, edit(PERSON_IDS.jordan, { rentCents: 100000 }));
+    const next = applyHouseholdEdit(NOV_2026_CONFIG, edit(PERSON_IDS.jordan, { depositCents: 0 }));
     expect(person(next, PERSON_IDS.sam)).toEqual(person(before, PERSON_IDS.sam));
     expect(NOV_2026_CONFIG).toEqual(before);
   });
@@ -77,7 +70,7 @@ describe("applyHouseholdEdit", () => {
   });
 
   it("leaves routes as they are", () => {
-    const next = applyHouseholdEdit(NOV_2026_CONFIG, edit(PERSON_IDS.sam, { rentCents: 100000 }));
+    const next = applyHouseholdEdit(NOV_2026_CONFIG, edit(PERSON_IDS.sam, { depositCents: 100 }));
     expect(person(next, PERSON_IDS.sam)?.routes).toEqual(person(NOV_2026_CONFIG, PERSON_IDS.sam)?.routes);
   });
 });

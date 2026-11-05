@@ -21,6 +21,7 @@ export function RemovePersonDialog({ open, personId, dialog, onClose }: RemovePe
       icon={UserMinus}
       title={dialog.title}
       body={dialog.body}
+      note={dialog.roomLine}
       items={dialog.keeps}
       cancelLabel="Cancel"
       onCancel={() => {

@@ -24,9 +24,26 @@ describe("buildHouseholdForm", () => {
     const body = householdFormResponseSchema.parse(form(PERSON_IDS.jordan));
     expect(body.removeDialog).toEqual({
       title: "Remove Jordan from household?",
-      body: "From December 2026 they won’t get any charges or messages, and the utility shares will be split between everyone else.",
+      body: "From December 2026 they won’t get any charges or messages, and their utility shares leave the total.",
+      roomLine:
+        "Room 3 becomes empty and its aircon moves to You and Priya. Their rent was never part of the landlord rent, so your rent doesn’t change. You simply stop receiving it.",
       keeps: ["Past months and History stay as they are", "Their $950.00 deposit stays recorded until you return it"],
     });
+  });
+
+  it("moves the rent as well when their room is in the total", () => {
+    expect(form(PERSON_IDS.sam).removeDialog?.roomLine).toBe(
+      "Room 2 becomes empty. Its $950.00 rent and its aircon move to You and Priya.",
+    );
+  });
+
+  it("says only you take the room over when there is no primary tenant", () => {
+    const config: HouseholdConfig = {
+      ...NOV_2026_CONFIG,
+      people: NOV_2026_CONFIG.people.filter((p) => p.personId !== PERSON_IDS.priya),
+    };
+    const body = buildHouseholdForm({ month: "2026-12", config, activeConfig: config, personId: PERSON_IDS.jordan, people: PEOPLE });
+    expect(body.removeDialog?.roomLine).toContain("its aircon moves to you.");
   });
 
   it("has no remove dialog for the primary tenant, and no deposit line without a deposit", () => {
@@ -48,25 +65,32 @@ describe("buildHouseholdForm", () => {
     const body = householdFormResponseSchema.parse(form(PERSON_IDS.jordan));
     expect(body.title).toBe("Edit Jordan");
     expect(body.viewTitle).toBe("Jordan");
-    expect(body.sub).toBe("Own room · pays you directly");
-    expect(body.values.amounts).toEqual({ rentCents: 95000, depositCents: 95000 });
-    expect(body.values).toMatchObject({ rentDueDay: 1, utilitiesDueDay: 4, rentViaPersonId: null });
+    expect(body).not.toHaveProperty("sub");
+    expect(body.values).toMatchObject({ rentDueDay: 1, utilitiesDueDay: 4, rentViaPersonId: null, depositCents: 95000 });
     expect(body.view.amounts).toEqual([
-      { label: "Rent (SGD)", value: "950.00" },
       { label: "Rent due", value: "1st" },
-      { label: "Utility shares", value: "1" },
       { label: "Utilities due", value: "4th" },
-      { label: "Aircon units", value: "1" },
       { label: "Deposit held (SGD)", value: "950.00" },
     ]);
     expect(body.secondaryAction).toEqual({ label: "Remove from household", kind: "remove-person" });
+  });
+
+  it("shows a tenant's room read-only, with their shares only on View", () => {
+    const body = form(PERSON_IDS.jordan);
+    const rows = [
+      { label: "Room", value: "Room 3" },
+      { label: "Rent (SGD)", value: "$950.00" },
+      { label: "Aircon units", value: "1" },
+    ];
+    expect(body.room).toEqual(rows);
+    expect(body.view.room).toEqual([rows[0], rows[1], { label: "Utility shares", value: "1" }, rows[2]]);
   });
 
   it("shows an em dash for no number, None for no deposit and the route as text", () => {
     const { view, values } = form(PERSON_IDS.sam);
     expect(view.details[1]).toEqual({ label: "WhatsApp", value: "—" });
     expect(view.amounts.at(-1)?.value).toBe("None");
-    expect(view.amounts[3]).toEqual({ label: "Utilities due", value: "—" });
+    expect(view.amounts[1]).toEqual({ label: "Utilities due", value: "—" });
     expect(view.routes).toEqual([
       { label: "Rent paid", value: "Directly" },
       { label: "Utilities paid", value: "Via Priya" },
@@ -74,10 +98,12 @@ describe("buildHouseholdForm", () => {
     expect(values.utilitiesViaPersonId).toBe(PERSON_IDS.priya);
   });
 
-  it("gives the primary tenant no amounts and a Cancel link", () => {
+  it("gives the primary tenant no deposit, no room and a Cancel link", () => {
     const body = householdFormResponseSchema.parse(form(PERSON_IDS.priya));
     expect(body.title).toBe("Edit Priya");
-    expect(body.values.amounts).toBeNull();
+    expect(body.values.depositCents).toBeNull();
+    expect(body.room).toEqual([]);
+    expect(body.view.room).toEqual([]);
     expect(body.view.amounts.map((r) => r.label)).toEqual(["Rent due", "Utilities due"]);
     expect(body.secondaryAction).toEqual({ label: "Cancel", kind: "cancel" });
   });

@@ -15,7 +15,6 @@ import {
 } from "@splithouse/shared";
 import { applyHouseholdEdit } from "./apply-edit";
 import { personColorName } from "./person-color";
-import { tenantRentCents } from "./room-amounts";
 import { hasPayersVia, paysViaSomeone, routeText, viaOf } from "./route-via";
 
 /** A version with its config parsed. */
@@ -64,7 +63,6 @@ const VIA_NOT_DIRECT_ERROR = "This person pays via someone, so choose someone wh
 const HAS_PAYERS_ERROR = "Someone pays via this person, so they have to pay directly.";
 /** The message for a due day that is empty or not from 1 to 31. */
 export const DAY_ERROR = "Enter a day from 1 to 31.";
-const AMOUNT_FIELDS = ["rentCents", "depositCents"] as const;
 
 /**
  * Finds the version in effect at a month.
@@ -88,13 +86,10 @@ export function versionInEffect(versions: ParsedVersion[], month: string): Parse
  */
 export function datedFieldErrors(edit: HouseholdPersonEdit, person: PersonConfig, people: PersonConfig[]): Record<string, string> {
   const errors: Record<string, string> = {};
-  for (const field of AMOUNT_FIELDS) {
-    const value = edit[field];
-    if (value === undefined) continue;
-    // The owner and primary tenant hold no rent of their own.
-    const saved = field === "depositCents" ? person.depositCents : 0;
-    if (person.role !== "TENANT" && value !== saved) errors[field] = SPLIT_ERROR;
-    else if (value < 0) errors[field] = "Enter 0 or more.";
+  const deposit = edit.depositCents;
+  if (deposit !== undefined) {
+    if (person.role !== "TENANT" && deposit !== person.depositCents) errors.depositCents = SPLIT_ERROR;
+    else if (deposit < 0) errors.depositCents = "Enter 0 or more.";
   }
   const routes = [
     ["rentViaPersonId", edit.rentViaPersonId, "RENT"],
@@ -181,11 +176,6 @@ function datedRows(fromConfig: HouseholdConfig, toConfig: HouseholdConfig, perso
   const to = toConfig.people.find((p) => p.personId === personId);
   if (!from || !to) throw new Error("The person is not in the version");
   const rows: HouseholdEditRow[] = [
-    {
-      label: "Rent",
-      from: formatCents(tenantRentCents(fromConfig, personId)),
-      to: formatCents(tenantRentCents(toConfig, personId)),
-    },
     { label: "Rent due", from: dayText(from.dueDays.RENT), to: dayText(to.dueDays.RENT) },
     { label: "Utilities due", from: dayText(from.dueDays.UTILITIES), to: dayText(to.dueDays.UTILITIES) },
     { label: "Deposit", from: depositText(from.depositCents), to: depositText(to.depositCents) },

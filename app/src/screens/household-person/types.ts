@@ -53,6 +53,18 @@ export interface RoomFieldProps {
   error?: string;
 }
 
+/** Props for {@link RoomFacts}. */
+export interface RoomFactsProps {
+  /** The labels and their plain text. */
+  facts: HouseholdFormTextRow[];
+}
+
+/** Props for {@link LandlordRoomsLink}. */
+export interface LandlordRoomsLinkProps {
+  /** e.g. `Change on Landlord & rooms`. */
+  label: string;
+}
+
 /** Props for {@link ColorSwatch}. */
 export interface ColorSwatchProps {
   color: PersonColor;

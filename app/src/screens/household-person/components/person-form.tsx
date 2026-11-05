@@ -29,14 +29,16 @@ import { ColorField } from './color-field';
 import { EditSaveActions } from './edit-save-actions';
 import { EditSummaryCard } from './edit-summary-card';
 import { FormSection } from './form-section';
+import { LandlordRoomsLink } from './landlord-rooms-link';
 import { RemovePersonDialog } from './remove-person-dialog';
+import { RoomFacts } from './room-facts';
 import { RouteField } from './route-field';
 
 /**
- * The `editPerson` board: "Saved right away" (Name, WhatsApp, Color) and the dated group, which takes effect
- * next month (the amounts and routes only for a tenant). It opens on the latest saved values. The summary lists only what
- * changed in this edit, and with Save is in the footer. Save returns to the overview, on the month it was
- * showing, with a toast. Leaving with unsaved changes asks first. "Remove from household" opens its dialog.
+ * The `editPerson` board: "Saved right away" (Name, WhatsApp, Color), a tenant's room, read-only, and the dated group,
+ * which takes effect next month (the deposit and routes only for a tenant). It opens on the latest saved values. The
+ * summary lists only what changed in this edit, and with Save is in the footer. Save returns to the overview, on the
+ * month it was showing, with a toast. Leaving with unsaved changes asks first. "Remove from household" opens its dialog.
  */
 export function PersonForm({ form }: PersonFormProps) {
   const {
@@ -56,7 +58,7 @@ export function PersonForm({ form }: PersonFormProps) {
 
   return (
     <Screen>
-      <SubpageHeader title={form.title} subtitle={form.sub} onBack={guard.requestLeave} />
+      <SubpageHeader title={form.title} onBack={guard.requestLeave} />
       {/* Edge-to-edge Android does not resize for the keyboard, so the padding keeps the focused field in view. */}
       <KeyboardAvoidingView behavior="padding" className="flex-1">
         <ScrollView keyboardShouldPersistTaps="handled" contentContainerClassName="gap-4 px-4 pb-4 pt-2">
@@ -82,47 +84,43 @@ export function PersonForm({ form }: PersonFormProps) {
               <ColorField control={control} swatches={form.swatches} fallbackName={form.colorName} />
             </FormSection>
 
+            {form.room.length > 0 ? (
+              <FormSection title="Room" separated>
+                <RoomFacts facts={form.room} />
+                <LandlordRoomsLink label="Change on Landlord & rooms" />
+              </FormSection>
+            ) : null}
+
             <FormSection title={form.datedTitle} note={form.pendingNote} separated>
-              {form.values.amounts ? (
+              <View className="flex-row items-start gap-3">
+                <CountInput
+                  kind="day"
+                  placeholder="Day, e.g. 1st"
+                  fieldControlProps={{
+                    control,
+                    name: 'rentDueDay',
+                    label: 'Rent due',
+                    required: true,
+                    error: errors.rentDueDay,
+                    className: 'min-w-0 flex-1',
+                  }}
+                />
+                <CountInput
+                  kind="day"
+                  placeholder="Day, e.g. 4th"
+                  fieldControlProps={{
+                    control,
+                    name: 'utilitiesDueDay',
+                    label: 'Utilities due',
+                    required: true,
+                    error: errors.utilitiesDueDay,
+                    className: 'min-w-0 flex-1',
+                  }}
+                />
+              </View>
+              {form.values.depositCents !== null ? (
                 <>
                   <View className="flex-row items-start gap-3">
-                    <MoneyInput
-                      placeholder="0.00"
-                      fieldControlProps={{
-                        control,
-                        name: 'rentCents',
-                        label: 'Rent (SGD)',
-                        required: true,
-                        error: errors.rentCents,
-                        className: 'min-w-0 flex-1',
-                      }}
-                    />
-                    <CountInput
-                      kind="day"
-                      placeholder="Day, e.g. 1st"
-                      fieldControlProps={{
-                        control,
-                        name: 'rentDueDay',
-                        label: 'Rent due',
-                        required: true,
-                        error: errors.rentDueDay,
-                        className: 'min-w-0 flex-1',
-                      }}
-                    />
-                  </View>
-                  <View className="flex-row items-start gap-3">
-                    <CountInput
-                      kind="day"
-                      placeholder="Day, e.g. 4th"
-                      fieldControlProps={{
-                        control,
-                        name: 'utilitiesDueDay',
-                        label: 'Utilities due',
-                        required: true,
-                        error: errors.utilitiesDueDay,
-                        className: 'min-w-0 flex-1',
-                      }}
-                    />
                     <MoneyInput
                       placeholder="None"
                       fieldControlProps={{
@@ -133,6 +131,7 @@ export function PersonForm({ form }: PersonFormProps) {
                         className: 'min-w-0 flex-1',
                       }}
                     />
+                    <View className="flex-1" />
                   </View>
                   <RouteField
                     control={control}
@@ -149,34 +148,7 @@ export function PersonForm({ form }: PersonFormProps) {
                     error={errors.utilitiesViaPersonId}
                   />
                 </>
-              ) : (
-                <View className="flex-row items-start gap-3">
-                  <CountInput
-                    kind="day"
-                    placeholder="Day, e.g. 1st"
-                    fieldControlProps={{
-                      control,
-                      name: 'rentDueDay',
-                      label: 'Rent due',
-                      required: true,
-                      error: errors.rentDueDay,
-                      className: 'min-w-0 flex-1',
-                    }}
-                  />
-                  <CountInput
-                    kind="day"
-                    placeholder="Day, e.g. 4th"
-                    fieldControlProps={{
-                      control,
-                      name: 'utilitiesDueDay',
-                      label: 'Utilities due',
-                      required: true,
-                      error: errors.utilitiesDueDay,
-                      className: 'min-w-0 flex-1',
-                    }}
-                  />
-                </View>
-              )}
+              ) : null}
             </FormSection>
           </View>
         </ScrollView>

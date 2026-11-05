@@ -18,7 +18,6 @@ function formFor(overrides: Partial<HouseholdFormResponse['values']> = {}): Hous
     personId: 'p-jordan',
     title: 'Edit Jordan',
     viewTitle: 'Jordan',
-    sub: 'Own room · pays you directly',
     datedTitle: 'From December 2026',
     pendingNote: null,
     values: {
@@ -29,14 +28,15 @@ function formFor(overrides: Partial<HouseholdFormResponse['values']> = {}): Hous
       utilitiesDueDay: 4,
       rentViaPersonId: null,
       utilitiesViaPersonId: null,
-      amounts: { rentCents: 95000, depositCents: 95000 },
+      depositCents: 95000,
       ...overrides,
     },
+    room: [],
     colorName: 'Green',
     swatches: [{ color: 'GREEN', name: 'Green' }],
     removeDialog: null,
     sentViaOptions: [],
-    view: { details: [], amounts: [], routes: [] },
+    view: { details: [], room: [], amounts: [], routes: [] },
     secondaryAction: { label: 'Remove from household', kind: 'remove-person' },
   };
 }
@@ -45,12 +45,12 @@ const BASE = { kind: 'person', personId: 'p-jordan' };
 
 describe('toPersonFormValues', () => {
   it('shows no deposit as an empty field', () => {
-    const form = formFor({ amounts: { rentCents: 95000, depositCents: 0 } });
+    const form = formFor({ depositCents: 0 });
     expect(toPersonFormValues(form).depositCents).toBeNull();
   });
 
-  it('passes the checks for someone with no amount fields', () => {
-    const values = toPersonFormValues(formFor({ amounts: null }));
+  it('passes the checks for someone with no deposit field', () => {
+    const values = toPersonFormValues(formFor({ depositCents: null }));
     expect(personFormSchema.safeParse(values).success).toBe(true);
   });
 });
@@ -64,10 +64,10 @@ describe('toHouseholdEdit', () => {
   });
 
   it('sends only what changed', () => {
-    expect(toHouseholdEdit({ ...values, name: 'Jo', rentCents: 100000 }, form)).toEqual({
+    expect(toHouseholdEdit({ ...values, name: 'Jo', depositCents: 100000 }, form)).toEqual({
       ...BASE,
       name: 'Jo',
-      rentCents: 100000,
+      depositCents: 100000,
     });
   });
 
@@ -106,13 +106,9 @@ describe('toHouseholdEdit', () => {
     expect(toHouseholdEdit({ ...values, rentVia: '' }, form)).toEqual(BASE);
   });
 
-  it('leaves out an empty rent', () => {
-    expect(toHouseholdEdit({ ...values, rentCents: null }, form)).toEqual(BASE);
-  });
-
-  it('never sends amounts for someone with none', () => {
-    const primary = formFor({ amounts: null });
-    const edited = { ...toPersonFormValues(primary), rentCents: 5 };
+  it('never sends a deposit for someone with no deposit field', () => {
+    const primary = formFor({ depositCents: null });
+    const edited = { ...toPersonFormValues(primary), depositCents: 5 };
     expect(toHouseholdEdit(edited, primary)).toEqual(BASE);
   });
 });
@@ -147,10 +143,6 @@ describe('hasUnsavedChanges', () => {
 
   it('is true for a route with nobody picked, which the edit leaves out', () => {
     expect(hasUnsavedChanges({ ...values, utilitiesVia: '' }, form)).toBe(true);
-  });
-
-  it('is true for an emptied amount, which the edit leaves out', () => {
-    expect(hasUnsavedChanges({ ...values, rentCents: null }, form)).toBe(true);
   });
 });
 

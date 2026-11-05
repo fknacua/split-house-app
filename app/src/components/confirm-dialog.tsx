@@ -45,6 +45,7 @@ const ICON_COLOR: Record<ConfirmDialogTone, string> = {
  * @param icon - The Lucide icon in the circle, such as `Trash2` or `TriangleAlert`.
  * @param title - The dialog title.
  * @param body - Optional paragraph under the title.
+ * @param note - Optional second paragraph under the body, such as what happens to a removed tenant's room.
  * @param items - Optional extra lines under the body, such as what stays or what to check.
  * @param itemStyle - `check` (what stays) or `bullet` (what to check). Defaults to `check`.
  * @param cancelLabel - The filled, safe button, such as "Cancel" or "Keep editing".
@@ -62,6 +63,7 @@ export function ConfirmDialog({
   icon,
   title,
   body,
+  note,
   items,
   itemStyle = 'check',
   cancelLabel = 'Cancel',
@@ -76,6 +78,7 @@ export function ConfirmDialog({
   icon: LucideIcon;
   title: string;
   body?: string;
+  note?: string;
   items?: string[];
   itemStyle?: ConfirmDialogListStyle;
   cancelLabel?: string;
@@ -111,6 +114,8 @@ export function ConfirmDialog({
               {body}
             </Text>
           ) : null}
+          {/* The margin and the body's gap make the 16px the board draws around this paragraph. */}
+          {note ? <Text className="my-2 font-manrope-medium text-label text-on-surface-variant">{note}</Text> : null}
           {items?.map((item) => (
             <View key={item} className="flex-row items-start gap-2">
               {itemStyle === 'check' ? (

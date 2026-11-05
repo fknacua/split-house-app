@@ -7,6 +7,7 @@ import { useHouseholdForm } from '@/hooks';
 import { ApiRequestError } from '@/lib/api';
 import { FormSection } from './components/form-section';
 import { PersonSkeleton } from './components/person-skeleton';
+import { RoomFacts } from './components/room-facts';
 import { ViewColorRow } from './components/view-color-row';
 import { ViewRow } from './components/view-row';
 
@@ -23,7 +24,7 @@ export function PersonView() {
 
   return (
     <Screen>
-      <SubpageHeader title={form?.viewTitle ?? 'Household'} subtitle={form?.sub} loading={isPending} />
+      <SubpageHeader title={form?.viewTitle ?? 'Household'} loading={isPending} />
       {isPending ? <PersonSkeleton /> : null}
       {error instanceof ApiRequestError ? (
         <View className="px-4 pt-2">
@@ -39,6 +40,11 @@ export function PersonView() {
               ))}
               <ViewColorRow color={form.values.color} name={form.colorName} />
             </FormSection>
+            {form.view.room.length > 0 ? (
+              <FormSection title="Room" separated>
+                <RoomFacts facts={form.view.room} />
+              </FormSection>
+            ) : null}
             <FormSection title="Amounts" note={form.pendingNote} separated>
               <View className="flex-row flex-wrap gap-x-3 gap-y-4">
                 {form.view.amounts.map((row) => (

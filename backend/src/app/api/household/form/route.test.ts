@@ -55,7 +55,7 @@ describe("GET /api/household/form", () => {
     const response = await GET(request(jordan), undefined);
     expect(response.status).toBe(200);
     const body = householdFormResponseSchema.parse(await response.json());
-    expect(body.values.amounts?.rentCents).toBe(100000);
+    expect(body.room[1]).toEqual({ label: "Rent (SGD)", value: "$1,000.00" });
     expect(body.datedTitle).toBe("From December 2026");
     expect(body.pendingNote).toBe("These take effect from December 2026.");
   });
@@ -63,7 +63,7 @@ describe("GET /api/household/form", () => {
   it("has no note when the saved values are already in effect", async () => {
     useHousehold([version("2026-11", NOV_2026_CONFIG)]);
     const body = householdFormResponseSchema.parse(await (await GET(request(jordan), undefined)).json());
-    expect(body.values.amounts?.rentCents).toBe(95000);
+    expect(body.room[1]).toEqual({ label: "Rent (SGD)", value: "$950.00" });
     expect(body.pendingNote).toBeNull();
   });
 

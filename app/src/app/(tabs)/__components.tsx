@@ -907,7 +907,8 @@ function DialogsDemo() {
         open={kind === 'removePerson'}
         icon={UserMinus}
         title="Remove Tenant 2 from household?"
-        body="From January 2027 they won’t get any charges or messages, and the utility shares will be split between everyone else."
+        body="From January 2027 they won’t get any charges or messages, and their utility shares leave the total."
+        note="Room 3 becomes empty and its aircon moves to You and Primary Tenant. Their rent was never part of the landlord rent, so your rent doesn’t change. You simply stop receiving it."
         items={[
           'Past months and History stay as they are',
           'Their $950.00 deposit stays recorded until you return it',

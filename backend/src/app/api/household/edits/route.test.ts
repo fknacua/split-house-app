@@ -25,7 +25,7 @@ const EDIT = {
   kind: "person",
   personId: PERSON_IDS.jordan,
   name: "Jo",
-  rentCents: 100000,
+  rentDueDay: 9,
 };
 
 beforeEach(() => {
@@ -72,9 +72,9 @@ describe("POST /api/household/edits/preview", () => {
   });
 
   it("answers a rule failure with 200 and the field's error", async () => {
-    const response = await PREVIEW(request({ ...EDIT, rentCents: -1 }), undefined);
+    const response = await PREVIEW(request({ ...EDIT, depositCents: -1 }), undefined);
     expect(response.status).toBe(200);
-    expect(householdEditPreviewResponseSchema.parse(await response.json()).errors.rentCents).toBeTruthy();
+    expect(householdEditPreviewResponseSchema.parse(await response.json()).errors.depositCents).toBeTruthy();
   });
 
   it("answers 400 for a bad body", async () => {
@@ -95,8 +95,8 @@ describe("POST /api/household/edits", () => {
   });
 
   it.each([
-    ["a broken rule", { ...EDIT, rentCents: -1 }, 422, "invalid_edit"],
-    ["nothing to store", { ...EDIT, name: "Jordan", rentCents: 95000 }, 422, "no_changes"],
+    ["a broken rule", { ...EDIT, depositCents: -1 }, 422, "invalid_edit"],
+    ["nothing to store", { ...EDIT, name: "Jordan", rentDueDay: 1 }, 422, "no_changes"],
     ["a route via themselves", { ...EDIT, rentViaPersonId: PERSON_IDS.jordan }, 422, "invalid_edit"],
     ["an empty route person", { ...EDIT, rentViaPersonId: "" }, 400, "invalid_request"],
   ])("answers %s with the standard error", async (_name, body, status, code) => {
