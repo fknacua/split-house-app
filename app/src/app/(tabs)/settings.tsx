@@ -1,12 +1,6 @@
-import { Text } from 'react-native';
+import { Settings } from '@/screens/settings';
 
-import { Screen } from '@/components';
-
-/** Placeholder until the Settings screen is built. */
-export default function SettingsScreen() {
-  return (
-    <Screen className="items-center justify-center">
-      <Text className="font-manrope-bold text-title text-foreground">Settings</Text>
-    </Screen>
-  );
+/** Settings tab: the route only renders the screen. */
+export default function SettingsRoute() {
+  return <Settings />;
 }

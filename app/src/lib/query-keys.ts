@@ -61,6 +61,8 @@ export const queryKeys = {
   householdHomeForm: ['household', 'home-form'] as const,
   /** The Household split screen. Under `allHousehold`, so an edit refreshes it too. */
   householdSplitForm: ['household', 'split-form'] as const,
+  /** The Settings screen. Under `allHousehold`, since its Messages rows count the saved templates and an edit can change them. */
+  settings: ['household', 'settings'] as const,
   /**
    * What a Household edit would change, by the edit sent.
    * @param edit The edit sent to the preview.
