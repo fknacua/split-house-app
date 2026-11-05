@@ -2,16 +2,14 @@ import * as Clipboard from 'expo-clipboard';
 import { Copy, Pencil } from 'lucide-react-native';
 import { Pressable, Text, View } from 'react-native';
 
-import { Card, Icon } from '@/components';
+import { Card, Icon, MessagePreview } from '@/components';
 import { useOpenRecipientTarget } from '../use-open-recipient-target';
 import type { MessageCardProps } from '../types';
-import { MessageSection } from './message-section';
 
 /**
  * The message: its label and template line with Edit template, then a preview of the text as
- * WhatsApp shows it (line breaks and emoji kept, section titles bold, the total line stressed as on
- * the board), and Copy as plain text,
- * which copies the message exactly as it is sent. Android shows its own notice once text is copied.
+ * WhatsApp shows it, and Copy as plain text, which copies the message exactly as it is sent.
+ * Android shows its own notice once text is copied.
  */
 export function MessageCard({ message }: MessageCardProps) {
   const { openTarget } = useOpenRecipientTarget();
@@ -37,28 +35,7 @@ export function MessageCard({ message }: MessageCardProps) {
         </Pressable>
       </View>
       <Card padded={false} className="gap-1.5 px-3.5 pt-3">
-        {message.intro ? (
-          <Text className="font-manrope text-[13px] leading-[17px] text-on-surface">{message.intro}</Text>
-        ) : null}
-        {message.sections.map((section, i) => (
-          <MessageSection key={i} section={section} />
-        ))}
-        {message.outro.map((line, i) =>
-          line.isTotal ? (
-            <Text
-              key={i}
-              className="border-t border-outline pt-1.5 font-manrope-extrabold text-body leading-5 text-on-surface"
-              style={{ fontVariant: ['tabular-nums'] }}
-            >
-              {line.text}
-            </Text>
-          ) : (
-            // A blank template line keeps its height.
-            <Text key={i} className="font-manrope text-[13px] leading-[17px] text-on-surface">
-              {line.text || ' '}
-            </Text>
-          ),
-        )}
+        <MessagePreview message={message} />
         <View className="-mx-1.5 flex-row justify-end border-t border-outline-variant">
           <Pressable
             accessibilityRole="button"

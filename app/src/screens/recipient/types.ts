@@ -3,7 +3,6 @@ import type {
   RecipientAmountCard,
   RecipientChargeRow,
   RecipientMessage,
-  RecipientMessageSection,
 } from '@splithouse/shared';
 
 /** Props for {@link ChargeRow}. */
@@ -40,12 +39,6 @@ export interface AmountCardProps {
 export interface MessageCardProps {
   /** The label, meta, preview parts, the text that is copied, and Edit template. */
   message: RecipientMessage;
-}
-
-/** Props for {@link MessageSection}. */
-export interface MessageSectionProps {
-  /** One person's lines, with the title and subtotal when the message has more than one person. */
-  section: RecipientMessageSection;
 }
 
 /** Props for {@link RecipientFooter}. */

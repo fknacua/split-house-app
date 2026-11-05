@@ -1,6 +1,12 @@
 import { Text, View } from 'react-native';
 
-import type { MessageSectionProps } from '../types';
+import type { MessagePreview } from '@splithouse/shared';
+
+/** Props for {@link MessageSection}. */
+export interface MessageSectionProps {
+  /** One person's lines, with the title and subtotal when the message has more than one person. */
+  section: MessagePreview['sections'][number];
+}
 
 /**
  * One person's lines in the message preview. The title is plain, and the subtotal sits bold under

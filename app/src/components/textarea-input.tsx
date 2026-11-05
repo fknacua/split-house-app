@@ -21,6 +21,10 @@ export interface TextareaInputOwnProps {
   lines?: number;
   /** Lines it grows to before it stops and scrolls inside. Defaults to 6. */
   maxLines?: number;
+  /** Sets the cursor. Leave undefined to let the user move it. */
+  selection?: ReactTextInputProps['selection'];
+  /** Called when the cursor moves or the selected text changes. */
+  onSelectionChange?: ReactTextInputProps['onSelectionChange'];
 }
 
 /** Bare multi-line input: the outlined field with no label or form state. */
@@ -40,6 +44,8 @@ const BareTextareaInput = forwardRef<
     maxLength,
     lines = 3,
     maxLines = 6,
+    selection,
+    onSelectionChange,
   },
   ref
 ) {
@@ -60,6 +66,8 @@ const BareTextareaInput = forwardRef<
         placeholder={placeholder}
         autoCapitalize={autoCapitalize}
         maxLength={maxLength}
+        selection={selection}
+        onSelectionChange={onSelectionChange}
         multiline
         accessibilityLabel={accessibilityLabel}
         className={disabled ? 'text-on-disabled' : undefined}
