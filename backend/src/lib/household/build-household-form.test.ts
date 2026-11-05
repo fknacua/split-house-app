@@ -55,10 +55,9 @@ describe("buildHouseholdForm", () => {
     const config: HouseholdConfig = {
       ...NOV_2026_CONFIG,
       recurring: [{ id: "r", label: "Parking", amountCents: 1000, personId: PERSON_IDS.sam }],
-      templates: { ...NOV_2026_CONFIG.templates, sectionTitles: { [PERSON_IDS.sam]: "Sam's" } },
     };
     const body = buildHouseholdForm({ month: "2026-12", config, activeConfig: config, personId: PERSON_IDS.sam, people: PEOPLE });
-    expect(body.removeDialog?.keeps.at(-1)).toBe("Their recurring charges and message settings go with them");
+    expect(body.removeDialog?.keeps.at(-1)).toBe("Their recurring charges go with them");
   });
 
   it("gives a tenant their values, text and the link to remove them", () => {

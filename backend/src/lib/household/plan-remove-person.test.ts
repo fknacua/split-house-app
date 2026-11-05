@@ -24,26 +24,16 @@ describe("planRemovePerson", () => {
     expect(masterRentCents(planRemovePerson(jordan, NOV_2026_CONFIG).nextConfig!)).toBe(335000);
   });
 
-  it("takes their recurring charges, template overrides and section title with them", () => {
+  it("takes their recurring charges with them", () => {
     const config: HouseholdConfig = {
       ...NOV_2026_CONFIG,
       recurring: [
         ...NOV_2026_CONFIG.recurring,
         { id: "recurring-jordan", label: "Parking", amountCents: 1000, personId: jordan },
       ],
-      templates: {
-        ...NOV_2026_CONFIG.templates,
-        overrides: [
-          { personId: jordan, kind: "MONTHLY", text: "Hi" },
-          { personId: priya, kind: "NUDGE", text: "Hey" },
-        ],
-        sectionTitles: { [jordan]: "Jordan's", [priya]: "Priya's" },
-      },
     };
     const next = planRemovePerson(jordan, config).nextConfig;
     expect(next?.recurring).toEqual(NOV_2026_CONFIG.recurring);
-    expect(next?.templates.overrides).toEqual([{ personId: priya, kind: "NUDGE", text: "Hey" }]);
-    expect(next?.templates.sectionTitles).toEqual({ [priya]: "Priya's" });
   });
 
   it("refuses while someone pays via them", () => {

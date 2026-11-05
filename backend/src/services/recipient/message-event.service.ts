@@ -59,6 +59,7 @@ export async function createMessageEvent(
       recipientId: input.person.id,
       recipientName: input.person.name,
       config: input.config,
+      templates: input.templates,
       charge,
     });
   }

@@ -1,4 +1,4 @@
-import { formatCents, type HouseholdConfig } from "@splithouse/shared";
+import { formatCents, type HouseholdConfig, type MessageTemplates } from "@splithouse/shared";
 import type { ChargeCategory } from "@/generated/prisma/enums";
 import { chargeDueDate } from "@/lib/home/due-dates";
 import { roomOf, sharedAirconUnits, totalAirconUnits } from "@/lib/household/room-amounts";
@@ -24,6 +24,8 @@ export interface BreakdownInput {
   recipientId: string;
   /** The config pinned to `month`, for the working and the due days. */
   config: HouseholdConfig;
+  /** The current wording, for the line labels and section titles. */
+  templates: MessageTemplates;
   /** The month's saved bill's Current Charges, shown on every utilities line; null without a bill. */
   billCents: number | null;
   /** Names for the default "please collect" titles. */
@@ -140,7 +142,7 @@ export function buildBreakdown(input: BreakdownInput): Breakdown {
     );
     const lines = charges.map(
       (charge): BreakdownLine => ({
-        label: lineLabel(input.config, charge),
+        label: lineLabel(input.templates, charge),
         amountCents: charge.amountCents,
         amount: formatCents(charge.amountCents),
         working: working(input, charge),
@@ -148,7 +150,7 @@ export function buildBreakdown(input: BreakdownInput): Breakdown {
     );
     const subtotalCents = lines.reduce((s, l) => s + l.amountCents, 0);
     const title =
-      input.config.templates.sectionTitles[personId] ??
+      input.templates.sectionTitles[personId] ??
       (personId === input.recipientId ? "Yours" : `${names.get(personId) ?? "Someone"}’s (please collect)`);
     return {
       personId,

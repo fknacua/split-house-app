@@ -78,12 +78,7 @@ function removeRoomLine(config: HouseholdConfig, personId: string, names: Map<st
 /** The remove dialog's text for a tenant. The third line only shows when something goes with them. */
 function removeDialog(config: HouseholdConfig, person: PersonConfig, names: Map<string, string>, monthLabel: string) {
   const { personId } = person;
-  const goes = [
-    ...(config.recurring.some((r) => r.personId === personId) ? ["recurring charges"] : []),
-    ...(config.templates.overrides.some((o) => o.personId === personId) || config.templates.sectionTitles[personId]
-      ? ["message settings"]
-      : []),
-  ];
+  const goes = config.recurring.some((r) => r.personId === personId) ? ["recurring charges"] : [];
   return {
     title: `Remove ${names.get(personId)} from household?`,
     body: `From ${monthLabel} they won’t get any charges or messages, and their utility shares leave the total.`,

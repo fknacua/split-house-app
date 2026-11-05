@@ -33,6 +33,39 @@ function problemsOf(json: unknown): string[] {
 }
 
 describe("parseHouseholdFile", () => {
+  it("reads the optional message wording apart from the config", () => {
+    expect(parseHouseholdFile(validFile()).templates).toBeNull();
+    const parsed = parseHouseholdFile({
+      ...validFile(),
+      templates: { monthly: "m", nudge: "n", sectionTitles: { [PERSON_IDS.priya]: "Master Bedroom Share" } },
+    });
+    expect(parsed.templates).toEqual({
+      monthly: "m",
+      nudge: "n",
+      overrides: [],
+      lineLabels: {},
+      sectionTitles: { [PERSON_IDS.priya]: "Master Bedroom Share" },
+    });
+    expect(parsed.config).not.toHaveProperty("templates");
+  });
+
+  it("refuses wording for an unknown person or with a blank title", () => {
+    const problems = problemsOf({
+      ...validFile(),
+      templates: {
+        monthly: "m",
+        nudge: "n",
+        overrides: [{ personId: "person-nobody", kind: "NUDGE", text: "Hi" }],
+        sectionTitles: { "person-nobody": "Room 9" },
+      },
+    });
+    expect(problems).toEqual([
+      "templates.overrides.0.personId: Unknown person",
+      "templates.sectionTitles.person-nobody: Unknown person",
+    ]);
+    expect(problemsOf({ ...validFile(), templates: { monthly: "", nudge: "n" } })[0]).toMatch(/^templates\.monthly:/);
+  });
+
   it("splits a valid file into Person rows and the config", () => {
     const result = parseHouseholdFile(validFile());
 

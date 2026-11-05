@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { NOV_2026_CONFIG, PERSON_IDS } from "@/lib/fixtures/household";
+import { DEFAULT_MESSAGE_TEMPLATES } from "@/lib/messages/default-templates";
 import { buildBreakdown, type BreakdownCharge, type BreakdownInput } from "./build-breakdown";
 
 const { alex, priya, sam, jordan } = PERSON_IDS;
@@ -54,6 +55,7 @@ function input(recipientId: string, overrides: Partial<BreakdownInput> = {}): Br
     month: "2026-11",
     recipientId,
     config: NOV_2026_CONFIG,
+    templates: DEFAULT_MESSAGE_TEMPLATES,
     billCents: 41230,
     people: PEOPLE,
     charges: NOV_CHARGES,
@@ -110,15 +112,12 @@ describe("buildBreakdown", () => {
     );
   });
 
-  it("uses the config's custom section titles, adding the colon", () => {
-    const config = {
-      ...NOV_2026_CONFIG,
-      templates: {
-        ...NOV_2026_CONFIG.templates,
-        sectionTitles: { [priya]: "Master Bedroom Share", [sam]: "Common Room 1" },
-      },
+  it("uses the custom section titles, adding the colon", () => {
+    const templates = {
+      ...DEFAULT_MESSAGE_TEMPLATES,
+      sectionTitles: { [priya]: "Master Bedroom Share", [sam]: "Common Room 1" },
     };
-    const b = buildBreakdown(input(priya, { config }));
+    const b = buildBreakdown(input(priya, { templates }));
 
     expect(b.sections.map((s) => s.title)).toEqual(["Master Bedroom Share:", "Common Room 1:"]);
     expect(b.text.split("\n")).toContain("Common Room 1:");
@@ -248,12 +247,9 @@ describe("buildBreakdown", () => {
     expect(b.text.split("\n")[1]).toBe("*Utilities bill:* $82.46");
   });
 
-  it("uses the config's custom line labels", () => {
-    const config = {
-      ...NOV_2026_CONFIG,
-      templates: { ...NOV_2026_CONFIG.templates, lineLabels: { UTILITIES: "Kuryente at tubig", RENT: "Upa" } },
-    };
-    const b = buildBreakdown(input(jordan, { config }));
+  it("uses the custom line labels", () => {
+    const templates = { ...DEFAULT_MESSAGE_TEMPLATES, lineLabels: { UTILITIES: "Kuryente at tubig", RENT: "Upa" } };
+    const b = buildBreakdown(input(jordan, { templates }));
 
     expect(b.sections[0].lines.map((l) => l.label)).toEqual(["Upa", "Kuryente at tubig", "Aircon servicing"]);
   });

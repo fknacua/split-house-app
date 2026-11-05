@@ -217,8 +217,7 @@ export function applyRecurringCharge(config: HouseholdConfig, charge: HouseholdC
 }
 
 /**
- * Takes a tenant out of a config, with their recurring charges, template overrides and section title. Their room
- * stays, now empty, keeping its rent for the next tenant. The utilities total falls by their shares, so everyone
+ * Takes a tenant out of a config, with their recurring charges. Their room stays, now empty, keeping its rent for the next tenant. The utilities total falls by their shares, so everyone
  * else's shares keep their size. The aircon total stays, since the units stay in the house, so the owner and primary
  * tenant take them over. The result still has to go through `householdConfigSchema`.
  *
@@ -237,10 +236,5 @@ export function applyRemovePerson(config: HouseholdConfig, personId: string): Ho
       utilities: { ...utilities, totalShares: utilities.totalShares - shares },
     },
     recurring: config.recurring.filter((r) => r.personId !== personId),
-    templates: {
-      ...config.templates,
-      overrides: config.templates.overrides.filter((o) => o.personId !== personId),
-      sectionTitles: Object.fromEntries(Object.entries(config.templates.sectionTitles).filter(([id]) => id !== personId)),
-    },
   };
 }

@@ -134,7 +134,7 @@ Total: $1,908.65
 
 Nudge example: "Hi Tenant 2! Just a gentle reminder — Nov rent of $950 was due on the 1st. Thanks!"
 
-**Message templates are app parameters.** Francis edits them in-app with a live preview using sample data: one template per message type (monthly breakdown, nudge), optionally overridden per person, plus custom labels for each line (e.g. "Kuryente at tubig" instead of "Utilities bill"). Placeholders fill in the details, and templates follow the same "starts from" month rule as other settings. Example default:
+**Message templates are app parameters.** Francis edits them in-app with a live preview using sample data: one template per message type (monthly breakdown, nudge), optionally overridden per person, plus custom labels for each line (e.g. "Kuryente at tubig" instead of "Utilities bill"). Placeholders fill in the details, and a saved template applies immediately to every message not yet sent. Example default:
 
 ```markdown
 Hi {name}! Eto na yung breakdown for {month} 😊

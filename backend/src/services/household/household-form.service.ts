@@ -39,8 +39,14 @@ export interface HouseholdFormDb extends ActiveMonthDb {
   };
 }
 
-/** Reads next month, the version in effect then, and what the forms need around it. */
-async function readNextVersion(db: HouseholdFormDb) {
+/**
+ * Reads next month, the version in effect then, and what the forms need around it.
+ *
+ * @param db - The Prisma client, or a fake in tests.
+ * @returns The active month, every version, the people, next month and the config in effect then.
+ * @throws {ApiError} 409 `no_household` before first run; 404 `no_version` when no version covers next month.
+ */
+export async function readNextVersion(db: HouseholdFormDb) {
   const [activeMonth, versions, people] = await Promise.all([
     getActiveMonth(db),
     db.householdVersion.findMany({ orderBy: { startsFromMonth: "desc" }, select: VERSION_SELECT }),
@@ -54,8 +60,14 @@ async function readNextVersion(db: HouseholdFormDb) {
   return { activeMonth, versions, people, month, config: parseHouseholdConfig(version.schemaVersion, version.config) };
 }
 
-/** Reads the active month's config: the version it is pinned to once opened, or the one in effect until then. */
-async function readActiveConfig(
+/**
+ * Reads the active month's config: the version it is pinned to once opened, or the one in effect until then.
+ *
+ * @param db - The Prisma client, or a fake in tests.
+ * @param next - What `readNextVersion` returned.
+ * @returns The config, or null when no version covers the active month.
+ */
+export async function readActiveConfig(
   db: HouseholdFormDb,
   { activeMonth, versions }: Awaited<ReturnType<typeof readNextVersion>>,
 ): Promise<HouseholdConfig | null> {

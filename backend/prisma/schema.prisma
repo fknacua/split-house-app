@@ -299,3 +299,11 @@ model Settings {
 
   @@map("settings")
 }
+
+model MessageTemplates {
+  id        String   @id @default("singleton")
+  templates Json
+  updatedAt DateTime @updatedAt
+
+  @@map("message_templates")
+}

@@ -43,13 +43,10 @@ describe("household config", () => {
         utilities: { totalShares: 1000, ownerBps: 10000, primaryBps: 0 },
         aircon: { ownerBps: 10000, primaryBps: 0 },
       },
-      templates: { monthly: "m", nudge: "n" },
     };
     const parsed = householdConfigSchema.parse(input);
     expect(parsed.recurring).toEqual([]);
     expect(parsed.people[0].routes).toEqual({});
-    expect(parsed.templates.overrides).toEqual([]);
-    expect(parsed.templates.sectionTitles).toEqual({});
   });
 
   it("rejects an unknown schemaVersion", () => {
@@ -108,16 +105,6 @@ describe("household config", () => {
     const c = clone();
     c.recurring[0].endMonth = "2026-13";
     expect(messages(c)).toContain("Use YYYY-MM");
-  });
-
-  it("accepts section titles for known people and rejects an unknown person or a blank title", () => {
-    const c = clone();
-    c.templates.sectionTitles = { [PERSON_IDS.priya]: "Master Bedroom Share" };
-    expect(messages(c)).toEqual([]);
-
-    c.templates.sectionTitles = { "person-nobody": "Room 9", [PERSON_IDS.sam]: " " };
-    expect(messages(c)).toEqual(expect.arrayContaining(["Unknown person"]));
-    expect(messages(c)).toHaveLength(2);
   });
 
   describe("rooms", () => {

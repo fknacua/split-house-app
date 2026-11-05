@@ -6,7 +6,7 @@ import { monthKey, positiveCents } from "./primitives";
  * Money is integer cents, shares are thousandths (1.5 shares = 1500), splits are
  * basis points (5000 = 50%). Bump it when the shape changes.
  */
-export const HOUSEHOLD_SCHEMA_VERSION = 2;
+export const HOUSEHOLD_SCHEMA_VERSION = 3;
 
 /**
  * The charge types a person can have a route and due day for. A recurring charge reads the person's
@@ -106,7 +106,11 @@ const recurringCharge = z.object({
   endMonth: monthKey.optional(),
 });
 
-const templates = z.object({
+/**
+ * The message wording, in one current record (`MessageTemplates.templates`). Not versioned: a save applies immediately
+ * to every message not yet sent. An override or section title for someone no longer in the household is simply unused.
+ */
+export const messageTemplatesSchema = z.object({
   monthly: z.string().min(1),
   nudge: z.string().min(1),
   overrides: z
@@ -126,9 +130,12 @@ const templates = z.object({
   sectionTitles: z.record(z.string().min(1), z.string().trim().min(1)).default({}),
 });
 
+/** The message wording, with defaults filled in. */
+export type MessageTemplates = z.infer<typeof messageTemplatesSchema>;
+
 /**
  * The household settings of one version: rooms, people, the rent, utilities
- * and aircon categories, recurring charges and message templates. Rejects
+ * and aircon categories and recurring charges. Rejects
  * configs whose rooms, shares, percentages or references do not add up.
  */
 export const householdConfigSchema = z
@@ -141,7 +148,6 @@ export const householdConfigSchema = z
       aircon: remainderCategory,
     }),
     recurring: z.array(recurringCharge).default([]),
-    templates,
   })
   .superRefine((config, ctx) => {
     const issue = (path: (string | number)[], message: string) =>
@@ -237,14 +243,6 @@ export const householdConfigSchema = z
       recurringIds.add(r.id);
       if (!ids.has(r.personId)) issue(["recurring", i, "personId"], "Unknown person");
     });
-
-    config.templates.overrides.forEach((o, i) => {
-      if (!ids.has(o.personId)) issue(["templates", "overrides", i, "personId"], "Unknown person");
-    });
-
-    for (const personId of Object.keys(config.templates.sectionTitles)) {
-      if (!ids.has(personId)) issue(["templates", "sectionTitles", personId], "Unknown person");
-    }
   });
 
 /** A parsed household config, with defaults filled in. */

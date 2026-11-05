@@ -17,6 +17,7 @@ const post = (body: unknown) => new Request("http://localhost", { method: "POST"
 /** Points the mocked Prisma client at November with its bill saved and Priya's rent. */
 function useNovember() {
   Object.assign(prisma, {
+    messageTemplates: { findUnique: async () => null },
     month: {
       findFirst: async () => ({ month: "2026-11" }),
       findUnique: async () => ({

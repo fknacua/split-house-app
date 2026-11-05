@@ -92,6 +92,7 @@ async function wipeDomainTables() {
   await prisma.billDraft.deleteMany();
   await prisma.month.deleteMany();
   await prisma.householdVersion.deleteMany();
+  await prisma.messageTemplates.deleteMany();
   await prisma.person.deleteMany();
   await prisma.settings.deleteMany();
 }

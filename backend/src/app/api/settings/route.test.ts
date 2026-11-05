@@ -17,6 +17,7 @@ const request = () => new Request("http://localhost/api/settings");
 /** Points the mocked Prisma client at a household with the given versions. */
 function useHousehold(versions: { startsFromMonth: string; schemaVersion: number; config: unknown }[]) {
   Object.assign(prisma, {
+    messageTemplates: { findUnique: async () => null },
     month: { findFirst: async () => ({ month: "2026-11" }) },
     householdVersion: { findMany: async () => versions },
   });

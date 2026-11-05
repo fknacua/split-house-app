@@ -1,8 +1,10 @@
 import {
   e164Phone,
   householdConfigSchema,
+  messageTemplatesSchema,
   monthKey,
   type HouseholdConfig,
+  type MessageTemplates,
   type PersonColor,
 } from "@splithouse/shared";
 import { nextPersonColor } from "./person-color";
@@ -16,11 +18,13 @@ export interface HouseholdFilePerson {
   isOwner: boolean;
 }
 
-/** A parsed household file: the people to create and the first version's config. */
+/** A parsed household file: the people to create, the first version's config and the message wording. */
 export interface HouseholdFile {
   startsFromMonth: string;
   people: HouseholdFilePerson[];
   config: HouseholdConfig;
+  /** Null when the file has none, so the defaults apply. */
+  templates: MessageTemplates | null;
 }
 
 /** Thrown when a household file is invalid. Messages name field paths only, never values. */
@@ -37,8 +41,9 @@ type RawPerson = Record<string, unknown> & { name?: unknown; whatsappE164?: unkn
  * person's `name` and `whatsappE164` beside their config entry, plus `startsFromMonth`. Keys
  * starting with `_` (notes) are ignored. Beyond the shared schema it requires a name for everyone,
  * a WhatsApp number for everyone except the owner, and rent above zero for every occupied tenant room.
+ * `templates` is optional, and goes to `MessageTemplates` rather than the config.
  *
- * The file's shape, with the rest of each entry as in `householdConfigSchema` (schema version 2):
+ * The file's shape, with the rest of each entry as in `householdConfigSchema` (schema version 3):
  * ```json
  * {
  *   "startsFromMonth": "2026-11",
@@ -65,14 +70,14 @@ type RawPerson = Record<string, unknown> & { name?: unknown; whatsappE164?: unkn
  *
  * @param json - The file's parsed JSON.
  * @returns The `Person` rows (the config's `personId` becomes the row id; colors are assigned, Teal
- *   for the owner and the others in file order) and the config.
+ *   for the owner and the others in file order), the config and the wording.
  * @throws {HouseholdFileError} When anything is missing or invalid; lists every problem by path.
  */
 export function parseHouseholdFile(json: unknown): HouseholdFile {
   if (typeof json !== "object" || json === null || Array.isArray(json)) {
     throw new HouseholdFileError(["(root): must be an object"]);
   }
-  const { startsFromMonth, people, ...rest } = json as Record<string, unknown>;
+  const { startsFromMonth, people, templates, ...rest } = json as Record<string, unknown>;
   const rawPeople: RawPerson[] = Array.isArray(people) ? (people as RawPerson[]) : [];
   const problems: string[] = [];
 
@@ -87,6 +92,20 @@ export function parseHouseholdFile(json: unknown): HouseholdFile {
   });
   if (!parsed.success) {
     problems.push(...parsed.error.issues.map((i) => `${i.path.join(".") || "(root)"}: ${i.message}`));
+  }
+
+  const wording = templates === undefined ? null : messageTemplatesSchema.safeParse(templates);
+  if (wording && !wording.success) {
+    problems.push(...wording.error.issues.map((i) => `templates.${i.path.join(".")}: ${i.message}`));
+  }
+  if (wording?.success && parsed.success) {
+    const known = new Set(parsed.data.people.map((p) => p.personId));
+    wording.data.overrides.forEach((o, i) => {
+      if (!known.has(o.personId)) problems.push(`templates.overrides.${i}.personId: Unknown person`);
+    });
+    for (const personId of Object.keys(wording.data.sectionTitles)) {
+      if (!known.has(personId)) problems.push(`templates.sectionTitles.${personId}: Unknown person`);
+    }
   }
 
   rawPeople.forEach((p, i) => {
@@ -126,5 +145,6 @@ export function parseHouseholdFile(json: unknown): HouseholdFile {
       };
     }),
     config: parsed.data,
+    templates: wording?.success ? wording.data : null,
   };
 }

@@ -1,6 +1,7 @@
 import { HOUSEHOLD_SCHEMA_VERSION, type RecipientResponse } from "@splithouse/shared";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { NOV_2026_CONFIG, PERSON_IDS } from "@/lib/fixtures/household";
+import { DEFAULT_MESSAGE_TEMPLATES } from "@/lib/messages/default-templates";
 import { renderNudgeMessage } from "@/lib/messages/render";
 import { buildRecipient, type RecipientChargeRow } from "@/lib/recipient/build-recipient";
 import { createMessageEvent, type MessageEventDb } from "./message-event.service";
@@ -34,6 +35,7 @@ function messageOf(r: RecipientResponse): NonNullable<RecipientResponse["message
 function fakeDb({ open = true, bill = true } = {}) {
   const created: unknown[] = [];
   const db: MessageEventDb = {
+    messageTemplates: { findUnique: async () => null },
     month: {
       findFirst: async () => ({ month: "2026-11" }),
       findUnique: async () =>
@@ -85,6 +87,7 @@ describe("createMessageEvent", () => {
         recipientId: PERSON_IDS.jordan,
         recipientName: "Jordan",
         config: NOV_2026_CONFIG,
+        templates: DEFAULT_MESSAGE_TEMPLATES,
         charge: JORDAN_RENT,
       }),
     });

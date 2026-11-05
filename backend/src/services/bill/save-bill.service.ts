@@ -7,11 +7,12 @@ import {
 import { ApiError } from "@/lib/api";
 import { checkBill } from "@/lib/bill/check-bill";
 import { buildUtilitiesCharges } from "@/lib/split/engine";
+import { readMessageTemplates, type MessageTemplatesDb } from "@/services/templates/message-templates.service";
 import { postgresBillFileStore, type BillFileDb } from "./bill-file-store.service";
 import { countPdfPages } from "./read-bill.service";
 
 /** The slice of a Prisma transaction client saving a bill uses, so tests can pass an in-memory fake. */
-export interface SaveBillTx extends BillFileDb {
+export interface SaveBillTx extends BillFileDb, MessageTemplatesDb {
   billDraft: {
     findUnique(args: {
       where: { month: string };
@@ -107,7 +108,8 @@ export async function saveBill(db: SaveBillDb, month: string, values: SaveBillRe
       if (!opened) throw new ApiError(409, "month_not_open", `${formatMonthName(month)} is not open yet.`);
 
       const config = parseHouseholdConfig(opened.householdVersion.schemaVersion, opened.householdVersion.config);
-      const charges = buildUtilitiesCharges(config, { month, currentChargesCents: values.currentChargesCents });
+      const { lineLabels } = await readMessageTemplates(tx);
+      const charges = buildUtilitiesCharges(config, { month, currentChargesCents: values.currentChargesCents }, lineLabels.UTILITIES);
 
       const bill = await tx.bill.create({
         data: {
