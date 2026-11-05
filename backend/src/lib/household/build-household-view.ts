@@ -13,17 +13,9 @@ import {
   type PersonConfig,
 } from "@splithouse/shared";
 import { HOME_BADGES } from "@/lib/home/badges";
-import { splitRemainderByBps } from "@/lib/split/engine";
-import { amountText, SHARE_SCALE } from "./amount-text";
-import {
-  isRentInTotal,
-  masterRentCents,
-  roomCount,
-  roomOf,
-  sharedAirconUnits,
-  tenantRentCents,
-  totalAirconUnits,
-} from "./room-amounts";
+import { amountText, countText, SHARE_SCALE } from "./amount-text";
+import { isRentInTotal, roomCount, roomOf, tenantRentCents, totalAirconUnits } from "./room-amounts";
+import { remaindersOf, type Remainders } from "./split-remainders";
 
 /** What `buildHouseholdView` reads. */
 export interface HouseholdViewInput {
@@ -47,44 +39,6 @@ const FALLBACK_COLOR: PersonColor = "SLATE";
 interface PersonLookup {
   names: Map<string, string>;
   colors: Map<string, PersonColor>;
-}
-
-/** Who splits the remainder of each category, and each one's part of it. */
-interface Remainders {
-  owner: PersonConfig;
-  primary: PersonConfig | null;
-  rent: { owner: number; primary: number };
-  /** In thousandths of a share. */
-  shares: { total: number; owner: number; primary: number };
-  /** In thousandths of a unit, since a split can leave part of a unit. */
-  units: { total: number; owner: number; primary: number };
-}
-
-/** A count in thousandths with its word: `1 share`, `1.5 shares`. */
-function countText(thousandths: number, word: string): string {
-  return `${amountText(thousandths)} ${thousandths === SHARE_SCALE ? word : `${word}s`}`;
-}
-
-/** Splits rent, utility shares and aircon units between the owner and the primary tenant, by the engine's rule. */
-function remaindersOf(config: HouseholdConfig): Remainders {
-  const owner = config.people.find((p) => p.role === "OWNER");
-  if (!owner) throw new Error("Config has no owner");
-  const primary = config.people.find((p) => p.role === "PRIMARY") ?? null;
-  const { rent, utilities, aircon } = config.categories;
-
-  const split = (total: number, primaryBps: number) => {
-    const parts = splitRemainderByBps(total, owner.personId, primary?.personId ?? null, primaryBps);
-    return { total, owner: parts[owner.personId], primary: primary ? parts[primary.personId] : 0 };
-  };
-  const tenantShares = config.people.reduce((sum, p) => sum + p.utilityShares, 0);
-
-  return {
-    owner,
-    primary,
-    rent: split(masterRentCents(config), rent.primaryBps),
-    shares: split(utilities.totalShares - tenantShares, utilities.primaryBps),
-    units: split(sharedAirconUnits(config) * SHARE_SCALE, aircon.primaryBps),
-  };
 }
 
 /** The "Showing:" list: each version's starts-from month and the active month, newest first. */

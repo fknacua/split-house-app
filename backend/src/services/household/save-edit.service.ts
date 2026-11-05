@@ -11,6 +11,7 @@ import {
   type HouseholdHomeEdit,
   type HouseholdPersonEdit,
   type HouseholdRemovePersonEdit,
+  type HouseholdSplitEdit,
   type PersonColor,
 } from "@splithouse/shared";
 import { ApiError } from "@/lib/api";
@@ -18,6 +19,7 @@ import { planAddPerson } from "@/lib/household/plan-add-person";
 import { planHouseholdEdit, versionInEffect, type HouseholdEditPlan } from "@/lib/household/plan-edit";
 import { planHomeEdit } from "@/lib/household/plan-home-edit";
 import { planRemovePerson } from "@/lib/household/plan-remove-person";
+import { planSplitEdit } from "@/lib/household/plan-split-edit";
 import { getActiveMonth, type ActiveMonthDb } from "@/services/months/active-month.service";
 
 const VERSION_SELECT = { id: true, startsFromMonth: true, schemaVersion: true, config: true } as const;
@@ -130,6 +132,16 @@ async function loadHomePlan(db: HouseholdEditReadDb, edit: HouseholdHomeEdit) {
   };
 }
 
+/** Plans a Household split edit to next month's version. */
+async function loadSplitPlan(db: HouseholdEditReadDb, edit: HouseholdSplitEdit) {
+  const { month, base, people, existing } = await loadContext(db);
+  return {
+    month,
+    existing,
+    plan: planSplitEdit({ edit, names: new Map(people.map((p) => [p.id, p.name])), month, base }),
+  };
+}
+
 /** Stores a dated save: updates the version starting next month while no month has opened using it, or creates it. */
 async function storeVersion(
   tx: HouseholdEditTx,
@@ -171,9 +183,15 @@ async function saveRemovePerson(tx: HouseholdEditTx, edit: HouseholdRemovePerson
   return { savedFromMonth: month };
 }
 
-/** Checks and stores a Landlord & rooms edit: next month's version only, inside the caller's transaction. */
-async function saveHomeEdit(tx: HouseholdEditTx, edit: HouseholdHomeEdit): Promise<HouseholdEditSaveResponse> {
-  const { plan, month, existing } = await loadHomePlan(tx, edit);
+/** Checks and stores a plan that only changes next month's version, inside the caller's transaction. */
+async function saveVersionPlan(
+  tx: HouseholdEditTx,
+  { plan, month, existing }: {
+    plan: { nextConfig: HouseholdConfig | null; errors: Record<string, string> };
+    month: string;
+    existing: { id: string } | null;
+  },
+): Promise<HouseholdEditSaveResponse> {
   const messages = Object.values(plan.errors);
   if (messages.length > 0) throw new ApiError(422, "invalid_edit", messages.join(" "));
   if (!plan.nextConfig) throw new ApiError(422, "no_changes", "There is nothing to save.");
@@ -227,6 +245,16 @@ export async function previewHouseholdEdit(db: HouseholdEditReadDb, edit: Househ
       masterRent: plan.masterRent,
     };
   }
+  if (edit.kind === "split") {
+    const { plan } = await loadSplitPlan(db, edit);
+    return {
+      groups: plan.groups,
+      canSave: plan.canSave,
+      errors: plan.errors,
+      warnings: plan.warnings,
+      amounts: plan.amounts,
+    };
+  }
   const { plan } = await loadPlan(db, edit);
   return {
     groups: plan.groups,
@@ -240,7 +268,7 @@ export async function previewHouseholdEdit(db: HouseholdEditReadDb, edit: Househ
  * the `Person` row; dated values start next month, updating the version starting then while no month has
  * opened using it, or creating one from the version in effect. An edit that changes only the row stores no
  * version. Adding a person creates their row and adds them to that version; removing one takes them out of it.
- * A Landlord & rooms edit changes only that version.
+ * A Landlord & rooms or Household split edit changes only that version.
  *
  * @param db - The Prisma client, or a fake in tests.
  * @param edit - The edit.
@@ -251,10 +279,11 @@ export async function previewHouseholdEdit(db: HouseholdEditReadDb, edit: Househ
  */
 export async function saveHouseholdEdit(db: HouseholdEditDb, edit: HouseholdEdit): Promise<HouseholdEditSaveResponse> {
   try {
-    return await db.$transaction((tx) => {
+    return await db.$transaction(async (tx) => {
       if (edit.kind === "addPerson") return saveAddPerson(tx, edit);
       if (edit.kind === "removePerson") return saveRemovePerson(tx, edit);
-      if (edit.kind === "home") return saveHomeEdit(tx, edit);
+      if (edit.kind === "home") return saveVersionPlan(tx, await loadHomePlan(tx, edit));
+      if (edit.kind === "split") return saveVersionPlan(tx, await loadSplitPlan(tx, edit));
       return savePersonEdit(tx, edit);
     });
   } catch (err) {

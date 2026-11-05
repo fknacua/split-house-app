@@ -6,6 +6,7 @@ import type {
   HouseholdPersonEdit,
   HouseholdRoom,
   HouseholdRoomEdit,
+  HouseholdSplitEdit,
   PersonConfig,
 } from "@splithouse/shared";
 import { viaOf } from "./route-via";
@@ -134,6 +135,38 @@ export function applyHomeEdit(config: HouseholdConfig, edit: HouseholdHomeEdit, 
         landlordDueDay: edit.landlordDueDay ?? rent.landlordDueDay,
       },
       utilities: billDueDay === undefined ? utilitiesRest : { ...utilitiesRest, billDueDay },
+    },
+  };
+}
+
+/** A category after an edit to the primary tenant's percent, with the owner taking the rest. A cleared one keeps its saved value. */
+function applyPrimaryBps<T extends { ownerBps: number; primaryBps: number }>(category: T, primaryBps: number | null | undefined): T {
+  return primaryBps === null || primaryBps === undefined ? category : { ...category, primaryBps, ownerBps: 10000 - primaryBps };
+}
+
+/**
+ * Applies a Household split edit to a config. An empty shares field reads as 0, since the plan refuses it first and
+ * the preview still works out the amounts from the rest. The result still has to go through `householdConfigSchema`.
+ *
+ * @param config - The config the edit starts from. Not changed.
+ * @param edit - The edit.
+ * @returns The new config.
+ */
+export function applySplitEdit(config: HouseholdConfig, edit: HouseholdSplitEdit): HouseholdConfig {
+  const { rent, utilities, aircon } = config.categories;
+  return {
+    ...config,
+    people: config.people.map((person) => {
+      const sent = edit.tenantShares.find((t) => t.personId === person.personId);
+      return sent && person.role === "TENANT" ? { ...person, utilityShares: sent.utilityShares ?? 0 } : person;
+    }),
+    categories: {
+      rent: applyPrimaryBps(rent, edit.rentPrimaryBps),
+      utilities: {
+        ...applyPrimaryBps(utilities, edit.utilitiesPrimaryBps),
+        totalShares: edit.totalShares === undefined ? utilities.totalShares : (edit.totalShares ?? 0),
+      },
+      aircon: applyPrimaryBps(aircon, edit.airconPrimaryBps),
     },
   };
 }
