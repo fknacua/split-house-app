@@ -66,20 +66,15 @@ export function applyPersonEdit(person: PersonConfig, edit: HouseholdPersonEdit)
 
 /**
  * Applies one typed edit to a config. Touches only the dated values: name, WhatsApp and color live on
- * the `Person` row. Until 9.18 moves room rent to its own form, a rent edit writes to the tenant's room. The
- * result still has to go through `householdConfigSchema`.
+ * the `Person` row. The result still has to go through `householdConfigSchema`.
  *
  * @param config - The config the edit starts from. Not changed.
  * @param edit - The edit.
  * @returns The new config.
  */
 export function applyHouseholdEdit(config: HouseholdConfig, edit: HouseholdPersonEdit): HouseholdConfig {
-  const roomId = config.people.find((person) => person.personId === edit.personId)?.roomId;
   return {
     ...config,
-    rooms: config.rooms.map((room) =>
-      room.id === roomId && room.roomType === "TENANT" ? { ...room, rentCents: edit.rentCents ?? room.rentCents } : room,
-    ),
     people: config.people.map((person) => (person.personId === edit.personId ? applyPersonEdit(person, edit) : person)),
   };
 }
@@ -165,10 +160,10 @@ export function applyAddPerson(config: HouseholdConfig, tenant: PersonConfig): H
 }
 
 /**
- * Takes a tenant out of a config, with their recurring charges, template overrides and section title. The
- * utilities total falls by their shares, so everyone else's shares keep their size. The aircon total stays, since
- * the units stay in the house, so the owner and primary tenant take them over. The result still has to go through
- * `householdConfigSchema`.
+ * Takes a tenant out of a config, with their recurring charges, template overrides and section title. Their room
+ * stays, now empty, keeping its rent for the next tenant. The utilities total falls by their shares, so everyone
+ * else's shares keep their size. The aircon total stays, since the units stay in the house, so the owner and primary
+ * tenant take them over. The result still has to go through `householdConfigSchema`.
  *
  * @param config - The config the edit starts from. Not changed.
  * @param personId - The tenant.

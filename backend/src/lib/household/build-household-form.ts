@@ -13,9 +13,8 @@ import {
 } from "@splithouse/shared";
 import { amountText } from "./amount-text";
 import { nextPersonColor, personColorName } from "./person-color";
-import { emptyTenantRooms, roomOf, tenantRentCents } from "./room-amounts";
+import { emptyTenantRooms, isRentInTotal, roomOf, tenantRentCents } from "./room-amounts";
 import { hasPayersVia, routeText, sentViaChoices, viaOf } from "./route-via";
-import { personSubLine } from "./sub-line";
 
 const NONE = "—";
 
@@ -66,8 +65,18 @@ export function buildAddPersonForm(input: Pick<HouseholdFormInput, "month" | "co
   };
 }
 
+/** What happens to a removed tenant's room. A room not in the total hands over only its aircon, since its rent never reached the landlord. */
+function removeRoomLine(config: HouseholdConfig, personId: string, names: Map<string, string>): string {
+  const primary = config.people.find((p) => p.role === "PRIMARY");
+  const sharers = primary ? `You and ${names.get(primary.personId) ?? "Someone"}` : "you";
+  const room = roomOf(config, personId);
+  return isRentInTotal(config, personId)
+    ? `${room.name} becomes empty. Its ${formatCents(tenantRentCents(config, personId))} rent and its aircon move to ${sharers}.`
+    : `${room.name} becomes empty and its aircon moves to ${sharers}. Their rent was never part of the landlord rent, so your rent doesn’t change. You simply stop receiving it.`;
+}
+
 /** The remove dialog's text for a tenant. The third line only shows when something goes with them. */
-function removeDialog(config: HouseholdConfig, person: PersonConfig, name: string, monthLabel: string) {
+function removeDialog(config: HouseholdConfig, person: PersonConfig, names: Map<string, string>, monthLabel: string) {
   const { personId } = person;
   const goes = [
     ...(config.recurring.some((r) => r.personId === personId) ? ["recurring charges"] : []),
@@ -76,8 +85,9 @@ function removeDialog(config: HouseholdConfig, person: PersonConfig, name: strin
       : []),
   ];
   return {
-    title: `Remove ${name} from household?`,
-    body: `From ${monthLabel} they won’t get any charges or messages, and the utility shares will be split between everyone else.`,
+    title: `Remove ${names.get(personId)} from household?`,
+    body: `From ${monthLabel} they won’t get any charges or messages, and their utility shares leave the total.`,
+    roomLine: removeRoomLine(config, personId, names),
     keeps: [
       "Past months and History stay as they are",
       ...(person.depositCents ? [`Their ${formatCents(person.depositCents)} deposit stays recorded until you return it`] : []),
@@ -113,13 +123,16 @@ export function buildHouseholdForm(input: HouseholdFormInput): HouseholdFormResp
   // A rent or units change sits on the room, not the person's entry.
   const activeRoom = activeConfig && activePerson ? roomOf(activeConfig, personId) : null;
   const room = roomOf(config, personId);
-  const rentCents = tenantRentCents(config, personId);
+  const roomRows = {
+    name: { label: "Room", value: room.name },
+    rent: { label: "Rent (SGD)", value: formatCents(tenantRentCents(config, personId)) },
+    units: { label: "Aircon units", value: String(room.airconUnits) },
+  };
 
   return {
     personId,
     title: `Edit ${row.name}`,
     viewTitle: row.name,
-    sub: personSubLine(config, personId, names),
     datedTitle: `From ${monthLabel}`,
     pendingNote:
       isDeepStrictEqual(activePerson, person) && isDeepStrictEqual(activeRoom, room)
@@ -133,13 +146,9 @@ export function buildHouseholdForm(input: HouseholdFormInput): HouseholdFormResp
       utilitiesDueDay: person.dueDays.UTILITIES ?? null,
       rentViaPersonId: rentVia,
       utilitiesViaPersonId: utilitiesVia,
-      amounts: isTenant
-        ? {
-            rentCents,
-            depositCents: person.depositCents,
-          }
-        : null,
+      depositCents: isTenant ? person.depositCents : null,
     },
+    room: isTenant ? [roomRows.name, roomRows.rent, roomRows.units] : [],
     colorName: personColorName(row.color),
     swatches: colors.map((color) => ({ color, name: personColorName(color) })),
     sentViaOptions: isTenant && !hasPayersVia(config.people, personId) ? sentViaChoices(config.people, names, personId) : [],
@@ -148,13 +157,13 @@ export function buildHouseholdForm(input: HouseholdFormInput): HouseholdFormResp
         { label: "Name (used in messages)", value: row.name },
         { label: "WhatsApp", value: row.whatsappE164 ?? NONE },
       ],
+      room: isTenant
+        ? [roomRows.name, roomRows.rent, { label: "Utility shares", value: amountText(person.utilityShares) }, roomRows.units]
+        : [],
       amounts: isTenant
         ? [
-            { label: "Rent (SGD)", value: plainMoney(rentCents) },
             dueRows.rent,
-            { label: "Utility shares", value: amountText(person.utilityShares) },
             dueRows.utilities,
-            { label: "Aircon units", value: String(room.airconUnits) },
             { label: "Deposit held (SGD)", value: person.depositCents ? plainMoney(person.depositCents) : "None" },
           ]
         : [dueRows.rent, dueRows.utilities],
@@ -168,6 +177,6 @@ export function buildHouseholdForm(input: HouseholdFormInput): HouseholdFormResp
     secondaryAction: isTenant
       ? { label: "Remove from household", kind: "remove-person" }
       : { label: "Cancel", kind: "cancel" },
-    removeDialog: isTenant ? removeDialog(config, person, row.name, monthLabel) : null,
+    removeDialog: isTenant ? removeDialog(config, person, names, monthLabel) : null,
   };
 }

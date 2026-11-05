@@ -8,7 +8,7 @@ import {
 } from "@splithouse/shared";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { JAN_2027_CONFIG, NOV_2026_CONFIG, PERSON_IDS, ROOM_IDS } from "@/lib/fixtures/household";
-import { masterRentCents, tenantRentCents } from "@/lib/household/room-amounts";
+import { masterRentCents } from "@/lib/household/room-amounts";
 import {
   previewHouseholdEdit,
   saveHouseholdEdit,
@@ -104,7 +104,7 @@ describe("previewHouseholdEdit", () => {
     const { db, state } = fakeDb();
     const preview = await previewHouseholdEdit(
       db,
-      edit({ name: "Jo", color: "PURPLE", rentCents: 100000, depositCents: 95000 }),
+      edit({ name: "Jo", color: "PURPLE", rentDueDay: 9, depositCents: 95000 }),
     );
     expect(preview.groups).toEqual([
       {
@@ -114,7 +114,7 @@ describe("previewHouseholdEdit", () => {
           { label: "Color", from: "Green", to: "Purple" },
         ],
       },
-      { title: "Saves from Dec 2026", rows: [{ label: "Rent", from: "$950.00", to: "$1,000.00" }] },
+      { title: "Saves from Dec 2026", rows: [{ label: "Rent due", from: "1st", to: "9th" }] },
     ]);
     expect(preview.canSave).toBe(true);
     expect(preview.errors).toEqual({});
@@ -125,7 +125,7 @@ describe("previewHouseholdEdit", () => {
   it("has no groups and no Save when nothing changed", async () => {
     const preview = await previewHouseholdEdit(
       fakeDb().db,
-      edit({ name: "Jordan", color: "GREEN", rentCents: 95000, rentDueDay: 1, utilitiesDueDay: 4 }),
+      edit({ name: "Jordan", color: "GREEN", rentDueDay: 1, utilitiesDueDay: 4 }),
     );
     expect(preview).toEqual({ groups: [], canSave: false, errors: {} });
   });
@@ -135,8 +135,8 @@ describe("previewHouseholdEdit", () => {
     expect(groups[0].rows).toEqual([{ label: "Utilities due", from: "4th", to: "9th" }]);
   });
 
-  it("ignores shares and units, which the split page edits", async () => {
-    const fields = { utilityShares: 1500, airconUnits: 2 } as Partial<HouseholdPersonEdit>;
+  it("ignores rent, shares and units, which Landlord & rooms and the split page edit", async () => {
+    const fields = { rentCents: 100000, utilityShares: 1500, airconUnits: 2 } as Partial<HouseholdPersonEdit>;
     expect(await previewHouseholdEdit(fakeDb().db, edit(fields))).toEqual({ groups: [], canSave: false, errors: {} });
   });
 
@@ -155,7 +155,7 @@ describe("previewHouseholdEdit", () => {
     ["an empty name", { name: "  " }, "name"],
     ["a bad number", { whatsappE164: "12345" }, "whatsappE164"],
     ["Teal for a tenant", { color: "TEAL" as const }, "color"],
-    ["a negative rent", { rentCents: -1 }, "rentCents"],
+    ["a negative deposit", { depositCents: -1 }, "depositCents"],
     ["a day out of range", { rentDueDay: 32 }, "rentDueDay"],
     ["a direct payer's due day cleared", { rentDueDay: null }, "rentDueDay"],
     ["a route via themselves", { rentViaPersonId: PERSON_IDS.jordan }, "rentViaPersonId"],
@@ -167,15 +167,15 @@ describe("previewHouseholdEdit", () => {
     expect(preview.canSave).toBe(false);
   });
 
-  it("does not let the primary tenant take fixed amounts", async () => {
-    const preview = await previewHouseholdEdit(fakeDb().db, edit({ personId: PERSON_IDS.priya, rentCents: 100000 }));
-    expect(preview.errors.rentCents).toBe("This comes from the split.");
+  it("does not let the primary tenant hold a deposit", async () => {
+    const preview = await previewHouseholdEdit(fakeDb().db, edit({ personId: PERSON_IDS.priya, depositCents: 100000 }));
+    expect(preview.errors.depositCents).toBe("This comes from the split.");
   });
 
   it("lets a person paying via someone have no due day", async () => {
     const preview = await previewHouseholdEdit(
       fakeDb().db,
-      edit({ personId: PERSON_IDS.sam, utilitiesDueDay: null, rentCents: 100000 }),
+      edit({ personId: PERSON_IDS.sam, utilitiesDueDay: null }),
     );
     expect(preview.errors).toEqual({});
   });
@@ -279,48 +279,24 @@ describe("saveHouseholdEdit", () => {
 
   it("creates a version for next month, from the version in effect", async () => {
     const { db, state } = fakeDb();
-    expect(await saveHouseholdEdit(db, edit({ rentCents: 100000 }))).toEqual({ savedFromMonth: "2026-12" });
+    expect(await saveHouseholdEdit(db, edit({ depositCents: 100000 }))).toEqual({ savedFromMonth: "2026-12" });
     expect(state.versions).toHaveLength(2);
     const created = state.versions.find((v) => v.startsFromMonth === "2026-12");
     expect(created?.schemaVersion).toBe(HOUSEHOLD_SCHEMA_VERSION);
-    expect(tenantRentCents(created?.config as HouseholdConfig, PERSON_IDS.jordan)).toBe(100000);
-    expect(tenantRentCents(state.versions[0].config as HouseholdConfig, PERSON_IDS.jordan)).toBe(95000);
-  });
-
-  it("refuses a rent that would take the master rent below zero", async () => {
-    const { db, state } = fakeDb();
-    await expect(saveHouseholdEdit(db, edit({ personId: PERSON_IDS.sam, rentCents: 430001 }))).rejects.toMatchObject({
-      status: 422,
-      code: "invalid_edit",
-    });
-    expect(state.versions).toHaveLength(1);
-
-    const preview = await previewHouseholdEdit(db, edit({ personId: PERSON_IDS.sam, rentCents: 430001 }));
-    expect(preview.errors.form).toBe("Master room rent cannot be below zero");
-    expect(preview.canSave).toBe(false);
-  });
-
-  it("takes a rent rise in the total off the master rent, and not one outside it", async () => {
-    const inTotal = fakeDb();
-    await saveHouseholdEdit(inTotal.db, edit({ personId: PERSON_IDS.sam, rentCents: 100000 }));
-    expect(masterRentCents(inTotal.state.versions[1].config as HouseholdConfig)).toBe(330000);
-
-    const outside = fakeDb();
-    await saveHouseholdEdit(outside.db, edit({ rentCents: 100000 }));
-    expect(masterRentCents(outside.state.versions[1].config as HouseholdConfig)).toBe(335000);
+    expect(jordanIn(created)?.depositCents).toBe(100000);
+    expect(jordanIn(state.versions[0])?.depositCents).toBe(95000);
   });
 
   it("adds three edits for one month to one version", async () => {
     const { db, state } = fakeDb();
-    await saveHouseholdEdit(db, edit({ rentCents: 100000 }));
+    await saveHouseholdEdit(db, edit({ utilitiesDueDay: 8 }));
     await saveHouseholdEdit(db, edit({ rentDueDay: 9 }));
     await saveHouseholdEdit(db, edit({ depositCents: 100000 }));
     expect(state.versions.map((v) => v.startsFromMonth)).toEqual(["2026-11", "2026-12"]);
     expect(jordanIn(state.versions[1])).toMatchObject({
-      dueDays: { RENT: 9 },
+      dueDays: { RENT: 9, UTILITIES: 8 },
       depositCents: 100000,
     });
-    expect(tenantRentCents(state.versions[1].config as HouseholdConfig, PERSON_IDS.jordan)).toBe(100000);
   });
 
   it("refuses to update a version a month has opened using, storing nothing", async () => {
@@ -381,7 +357,7 @@ describe("saveHouseholdEdit", () => {
 
   it("saves the row and the version together", async () => {
     const { db, state } = fakeDb();
-    await saveHouseholdEdit(db, edit({ name: "Jo", rentCents: 100000 }));
+    await saveHouseholdEdit(db, edit({ name: "Jo", rentDueDay: 9 }));
     expect(state.people.find((p) => p.id === PERSON_IDS.jordan)?.name).toBe("Jo");
     expect(state.versions).toHaveLength(2);
   });
@@ -421,7 +397,7 @@ describe("saveHouseholdEdit", () => {
 
   it("answers 404 no_version when no version covers next month", async () => {
     const { db } = fakeDb([version("2027-06", NOV_2026_CONFIG)]);
-    await expect(saveHouseholdEdit(db, edit({ rentCents: 100000 }))).rejects.toMatchObject({
+    await expect(saveHouseholdEdit(db, edit({ rentDueDay: 9 }))).rejects.toMatchObject({
       status: 404,
       code: "no_version",
     });
@@ -439,7 +415,7 @@ describe("saveHouseholdEdit", () => {
     db.$transaction = async () => {
       throw Object.assign(new Error("unique"), { code: "P2002" });
     };
-    await expect(saveHouseholdEdit(db, edit({ rentCents: 100000 }))).rejects.toMatchObject({
+    await expect(saveHouseholdEdit(db, edit({ rentDueDay: 9 }))).rejects.toMatchObject({
       status: 409,
       code: "version_conflict",
     });

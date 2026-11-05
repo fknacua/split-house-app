@@ -17,17 +17,13 @@ const requiredAmount = z
   // The `boolean` return keeps TypeScript from narrowing the form's value type to `number`.
   .refine((value): boolean => value !== null, 'Enter an amount.');
 
-/**
- * The person form's checks. The device checks only that the amounts it cannot send empty are filled;
- * every other rule is the server's, through the preview.
- */
+/** The person form's fields. Every rule on them is the server's, through the preview. */
 export const personFormSchema = z.object({
   name: z.string(),
   whatsapp: z.string(),
   color: personColor,
   rentDueDay: z.number().nullable(),
   utilitiesDueDay: z.number().nullable(),
-  rentCents: requiredAmount,
   /** Only Add subtenant has this field; the split page edits it after that. */
   utilityShares: z.number().nullable(),
   /** Only Add subtenant has this field, and `''` means none is picked yet. A tenant's room never changes after that. */
@@ -38,11 +34,10 @@ export const personFormSchema = z.object({
 });
 
 /**
- * Add subtenant's checks: the room and shares it cannot send empty. It has no rent field, since the rent comes with
- * the room. Every other rule is the server's, through the preview.
+ * Add subtenant's checks: the room and shares it cannot send empty. Every other rule is the server's, through the
+ * preview.
  */
 export const addPersonFormSchema = personFormSchema.extend({
-  rentCents: z.number().nullable(),
   utilityShares: requiredAmount,
   roomId: z.string().min(1, 'Choose a room.'),
 });
@@ -54,8 +49,8 @@ export const addPersonFormSchema = personFormSchema.extend({
 export type PersonFormValues = z.infer<typeof personFormSchema>;
 
 /**
- * Fills the person form from the server's response. The owner and primary tenant have no amount fields,
- * so theirs hold 0 and are never sent. No deposit is an empty field, which shows its "None" placeholder.
+ * Fills the person form from the server's response. No deposit is an empty field, which shows its "None"
+ * placeholder. The owner and primary tenant have no such field, and theirs is never sent.
  *
  * @param form The form response.
  * @returns The form's values.
@@ -68,10 +63,9 @@ export function toPersonFormValues(form: HouseholdFormResponse): PersonFormValue
     color: values.color,
     rentDueDay: values.rentDueDay,
     utilitiesDueDay: values.utilitiesDueDay,
-    rentCents: values.amounts?.rentCents ?? 0,
     utilityShares: null,
     roomId: '',
-    depositCents: values.amounts?.depositCents || null,
+    depositCents: values.depositCents || null,
     rentVia: values.rentViaPersonId,
     utilitiesVia: values.utilitiesViaPersonId,
   };
@@ -90,7 +84,6 @@ export function toAddPersonFormValues(form: HouseholdAddFormResponse): PersonFor
     color: form.color,
     rentDueDay: null,
     utilitiesDueDay: null,
-    rentCents: null,
     utilityShares: null,
     roomId: '',
     depositCents: null,
@@ -105,8 +98,8 @@ function whatsappOf(text: string): string | null {
 }
 
 /**
- * Builds the edit from what differs from the saved values. An empty rent is left out, since the schema
- * stops Save for it, and so is a route with nobody picked; an empty deposit is 0 and an empty day clears it.
+ * Builds the edit from what differs from the saved values. A route with nobody picked is left out; an empty deposit
+ * is 0 and an empty day clears it.
  *
  * @param values The form's values.
  * @param form The loaded form response the values are compared with.
@@ -126,12 +119,8 @@ export function toHouseholdEdit(values: PersonFormValues, form: HouseholdFormRes
     edit.utilitiesViaPersonId = values.utilitiesVia;
   }
 
-  const amounts = loaded.amounts;
-  if (amounts) {
-    if (values.rentCents !== null && values.rentCents !== amounts.rentCents) edit.rentCents = values.rentCents;
-    const deposit = values.depositCents ?? 0;
-    if (deposit !== amounts.depositCents) edit.depositCents = deposit;
-  }
+  const deposit = values.depositCents ?? 0;
+  if (loaded.depositCents !== null && deposit !== loaded.depositCents) edit.depositCents = deposit;
   return edit;
 }
 
@@ -191,6 +180,5 @@ export function hasUnpickedRoute(values: PersonFormValues): boolean {
  */
 export function hasUnsavedChanges(values: PersonFormValues, form: HouseholdFormResponse): boolean {
   const { kind, personId, ...changes } = toHouseholdEdit(values, form);
-  const clearedAmount = form.values.amounts !== null && values.rentCents === null;
-  return Object.keys(changes).length > 0 || clearedAmount || hasUnpickedRoute(values);
+  return Object.keys(changes).length > 0 || hasUnpickedRoute(values);
 }

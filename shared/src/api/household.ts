@@ -170,8 +170,6 @@ export const householdFormResponseSchema = z.object({
   title: z.string(),
   /** The View screen's title, e.g. `Jordan`. */
   viewTitle: z.string(),
-  /** e.g. `Own room · pays you directly`. */
-  sub: z.string(),
   /** The dated group's title on Edit, e.g. `From December 2026`. */
   datedTitle: z.string(),
   /** e.g. `These take effect from December 2026.` while saved values differ from the active month's; otherwise null. */
@@ -185,14 +183,11 @@ export const householdFormResponseSchema = z.object({
     utilitiesDueDay: z.number().int().nullable(),
     rentViaPersonId: z.string().nullable(),
     utilitiesViaPersonId: z.string().nullable(),
-    /** Null for the owner and the primary tenant, whose amounts come from the split. */
-    amounts: z
-      .object({
-        rentCents: z.number().int(),
-        depositCents: z.number().int(),
-      })
-      .nullable(),
+    /** Null for the owner and the primary tenant, who hold no deposit. */
+    depositCents: z.number().int().nullable(),
   }),
+  /** Edit's Room group for a tenant, read-only: the room, its rent and its units. Empty for anyone else. */
+  room: z.array(householdFormTextRowSchema),
   /** e.g. `Green`, beside the Color label. */
   colorName: z.string(),
   /** The colors that can be picked, in the order drawn. Teal is only offered to the owner. */
@@ -205,6 +200,8 @@ export const householdFormResponseSchema = z.object({
   /** The View screen's text, by section. */
   view: z.object({
     details: z.array(householdFormTextRowSchema),
+    /** Tenants only: the room, its rent, their utility shares and the room's units. */
+    room: z.array(householdFormTextRowSchema),
     amounts: z.array(householdFormTextRowSchema),
     /** Tenants only. */
     routes: z.array(householdFormTextRowSchema),
@@ -220,6 +217,8 @@ export const householdFormResponseSchema = z.object({
       /** e.g. `Remove Jordan from household?`. */
       title: z.string(),
       body: z.string(),
+      /** What happens to their room, worded by whether its rent is part of the landlord rent. */
+      roomLine: z.string(),
       /** The check lines: what stays and what goes with them. */
       keeps: z.array(z.string()),
     })
@@ -231,8 +230,10 @@ export type HouseholdFormResponse = z.infer<typeof householdFormResponseSchema>;
 
 /** `GET /api/household/add-form`: the Add subtenant screen, ready to render. Its fields start empty. */
 export const householdAddFormResponseSchema = householdFormResponseSchema
-  .pick({ title: true, sub: true, datedTitle: true, colorName: true, swatches: true, sentViaOptions: true })
+  .pick({ title: true, datedTitle: true, colorName: true, swatches: true, sentViaOptions: true })
   .extend({
+    /** `New person in the household`. */
+    sub: z.string(),
     /** The default: the first color nobody in the household uses. */
     color: personColor,
     /** The empty tenant rooms a new tenant can pick, in saved order. Empty when every room is taken or none exists. */
@@ -376,8 +377,7 @@ export const householdPersonEditSchema = z.object({
   name: z.string().optional(),
   whatsappE164: z.string().nullable().optional(),
   color: personColor.optional(),
-  // Saved from next month, on the version.
-  rentCents: z.number().int().optional(),
+  // Saved from next month, on the version. Room rent and units are edited on Landlord & rooms.
   depositCents: z.number().int().optional(),
   /** Null clears the day. */
   rentDueDay: z.number().int().nullable().optional(),
