@@ -10,7 +10,9 @@ import {
   type HouseholdEditSaveResponse,
   type HouseholdHomeEdit,
   type HouseholdPersonEdit,
+  type HouseholdRecurringEdit,
   type HouseholdRemovePersonEdit,
+  type HouseholdRemoveRecurringEdit,
   type HouseholdSplitEdit,
   type PersonColor,
 } from "@splithouse/shared";
@@ -18,6 +20,7 @@ import { ApiError } from "@/lib/api";
 import { planAddPerson } from "@/lib/household/plan-add-person";
 import { planHouseholdEdit, versionInEffect, type HouseholdEditPlan } from "@/lib/household/plan-edit";
 import { planHomeEdit } from "@/lib/household/plan-home-edit";
+import { planRecurringEdit, planRemoveRecurring, runningCharges } from "@/lib/household/plan-recurring-edit";
 import { planRemovePerson } from "@/lib/household/plan-remove-person";
 import { planSplitEdit } from "@/lib/household/plan-split-edit";
 import { getActiveMonth, type ActiveMonthDb } from "@/services/months/active-month.service";
@@ -142,6 +145,37 @@ async function loadSplitPlan(db: HouseholdEditReadDb, edit: HouseholdSplitEdit) 
   };
 }
 
+/** Refuses a charge that is not running next month, which the sheet can't have open unless it just changed. */
+function requireRunningCharge(config: HouseholdConfig, month: string, chargeId: string): void {
+  if (!runningCharges(config, month).some((charge) => charge.id === chargeId)) {
+    throw new ApiError(404, "no_charge", "This charge is not in the household next month.");
+  }
+}
+
+/** Plans adding or changing a recurring charge in next month's version. */
+async function loadRecurringPlan(db: HouseholdEditReadDb, edit: HouseholdRecurringEdit) {
+  const { month, base, people, existing } = await loadContext(db);
+  if (edit.chargeId !== null) requireRunningCharge(base.config, month, edit.chargeId);
+  return {
+    month,
+    existing,
+    plan: planRecurringEdit({
+      edit,
+      names: new Map(people.map((p) => [p.id, p.name])),
+      month,
+      base,
+      newChargeId: randomUUID(),
+    }),
+  };
+}
+
+/** Plans stopping a recurring charge in next month's version. */
+async function loadRemoveRecurringPlan(db: HouseholdEditReadDb, edit: HouseholdRemoveRecurringEdit) {
+  const { month, base, existing } = await loadContext(db);
+  requireRunningCharge(base.config, month, edit.chargeId);
+  return { month, existing, plan: planRemoveRecurring(base.config, edit.chargeId) };
+}
+
 /** Stores a dated save: updates the version starting next month while no month has opened using it, or creates it. */
 async function storeVersion(
   tx: HouseholdEditTx,
@@ -223,7 +257,8 @@ async function savePersonEdit(tx: HouseholdEditTx, edit: HouseholdPersonEdit): P
  * @param edit - The edit.
  * @returns The summary groups, whether Save is allowed and the errors per field.
  * @throws {ApiError} 409 `no_household` before first run; 404 `no_version` when no version covers next
- * month; 404 `no_person` for an unknown person or someone not in the version.
+ * month; 404 `no_person` for an unknown person or someone not in the version; 404 `no_charge` for a recurring
+ * charge not running next month.
  */
 export async function previewHouseholdEdit(db: HouseholdEditReadDb, edit: HouseholdEdit): Promise<HouseholdEditPreviewResponse> {
   if (edit.kind === "addPerson") {
@@ -255,6 +290,14 @@ export async function previewHouseholdEdit(db: HouseholdEditReadDb, edit: Househ
       amounts: plan.amounts,
     };
   }
+  if (edit.kind === "recurring") {
+    const { plan } = await loadRecurringPlan(db, edit);
+    return { groups: plan.groups, canSave: plan.canSave, errors: plan.errors };
+  }
+  if (edit.kind === "removeRecurring") {
+    const { plan } = await loadRemoveRecurringPlan(db, edit);
+    return { groups: [], canSave: plan.canSave, errors: plan.errors };
+  }
   const { plan } = await loadPlan(db, edit);
   return {
     groups: plan.groups,
@@ -268,7 +311,7 @@ export async function previewHouseholdEdit(db: HouseholdEditReadDb, edit: Househ
  * the `Person` row; dated values start next month, updating the version starting then while no month has
  * opened using it, or creating one from the version in effect. An edit that changes only the row stores no
  * version. Adding a person creates their row and adds them to that version; removing one takes them out of it.
- * A Landlord & rooms or Household split edit changes only that version.
+ * A Landlord & rooms, Household split or recurring charge edit changes only that version.
  *
  * @param db - The Prisma client, or a fake in tests.
  * @param edit - The edit.
@@ -284,6 +327,8 @@ export async function saveHouseholdEdit(db: HouseholdEditDb, edit: HouseholdEdit
       if (edit.kind === "removePerson") return saveRemovePerson(tx, edit);
       if (edit.kind === "home") return saveVersionPlan(tx, await loadHomePlan(tx, edit));
       if (edit.kind === "split") return saveVersionPlan(tx, await loadSplitPlan(tx, edit));
+      if (edit.kind === "recurring") return saveVersionPlan(tx, await loadRecurringPlan(tx, edit));
+      if (edit.kind === "removeRecurring") return saveVersionPlan(tx, await loadRemoveRecurringPlan(tx, edit));
       return savePersonEdit(tx, edit);
     });
   } catch (err) {

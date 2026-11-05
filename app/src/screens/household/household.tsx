@@ -1,20 +1,28 @@
 import { useRouter } from 'expo-router';
 import { useState } from 'react';
-import { RefreshControl, ScrollView, Text, View } from 'react-native';
-import { UserPlus } from 'lucide-react-native';
+import { RefreshControl, Text, View } from 'react-native';
 
-import { Alert, Button, PageHeader, Screen, SkeletonBlock } from '@/components';
+import { Alert, PageHeader, Screen, SkeletonBlock, SkeletonCard, SwipeTabs } from '@/components';
 import { useHousehold, usePullToRefresh } from '@/hooks';
 import type { HouseholdTarget } from '@splithouse/shared';
 import { HouseholdSkeleton } from './components/household-skeleton';
 import { LandlordCard } from './components/landlord-card';
 import { MonthSelect } from './components/month-select';
-import { PersonCard } from './components/person-card';
+import { PeopleSection } from './components/people-section';
+import { RecurringSection } from './components/recurring-section';
 import { SplitSection } from './components/split-section';
+import type { HouseholdTab } from './types';
+
+const TABS: readonly { label: string; value: HouseholdTab }[] = [
+  { label: 'Split', value: 'split' },
+  { label: 'People', value: 'people' },
+  { label: 'Recurring', value: 'recurring' },
+];
 
 /**
- * The Household tab: the setup for one month. Every string comes from `GET /api/household`; this
- * screen lays it out and switches the month. Picking a month redraws the skeleton until it arrives.
+ * The Household tab: the setup for one month. Every string from the server comes from `GET /api/household`; this
+ * screen lays it out and switches the month, and `SwipeTabs` holds the tabs, with the landlord card scrolling away
+ * above them. Picking a month redraws the skeleton until it arrives, and the tab stays as it was.
  * View, Edit, Add subtenant, the rent card and Edit splits open their screens.
  */
 export function Household() {
@@ -23,6 +31,7 @@ export function Household() {
   const { data, error, isPending, isPlaceholderData, refetch } = useHousehold(pickedMonth);
   const { refreshing, onRefresh } = usePullToRefresh(refetch);
   const loaded = isPlaceholderData ? undefined : data;
+  const loading = isPending || isPlaceholderData;
 
   const openTarget = (target: HouseholdTarget) => {
     if (target.kind === 'view-person') {
@@ -58,39 +67,37 @@ export function Household() {
           ) : null
         }
       />
-      <ScrollView
+      <SwipeTabs
+        tabs={TABS}
         refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} />}
-        contentContainerClassName="gap-4 px-4 pb-5 pt-1"
-      >
-        {isPending || isPlaceholderData ? <HouseholdSkeleton /> : null}
-        {error ? <Alert variant="danger" message={error.message} /> : null}
-        {loaded ? (
+        header={
           <>
-            <LandlordCard
-              label={loaded.landlord.label}
-              amount={loaded.landlord.amount}
-              stats={loaded.landlord.stats}
-              edit={loaded.landlord.edit}
-              onOpen={openTarget}
-            />
-            <SplitSection rows={loaded.splitRows} edit={loaded.editSplits} onOpen={openTarget} />
-            <View className="gap-2">
-              <Text accessibilityRole="header" className="px-1 font-manrope-bold text-label text-on-surface">
-                People
-              </Text>
-              {loaded.people.map((person) => (
-                <PersonCard key={person.personId} person={person} onOpen={openTarget} />
-              ))}
-            </View>
-            <Button
-              label={loaded.addPerson.label}
-              variant="outline"
-              icon={UserPlus}
-              onPress={() => openTarget(loaded.addPerson.target)}
-            />
+            {error ? <Alert variant="danger" message={error.message} /> : null}
+            {loading ? <SkeletonCard className="h-40 rounded-dialog" /> : null}
+            {loaded ? (
+              <LandlordCard
+                label={loaded.landlord.label}
+                amount={loaded.landlord.amount}
+                stats={loaded.landlord.stats}
+                edit={loaded.landlord.edit}
+                onOpen={openTarget}
+              />
+            ) : null}
           </>
-        ) : null}
-      </ScrollView>
+        }
+        renderTab={(tab) => (
+          <>
+            {loading ? <HouseholdSkeleton tab={tab} /> : null}
+            {loaded && tab === 'split' ? (
+              <SplitSection rows={loaded.splitRows} edit={loaded.editSplits} onOpen={openTarget} />
+            ) : null}
+            {loaded && tab === 'people' ? (
+              <PeopleSection people={loaded.people} add={loaded.addPerson} onOpen={openTarget} />
+            ) : null}
+            {loaded && tab === 'recurring' ? <RecurringSection recurring={loaded.recurring} /> : null}
+          </>
+        )}
+      />
     </Screen>
   );
 }

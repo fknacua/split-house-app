@@ -17,6 +17,8 @@ export const householdTargetSchema = z.discriminatedUnion('kind', [
   z.object({ kind: z.literal('edit-person'), personId: z.string() }),
   z.object({ kind: z.literal('view-person'), personId: z.string() }),
   z.object({ kind: z.literal('add-person') }),
+  z.object({ kind: z.literal('add-recurring') }),
+  z.object({ kind: z.literal('edit-recurring'), chargeId: z.string() }),
 ]);
 
 /** Where a Household button leads. The app navigates; it decides nothing. */
@@ -67,17 +69,28 @@ export const householdFactSchema = z.object({
 /** A label and value on a person's card. */
 export type HouseholdFact = z.infer<typeof householdFactSchema>;
 
-/** One person's card. The owner's card comes last and reads `You`. */
-export const householdPersonSchema = z.object({
-  personId: z.string(),
+/** A card on the People or Recurring tab: an avatar and name, facts, and buttons. */
+const householdCardSchema = z.object({
   /** e.g. `S`. */
   initial: z.string(),
+  /** e.g. `Sam`. */
   name: z.string(),
   /** The avatar's fill. */
   color: personColor,
   facts: z.array(householdFactSchema),
-  /** The buttons in the order drawn. Empty on the owner's card and for someone not in the household next month. */
+  /** The buttons in the order drawn. Empty when there is nothing to open. */
   actions: z.array(householdActionSchema),
+});
+
+/** A card on the People or Recurring tab: an avatar and name, facts, and buttons. */
+export type HouseholdCard = z.infer<typeof householdCardSchema>;
+
+/**
+ * One person's card. The owner's card comes last and reads `You`. `actions` is empty on the owner's card and for
+ * someone not in the household next month.
+ */
+export const householdPersonSchema = householdCardSchema.extend({
+  personId: z.string(),
 });
 
 /** One person's card. The owner's card comes last and reads `You`. */
@@ -117,6 +130,70 @@ export const householdSplitRowSchema = z.object({
 /** One row of "Household split": rent, utilities or aircon, across everyone. */
 export type HouseholdSplitRow = z.infer<typeof householdSplitRowSchema>;
 
+/**
+ * One charge's card on the Recurring tab, as it stands in the month shown: the payer's initial, color and name, and
+ * the charge's label, its amount with the due day and any end month as facts. `actions` is empty for a charge that has
+ * stopped by next month, since the sheet shows the latest saved values.
+ */
+export const householdRecurringRowSchema = householdCardSchema.extend({
+  chargeId: z.string(),
+});
+
+/** One charge's card on the Recurring tab, as it stands in the month shown. */
+export type HouseholdRecurringRow = z.infer<typeof householdRecurringRowSchema>;
+
+/** One charge in the add and edit sheet, with its latest saved values. */
+export const householdRecurringChargeSchema = z.object({
+  chargeId: z.string(),
+  label: z.string(),
+  amountCents: z.number().int(),
+  personId: z.string(),
+  /** The last month charged, or null when it has no end. */
+  endMonth: monthKey.nullable(),
+  /** The remove dialog's text. */
+  removeDialog: z.object({
+    /** e.g. `Remove Starhub?`. */
+    title: z.string(),
+    /** e.g. `Starhub stops from December 2026. Past months stay as they are.`. */
+    body: z.string(),
+  }),
+});
+
+/** One charge in the add and edit sheet, with its latest saved values. */
+export type HouseholdRecurringCharge = z.infer<typeof householdRecurringChargeSchema>;
+
+/** The Recurring tab and its sheet. */
+export const householdRecurringSchema = z.object({
+  /** `Recurring charges`. */
+  title: z.string(),
+  /** e.g. `Saved changes take effect from December 2026.` while the active month's charges differ from next month's; otherwise null. */
+  pendingNote: z.string().nullable(),
+  /** The charges running in the month shown. Empty shows `emptyText`. */
+  rows: z.array(householdRecurringRowSchema),
+  /** `No recurring charges`. */
+  emptyText: z.string(),
+  /** `Add charge`, beside the heading. */
+  add: householdActionSchema,
+  /** What the sheet reads. Every value is the latest saved one, whichever month is shown. */
+  sheet: z.object({
+    /** `Add recurring charge`. */
+    addTitle: z.string(),
+    /** `Edit recurring charge`. */
+    editTitle: z.string(),
+    /** The sheet's subtitle, e.g. `From December 2026`. */
+    datedTitle: z.string(),
+    /** Who a charge can be for: the primary tenant, then the tenants. Never the owner. */
+    people: z.array(z.object({ personId: z.string(), name: z.string() })),
+    /** The months End month can pick, as `YYYY-MM` keys, from next month on. */
+    endMonths: z.array(monthKey),
+    /** The charges still running next month. */
+    charges: z.array(householdRecurringChargeSchema),
+  }),
+});
+
+/** The Recurring tab and its sheet. */
+export type HouseholdRecurring = z.infer<typeof householdRecurringSchema>;
+
 /** `GET /api/household`: the Household screen for one month, ready to render. */
 export const householdViewResponseSchema = z.object({
   /** `YYYY-MM`. The month shown. */
@@ -139,6 +216,7 @@ export const householdViewResponseSchema = z.object({
   editSplits: householdActionSchema,
   people: z.array(householdPersonSchema),
   addPerson: householdActionSchema,
+  recurring: householdRecurringSchema,
 });
 
 /** `GET /api/household`: the Household screen for one month, ready to render. */
@@ -574,6 +652,34 @@ export const householdSplitEditSchema = z.object({
 /** An edit to the Household split, which always starts next month. */
 export type HouseholdSplitEdit = z.infer<typeof householdSplitEditSchema>;
 
+/**
+ * Adds or changes a recurring charge from next month, which the server works out. On a new charge, an empty required
+ * field only keeps Save disabled; on a saved one it is an error. The preview answers errors under `label`,
+ * `amountCents`, `personId` and `endMonth`.
+ */
+export const householdRecurringEditSchema = z.object({
+  kind: z.literal('recurring'),
+  /** The saved charge, or null for a new one. */
+  chargeId: z.string().min(1).nullable(),
+  label: z.string(),
+  amountCents: z.number().int().nullable(),
+  personId: z.string().min(1).nullable(),
+  /** The last month charged, or null for no end. */
+  endMonth: monthKey.nullable(),
+});
+
+/** Adds or changes a recurring charge from next month. */
+export type HouseholdRecurringEdit = z.infer<typeof householdRecurringEditSchema>;
+
+/** Stops a recurring charge from next month, which the server works out. Charges already created stay. */
+export const householdRemoveRecurringEditSchema = z.object({
+  kind: z.literal('removeRecurring'),
+  chargeId: z.string().min(1),
+});
+
+/** Stops a recurring charge from next month. */
+export type HouseholdRemoveRecurringEdit = z.infer<typeof householdRemoveRecurringEditSchema>;
+
 /** `POST /api/household/edits` and `.../preview` body: one typed edit. The app never sends a config. */
 export const householdEditSchema = z.discriminatedUnion('kind', [
   householdPersonEditSchema,
@@ -581,6 +687,8 @@ export const householdEditSchema = z.discriminatedUnion('kind', [
   householdRemovePersonEditSchema,
   householdHomeEditSchema,
   householdSplitEditSchema,
+  householdRecurringEditSchema,
+  householdRemoveRecurringEditSchema,
 ]);
 
 /** `POST /api/household/edits` and `.../preview` body: one typed edit. The app never sends a config. */

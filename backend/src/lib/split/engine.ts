@@ -182,8 +182,9 @@ export function buildMonthCharges(config: HouseholdConfig, month: string): Engin
       category: "RECURRING",
       label: recurring.label,
       amountCents: recurring.amountCents,
-      payViaPersonId: routeFor(person, "RECURRING"),
-      dueDate: dueDateKey(month, person.dueDays.RECURRING),
+      // A recurring charge goes the way the person's utilities go, so it has no route or day of its own.
+      payViaPersonId: routeFor(person, "UTILITIES"),
+      dueDate: dueDateKey(month, person.dueDays.UTILITIES),
     });
   }
 

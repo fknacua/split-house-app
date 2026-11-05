@@ -2,7 +2,6 @@ import {
   formatCents,
   formatDayOrdinal,
   formatMonthShortLabel,
-  type ChargeType,
   type HouseholdConfig,
   type HouseholdFact,
   type HouseholdMonthOption,
@@ -14,7 +13,9 @@ import {
 } from "@splithouse/shared";
 import { HOME_BADGES } from "@/lib/home/badges";
 import { amountText, countText, SHARE_SCALE } from "./amount-text";
+import { buildRecurringSection } from "./build-recurring-section";
 import { isRentInTotal, roomCount, roomOf, tenantRentCents, totalAirconUnits } from "./room-amounts";
+import { dueLabel } from "./route-via";
 import { remaindersOf, type Remainders } from "./split-remainders";
 
 /** What `buildHouseholdView` reads. */
@@ -27,6 +28,8 @@ export interface HouseholdViewInput {
   versionMonths: string[];
   /** The config in effect for `month`. */
   config: HouseholdConfig;
+  /** The config in effect next month: the latest saved values, which the recurring charges sheet edits. */
+  nextConfig: HouseholdConfig;
   /** Who is in the household next month. Edit and View show the latest saved values, so only they have the buttons. */
   editablePersonIds: ReadonlySet<string>;
   /** Everyone, for names and colors. */
@@ -49,20 +52,6 @@ function monthOptions(input: HouseholdViewInput): HouseholdMonthOption[] {
     label: formatMonthShortLabel(month),
     badge: month > input.activeMonth ? HOME_BADGES.upcoming : null,
   }));
-}
-
-/** The person this charge type goes via, or null when it is paid directly. */
-function viaId(person: PersonConfig, type: ChargeType): string | null {
-  const route = person.routes[type];
-  return route?.kind === "VIA" ? route.viaPersonId : null;
-}
-
-/** A fact label with the due day when one is set. Via someone, the day is that person's. */
-function dueLabel(config: HouseholdConfig, person: PersonConfig, type: ChargeType, label: string): string {
-  const via = viaId(person, type);
-  const payer = via ? config.people.find((p) => p.personId === via) : person;
-  const day = payer?.dueDays[type];
-  return day ? `${label} · due ${formatDayOrdinal(day)}` : label;
 }
 
 /** The facts on a primary tenant's or tenant's card: rent and utilities. */
@@ -214,5 +203,13 @@ export function buildHouseholdView(input: HouseholdViewInput): HouseholdViewResp
     editSplits: { label: "Edit splits", target: { kind: "edit-splits" } },
     people: personCards(input, remainders, lookup),
     addPerson: { label: "Add subtenant", target: { kind: "add-person" } },
+    recurring: buildRecurringSection({
+      month: input.month,
+      activeMonth: input.activeMonth,
+      config,
+      nextConfig: input.nextConfig,
+      names: lookup.names,
+      colors: lookup.colors,
+    }),
   };
 }

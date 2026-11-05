@@ -291,3 +291,27 @@ describe("Nov 2026 fixture totals", () => {
     expect(own + ownUtilities + samRoutedUtilities).toBe(190865);
   });
 });
+
+describe("recurring charges", () => {
+  const forPerson = (personId: string): HouseholdConfig => ({
+    ...NOV_2026_CONFIG,
+    recurring: [{ id: "c", label: "Parking", amountCents: 1000, personId }],
+  });
+  const recurringOf = (config: HouseholdConfig) => buildMonthCharges(config, MONTH).find((c) => c.category === "RECURRING");
+
+  it("follows the person's utilities due day", () => {
+    expect(recurringOf(forPerson(PERSON_IDS.jordan))).toMatchObject({ payViaPersonId: null, dueDate: "2026-11-04" });
+  });
+
+  it("follows the person's utilities route, not a RECURRING entry", () => {
+    expect(recurringOf(forPerson(PERSON_IDS.sam))?.payViaPersonId).toBe(PERSON_IDS.priya);
+  });
+
+  it("stops after its end month", () => {
+    const config: HouseholdConfig = {
+      ...NOV_2026_CONFIG,
+      recurring: [{ id: "c", label: "Parking", amountCents: 1000, personId: PERSON_IDS.jordan, endMonth: "2026-10" }],
+    };
+    expect(recurringOf(config)).toBeUndefined();
+  });
+});

@@ -3,27 +3,27 @@ import { Text, View } from 'react-native';
 
 import { Button, Card } from '@/components';
 import { PERSON_COLOR_BG } from '@/lib';
-import type { PersonCardProps } from '../types';
+import type { HouseholdCardProps } from '../types';
 import { PersonFact } from './person-fact';
 
-/** One person on Household: the colored initial and name, their facts, and the View and Edit buttons. */
-export function PersonCard({ person, onOpen }: PersonCardProps) {
+/** A card on the People or Recurring tab: the colored initial and name, the facts, and the buttons. */
+export function HouseholdCard({ card, onOpen }: HouseholdCardProps) {
   return (
     <Card padded={false} className="gap-2.5 py-3 pl-3.5 pr-3">
       <View className="flex-row items-center gap-3">
-        <View className={`h-10 w-10 items-center justify-center rounded-full ${PERSON_COLOR_BG[person.color]}`}>
-          <Text className="font-manrope-extrabold text-label text-on-person">{person.initial}</Text>
+        <View className={`h-10 w-10 items-center justify-center rounded-full ${PERSON_COLOR_BG[card.color]}`}>
+          <Text className="font-manrope-extrabold text-label text-on-person">{card.initial}</Text>
         </View>
-        <Text className="min-w-0 flex-1 font-manrope-bold text-label text-on-surface">{person.name}</Text>
+        <Text className="min-w-0 flex-1 font-manrope-bold text-label text-on-surface">{card.name}</Text>
       </View>
       <View className="flex-row flex-wrap gap-x-3 gap-y-2 pr-1">
-        {person.facts.map((fact) => (
+        {card.facts.map((fact) => (
           <PersonFact key={fact.label} fact={fact} />
         ))}
       </View>
-      {person.actions.length > 0 ? (
+      {card.actions.length > 0 ? (
         <View className="-mx-0.5 flex-row flex-wrap justify-end gap-2 border-t border-outline-variant pt-2">
-          {person.actions.map((action) => (
+          {card.actions.map((action) => (
             <Button
               key={action.label}
               label={action.label}

@@ -55,14 +55,16 @@ export async function getHouseholdView(db: HouseholdViewDb, requestedMonth?: str
 
   const nextMonth = addMonths(activeMonth, 1);
   const next = versions.find((v) => v.startsFromMonth <= nextMonth);
-  const nextPeople = next ? parseHouseholdConfig(next.schemaVersion, next.config).people : [];
+  const nextConfig = next ? parseHouseholdConfig(next.schemaVersion, next.config) : null;
+  const config = parseHouseholdConfig(version.schemaVersion, version.config);
 
   return buildHouseholdView({
     month,
     activeMonth,
-    editablePersonIds: new Set(nextPeople.map((p) => p.personId)),
+    editablePersonIds: new Set((nextConfig?.people ?? []).map((p) => p.personId)),
     versionMonths: versions.map((v) => v.startsFromMonth),
-    config: parseHouseholdConfig(version.schemaVersion, version.config),
+    config,
+    nextConfig: nextConfig ?? config,
     people,
   });
 }

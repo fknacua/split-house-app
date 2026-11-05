@@ -49,6 +49,8 @@ function Grabber() {
  * @param title - The sheet title.
  * @param subtitle - Optional one-line caption under the title, such as "Money you received for November".
  * @param cancelLabel - The text button under the action. Defaults to "Cancel".
+ * @param dangerAction - Replaces Cancel with a red text button, such as "Remove charge". The sheet still
+ *   closes by swiping down, tapping the scrim or the back gesture.
  * @param children - The body content, placed in a padded column that scrolls.
  * @param actionLabel - The main action's label, for example "Add charge". Leave it out for a sheet that
  *   acts on a tap in its body (Nudge about which charge?): then only Cancel shows.
@@ -66,6 +68,7 @@ export const AppSheet = forwardRef<
     title: string;
     subtitle?: string;
     cancelLabel?: string;
+    dangerAction?: { label: string; onPress: () => void };
     children: ReactNode;
     actionLabel?: string;
     onAction?: () => void;
@@ -81,6 +84,7 @@ export const AppSheet = forwardRef<
     title,
     subtitle,
     cancelLabel = 'Cancel',
+    dangerAction,
     children,
     actionLabel,
     onAction,
@@ -120,8 +124,10 @@ export const AppSheet = forwardRef<
       >
         {/* Not BottomSheetContent: it is absolute with no bottom edge, so it grows with its content
             (the footer ends up off-screen and the scroll view never gets a height), and it
-            registers the sheet as a plain view, which breaks scroll-versus-drag handling. */}
-        <View className="absolute inset-0">
+            registers the sheet as a plain view, which breaks scroll-versus-drag handling.
+            Not absolute either: the sheet adds bottom padding for over-drag below its visible edge,
+            and an absolute child fills that too, which pushes the footer's last button off-screen. */}
+        <View className="flex-1">
           <View className="px-4">
             <Text
               accessibilityRole="header"
@@ -152,12 +158,21 @@ export const AppSheet = forwardRef<
                 onPress={onAction}
               />
             ) : null}
-            <Button
-              variant="ghost"
-              label={cancelLabel}
-              disabled={saving}
-              onPress={() => sheetRef.current?.close()}
-            />
+            {dangerAction ? (
+              <Button
+                variant="ghost-danger"
+                label={dangerAction.label}
+                disabled={saving}
+                onPress={dangerAction.onPress}
+              />
+            ) : (
+              <Button
+                variant="ghost"
+                label={cancelLabel}
+                disabled={saving}
+                onPress={() => sheetRef.current?.close()}
+              />
+            )}
           </View>
         </View>
       </BottomSheetPortal>

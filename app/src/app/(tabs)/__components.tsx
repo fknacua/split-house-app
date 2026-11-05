@@ -53,6 +53,7 @@ import {
   SelectField,
   SkeletonBlock,
   SkeletonCard,
+  PageTabs,
   SkeletonPersonCards,
   SkeletonRowList,
   Spinner,
@@ -401,6 +402,7 @@ function PickersDemo() {
   });
   const [bareCheckbox, setBareCheckbox] = useState(true);
   const [splitPercent, setSplitPercent] = useState(50);
+  const [pageTab, setPageTab] = useState<'first' | 'second' | 'third'>('first');
   const [bareSwitch, setBareSwitch] = useState(false);
   const [bareSwitchRow, setBareSwitchRow] = useState(true);
   const switchOn = useWatch({ control, name: 'switchOn' });
@@ -548,6 +550,20 @@ function PickersDemo() {
       </TouchTargetCheck>
       <Checkbox label="Disabled, on" value onChange={() => {}} disabled />
       <Checkbox label="Disabled, off" value={false} onChange={() => {}} disabled />
+
+      <Text className="font-manrope-bold text-sheet-title text-on-surface">Page tabs</Text>
+      <TouchTargetCheck>
+        <PageTabs
+          value={pageTab}
+          onChange={setPageTab}
+          options={[
+            { label: 'First', value: 'first' },
+            { label: 'Second', value: 'second' },
+            { label: 'Third', value: 'third' },
+          ]}
+        />
+      </TouchTargetCheck>
+      <Text className="font-manrope-medium text-caption text-on-surface-variant">Live value: {pageTab}</Text>
 
       <Text className="font-manrope-bold text-sheet-title text-on-surface">Split slider</Text>
       <TouchTargetCheck>

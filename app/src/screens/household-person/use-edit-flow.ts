@@ -6,7 +6,7 @@ import { ApiRequestError } from '@/lib/api';
 import type { HouseholdEdit } from '@splithouse/shared';
 
 /** How long the form has to stay still before the server previews it, in milliseconds. */
-const PREVIEW_DELAY_MS = 500;
+export const PREVIEW_DELAY_MS = 500;
 
 /**
  * The message for a failed request, or null for an unreachable server, which the app's own prompt covers.

@@ -30,6 +30,7 @@ function input(overrides: Partial<HouseholdViewInput> = {}): HouseholdViewInput 
     activeMonth: "2026-11",
     versionMonths: ["2026-08", "2026-11"],
     config: NOV_2026_CONFIG,
+    nextConfig: NOV_2026_CONFIG,
     editablePersonIds: new Set([alex, priya, sam, jordan]),
     people: PEOPLE,
     ...overrides,
