@@ -52,7 +52,7 @@ export type HistoryListResponse = z.infer<typeof historyListResponseSchema>;
 export const historyPaymentSchema = z.object({
   /** e.g. `Rent - Tenant 1`. */
   title: z.string(),
-  /** e.g. `$950.00`. */
+  /** e.g. `$X,XXX.XX`. */
   amount: z.string(),
   /** Small lines under the title, e.g. `Sep Utils - Added 2 Oct` on a correction. Often empty. */
   details: z.array(z.string()),
@@ -65,7 +65,7 @@ export type HistoryPayment = z.infer<typeof historyPaymentSchema>;
 
 /** The month's utilities bill card. */
 export const historyBillSchema = z.object({
-  /** The bill's Current Charges, e.g. `$412.30`. */
+  /** The bill's Current Charges, e.g. `$X,XXX.XX`. */
   amount: z.string(),
   /** e.g. `Paid 16 Nov`. Null while the bill is not marked paid. */
   badge: badgeSchema.nullable(),
@@ -80,7 +80,7 @@ export const historyBannerSchema = z.object({
   tone: z.enum(['info', 'warning', 'danger', 'success']),
   /** e.g. `Corrected in Oct`. */
   title: z.string(),
-  /** e.g. `A $15.00 charge for Jordan was added in Oct.` */
+  /** e.g. `A $X,XXX.XX charge for Jordan was added in Oct.` */
   text: z.string(),
 });
 

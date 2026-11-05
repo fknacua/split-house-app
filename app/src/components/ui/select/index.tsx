@@ -32,11 +32,11 @@ import { Badge, BadgeText } from '../badge';
  * onto the item text and renders the label as its children).
  */
 export interface SelectItemExtras {
-  /** A second line under the label, e.g. `2 unpaid · $1,050.79`. */
+  /** A second line under the label, e.g. `2 unpaid · $X,XXX.XX`. */
   detail?: string;
   /** `danger` turns the detail line red, e.g. `Overdue since 1 Nov`. */
   detailTone?: 'default' | 'danger';
-  /** A bold figure at the right of the label, e.g. `$950.00`. */
+  /** A bold figure at the right of the label, e.g. `$X,XXX.XX`. */
   trailing?: string;
   /** A badge at the right of the label, e.g. `Upcoming`. */
   badge?: BadgeContent | null;

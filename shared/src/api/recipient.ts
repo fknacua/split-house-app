@@ -23,9 +23,9 @@ export const recipientPaidChargeSchema = z.object({
   chargeId: z.string(),
   /** e.g. `Rent`, or `Utilities · Sam` for a charge paid through this person. */
   title: z.string(),
-  /** What was received, e.g. `$1,611.35`. */
+  /** What was received, e.g. `$X,XXX.XX`. */
   received: z.string(),
-  /** e.g. `Paid 27 Nov`, or `Paid 27 Nov · $63.65 short` when it differs from what was asked. */
+  /** e.g. `Paid 27 Nov`, or `Paid 27 Nov · $X,XXX.XX short` when it differs from what was asked. */
   detail: z.string(),
 });
 
@@ -86,13 +86,13 @@ export type RecipientAction = z.infer<typeof recipientActionSchema>;
 export const recipientAmountCardSchema = z.object({
   /** e.g. `Nov 2026 total`, `Nov 2026 so far` before the bill is saved, or `Received 27 Nov` when a payment differs. */
   label: z.string(),
-  /** e.g. `$1,963.65`. */
+  /** e.g. `$X,XXX.XX`. */
   amount: z.string(),
   /** e.g. `Not sent`. */
   chip: badgeSchema,
   /**
    * e.g. `Due 7 Nov · includes Sam’s share`, `Overdue since 1 Nov`, `Paid in full 27 Nov` or
-   * `$63.65 short of $1,963.65`. Null when there is nothing to say.
+   * `$X,XXX.XX short of $X,XXX.XX`. Null when there is nothing to say.
    */
   statusLine: z
     .object({
@@ -111,7 +111,7 @@ export const recipientChargeRowSchema = z.object({
   chargeId: z.string(),
   /** e.g. `Rent`, or `Utilities · Sam` for a charge paid through this person. */
   title: z.string(),
-  /** e.g. `$950.00`. */
+  /** e.g. `$X,XXX.XX`. */
   amount: z.string(),
   /** e.g. `Due 1 Nov · nudged 2 Nov` or `Due 4 Nov · sent 2 Nov`. */
   detail: z.string(),
@@ -128,9 +128,9 @@ export type RecipientChargeRow = z.infer<typeof recipientChargeRowSchema>;
 export const recipientMessageLineSchema = z.object({
   /** e.g. `Utilities bill`, without the colon. */
   label: z.string(),
-  /** e.g. `$123.69`; a credit reads `-$5.00`. */
+  /** e.g. `$X,XXX.XX`; a credit reads `-$X,XXX.XX`. */
   amount: z.string(),
-  /** The working after the amount, e.g. `(total bill $412.30)` or `(1/6 units)`; null for other lines. */
+  /** The working after the amount, e.g. `(total bill $X,XXX.XX)` or `(1/6 units)`; null for other lines. */
   working: z.string().nullable(),
 });
 
@@ -139,7 +139,7 @@ export const recipientMessageSectionSchema = z.object({
   /** e.g. `Yours:`, `Sam’s (please collect):` or a custom title such as `Master Bedroom Share:`. Null for a lone own section. */
   title: z.string().nullable(),
   lines: z.array(recipientMessageLineSchema),
-  /** e.g. `$1,862.86`. Null when the section is untitled. */
+  /** e.g. `$X,XXX.XX`. Null when the section is untitled. */
   subtotal: z.string().nullable(),
 });
 
@@ -148,7 +148,7 @@ export type RecipientMessageSection = z.infer<typeof recipientMessageSectionSche
 
 /** One line of the template's text after the sections. */
 export const recipientMessageOutroLineSchema = z.object({
-  /** e.g. `Total: $1,963.65`; an empty string is a blank line. */
+  /** e.g. `Total: $X,XXX.XX`; an empty string is a blank line. */
   text: z.string(),
   /** True for the line holding the total (`{total}` in the template), which the preview stresses. */
   isTotal: z.boolean(),
@@ -167,7 +167,7 @@ export const recipientMessageSchema = z.object({
   intro: z.string(),
   /** Empty when the message has no lines, e.g. a nudge. */
   sections: z.array(recipientMessageSectionSchema),
-  /** The template's text after the sections, line by line, e.g. `Total: $1,963.65` then the due line. Empty without one. */
+  /** The template's text after the sections, line by line, e.g. `Total: $X,XXX.XX` then the due line. Empty without one. */
   outro: z.array(recipientMessageOutroLineSchema),
   /** The whole message as sent and copied (Copy as plain text), with `*bold*` section titles and line breaks. */
   text: z.string(),
@@ -185,7 +185,7 @@ export const recipientResponseSchema = z.object({
   header: z.object({
     /** e.g. `Priya`. */
     name: z.string(),
-    /** e.g. `Master room · pays you directly`, or `Own room · utilities and aircon via Priya`. */
+    /** How they pay, e.g. `Pays you directly`, or `Utilities and aircon via Priya`. */
     sub: z.string(),
   }),
   amountCard: recipientAmountCardSchema,

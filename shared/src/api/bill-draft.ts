@@ -1,13 +1,13 @@
 import { z } from 'zod';
 import { cents, dateKey, monthKey, positiveCents, requiredText } from '../schemas/primitives';
 
-/** One utility line on a bill, e.g. `{ label: "Electricity", cents: 21000 }`. `cents` is null while a line has no amount. */
+/** One utility line on a bill, e.g. `{ label: "Electricity", cents: XXXXX }`. `cents` is null while a line has no amount. */
 export const billLineSchema = z.object({
   label: z.string(),
   cents: cents.nullable(),
 });
 
-/** One utility line on a bill, e.g. `{ label: "Electricity", cents: 21000 }`. `cents` is null while a line has no amount. */
+/** One utility line on a bill, e.g. `{ label: "Electricity", cents: XXXXX }`. `cents` is null while a line has no amount. */
 export type BillLine = z.infer<typeof billLineSchema>;
 
 /** The values on the Review bill form, as read from the PDF. Every field is null when the bill did not have it. */
@@ -77,7 +77,7 @@ export type BillBlocker = z.infer<typeof billBlockerSchema>;
 export const billLinesNoteSchema = z.object({
   /** Bold first line, e.g. `2 lines not found` or `Lines don’t add up to the Subtotal`. */
   title: z.string(),
-  /** Second line, display-ready, e.g. `Lines total $335.50, which is $14.50 less than the Subtotal. …`. */
+  /** Second line, display-ready, e.g. `Lines total $X,XXX.XX, which is $X,XXX.XX less than the Subtotal. …`. */
   message: z.string(),
 });
 

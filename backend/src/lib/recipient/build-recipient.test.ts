@@ -45,7 +45,7 @@ function charge(
   };
 }
 
-// November from the Data Model fixtures, with the $412.30 bill saved: what each payer's query returns.
+// November from the Data Model fixtures, with the $X,XXX.XX bill saved: what each payer's query returns.
 const PRIYA_CHARGES = [
   charge(priya, "RENT", "Rent", 167500, "2026-11-07"),
   charge(priya, "UTILITIES", "Utilities", 12369, "2026-11-07"),
@@ -81,7 +81,7 @@ describe("buildRecipient: notSent", () => {
     const r = buildRecipient(input(priya, PRIYA_CHARGES));
 
     expect(() => recipientResponseSchema.parse(r)).not.toThrow();
-    expect(r.header).toEqual({ name: "Priya", sub: "Master room · pays you directly" });
+    expect(r.header).toEqual({ name: "Priya", sub: "Pays you directly" });
     expect(r.amountCard).toEqual({
       label: "Nov 2026 total",
       amount: "$1,963.65",
@@ -137,7 +137,7 @@ describe("buildRecipient: notSent", () => {
   it("gives a tenant paying alone one untitled section and their earliest due date", () => {
     const r = buildRecipient(input(jordan, JORDAN_CHARGES));
 
-    expect(r.header.sub).toBe("Own room · pays you directly");
+    expect(r.header.sub).toBe("Pays you directly");
     expect(r.amountCard).toMatchObject({
       amount: "$1,050.79",
       statusLine: { text: "Due 1 Nov", tone: "default" },
@@ -155,7 +155,7 @@ describe("buildRecipient: notSent", () => {
   it("builds a page for someone paying only rent directly", () => {
     const r = buildRecipient(input(sam, SAM_CHARGES));
 
-    expect(r.header.sub).toBe("Own room · utilities and aircon via Priya");
+    expect(r.header.sub).toBe("Utilities and aircon via Priya");
     expect(r.amountCard).toMatchObject({ amount: "$950.00", statusLine: { text: "Due 28 Nov", tone: "default" } });
     expect(messageOf(r).sections).toEqual([
       { title: null, lines: [{ label: "Rent", amount: "$950.00", working: null }], subtotal: null },

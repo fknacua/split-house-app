@@ -58,9 +58,12 @@ describe("buildHouseholdView", () => {
     expect(() => householdViewResponseSchema.parse(buildHouseholdView(input()))).not.toThrow();
   });
 
-  it("shows the landlord card's stats, without rent or rooms until 9.9", () => {
+  it("shows the landlord rent, its due day and the stats on the card", () => {
     expect(buildHouseholdView(input()).landlord).toEqual({
+      label: "Landlord rent · due 1st of the month",
+      amount: "$4,300.00",
       stats: [
+        { value: "3", label: "rooms" },
         { value: "6", label: "aircon units" },
         { value: "5", label: "utility shares" },
       ],
@@ -77,7 +80,6 @@ describe("buildHouseholdView", () => {
 
   it("builds the primary tenant's card from the split", () => {
     const priyaCard = card(buildHouseholdView(input()), priya);
-    expect(priyaCard.sub).toBe("Master room · pays you directly");
     expect(priyaCard.facts).toEqual([
       { label: "Rent · due 7th", value: "$1,675.00" },
       { label: "Utilities · due 7th", value: "1.5 shares" },
@@ -88,9 +90,9 @@ describe("buildHouseholdView", () => {
     ]);
   });
 
-  it("uses the Via person's due day and leaves the route to the sub line", () => {
+  it("uses the Via person's due day, with no sub line", () => {
     const samCard = card(buildHouseholdView(input()), sam);
-    expect(samCard.sub).toBe("Own room · utilities and aircon via Priya");
+    expect(samCard).not.toHaveProperty("sub");
     expect(samCard.facts).toEqual([
       { label: "Rent · due 28th", value: "$950.00" },
       { label: "Utilities · due 7th", value: "1 share" },
@@ -112,7 +114,6 @@ describe("buildHouseholdView", () => {
 
   it("builds the owner's card, with no buttons", () => {
     const you = card(buildHouseholdView(input()), alex);
-    expect(you.sub).toBe("Master room · pays landlord & utilities");
     expect(you.facts).toEqual([
       { label: "Rent share", value: "$1,675.00" },
       { label: "Utilities", value: "1.5 shares" },
@@ -123,15 +124,15 @@ describe("buildHouseholdView", () => {
   it("writes the split rows across everyone, the owner first", () => {
     const view = buildHouseholdView(input());
     expect(view.splitRows.map((r) => [r.label, r.detail])).toEqual([
-      ["Rent", "$5,250.00 across the home"],
+      ["Rent", "$4,300.00"],
       ["Utilities", "5 shares"],
       ["Aircon", "6 units"],
     ]);
     expect(segmentsOf(view, "Rent")).toEqual([
-      ["You", "$1,675.00", 31.9, "TEAL"],
-      ["Priya", "$1,675.00", 31.9, "BLUE"],
-      ["Sam", "$950.00", 18.1, "ORANGE"],
-      ["Jordan", "$950.00", 18.1, "GREEN"],
+      ["You", "$1,675.00", 39, "TEAL"],
+      ["Priya", "$1,675.00", 39, "BLUE"],
+      ["Sam", "$950.00", 22.1, "ORANGE"],
+      ["Jordan", "$950.00", 0, "GREEN"],
     ]);
     expect(segmentsOf(view, "Utilities")).toEqual([
       ["You", "1.5", 30, "TEAL"],
@@ -146,6 +147,40 @@ describe("buildHouseholdView", () => {
       ["Jordan", "1", 16.7, "GREEN"],
     ]);
     expect(view.splitRows[1].accessibilityLabel).toBe("Utilities: You 1.5, Priya 1.5, Sam 1, Jordan 1");
+  });
+
+  it("leaves a tenant not in the total out of the Rent bar and total, and only the Rent row", () => {
+    const view = buildHouseholdView(input());
+    const [rentRow, utilitiesRow, airconRow] = view.splitRows;
+    expect(rentRow.note).toBe("Not in total: Jordan");
+    expect(rentRow.segments.map((s) => [s.name, s.inTotal])).toEqual([
+      ["You", true],
+      ["Priya", true],
+      ["Sam", true],
+      ["Jordan", false],
+    ]);
+    expect(rentRow.accessibilityLabel).toBe(
+      "Rent: You $1,675.00, Priya $1,675.00, Sam $950.00, Jordan $950.00 (not in total)",
+    );
+    expect(utilitiesRow.note).toBeNull();
+    expect(airconRow.note).toBeNull();
+    expect(utilitiesRow.segments.every((s) => s.inTotal)).toBe(true);
+    expect(airconRow.segments.every((s) => s.inTotal)).toBe(true);
+  });
+
+  it("has no note when every tenant is in the total, and the row still adds up to the landlord rent", () => {
+    const config = {
+      ...NOV_2026_CONFIG,
+      rooms: NOV_2026_CONFIG.rooms.map((r) => (r.id === ROOM_IDS.room3 ? { ...r, includeInTotal: true } : r)),
+    };
+    const [rentRow] = buildHouseholdView(input({ config })).splitRows;
+    expect(rentRow.note).toBeNull();
+    expect(rentRow.detail).toBe("$4,300.00");
+    expect(rentRow.segments.map((s) => s.value)).toEqual(["$1,200.00", "$1,200.00", "$950.00", "$950.00"]);
+  });
+
+  it("points Edit splits at the split page", () => {
+    expect(buildHouseholdView(input()).editSplits).toEqual({ label: "Edit splits", target: { kind: "edit-splits" } });
   });
 
   it("follows an uneven split, on the rows and the cards", () => {
@@ -205,7 +240,7 @@ describe("buildHouseholdView", () => {
       ["Priya", "2.5"],
       ["Jordan", "1"],
     ]);
-    expect(view.landlord.stats[0]).toEqual({ value: "6", label: "aircon units" });
+    expect(view.landlord.stats[1]).toEqual({ value: "6", label: "aircon units" });
   });
 
   it("lists only the owner and primary tenant when there are no tenants", () => {

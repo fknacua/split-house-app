@@ -106,7 +106,7 @@ export function buildPaymentOptions(input: PaymentOptionsInput): PaymentOptionsR
   return { month: input.month, people: people.map((p) => p.person) };
 }
 
-/** `2 unpaid · $1,050.79`, or `1 upcoming · $950.00` while nothing is overdue or due within 7 days. */
+/** `2 unpaid · $X,XXX.XX`, or `1 upcoming · $X,XXX.XX` while nothing is overdue or due within 7 days. */
 function detailLine(options: Option[], today: string): string {
   const total = options.reduce((sum, o) => sum + o.amountCents, 0);
   const soon = options.some((o) => o.dueDate !== null && daysUntil(o.dueDate, today) <= UPCOMING_AFTER_DAYS);

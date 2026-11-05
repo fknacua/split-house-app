@@ -15,8 +15,15 @@ import {
 import { HOME_BADGES } from "@/lib/home/badges";
 import { splitRemainderByBps } from "@/lib/split/engine";
 import { amountText, SHARE_SCALE } from "./amount-text";
-import { masterRentCents, roomOf, sharedAirconUnits, tenantRentCents, totalAirconUnits } from "./room-amounts";
-import { personSubLine } from "./sub-line";
+import {
+  isRentInTotal,
+  masterRentCents,
+  roomCount,
+  roomOf,
+  sharedAirconUnits,
+  tenantRentCents,
+  totalAirconUnits,
+} from "./room-amounts";
 
 /** What `buildHouseholdView` reads. */
 export interface HouseholdViewInput {
@@ -104,7 +111,7 @@ function dueLabel(config: HouseholdConfig, person: PersonConfig, type: ChargeTyp
   return day ? `${label} · due ${formatDayOrdinal(day)}` : label;
 }
 
-/** The facts on a primary tenant's or tenant's card: rent and utilities. The sub line says how they pay. */
+/** The facts on a primary tenant's or tenant's card: rent and utilities. */
 function personFacts(config: HouseholdConfig, person: PersonConfig, remainders: Remainders): HouseholdFact[] {
   const isPrimary = person.role === "PRIMARY";
   const rentCents = isPrimary ? remainders.rent.primary : tenantRentCents(config, person.personId);
@@ -129,7 +136,6 @@ function personCards(input: HouseholdViewInput, remainders: Remainders, { names,
       initial: (Array.from(name.trim())[0] ?? "?").toUpperCase(),
       name,
       color: colors.get(person.personId) ?? FALLBACK_COLOR,
-      sub: personSubLine(config, person.personId, names),
       facts: personFacts(config, person, remainders),
       actions: input.editablePersonIds.has(person.personId)
         ? [
@@ -148,7 +154,6 @@ function personCards(input: HouseholdViewInput, remainders: Remainders, { names,
       initial: "Y",
       name: "You",
       color: colors.get(owner.personId) ?? FALLBACK_COLOR,
-      sub: personSubLine(config, owner.personId, names),
       facts: [
         { label: "Rent share", value: formatCents(remainders.rent.owner) },
         { label: "Utilities", value: countText(remainders.shares.owner, "share") },
@@ -169,34 +174,48 @@ function splitRows(config: HouseholdConfig, remainders: Remainders, { names, col
     tenantAmount: (tenant: PersonConfig) => number,
     format: (amount: number) => string,
     detail: (total: number) => string,
+    tenantInTotal: (tenant: PersonConfig) => boolean = () => true,
   ): HouseholdSplitRow => {
     const parts = [
-      { person: owner, name: "You", amount: split.owner },
-      ...(primary ? [{ person: primary, name: names.get(primary.personId) ?? "Someone", amount: split.primary }] : []),
+      { person: owner, name: "You", amount: split.owner, inTotal: true },
+      ...(primary
+        ? [{ person: primary, name: names.get(primary.personId) ?? "Someone", amount: split.primary, inTotal: true }]
+        : []),
       ...tenants.map((tenant) => ({
         person: tenant,
         name: names.get(tenant.personId) ?? "Someone",
         amount: tenantAmount(tenant),
+        inTotal: tenantInTotal(tenant),
       })),
     ];
-    const total = parts.reduce((sum, part) => sum + part.amount, 0);
-    const segments = parts.map(({ person, name, amount }) => ({
+    const total = parts.reduce((sum, part) => (part.inTotal ? sum + part.amount : sum), 0);
+    const segments = parts.map(({ person, name, amount, inTotal }) => ({
       personId: person.personId,
       name,
       value: format(amount),
-      percent: total > 0 ? Math.round((amount / total) * 1000) / 10 : 0,
+      percent: inTotal && total > 0 ? Math.round((amount / total) * 1000) / 10 : 0,
       color: colors.get(person.personId) ?? FALLBACK_COLOR,
+      inTotal,
     }));
+    const outOfTotal = segments.filter((s) => !s.inTotal).map((s) => s.name);
     return {
       label,
       detail: detail(total),
       segments,
-      accessibilityLabel: `${label}: ${segments.map((s) => `${s.name} ${s.value}`).join(", ")}`,
+      note: outOfTotal.length > 0 ? `Not in total: ${outOfTotal.join(", ")}` : null,
+      accessibilityLabel: `${label}: ${segments.map((s) => `${s.name} ${s.value}${s.inTotal ? "" : " (not in total)"}`).join(", ")}`,
     };
   };
 
   return [
-    row("Rent", rent, (t) => tenantRentCents(config, t.personId), formatCents, (total) => `${formatCents(total)} across the home`),
+    row(
+      "Rent",
+      rent,
+      (t) => tenantRentCents(config, t.personId),
+      formatCents,
+      formatCents,
+      (t) => isRentInTotal(config, t.personId),
+    ),
     row("Utilities", shares, (t) => t.utilityShares, amountText, (total) => countText(total, "share")),
     row("Aircon", units, (t) => roomOf(config, t.personId).airconUnits * SHARE_SCALE, amountText, (total) => countText(total, "unit")),
   ];
@@ -204,8 +223,7 @@ function splitRows(config: HouseholdConfig, remainders: Remainders, { names, col
 
 /**
  * The Household screen for one month, display-ready. Reads the config only: no bill exists for a
- * future month, so utilities and aircon show as shares and units, never as money. The card keeps
- * its two stats until the landlord's rent and rooms move onto it (9.14).
+ * future month, so utilities and aircon show as shares and units, never as money.
  *
  * @param input - The month, the config in effect for it, the people and the version months.
  * @returns The response for `GET /api/household`.
@@ -217,7 +235,8 @@ export function buildHouseholdView(input: HouseholdViewInput): HouseholdViewResp
     colors: new Map(input.people.map((p) => [p.id, p.color])),
   };
   const remainders = remaindersOf(config);
-  const { utilities } = config.categories;
+  const { rent, utilities } = config.categories;
+  const rooms = roomCount(config);
   const airconTotal = totalAirconUnits(config);
 
   return {
@@ -225,7 +244,10 @@ export function buildHouseholdView(input: HouseholdViewInput): HouseholdViewResp
     monthLabel: formatMonthShortLabel(input.month),
     monthOptions: monthOptions(input),
     landlord: {
+      label: `Landlord rent · due ${formatDayOrdinal(rent.landlordDueDay)} of the month`,
+      amount: formatCents(rent.landlordRentCents),
       stats: [
+        { value: String(rooms), label: rooms === 1 ? "room" : "rooms" },
         { value: String(airconTotal), label: airconTotal === 1 ? "aircon unit" : "aircon units" },
         {
           value: amountText(utilities.totalShares),
@@ -235,6 +257,7 @@ export function buildHouseholdView(input: HouseholdViewInput): HouseholdViewResp
       edit: { label: "Edit", target: { kind: "edit-home" } },
     },
     splitRows: splitRows(config, remainders, lookup),
+    editSplits: { label: "Edit splits", target: { kind: "edit-splits" } },
     people: personCards(input, remainders, lookup),
     addPerson: { label: "Add subtenant", target: { kind: "add-person" } },
   };

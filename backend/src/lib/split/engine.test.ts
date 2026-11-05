@@ -24,7 +24,7 @@ describe("splitByShares / splitByUnits", () => {
   });
 
   it("rounds a non-exact unit split half up", () => {
-    // 11000 / 6 = 1833.33 per unit.
+    // Not a whole number of cents per unit.
     const result = splitByUnits(11000, 6, [
       { personId: PERSON_IDS.sam, units: 1 },
       { personId: PERSON_IDS.jordan, units: 1 },

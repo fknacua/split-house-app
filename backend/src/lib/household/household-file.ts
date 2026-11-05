@@ -44,7 +44,7 @@ type RawPerson = Record<string, unknown> & { name?: unknown; whatsappE164?: unkn
  *   "startsFromMonth": "2026-11",
  *   "rooms": [
  *     { "id": "room-master", "roomType": "MASTER", "name": "Master room", "airconUnits": 1 },
- *     { "id": "room-2", "roomType": "TENANT", "name": "Room 2", "airconUnits": 1, "rentCents": 95000, "includeInTotal": true },
+ *     { "id": "room-2", "roomType": "TENANT", "name": "Room 2", "airconUnits": 1, "rentCents": XXXXXX, "includeInTotal": true },
  *     { "id": "room-living", "roomType": "COMMON", "name": "Living room", "airconUnits": 2 }
  *   ],
  *   "people": [
@@ -52,7 +52,7 @@ type RawPerson = Record<string, unknown> & { name?: unknown; whatsappE164?: unkn
  *     { "personId": "person-sam", "name": "Sam", "whatsappE164": "+6581234567", "role": "TENANT", "roomId": "room-2", "utilityShares": 1000 }
  *   ],
  *   "categories": {
- *     "rent": { "landlordRentCents": 430000, "landlordDueDay": 1, "ownerBps": 10000, "primaryBps": 0 },
+ *     "rent": { "landlordRentCents": XXXXXX, "landlordDueDay": 1, "ownerBps": 10000, "primaryBps": 0 },
  *     "utilities": { "totalShares": 5000, "ownerBps": 10000, "primaryBps": 0 },
  *     "aircon": { "ownerBps": 10000, "primaryBps": 0 }
  *   },

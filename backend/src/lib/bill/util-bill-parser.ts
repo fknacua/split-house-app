@@ -22,7 +22,7 @@ function findDateAfterLabel(text: string, label: string): string | null {
 }
 
 /**
- * Matches the bill's own sentence, e.g. `Current Charges due on 16 Oct 2026 (Fri) $412.30`,
+ * Matches the bill's own sentence, e.g. `Current Charges due on 16 Oct 2026 (Fri) $X,XXX.XX`,
  * which gives the amount and the due date together. `findAmountAfterLabel` alone can't read
  * this: the due date sits between the label and the `$`, which it treats as a non-match.
  */
@@ -79,7 +79,7 @@ function findLines(text: string): ParsedBillLine[] {
 
 /**
  * The amount at the end of the breakdown table row that starts with `label` (a regex source), e.g.
- * `Subtotal 350.00 350.00`: the table's last column is the row's total. The row has to start the
+ * `Subtotal X,XXX.XX X,XXX.XX`: the table's last column is the row's total. The row has to start the
  * line and end in an amount, so the same words elsewhere (the page 1 heading that has its amount
  * on the next line, a footnote) are not read. Amounts in this table have no `$`.
  */

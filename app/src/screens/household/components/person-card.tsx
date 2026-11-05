@@ -6,7 +6,7 @@ import { PERSON_COLOR_BG } from '@/lib';
 import type { PersonCardProps } from '../types';
 import { PersonFact } from './person-fact';
 
-/** One person on Household: the colored initial, name and sub line, their facts, and the View and Edit buttons. */
+/** One person on Household: the colored initial and name, their facts, and the View and Edit buttons. */
 export function PersonCard({ person, onOpen }: PersonCardProps) {
   return (
     <Card padded={false} className="gap-2.5 py-3 pl-3.5 pr-3">
@@ -14,10 +14,7 @@ export function PersonCard({ person, onOpen }: PersonCardProps) {
         <View className={`h-10 w-10 items-center justify-center rounded-full ${PERSON_COLOR_BG[person.color]}`}>
           <Text className="font-manrope-extrabold text-label text-on-person">{person.initial}</Text>
         </View>
-        <View className="min-w-0 flex-1">
-          <Text className="font-manrope-bold text-label text-on-surface">{person.name}</Text>
-          <Text className="font-manrope-semibold text-caption text-on-surface-variant">{person.sub}</Text>
-        </View>
+        <Text className="min-w-0 flex-1 font-manrope-bold text-label text-on-surface">{person.name}</Text>
       </View>
       <View className="flex-row flex-wrap gap-x-3 gap-y-2 pr-1">
         {person.facts.map((fact) => (

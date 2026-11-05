@@ -38,7 +38,7 @@ export interface HomeStepsProps {
 export interface HomeTileProps {
   /** Small line above the value, e.g. `You’re fronting`. */
   label: string;
-  /** The figure, e.g. `$3,602.50`. */
+  /** The figure, e.g. `$X,XXX.XX`. */
   value: string;
 }
 

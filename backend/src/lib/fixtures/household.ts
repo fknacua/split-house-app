@@ -136,7 +136,7 @@ export const NOV_2026_CONFIG: HouseholdConfig = {
   },
 };
 
-// An upcoming version no month has opened: as Nov 2026, with Jordan's rent up to $1,000.00.
+// An upcoming version no month has opened: as Nov 2026, with Jordan's rent up to $X,XXX.XX.
 export const JAN_2027_CONFIG: HouseholdConfig = {
   ...NOV_2026_CONFIG,
   rooms: NOV_2026_CONFIG.rooms.map((room) =>

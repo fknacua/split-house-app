@@ -37,9 +37,9 @@ export interface BreakdownLine {
   /** e.g. `Utilities bill`, without the colon. */
   label: string;
   amountCents: number;
-  /** e.g. `$123.69`; a credit reads `-$5.00`. */
+  /** e.g. `$X,XXX.XX`; a credit reads `-$X,XXX.XX`. */
   amount: string;
-  /** The working after the amount, e.g. `(total bill $412.30)` or `(1/6 units)`; null for other lines. */
+  /** The working after the amount, e.g. `(total bill $X,XXX.XX)` or `(1/6 units)`; null for other lines. */
   working: string | null;
 }
 
@@ -50,7 +50,7 @@ export interface BreakdownSection {
   title: string | null;
   lines: BreakdownLine[];
   subtotalCents: number;
-  /** e.g. `$1,862.86`; null when the section is untitled. */
+  /** e.g. `$X,XXX.XX`; null when the section is untitled. */
   subtotal: string | null;
 }
 
@@ -87,7 +87,7 @@ function airconUnitsOf(config: HouseholdConfig, personId: string): number | null
 }
 
 /**
- * The working shown after a line's amount: `(total bill $412.30)` on a utilities line once the bill
+ * The working shown after a line's amount: `(total bill $X,XXX.XX)` on a utilities line once the bill
  * is saved, `(1/6 units)` on an aircon line; null for other lines and earlier months' charges.
  */
 function working(input: BreakdownInput, charge: BreakdownCharge): string | null {

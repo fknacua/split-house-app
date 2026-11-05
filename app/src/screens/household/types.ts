@@ -11,6 +11,10 @@ import type {
 
 /** Props for {@link LandlordCard}. */
 export interface LandlordCardProps {
+  /** The line above the amount, e.g. `Landlord rent · due 1st of the month`. */
+  label: string;
+  /** The landlord rent, e.g. `$X,XXX.XX`. */
+  amount: string;
   /** The stat tiles. */
   stats: HouseholdStat[];
   /** The Edit badge on the card. */
@@ -37,7 +41,7 @@ export interface MonthSelectProps {
 
 /** Props for {@link PersonCard}. */
 export interface PersonCardProps {
-  /** The initial, color, name, sub line, facts and buttons. */
+  /** The initial, color, name, facts and buttons. */
   person: HouseholdPerson;
   /** Opens where a button leads. */
   onOpen: (target: HouseholdTarget) => void;
@@ -53,11 +57,15 @@ export interface PersonFactProps {
 export interface SplitSectionProps {
   /** Rent, utilities and aircon. */
   rows: HouseholdSplitRow[];
+  /** The heading's Edit splits button. */
+  edit: HouseholdAction;
+  /** Opens where the button leads. */
+  onOpen: (target: HouseholdTarget) => void;
 }
 
 /** Props for {@link SplitRow}. */
 export interface SplitRowProps {
-  /** The label, total, bar segments and legend. */
+  /** The label, total, bar segments, legend and note. */
   row: HouseholdSplitRow;
   /** Draws the rule above the row. False for the first row of the card. */
   separated: boolean;
@@ -73,7 +81,7 @@ export interface PersonSplitBarProps {
 
 /** Props for {@link SplitLegendItem}. */
 export interface SplitLegendItemProps {
-  /** The person's color, name and amount. */
+  /** The person's color, name, amount and whether they are in the total. */
   segment: HouseholdSplitSegment;
 }
 

@@ -98,7 +98,7 @@ export function SkeletonRowList({ count = 5 }: { count?: number }) {
 }
 
 /**
- * A stack of person-style cards: avatar and two text lines, a two-column grid of label and
+ * A stack of person-style cards: avatar and a name, a two-column grid of label and
  * value pairs, and a trailing action pill (Household people).
  *
  * @param count - How many cards to draw. Defaults to 3.
@@ -114,10 +114,7 @@ export function SkeletonPersonCards({ count = 3 }: { count?: number }) {
         <View key={i} className="gap-2.5 rounded-card bg-surface py-3 pl-3.5 pr-3">
           <View className="flex-row items-center gap-3">
             <SkeletonBlock className="h-10 w-10 rounded-full" />
-            <View className="flex-1 gap-1.5">
-              <SkeletonBlock className="h-3.5 w-24" />
-              <SkeletonBlock className="h-3 w-40" />
-            </View>
+            <SkeletonBlock className="h-3.5 w-24" />
           </View>
           <View className="flex-row flex-wrap gap-x-3 gap-y-2">
             {Array.from({ length: 2 }).map((__, j) => (

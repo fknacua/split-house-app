@@ -3,19 +3,19 @@ import { dateKey, monthKey, positiveCents } from '../schemas/primitives';
 import { badgeSchema } from './history';
 import { homeTargetSchema } from './home';
 
-/** One utility line on the bill card, e.g. `Electricity` and `$268.45`. */
+/** One utility line on the bill card, e.g. `Electricity` and `$X,XXX.XX`. */
 export const billViewLineSchema = z.object({
   label: z.string(),
-  /** e.g. `$268.45`, or `—` for a line saved with no amount. */
+  /** e.g. `$X,XXX.XX`, or `—` for a line saved with no amount. */
   amount: z.string(),
 });
 
-/** One utility line on the bill card, e.g. `Electricity` and `$268.45`. */
+/** One utility line on the bill card, e.g. `Electricity` and `$X,XXX.XX`. */
 export type BillViewLine = z.infer<typeof billViewLineSchema>;
 
 /** The top card: Current Charges, the due or paid badge and the bill's lines. */
 export const billViewHeroSchema = z.object({
-  /** Current Charges, e.g. `$412.30`. */
+  /** Current Charges, e.g. `$X,XXX.XX`. */
   amount: z.string(),
   /** e.g. `Due in 12 days`, `Overdue 2 days` or `Paid 16 Nov`. */
   badge: badgeSchema,
@@ -34,7 +34,7 @@ export const billViewPersonSchema = z.object({
   name: z.string(),
   /** e.g. `1.5 shares` or `1 share`. */
   shares: z.string(),
-  /** e.g. `$123.69`. */
+  /** e.g. `$X,XXX.XX`. */
   amount: z.string(),
   /** e.g. `Covered`, `Paid 5 Nov`, `Not sent`, `Overdue 2 days` or `Waiting`. */
   badge: badgeSchema,
@@ -47,7 +47,7 @@ export type BillViewPerson = z.infer<typeof billViewPersonSchema>;
 export const billViewCollectionSchema = z.object({
   /** `Collected so far`, or `Fully collected` once all of it is covered. */
   title: z.string(),
-  /** e.g. `$123.69 of $412.30`. */
+  /** e.g. `$X,XXX.XX of $X,XXX.XX`. */
   note: z.string(),
   /** 0 to 100, for the progress bar. */
   percent: z.number().min(0).max(100),
@@ -90,7 +90,7 @@ export type BillViewAction = z.infer<typeof billViewActionSchema>;
 export const billPaySheetSchema = z.object({
   /** e.g. `Utilities bill · November`. */
   subtitle: z.string(),
-  /** Current Charges, e.g. `$412.30`. */
+  /** Current Charges, e.g. `$X,XXX.XX`. */
   currentCharges: z.string(),
   /** The due date with no year, e.g. `16 Nov`. Null when none is known. */
   due: z.string().nullable(),
@@ -100,7 +100,7 @@ export const billPaySheetSchema = z.object({
   note: z.object({
     /** `success` once all of it is collected, otherwise `warning`. Same names as the app's `Alert` variants. */
     tone: z.enum(['success', 'warning']),
-    /** e.g. `You’ve collected $123.69 so far. You’re covering $288.61 until the others pay.` */
+    /** e.g. `You’ve collected $X,XXX.XX so far. You’re covering $X,XXX.XX until the others pay.` */
     text: z.string(),
   }),
   /** The save button, e.g. `Mark as paid`. */
@@ -121,7 +121,7 @@ export type BillShareLine = z.infer<typeof billShareLineSchema>;
 
 /** One version of the Share bill summary: its preview lines and the plain text that is shared. */
 export const billShareSummarySchema = z.object({
-  /** e.g. `Utilities bill · Nov 2026`, `Current Charges: $412.30`, `Due: 16 Nov 2026`, then `Charges:` and a bulleted line per bill line. */
+  /** e.g. `Utilities bill · Nov 2026`, `Current Charges: $X,XXX.XX`, `Due: 16 Nov 2026`, then `Charges:` and a bulleted line per bill line. */
   lines: z.array(billShareLineSchema),
   /** The lines' text joined with line breaks, with no WhatsApp markers. */
   text: z.string(),
@@ -144,7 +144,7 @@ export const billShareSchema = z.object({
     .nullable(),
   /** The summary with the bill totals only. */
   summary: billShareSummarySchema,
-  /** The summary followed by `Shares:` and a bulleted line per person, e.g. `• Alex $123.69`. */
+  /** The summary followed by `Shares:` and a bulleted line per person, e.g. `• Alex $X,XXX.XX`. */
   summaryWithShares: billShareSummarySchema,
 });
 
