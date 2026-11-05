@@ -4,7 +4,7 @@ import type { VariantProps } from '@gluestack-ui/utils/nativewind-utils';
 import { tva, useStyleContext, withStyleContext } from '@gluestack-ui/utils/nativewind-utils';
 import { styled } from 'nativewind';
 import React from 'react';
-import { Pressable, View } from 'react-native';
+import { Pressable, View, type PressableProps } from 'react-native';
 
 const SCOPE = 'SLIDER';
 const Root = withStyleContext(View, SCOPE);
@@ -15,9 +15,11 @@ export const UISlider = createSlider({
   FilledTrack: View,
   ThumbInteraction: View,
 });
-const StyledTrack = styled(UISlider.Track, {
+// Cast: the full Pressable prop type is too complex for TS to check the mapping against, and it only needs
+// `style`. The result is cast back, so the track keeps its real props and ref.
+const StyledTrack = styled(UISlider.Track as React.ComponentType<Pick<PressableProps, 'style'>>, {
   className: 'style',
-});
+}) as typeof UISlider.Track;
 const sliderStyle = tva({
   base: 'justify-center items-center data-[disabled=true]:opacity-40 data-[disabled=true]:web:pointer-events-none',
   variants: {

@@ -1,6 +1,6 @@
 'use client';
 import { createCheckbox } from '@gluestack-ui/core/checkbox/creator';
-import { UIIcon } from '@gluestack-ui/core/icon/creator';
+import { UIIcon, type IPrimitiveIcon } from '@gluestack-ui/core/icon/creator';
 import type { VariantProps } from '@gluestack-ui/utils/nativewind-utils';
 import { tva, withStyleContext } from '@gluestack-ui/utils/nativewind-utils';
 import { styled } from 'nativewind';
@@ -26,13 +26,6 @@ const StyledUIIcon = styled(UIIcon, {
   className: "style",
 });
 
-const IconWrapper = React.forwardRef<
-  React.ComponentRef<typeof UIIcon>,
-  React.ComponentPropsWithoutRef<typeof UIIcon>
->(function IconWrapper({ ...props }, ref) {
-  return <StyledUIIcon {...props} ref={ref} />;
-});
-
 const SCOPE = 'CHECKBOX';
 
 
@@ -43,7 +36,7 @@ const UICheckbox = createCheckbox({
       ? withStyleContext(View, SCOPE)
       : withStyleContext(Pressable, SCOPE),
   Group: View,
-  Icon: IconWrapper,
+  Icon: StyledUIIcon,
   Label: LabelWrapper,
   Indicator: IndicatorWrapper,
 });
@@ -122,6 +115,7 @@ const CheckboxLabel = React.forwardRef<
 type ICheckboxIconProps = React.ComponentPropsWithoutRef<
   typeof UICheckbox.Icon
 > &
+  IPrimitiveIcon &
   VariantProps<typeof checkboxIconStyle>;
 
 const CheckboxIcon = React.forwardRef<
