@@ -102,7 +102,7 @@ export interface AddPersonFormProps {
 
 /** Props for {@link EditSaveActions}. */
 export interface EditSaveActionsProps {
-  flow: ReturnType<typeof useEditFlow>;
+  flow: Pick<ReturnType<typeof useEditFlow>, 'noticeError' | 'failed' | 'saveError' | 'saving' | 'canSave' | 'onSave'>;
   /** The form's own checks stop the save. The server's answer counts as well. */
   disabled: boolean;
 }
