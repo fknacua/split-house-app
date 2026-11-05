@@ -7,6 +7,7 @@ import {
   VERSION_A_CONFIG,
 } from "@/lib/fixtures/household";
 import {
+  emptyTenantRooms,
   isRentInTotal,
   masterRentCents,
   peopleIn,
@@ -101,6 +102,13 @@ describe("tenantRentCents", () => {
     expect(tenantRentCents(JAN_2027_CONFIG, PERSON_IDS.sam)).toBe(95000);
     expect(tenantRentCents(JAN_2027_CONFIG, PERSON_IDS.jordan)).toBe(100000);
     expect(tenantRentCents(JAN_2027_CONFIG, PERSON_IDS.priya)).toBe(0);
+  });
+});
+
+describe("emptyTenantRooms", () => {
+  it("lists only tenant rooms with nobody in them", () => {
+    expect(emptyTenantRooms(NOV_2026_CONFIG)).toEqual([]);
+    expect(emptyTenantRooms(without(PERSON_IDS.sam)).map((room) => room.id)).toEqual([ROOM_IDS.room2]);
   });
 });
 

@@ -13,7 +13,7 @@ import {
 } from "@splithouse/shared";
 import { amountText } from "./amount-text";
 import { nextPersonColor, personColorName } from "./person-color";
-import { roomOf, tenantRentCents } from "./room-amounts";
+import { emptyTenantRooms, roomOf, tenantRentCents } from "./room-amounts";
 import { hasPayersVia, routeText, sentViaChoices, viaOf } from "./route-via";
 import { personSubLine } from "./sub-line";
 
@@ -55,6 +55,14 @@ export function buildAddPersonForm(input: Pick<HouseholdFormInput, "month" | "co
     colorName: personColorName(color),
     swatches: TENANT_PERSON_COLORS.map((c) => ({ color: c, name: personColorName(c) })),
     sentViaOptions: sentViaChoices(config.people, new Map(people.map((p) => [p.id, p.name])), null),
+    rooms: emptyTenantRooms(config).map((room) => ({
+      id: room.id,
+      name: room.name,
+      facts: [
+        { label: "Rent (SGD)", value: formatCents(room.rentCents) },
+        { label: "Aircon units", value: String(room.airconUnits) },
+      ],
+    })),
   };
 }
 

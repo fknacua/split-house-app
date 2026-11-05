@@ -163,18 +163,25 @@ describe('Add subtenant', () => {
     colorName: 'Purple',
     swatches: [{ color: 'PURPLE', name: 'Purple' }],
     sentViaOptions: [],
+    rooms: [],
   };
   const opened = toAddPersonFormValues(form);
 
   it('opens empty, on the default color', () => {
-    expect(opened).toMatchObject({ name: '', whatsapp: '', color: 'PURPLE', rentCents: null, rentVia: null });
+    expect(opened).toMatchObject({ name: '', whatsapp: '', color: 'PURPLE', roomId: '', rentVia: null });
   });
 
-  it('needs the rent, shares and units', () => {
+  it('needs the room and shares', () => {
     expect(addPersonFormSchema.safeParse(opened).success).toBe(false);
-    const filled = { ...opened, rentCents: 90000, utilityShares: 1000, airconUnits: 1 };
+    const filled = { ...opened, roomId: 'room-4', utilityShares: 1000 };
     expect(addPersonFormSchema.safeParse(filled).success).toBe(true);
-    expect(addPersonFormSchema.safeParse({ ...filled, airconUnits: null }).success).toBe(false);
+    expect(addPersonFormSchema.safeParse({ ...filled, roomId: '' }).success).toBe(false);
+    expect(addPersonFormSchema.safeParse({ ...filled, utilityShares: null }).success).toBe(false);
+  });
+
+  it('sends the picked room, and no room until one is picked', () => {
+    expect(toAddPersonEdit({ ...opened, roomId: 'room-4' }).roomId).toBe('room-4');
+    expect(toAddPersonEdit(opened).roomId).toBeNull();
   });
 
   it('sends an empty deposit as 0, a lone country code as no number and an unpicked route as direct', () => {
@@ -193,6 +200,7 @@ describe('Add subtenant', () => {
 
   it('is dirty once anything is entered', () => {
     expect(hasAddPersonInput({ ...opened, name: 'C' }, form)).toBe(true);
+    expect(hasAddPersonInput({ ...opened, roomId: 'room-4' }, form)).toBe(true);
     expect(hasAddPersonInput({ ...opened, color: 'BLUE' }, form)).toBe(true);
     expect(hasAddPersonInput({ ...opened, rentVia: '' }, form)).toBe(true);
     expect(hasAddPersonInput({ ...opened, whatsapp: '+6581234567' }, form)).toBe(true);

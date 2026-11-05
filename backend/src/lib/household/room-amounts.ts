@@ -100,6 +100,16 @@ export function isRentInTotal(config: HouseholdConfig, personId: string): boolea
 }
 
 /**
+ * Lists the tenant rooms with nobody in them, the ones a new tenant can pick.
+ *
+ * @param config - A parsed household config.
+ * @returns The empty tenant rooms, in saved order.
+ */
+export function emptyTenantRooms(config: HouseholdConfig): Extract<HouseholdRoom, { roomType: "TENANT" }>[] {
+  return config.rooms.flatMap((room) => (room.roomType === "TENANT" && !isOccupied(config, room.id) ? [room] : []));
+}
+
+/**
  * Lists the people in a room.
  *
  * @param config - A parsed household config.

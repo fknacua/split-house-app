@@ -27,12 +27,13 @@ import { useEditFlow } from '../use-edit-flow';
 import { ColorField } from './color-field';
 import { EditSaveActions } from './edit-save-actions';
 import { FormSection } from './form-section';
+import { RoomField } from './room-field';
 import { RouteField } from './route-field';
 
 /**
- * The `addPerson` board: the person form, empty, on the default color. It has no summary card, since the form is
- * the summary, and Save stays disabled until the required fields are filled. The tenant joins from next month. Save
- * returns to the overview with a toast. Leaving with something typed asks first.
+ * The `addPerson` board: the person form, empty, on the default color, with an empty room to pick. It has no summary
+ * card, since the form is the summary, and Save stays disabled until the required fields are filled. The tenant joins
+ * from next month. Save returns to the overview with a toast. Leaving with something typed asks first.
  */
 export function AddPersonForm({ form }: AddPersonFormProps) {
   const {
@@ -55,7 +56,7 @@ export function AddPersonForm({ form }: AddPersonFormProps) {
       <KeyboardAvoidingView behavior="padding" className="flex-1">
         <ScrollView keyboardShouldPersistTaps="handled" contentContainerClassName="gap-4 px-4 pb-4 pt-2">
           <View pointerEvents={flow.saving ? 'none' : 'auto'} className="gap-4">
-            <FormSection title="Saved right away" separated={false}>
+            <FormSection title="Details" separated={false}>
               <TextInput
                 placeholder="e.g. first name"
                 fieldControlProps={{
@@ -77,16 +78,21 @@ export function AddPersonForm({ form }: AddPersonFormProps) {
               <ColorField control={control} swatches={form.swatches} fallbackName={form.colorName} />
             </FormSection>
 
+            <FormSection title="Room" separated>
+              <RoomField control={control} rooms={form.rooms} error={errors.roomId} />
+            </FormSection>
+
             <FormSection title={form.datedTitle} separated>
               <View className="flex-row items-start gap-3">
-                <MoneyInput
-                  placeholder="0.00"
+                <CountInput
+                  kind="shares"
+                  placeholder="e.g. 1"
                   fieldControlProps={{
                     control,
-                    name: 'rentCents',
-                    label: 'Rent (SGD)',
+                    name: 'utilityShares',
+                    label: 'Utility shares',
                     required: true,
-                    error: errors.rentCents,
+                    error: errors.utilityShares,
                     className: 'min-w-0 flex-1',
                   }}
                 />
@@ -105,18 +111,6 @@ export function AddPersonForm({ form }: AddPersonFormProps) {
               </View>
               <View className="flex-row items-start gap-3">
                 <CountInput
-                  kind="shares"
-                  placeholder="e.g. 1"
-                  fieldControlProps={{
-                    control,
-                    name: 'utilityShares',
-                    label: 'Utility shares',
-                    required: true,
-                    error: errors.utilityShares,
-                    className: 'min-w-0 flex-1',
-                  }}
-                />
-                <CountInput
                   kind="day"
                   placeholder="Day, e.g. 4th"
                   fieldControlProps={{
@@ -125,20 +119,6 @@ export function AddPersonForm({ form }: AddPersonFormProps) {
                     label: 'Utilities due',
                     required: true,
                     error: errors.utilitiesDueDay,
-                    className: 'min-w-0 flex-1',
-                  }}
-                />
-              </View>
-              <View className="flex-row items-start gap-3">
-                <CountInput
-                  kind="whole"
-                  placeholder="e.g. 1"
-                  fieldControlProps={{
-                    control,
-                    name: 'airconUnits',
-                    label: 'Aircon units',
-                    required: true,
-                    error: errors.airconUnits,
                     className: 'min-w-0 flex-1',
                   }}
                 />
