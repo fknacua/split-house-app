@@ -121,11 +121,18 @@ describe("GET /api/templates/:kind", () => {
     expect(await errorCode(response)).toBe(code);
   });
 
-  it("answers 409 before first run", async () => {
+  it("works in First run before Rent & rooms is saved, with nobody to have a custom template", async () => {
+    useHousehold([], { opened: false });
+    const response = await getLanding("MONTHLY");
+    expect(response.status).toBe(200);
+    expect(templateLandingResponseSchema.parse(await response.json())).toBeTruthy();
+  });
+
+  it("answers 404 no_version when a month is open but no version covers next month", async () => {
     useHousehold([]);
     const response = await getLanding("MONTHLY");
-    expect(response.status).toBe(409);
-    expect(await errorCode(response)).toBe("no_household");
+    expect(response.status).toBe(404);
+    expect(await errorCode(response)).toBe("no_version");
   });
 
   it("answers 401 without a session", async () => {

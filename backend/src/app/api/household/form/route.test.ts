@@ -95,8 +95,11 @@ describe("GET /api/household/form", () => {
     expect((await response.json()).error.code).toBe("no_version");
   });
 
-  it("answers 409 no_household before first run", async () => {
+  it("answers 409 rooms_first in First run before Rent & rooms is saved", async () => {
     useHousehold([]);
-    expect((await GET(request(jordan), undefined)).status).toBe(409);
+    Object.assign(prisma.month, { findFirst: async () => null });
+    const response = await GET(request(jordan), undefined);
+    expect(response.status).toBe(409);
+    expect((await response.json()).error.code).toBe("rooms_first");
   });
 });

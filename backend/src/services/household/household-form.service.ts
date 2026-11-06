@@ -1,5 +1,4 @@
 import {
-  addMonths,
   parseHouseholdConfig,
   type HouseholdAddFormResponse,
   type HouseholdConfig,
@@ -10,10 +9,11 @@ import {
   type PersonColor,
 } from "@splithouse/shared";
 import { ApiError } from "@/lib/api";
-import { buildHomeForm } from "@/lib/household/build-home-form";
+import { buildFirstHomeForm, buildHomeForm } from "@/lib/household/build-home-form";
 import { buildAddPersonForm, buildHouseholdForm } from "@/lib/household/build-household-form";
 import { buildSplitForm } from "@/lib/household/build-split-form";
-import { getActiveMonth, type ActiveMonthDb } from "@/services/months/active-month.service";
+import type { ActiveMonthDb } from "@/services/months/active-month.service";
+import { getEditMonth } from "@/services/setup/edit-month.service";
 
 const VERSION_SELECT = { startsFromMonth: true, schemaVersion: true, config: true } as const;
 const PERSON_SELECT = { id: true, name: true, whatsappE164: true, color: true, isOwner: true } as const;
@@ -40,28 +40,53 @@ export interface HouseholdFormDb extends ActiveMonthDb {
 }
 
 /**
- * Reads next month, the version in effect then, and what the forms need around it.
+ * Reads the month new edits start from, the version they build on, and what the forms need around it: next month's
+ * version once a month is open, or in First run the one first version, whatever month it starts in.
  *
  * @param db - The Prisma client, or a fake in tests.
- * @returns The active month, every version, the people, next month and the config in effect then.
- * @throws {ApiError} 409 `no_household` before first run; 404 `no_version` when no version covers next month.
+ * @returns The active month, whether First run is on, every version, the people, the month edits start from and
+ * the config they build on, null when there is none.
  */
-export async function readNextVersion(db: HouseholdFormDb) {
-  const [activeMonth, versions, people] = await Promise.all([
-    getActiveMonth(db),
+export async function readFormContext(db: HouseholdFormDb) {
+  const [{ month, activeMonth, firstSetup }, versions, people] = await Promise.all([
+    getEditMonth(db),
     db.householdVersion.findMany({ orderBy: { startsFromMonth: "desc" }, select: VERSION_SELECT }),
     db.person.findMany({ select: PERSON_SELECT }),
   ]);
-  if (versions.length === 0) throw new ApiError(409, "no_household", "Set up the household first.");
-
-  const month = addMonths(activeMonth, 1);
-  const version = versions.find((v) => v.startsFromMonth <= month);
-  if (!version) throw new ApiError(404, "no_version", "The household has no setup for next month.");
-  return { activeMonth, versions, people, month, config: parseHouseholdConfig(version.schemaVersion, version.config) };
+  const version = firstSetup ? versions[0] : versions.find((v) => v.startsFromMonth <= month);
+  const config = version ? parseHouseholdConfig(version.schemaVersion, version.config) : null;
+  return { activeMonth, firstSetup, versions, people, month, config };
 }
 
 /**
- * Reads the active month's config: the version it is pinned to once opened, or the one in effect until then.
+ * Reads what `readFormContext` does, for a form that needs a version to build on.
+ *
+ * @param db - The Prisma client, or a fake in tests.
+ * @returns The same, with the config.
+ * @throws {ApiError} 409 `rooms_first` in First run before Rent & rooms is saved; 404 `no_version` when no version
+ * covers next month.
+ */
+export async function readNextVersion(db: HouseholdFormDb) {
+  return requireConfig(await readFormContext(db));
+}
+
+/**
+ * Narrows a form context to one with a config.
+ *
+ * @param context - What `readFormContext` returned.
+ * @returns The same, with the config.
+ * @throws {ApiError} As `readNextVersion`.
+ */
+export function requireConfig(context: Awaited<ReturnType<typeof readFormContext>>) {
+  const { config } = context;
+  if (config) return { ...context, config };
+  if (context.firstSetup) throw new ApiError(409, "rooms_first", "Save Rent & rooms first.");
+  throw new ApiError(404, "no_version", "The household has no setup for next month.");
+}
+
+/**
+ * Reads the active month's config: the version it is pinned to once opened, or the one in effect until then. In
+ * First run nothing has taken effect yet, so it is the first version's own config and nothing shows as pending.
  *
  * @param db - The Prisma client, or a fake in tests.
  * @param next - What `readNextVersion` returned.
@@ -69,8 +94,9 @@ export async function readNextVersion(db: HouseholdFormDb) {
  */
 export async function readActiveConfig(
   db: HouseholdFormDb,
-  { activeMonth, versions }: Awaited<ReturnType<typeof readNextVersion>>,
+  { activeMonth, versions, firstSetup, config }: Awaited<ReturnType<typeof readNextVersion>>,
 ): Promise<HouseholdConfig | null> {
+  if (firstSetup) return config;
   const opened = await db.month.findUnique({
     where: { month: activeMonth },
     select: { householdVersion: { select: { schemaVersion: true, config: true } } },
@@ -84,7 +110,7 @@ export async function readActiveConfig(
  *
  * @param db - The Prisma client, or a fake in tests.
  * @returns The Add subtenant screen.
- * @throws {ApiError} 409 `no_household` before first run; 404 `no_version` when no version covers next month.
+ * @throws {ApiError} The same as `readNextVersion`.
  */
 export async function getHouseholdAddForm(db: HouseholdFormDb): Promise<HouseholdAddFormResponse> {
   const { month, config, people } = await readNextVersion(db);
@@ -93,14 +119,17 @@ export async function getHouseholdAddForm(db: HouseholdFormDb): Promise<Househol
 
 /**
  * Reads the Landlord & rooms form with the latest saved values: the version in effect next month, which is what
- * new edits build on. The active month's version tells whether those values have taken effect yet. Read-only.
+ * new edits build on. The active month's version tells whether those values have taken effect yet. In First run
+ * before any version exists, the form is blank, with the master room to add. Read-only.
  *
  * @param db - The Prisma client, or a fake in tests.
  * @returns The Landlord & rooms screen.
- * @throws {ApiError} 409 `no_household` before first run; 404 `no_version` when no version covers next month.
+ * @throws {ApiError} 404 `no_version` when no version covers next month.
  */
 export async function getHouseholdHomeForm(db: HouseholdFormDb): Promise<HouseholdHomeFormResponse> {
-  const next = await readNextVersion(db);
+  const context = await readFormContext(db);
+  if (!context.config && context.firstSetup) return buildFirstHomeForm(context.month);
+  const next = requireConfig(context);
   const activeConfig = await readActiveConfig(db, next);
   return buildHomeForm({ month: next.month, config: next.config, activeConfig, people: next.people });
 }
@@ -111,7 +140,7 @@ export async function getHouseholdHomeForm(db: HouseholdFormDb): Promise<Househo
  *
  * @param db - The Prisma client, or a fake in tests.
  * @returns The Household split screen.
- * @throws {ApiError} 409 `no_household` before first run; 404 `no_version` when no version covers next month.
+ * @throws {ApiError} The same as `readNextVersion`.
  */
 export async function getHouseholdSplitForm(db: HouseholdFormDb): Promise<HouseholdSplitFormResponse> {
   const next = await readNextVersion(db);
@@ -127,8 +156,8 @@ export async function getHouseholdSplitForm(db: HouseholdFormDb): Promise<Househ
  * @param db - The Prisma client, or a fake in tests.
  * @param query - The person.
  * @returns The Edit and View screens.
- * @throws {ApiError} 409 `no_household` before first run; 404 `no_version` when no version covers next
- * month; 404 `no_person` for an unknown person or someone not in that version.
+ * @throws {ApiError} The same as `readNextVersion`; 404 `no_person` for an unknown person or someone not in
+ * that version.
  */
 export async function getHouseholdForm(db: HouseholdFormDb, query: HouseholdFormQuery): Promise<HouseholdFormResponse> {
   const next = await readNextVersion(db);

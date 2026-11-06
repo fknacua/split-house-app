@@ -88,11 +88,12 @@ describe("GET /api/household/add-form", () => {
     ]);
   });
 
-  it("answers 409 before first run", async () => {
+  it("answers 409 rooms_first in First run before Rent & rooms is saved", async () => {
     useHousehold([]);
+    Object.assign(prisma.month, { findFirst: async () => null });
     const response = await GET(request(), undefined);
     expect(response.status).toBe(409);
-    expect((await response.json()).error.code).toBe("no_household");
+    expect((await response.json()).error.code).toBe("rooms_first");
   });
 
   it("answers 401 without a session", async () => {

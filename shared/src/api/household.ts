@@ -374,6 +374,11 @@ export const householdHomeFormResponseSchema = z.object({
   }),
   /** The master room, then tenant rooms, then common rooms, each in saved order. */
   rooms: z.array(householdHomeRoomSchema),
+  /**
+   * Rooms the form starts with that are not saved yet, sent back in `newRooms`: the master room on a household with
+   * no version yet (First run's first Rent & rooms save), otherwise none.
+   */
+  roomsToAdd: z.array(householdHomeRoomSchema.omit({ id: true })),
   /** The types Add room offers, with the title and badge a new room's card shows. */
   newRoomTypes: z.array(
     z.object({
@@ -527,6 +532,12 @@ export const householdNewRoomSchema = z.discriminatedUnion('roomType', [
   }),
   z.object({
     roomType: z.literal('COMMON'),
+    name: z.string(),
+    airconUnits: z.number().int().nullable(),
+  }),
+  /** First run only: the master room, sent with the first save, which gives it its id. Refused once the household has one. */
+  z.object({
+    roomType: z.literal('MASTER'),
     name: z.string(),
     airconUnits: z.number().int().nullable(),
   }),

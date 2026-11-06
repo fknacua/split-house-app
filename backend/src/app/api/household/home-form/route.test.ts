@@ -61,11 +61,35 @@ describe("GET /api/household/home-form", () => {
     expect(body.pendingNote).toBe("These take effect from December 2026.");
   });
 
-  it("answers 409 before first run", async () => {
+  it("shows a blank form with the master room to add in First run before any version exists", async () => {
+    useHousehold([]);
+    Object.assign(prisma.month, { findFirst: async () => null });
+    const response = await GET(request(), undefined);
+    expect(response.status).toBe(200);
+    const body = householdHomeFormResponseSchema.parse(await response.json());
+    expect(body.datedTitle).toBe("From November 2026");
+    expect(body.pendingNote).toBeNull();
+    expect(body.values).toEqual({ landlordRentCents: null, landlordDueDay: null, billDueDay: null });
+    expect(body.rooms).toEqual([]);
+    expect(body.roomsToAdd).toEqual([
+      expect.objectContaining({ roomType: "MASTER", name: "Master room", airconUnits: null, canRemove: false }),
+    ]);
+  });
+
+  it("reads the first version in First run, with no room to add and nothing pending", async () => {
+    useHousehold([version("2026-11", NOV_2026_CONFIG)]);
+    Object.assign(prisma.month, { findFirst: async () => null });
+    const body = householdHomeFormResponseSchema.parse(await (await GET(request(), undefined)).json());
+    expect(body.rooms).toHaveLength(5);
+    expect(body.roomsToAdd).toEqual([]);
+    expect(body.pendingNote).toBeNull();
+  });
+
+  it("answers 404 no_version when a month is open but no version covers next month", async () => {
     useHousehold([]);
     const response = await GET(request(), undefined);
-    expect(response.status).toBe(409);
-    expect(apiErrorBodySchema.parse(await response.json()).error.code).toBe("no_household");
+    expect(response.status).toBe(404);
+    expect(apiErrorBodySchema.parse(await response.json()).error.code).toBe("no_version");
   });
 
   it("answers 401 without a session", async () => {

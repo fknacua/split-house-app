@@ -27,6 +27,11 @@ export interface HomeEditPlanInput {
   base: ParsedVersion;
   /** The id for each of `edit.newRooms`, in order. */
   newRoomIds: string[];
+  /**
+   * The first save, before any version exists: `base` is the empty starting config, a blank or unsent field only
+   * keeps Save disabled instead of being an error, as on Add person, and there is no summary to compare against.
+   */
+  isFirst?: boolean;
 }
 
 /** What a Landlord & rooms edit would do. The preview returns it and the save stores it. */
@@ -56,12 +61,6 @@ interface RoomDraft {
 }
 
 const dayText = (day: number | undefined) => (day ? formatDayOrdinal(day) : NONE);
-
-/** The message for an amount: empty, below zero, or none. A field not sent has none. */
-function amountError(value: number | null | undefined, emptyMessage: string): string | null {
-  if (value === null) return emptyMessage;
-  return value !== undefined && value < 0 ? NEGATIVE_ERROR : null;
-}
 
 /** Every room the edit touches, in one shape, with the rules that belong to the room's identity. */
 function roomDrafts(edit: HouseholdHomeEdit, config: HouseholdConfig, errors: Record<string, string>): RoomDraft[] {
@@ -100,31 +99,50 @@ function removalErrors(edit: HouseholdHomeEdit, config: HouseholdConfig, errors:
   }
 }
 
-/** The field checks, and a warning for each tenant room at no rent. */
-function fieldChecks(edit: HouseholdHomeEdit, config: HouseholdConfig) {
+/**
+ * The field checks, and a warning for each tenant room at no rent. A blank field is an error, except on the first
+ * save, where it and any field not sent go in `blanks` instead.
+ */
+function fieldChecks(edit: HouseholdHomeEdit, config: HouseholdConfig, isFirst: boolean) {
   const errors: Record<string, string> = {};
   const warnings: Record<string, string> = {};
+  const blanks: string[] = [];
+  const blank = (key: string, message: string) => {
+    if (isFirst) blanks.push(key);
+    else errors[key] = message;
+  };
+  // A landlord field not sent keeps its saved value, which the first save does not have.
+  const isBlank = (value: number | null | undefined) => value === null || (isFirst && value === undefined);
+  const checkAmount = (key: string, value: number | null | undefined, emptyMessage: string) => {
+    if (value === null) blank(key, emptyMessage);
+    else if (value !== undefined && value < 0) errors[key] = NEGATIVE_ERROR;
+  };
 
-  const landlordRent = amountError(edit.landlordRentCents, "Enter the landlord rent.");
-  if (landlordRent) errors.landlordRentCents = landlordRent;
+  if (isBlank(edit.landlordRentCents)) blank("landlordRentCents", "Enter the landlord rent.");
+  else checkAmount("landlordRentCents", edit.landlordRentCents, "Enter the landlord rent.");
+  if (isBlank(edit.landlordDueDay)) blank("landlordDueDay", DAY_ERROR);
   const days = [
-    ["landlordDueDay", edit.landlordDueDay],
+    ["landlordDueDay", edit.landlordDueDay ?? undefined],
     ["billDueDay", edit.billDueDay ?? undefined],
   ] as const;
   for (const [field, day] of days) {
-    if (day === null || (day !== undefined && (day < 1 || day > 31))) errors[field] = DAY_ERROR;
+    if (day !== undefined && (day < 1 || day > 31)) errors[field] = DAY_ERROR;
   }
 
+  const addsMaster = edit.newRooms.some((room) => room.roomType === "MASTER");
+  const hasMaster = config.rooms.some((room) => room.roomType === "MASTER");
+  if (addsMaster && hasMaster) errors.form = "The household already has a master room.";
+  // The schema's own message, before the owner's missing room trips a less useful one.
+  else if (!addsMaster && !hasMaster) errors.form = "Exactly one master room is required";
   removalErrors(edit, config, errors);
   for (const draft of roomDrafts(edit, config, errors)) {
-    if (draft.name !== undefined && !requiredText.safeParse(draft.name).success) errors[`${draft.key}.name`] = "Enter a room name.";
-    const units = amountError(draft.airconUnits, "Enter the aircon units.");
-    if (units) errors[`${draft.key}.airconUnits`] = units;
-    const rent = amountError(draft.rentCents, "Enter the rent.");
-    if (rent) errors[`${draft.key}.rentCents`] = rent;
-    else if (draft.rentCents === 0) warnings[`${draft.key}.rentCents`] = `${draft.label} rent is 0`;
+    if (draft.name !== undefined && !requiredText.safeParse(draft.name).success) blank(`${draft.key}.name`, "Enter a room name.");
+    checkAmount(`${draft.key}.airconUnits`, draft.airconUnits, "Enter the aircon units.");
+    const rentKey = `${draft.key}.rentCents`;
+    checkAmount(rentKey, draft.rentCents, "Enter the rent.");
+    if (draft.rentCents === 0) warnings[rentKey] = `${draft.label} rent is 0`;
   }
-  return { errors, warnings };
+  return { errors, warnings, blanks };
 }
 
 /** The error key for a room, which is by index for one being added. */
@@ -230,19 +248,21 @@ function summaryRows(from: HouseholdConfig, to: HouseholdConfig, names: Map<stri
 /**
  * Works out what a Landlord & rooms edit would do, for the preview and the save alike. Pure: the service reads
  * the rows and stores the result. An empty field is an error here, unlike Add subtenant, since a loaded form
- * only gets one by clearing a value.
+ * only gets one by clearing a value; the first save, whose form starts blank, is the exception. A new master room
+ * is refused once the household has one.
  *
  * @param input - The edit, the names, the month it starts from, the version in effect and the new rooms' ids.
  * @returns The new config, the summary groups, the errors and warnings per field, the master rent and whether Save is allowed.
  */
 export function planHomeEdit(input: HomeEditPlanInput): HomeEditPlan {
-  const { edit, names, month, base, newRoomIds } = input;
-  const { errors: fieldErrors, warnings } = fieldChecks(edit, base.config);
+  const { edit, names, month, base, newRoomIds, isFirst = false } = input;
+  const { errors: fieldErrors, warnings, blanks } = fieldChecks(edit, base.config, isFirst);
   const applied = applyHomeEdit(base.config, edit, newRoomIds);
   const errors = { ...fieldErrors, ...duplicateNameErrors(applied, newRoomIds) };
 
-  // The rent can be worked out while another field, such as a room name, is still wrong.
-  const rentIsKnown = !Object.keys(errors).some((key) => key === "landlordRentCents" || key.endsWith(".rentCents"));
+  // The rent can be worked out while another field, such as a room name, is still wrong or blank.
+  const isRentKey = (key: string) => key === "landlordRentCents" || key.endsWith(".rentCents");
+  const rentIsKnown = !Object.keys(errors).some(isRentKey) && !blanks.some(isRentKey);
   const master = masterRentCents(applied);
   const rentTooLow = rentIsKnown && master < 0;
   if (rentTooLow) Object.assign(errors, rentTooLowErrors(applied));
@@ -250,13 +270,13 @@ export function planHomeEdit(input: HomeEditPlanInput): HomeEditPlan {
 
   const groups: HouseholdEditGroup[] = [];
   let nextConfig: HouseholdConfig | null = null;
-  if (Object.keys(errors).length === 0) {
+  if (Object.keys(errors).length === 0 && blanks.length === 0) {
     const parsed = householdConfigSchema.safeParse(applied);
     if (!parsed.success) {
       errors.form = parsed.error.issues[0].message;
     } else {
       if (!isDeepStrictEqual(parsed.data, base.config)) nextConfig = parsed.data;
-      const rows = summaryRows(base.config, parsed.data, names);
+      const rows = isFirst ? [] : summaryRows(base.config, parsed.data, names);
       if (rows.length > 0) groups.push({ title: `Saves from ${formatMonthShortLabel(month)}`, rows });
     }
   }

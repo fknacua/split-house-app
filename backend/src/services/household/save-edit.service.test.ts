@@ -2,6 +2,7 @@ import {
   HOUSEHOLD_SCHEMA_VERSION,
   type HouseholdAddPersonEdit,
   type HouseholdConfig,
+  type HouseholdEdit,
   type HouseholdHomeEdit,
   type HouseholdPersonEdit,
   type HouseholdSplitEdit,
@@ -86,19 +87,28 @@ describe("recurring charges", () => {
   });
 });
 
-/** An in-memory household. `lockedIds` are versions a month has opened using. */
-function fakeDb(versions: VersionRow[] = [version("2026-11", NOV_2026_CONFIG)], lockedIds: string[] = []) {
+const PEOPLE: PersonRow[] = [
+  { id: PERSON_IDS.alex, name: "Alex", whatsappE164: null, color: "TEAL", isOwner: true },
+  { id: PERSON_IDS.priya, name: "Priya", whatsappE164: "+6590000001", color: "BLUE", isOwner: false },
+  { id: PERSON_IDS.sam, name: "Sam", whatsappE164: null, color: "ORANGE", isOwner: false },
+  { id: PERSON_IDS.jordan, name: "Jordan", whatsappE164: "+6590000003", color: "GREEN", isOwner: false },
+];
+
+/**
+ * An in-memory household. `lockedIds` are versions a month has opened using; `opened` is the newest open month, null
+ * in First run.
+ */
+function fakeDb(
+  versions: VersionRow[] = [version("2026-11", NOV_2026_CONFIG)],
+  lockedIds: string[] = [],
+  { opened = "2026-11", people = PEOPLE }: { opened?: string | null; people?: PersonRow[] } = {},
+) {
   const state = {
     versions: [...versions],
-    people: [
-      { id: PERSON_IDS.alex, name: "Alex", whatsappE164: null, color: "TEAL", isOwner: true },
-      { id: PERSON_IDS.priya, name: "Priya", whatsappE164: "+6590000001", color: "BLUE", isOwner: false },
-      { id: PERSON_IDS.sam, name: "Sam", whatsappE164: null, color: "ORANGE", isOwner: false },
-      { id: PERSON_IDS.jordan, name: "Jordan", whatsappE164: "+6590000003", color: "GREEN", isOwner: false },
-    ] as PersonRow[],
+    people: [...people],
   };
   const tx: HouseholdEditTx = {
-    month: { findFirst: async () => ({ month: "2026-11" }) },
+    month: { findFirst: async () => (opened ? { month: opened } : null) },
     householdVersion: {
       findMany: async () => state.versions,
       updateMany: async ({ where, data }) => {
@@ -117,6 +127,9 @@ function fakeDb(versions: VersionRow[] = [version("2026-11", NOV_2026_CONFIG)], 
       },
       create: async ({ data }) => {
         state.people.push(data);
+      },
+      delete: async ({ where }) => {
+        state.people = state.people.filter((p) => p.id !== where.id);
       },
     },
   };
@@ -451,10 +464,10 @@ describe("saveHouseholdEdit", () => {
     });
   });
 
-  it("answers 409 no_household before first run", async () => {
+  it("answers 404 no_version when a month is open but there is no version", async () => {
     await expect(saveHouseholdEdit(fakeDb([]).db, edit({ name: "Jo" }))).rejects.toMatchObject({
-      status: 409,
-      code: "no_household",
+      status: 404,
+      code: "no_version",
     });
   });
 
@@ -555,8 +568,8 @@ describe("adding a person", () => {
     expect(state.versions).toHaveLength(1);
   });
 
-  it("answers 409 no_household before first run", async () => {
-    await expect(saveHouseholdEdit(fakeDb([]).db, add)).rejects.toMatchObject({ status: 409, code: "no_household" });
+  it("answers 404 no_version when a month is open but there is no version", async () => {
+    await expect(saveHouseholdEdit(fakeDb([]).db, add)).rejects.toMatchObject({ status: 404, code: "no_version" });
   });
 });
 
@@ -766,5 +779,227 @@ describe("removing a person", () => {
   it("answers 409 version_locked when a month has opened using the version", async () => {
     const { db } = fakeDb([version("2026-11", NOV_2026_CONFIG), version("2026-12", NOV_2026_CONFIG)], ["version-2026-12"]);
     await expect(saveHouseholdEdit(db, remove)).rejects.toMatchObject({ status: 409, code: "version_locked" });
+  });
+});
+
+describe("First run (no month open)", () => {
+  const ALEX = PEOPLE[0];
+  /** The first version after Rent & rooms: the owner alone, with an empty Room 4. */
+  const OWNER_ONLY: HouseholdConfig = {
+    rooms: [
+      { id: ROOM_IDS.master, roomType: "MASTER", name: "Master room", airconUnits: 1 },
+      { id: "room-4", roomType: "TENANT", name: "Room 4", airconUnits: 1, rentCents: 90000, includeInTotal: true },
+    ],
+    people: [{ personId: PERSON_IDS.alex, role: "OWNER", roomId: ROOM_IDS.master, utilityShares: 0, routes: {}, dueDays: {}, depositCents: 0 }],
+    categories: {
+      rent: { landlordRentCents: 300000, landlordDueDay: 1, ownerBps: 10000, primaryBps: 0 },
+      utilities: { totalShares: 1000, ownerBps: 10000, primaryBps: 0 },
+      aircon: { ownerBps: 10000, primaryBps: 0 },
+    },
+    recurring: [],
+  };
+  const firstHome = (fields: Partial<HouseholdHomeEdit> = {}): HouseholdHomeEdit => ({
+    kind: "home",
+    landlordRentCents: 300000,
+    landlordDueDay: 1,
+    billDueDay: null,
+    rooms: [],
+    newRooms: [{ roomType: "MASTER", name: "Master room", airconUnits: 1 }],
+    removedRoomIds: [],
+    ...fields,
+  });
+  const homeEdit = (fields: Partial<HouseholdHomeEdit>): HouseholdHomeEdit => ({ kind: "home", rooms: [], newRooms: [], removedRoomIds: [], ...fields });
+  const addPrimary: HouseholdAddPersonEdit = {
+    kind: "addPerson",
+    name: "Priya",
+    whatsappE164: null,
+    color: "BLUE",
+    roomId: ROOM_IDS.master,
+    utilityShares: null,
+    depositCents: 0,
+    rentDueDay: 7,
+    utilitiesDueDay: 7,
+    rentViaPersonId: null,
+    utilitiesViaPersonId: null,
+  };
+  const addTenant: HouseholdAddPersonEdit = { ...addPrimary, name: "Casey", roomId: "room-4", utilityShares: 1000 };
+  const fresh = (people: PersonRow[] = []) => fakeDb([], [], { opened: null, people });
+  const firstVersion = (startsFromMonth = "2026-11") => fakeDb([version(startsFromMonth, OWNER_ONLY)], [], { opened: null, people: [ALEX] });
+  const configOf = (row: VersionRow | undefined) => row?.config as HouseholdConfig;
+  const splitsOf = (config: HouseholdConfig) =>
+    [config.categories.rent, config.categories.utilities, config.categories.aircon].map((c) => [c.ownerBps, c.primaryBps]);
+  const idOf = (row: VersionRow | undefined, role: "PRIMARY" | "TENANT") =>
+    configOf(row).people.find((p) => p.role === role)?.personId ?? "";
+
+  describe("before Rent & rooms is saved", () => {
+    it("keeps Save disabled with no errors while required fields are blank", async () => {
+      const blank = firstHome({
+        landlordRentCents: null,
+        landlordDueDay: undefined,
+        newRooms: [{ roomType: "MASTER", name: "", airconUnits: null }],
+      });
+      expect(await previewHouseholdEdit(fresh().db, blank)).toMatchObject({ canSave: false, errors: {}, groups: [], masterRent: null });
+      await expect(saveHouseholdEdit(fresh().db, blank, "Alex")).rejects.toMatchObject({ status: 422, code: "invalid_edit" });
+    });
+
+    it("still shows a wrong typed value", async () => {
+      const preview = await previewHouseholdEdit(fresh().db, firstHome({ landlordDueDay: 40 }));
+      expect(preview).toMatchObject({ canSave: false, errors: { landlordDueDay: "Enter a day from 1 to 31." } });
+    });
+
+    it("previews a complete form with the master rent and no summary", async () => {
+      expect(await previewHouseholdEdit(fresh().db, firstHome())).toMatchObject({
+        canSave: true,
+        errors: {},
+        groups: [],
+        masterRent: "$3,000.00",
+      });
+    });
+
+    it("refuses a household with no master room", async () => {
+      const preview = await previewHouseholdEdit(fresh().db, firstHome({ newRooms: [] }));
+      expect(preview).toMatchObject({ canSave: false, errors: { form: "Exactly one master room is required" } });
+    });
+
+    it("creates the owner, colored Teal, and the first version starting the start month", async () => {
+      const { db, state } = fresh();
+      expect(await saveHouseholdEdit(db, firstHome(), "Alex")).toEqual({ savedFromMonth: "2026-11" });
+      expect(state.people).toEqual([expect.objectContaining({ name: "Alex", color: "TEAL", isOwner: true, whatsappE164: null })]);
+      expect(state.versions.map((v) => v.startsFromMonth)).toEqual(["2026-11"]);
+      const config = configOf(state.versions[0]);
+      const [master] = config.rooms;
+      expect(master).toMatchObject({ roomType: "MASTER", name: "Master room", airconUnits: 1 });
+      expect(config.people).toEqual([expect.objectContaining({ personId: state.people[0].id, role: "OWNER", roomId: master.id })]);
+      expect(config.categories.utilities.totalShares).toBe(1000);
+      expect(splitsOf(config)).toEqual([
+        [10000, 0],
+        [10000, 0],
+        [10000, 0],
+      ]);
+    });
+
+    it("reuses an owner row that already exists", async () => {
+      const { db, state } = fresh([ALEX]);
+      await saveHouseholdEdit(db, firstHome(), "Someone else");
+      expect(state.people).toEqual([ALEX]);
+      expect(configOf(state.versions[0]).people[0].personId).toBe(PERSON_IDS.alex);
+    });
+
+    it.each<[string, HouseholdEdit]>([
+      ["person", edit({ personId: PERSON_IDS.alex, name: "Al" })],
+      ["addPerson", addPrimary],
+      ["removePerson", { kind: "removePerson", personId: PERSON_IDS.alex }],
+      ["split", { kind: "split", tenantShares: [], totalShares: 2000 }],
+      ["recurring", { kind: "recurring", chargeId: null, label: "Parking", amountCents: 1000, personId: PERSON_IDS.alex, endMonth: null }],
+    ])("answers 409 rooms_first to a %s edit", async (_kind, sent) => {
+      const refused = { status: 409, code: "rooms_first", message: "Save Rent & rooms first." };
+      await expect(previewHouseholdEdit(fresh([ALEX]).db, sent)).rejects.toMatchObject(refused);
+      await expect(saveHouseholdEdit(fresh([ALEX]).db, sent)).rejects.toMatchObject(refused);
+    });
+  });
+
+  describe("after Rent & rooms is saved", () => {
+    it("updates the first version in place, starting the start month", async () => {
+      const { db, state } = firstVersion();
+      expect(await saveHouseholdEdit(db, homeEdit({ landlordRentCents: 310000 }))).toEqual({ savedFromMonth: "2026-11" });
+      expect(state.versions).toHaveLength(1);
+      expect(configOf(state.versions[0]).categories.rent.landlordRentCents).toBe(310000);
+    });
+
+    it("moves a version saved in an earlier month to the start month", async () => {
+      const { db, state } = firstVersion("2026-10");
+      await saveHouseholdEdit(db, homeEdit({ landlordDueDay: 2 }));
+      expect(state.versions.map((v) => v.startsFromMonth)).toEqual(["2026-11"]);
+    });
+
+    it("shows a summary, since there are saved values to compare with", async () => {
+      const preview = await previewHouseholdEdit(firstVersion().db, homeEdit({ landlordRentCents: 310000 }));
+      expect(preview.groups[0]?.title).toBe("Saves from Nov 2026");
+    });
+
+    it("refuses a second master room", async () => {
+      const preview = await previewHouseholdEdit(
+        firstVersion().db,
+        homeEdit({ newRooms: [{ roomType: "MASTER", name: "Big room", airconUnits: 1 }] }),
+      );
+      expect(preview).toMatchObject({ canSave: false, errors: { form: "The household already has a master room." } });
+    });
+
+    it("adds someone picking the master room as the primary tenant, with the splits at 50/50", async () => {
+      const { db, state } = firstVersion();
+      expect(await previewHouseholdEdit(db, addPrimary)).toEqual({ groups: [], canSave: true, errors: {} });
+      expect(await saveHouseholdEdit(db, addPrimary)).toEqual({ savedFromMonth: "2026-11" });
+      expect(state.versions).toHaveLength(1);
+      const config = configOf(state.versions[0]);
+      const primary = config.people.find((p) => p.role === "PRIMARY");
+      expect(primary).toMatchObject({ roomId: ROOM_IDS.master, utilityShares: 0, dueDays: { RENT: 7, UTILITIES: 7, AIRCON: 7 } });
+      expect(state.people.find((p) => p.id === primary?.personId)).toMatchObject({ name: "Priya", isOwner: false });
+      expect(splitsOf(config)).toEqual([
+        [5000, 5000],
+        [5000, 5000],
+        [5000, 5000],
+      ]);
+    });
+
+    it("refuses shares or a route for the primary tenant", async () => {
+      const preview = await previewHouseholdEdit(firstVersion().db, { ...addPrimary, utilityShares: 1000, rentViaPersonId: PERSON_IDS.alex });
+      expect(preview).toMatchObject({
+        canSave: false,
+        errors: { utilityShares: "This comes from the split.", rentViaPersonId: "Only tenants can pay via someone." },
+      });
+    });
+
+    it("refuses the master room once there is a primary tenant", async () => {
+      const { db } = firstVersion();
+      await saveHouseholdEdit(db, addPrimary);
+      const preview = await previewHouseholdEdit(db, { ...addPrimary, name: "Casey" });
+      expect(preview).toMatchObject({ canSave: false, errors: { roomId: "Choose an empty room." } });
+    });
+
+    it("refuses the master room once a month is open", async () => {
+      const { db } = fakeDb([version("2026-11", OWNER_ONLY)], [], { people: [ALEX] });
+      const preview = await previewHouseholdEdit(db, addPrimary);
+      expect(preview).toMatchObject({ canSave: false, errors: { roomId: "Choose an empty room." } });
+    });
+
+    it("removes the primary tenant, putting the splits back to the owner, and deletes their row", async () => {
+      const { db, state } = firstVersion();
+      await saveHouseholdEdit(db, addPrimary);
+      const primaryId = idOf(state.versions[0], "PRIMARY");
+      expect(await saveHouseholdEdit(db, { kind: "removePerson", personId: primaryId })).toEqual({ savedFromMonth: "2026-11" });
+      const config = configOf(state.versions[0]);
+      expect(config.people.map((p) => p.role)).toEqual(["OWNER"]);
+      expect(splitsOf(config)).toEqual([
+        [10000, 0],
+        [10000, 0],
+        [10000, 0],
+      ]);
+      expect(state.people).toEqual([ALEX]);
+    });
+
+    it("removes a tenant and deletes their row", async () => {
+      const { db, state } = firstVersion();
+      await saveHouseholdEdit(db, addTenant);
+      await saveHouseholdEdit(db, { kind: "removePerson", personId: idOf(state.versions[0], "TENANT") });
+      expect(configOf(state.versions[0]).people).toHaveLength(1);
+      expect(configOf(state.versions[0]).categories.utilities.totalShares).toBe(1000);
+      expect(state.people).toEqual([ALEX]);
+    });
+
+    it("never removes the owner", async () => {
+      const preview = await previewHouseholdEdit(firstVersion().db, { kind: "removePerson", personId: PERSON_IDS.alex });
+      expect(preview).toMatchObject({ canSave: false, errors: { form: "Only tenants can be removed." } });
+    });
+
+    it("still refuses removing someone others pay via", async () => {
+      const { db, state } = firstVersion();
+      await saveHouseholdEdit(db, addPrimary);
+      const primaryId = idOf(state.versions[0], "PRIMARY");
+      await saveHouseholdEdit(db, { ...addTenant, utilitiesViaPersonId: primaryId, utilitiesDueDay: null });
+      const preview = await previewHouseholdEdit(db, { kind: "removePerson", personId: primaryId });
+      expect(preview.canSave).toBe(false);
+      await expect(saveHouseholdEdit(db, { kind: "removePerson", personId: primaryId })).rejects.toMatchObject({ status: 422 });
+      expect(state.people).toHaveLength(3);
+    });
   });
 });

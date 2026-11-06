@@ -28,6 +28,10 @@ const ROOM_TITLES: Record<HouseholdRoom["roomType"], string> = {
   COMMON: "Common room",
 };
 const ROOM_ORDER: HouseholdRoom["roomType"][] = ["MASTER", "TENANT", "COMMON"];
+const NEW_ROOM_TYPES: HouseholdHomeFormResponse["newRoomTypes"] = [
+  { roomType: "TENANT", title: ROOM_TITLES.TENANT, badge: HOME_BADGES.roomEmpty },
+  { roomType: "COMMON", title: ROOM_TITLES.COMMON, badge: null },
+];
 
 /** The values this screen edits or shows, to compare with the active month's. A tenant moving out shows as an empty room. */
 function comparableValues(config: HouseholdConfig) {
@@ -96,9 +100,40 @@ export function buildHomeForm(input: HomeFormInput): HouseholdHomeFormResponse {
     rooms: ROOM_ORDER.flatMap((type) => config.rooms.filter((room) => room.roomType === type)).map((room) =>
       roomCard(config, room, names),
     ),
-    newRoomTypes: [
-      { roomType: "TENANT", title: ROOM_TITLES.TENANT, badge: HOME_BADGES.roomEmpty },
-      { roomType: "COMMON", title: ROOM_TITLES.COMMON, badge: null },
+    roomsToAdd: [],
+    newRoomTypes: NEW_ROOM_TYPES,
+  };
+}
+
+/**
+ * The Landlord & rooms screen for First run's first save, before any version exists: every field blank, no saved
+ * rooms, and the master room to add, which can't be removed.
+ *
+ * @param month - The start month, `YYYY-MM`, which the first version starts from.
+ * @returns The response for `GET /api/household/home-form`.
+ */
+export function buildFirstHomeForm(month: string): HouseholdHomeFormResponse {
+  return {
+    title: "Landlord & rooms",
+    sub: "Rent you pay the landlord",
+    datedTitle: `From ${formatMonthLabel(month)}`,
+    pendingNote: null,
+    values: { landlordRentCents: null, landlordDueDay: null, billDueDay: null },
+    rooms: [],
+    roomsToAdd: [
+      {
+        roomType: "MASTER",
+        title: ROOM_TITLES.MASTER,
+        name: "Master room",
+        airconUnits: null,
+        rentCents: null,
+        includeInTotal: null,
+        calculatedRent: "—",
+        occupants: "You",
+        badge: null,
+        canRemove: false,
+      },
     ],
+    newRoomTypes: NEW_ROOM_TYPES,
   };
 }
