@@ -113,10 +113,10 @@ describe("buildRecipient: notSent", () => {
     expect(r.message).toMatchObject({
       label: "Message",
       meta: "Monthly breakdown template",
-      intro: "Hi Priya! Eto na yung breakdown for Nov 2026 😊",
+      intro: [{ text: "Hi Priya! Eto na yung breakdown for Nov 2026 😊", bold: false }],
       outro: [
-        { text: "*Total:* $1,963.65", isTotal: true },
-        { text: "Paki-send by 7 Nov. Salamat!", isTotal: false },
+        { text: "Total:", bold: true },
+        { text: " $1,963.65\nPaki-send by 7 Nov. Salamat!", bold: false },
       ],
       editTemplate: { label: "Edit template", enabled: true, target: { kind: "edit-template", template: "MONTHLY" } },
     });
@@ -349,7 +349,7 @@ describe("buildRecipient: overdue (nudged)", () => {
     expect(r.message).toEqual({
       label: "Last nudge",
       meta: "Sent 2 Nov",
-      intro: RENT_NUDGE,
+      intro: [{ text: RENT_NUDGE, bold: false }],
       sections: [],
       outro: [],
       text: RENT_NUDGE,

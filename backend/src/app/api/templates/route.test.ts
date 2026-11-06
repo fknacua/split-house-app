@@ -109,7 +109,7 @@ describe("GET /api/templates/:kind", () => {
     const leaving = { ...NOV_2026_CONFIG, people: NOV_2026_CONFIG.people.filter((p) => p.personId !== PERSON_IDS.jordan) };
     useHousehold([{ startsFromMonth: "2026-12", config: leaving }, ...NOV], { templates: WITH_JORDAN });
     const body = templateLandingResponseSchema.parse(await (await getLanding("MONTHLY")).json());
-    expect(body.custom.cards[0].preview.intro).toBe("Hi Jordan, yours.");
+    expect(body.custom.cards[0].preview.intro).toEqual([{ text: "Hi Jordan, yours.", bold: false }]);
   });
 
   it.each([

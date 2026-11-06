@@ -9,6 +9,7 @@ import {
 } from "@splithouse/shared";
 import type { ChargeCategory } from "@/generated/prisma/enums";
 import { chargeDueDate } from "@/lib/home/due-dates";
+import { boldRuns } from "./bold-runs";
 import { buildBreakdown, type Breakdown, type BreakdownInput } from "./build-breakdown";
 import { lineLabel } from "./line-label";
 
@@ -61,16 +62,7 @@ export interface MonthlyMessage {
   before: string;
   /** The filled template after `{lines}`, without the blank lines next to it; empty without `{lines}`. */
   after: string;
-  /** `after` line by line, each flagged when its template line holds `{total}`, so a preview can stress it. */
-  afterLines: MessageLine[];
   breakdown: Breakdown;
-}
-
-/** One line of a filled template. */
-export interface MessageLine {
-  text: string;
-  /** True when the template line holds `{total}`. */
-  isTotal: boolean;
 }
 
 /** What `renderMonthlyMessage` reads: the breakdown's input and the recipient's name. */
@@ -114,28 +106,25 @@ export function renderMonthlyMessage(input: MonthlyMessageInput): MonthlyMessage
     text: fillTemplate(template, values),
     before: fillTemplate(head, values).replace(/\n+$/, ""),
     after: fillTemplate(tail, values),
-    afterLines: tail
-      ? tail.split("\n").map((line) => ({ text: fillTemplate(line, values), isTotal: line.includes("{total}") }))
-      : [],
     breakdown,
   };
 }
 
 /**
- * A monthly message in the parts the preview card shows.
+ * A monthly message in the parts the preview card shows, the template text in bold and plain pieces.
  *
  * @param message - The rendered message.
  * @returns The intro, sections, outro and exact text.
  */
 export function monthlyMessagePreview(message: MonthlyMessage): MessagePreview {
   return {
-    intro: message.before,
+    intro: boldRuns(message.before),
     sections: message.breakdown.sections.map((s) => ({
       title: s.title,
       lines: s.lines.map((l) => ({ label: l.label, amount: l.amount, working: l.working })),
       subtotal: s.subtotal,
     })),
-    outro: message.afterLines,
+    outro: boldRuns(message.after),
     text: message.text,
   };
 }
@@ -144,10 +133,10 @@ export function monthlyMessagePreview(message: MonthlyMessage): MessagePreview {
  * A nudge in the parts the preview card shows: all intro, since it has no lines.
  *
  * @param text - The rendered nudge.
- * @returns The intro, the empty sections and outro, and the exact text.
+ * @returns The intro in bold and plain pieces, the empty sections and outro, and the exact text.
  */
 export function nudgeMessagePreview(text: string): MessagePreview {
-  return { intro: text, sections: [], outro: [], text };
+  return { intro: boldRuns(text), sections: [], outro: [], text };
 }
 
 /** A charge, as much of it as a nudge needs. */
