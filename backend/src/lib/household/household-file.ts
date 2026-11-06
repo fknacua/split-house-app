@@ -6,8 +6,10 @@ import {
   type HouseholdConfig,
   type MessageTemplates,
   type PersonColor,
+  type PersonConfig,
 } from "@splithouse/shared";
 import { nextPersonColor } from "./person-color";
+import { viaPeopleOf } from "./route-via";
 
 /** A `Person` row the load script creates. */
 export interface HouseholdFilePerson {
@@ -94,7 +96,10 @@ export function parseHouseholdFile(json: unknown): HouseholdFile {
     problems.push(...parsed.error.issues.map((i) => `${i.path.join(".") || "(root)"}: ${i.message}`));
   }
 
-  const wording = templates === undefined ? null : messageTemplatesSchema.safeParse(templates);
+  const wording =
+    templates === undefined
+      ? null
+      : messageTemplatesSchema.safeParse(parsed.success ? nestFileSectionTitles(templates, parsed.data.people) : templates);
   if (wording && !wording.success) {
     problems.push(...wording.error.issues.map((i) => `templates.${i.path.join(".")}: ${i.message}`));
   }
@@ -103,8 +108,11 @@ export function parseHouseholdFile(json: unknown): HouseholdFile {
     wording.data.overrides.forEach((o, i) => {
       if (!known.has(o.personId)) problems.push(`templates.overrides.${i}.personId: Unknown person`);
     });
-    for (const personId of Object.keys(wording.data.sectionTitles)) {
-      if (!known.has(personId)) problems.push(`templates.sectionTitles.${personId}: Unknown person`);
+    for (const [recipientId, titles] of Object.entries(wording.data.sectionTitles)) {
+      if (!known.has(recipientId)) problems.push(`templates.sectionTitles.${recipientId}: Unknown person`);
+      for (const personId of Object.keys(titles)) {
+        if (!known.has(personId)) problems.push(`templates.sectionTitles.${recipientId}.${personId}: Unknown person`);
+      }
     }
   }
 
@@ -147,4 +155,30 @@ export function parseHouseholdFile(json: unknown): HouseholdFile {
     config: parsed.data,
     templates: wording?.success ? wording.data : null,
   };
+}
+
+/**
+ * Reads a file's older flat section titles, `{ personId: title }`, in every message that holds that person's section:
+ * their own and each one their charges go via. Nested titles pass through.
+ *
+ * @param templates - The file's `templates`.
+ * @param people - The file's people, with their routes.
+ * @returns The templates with nested section titles.
+ */
+function nestFileSectionTitles(templates: unknown, people: PersonConfig[]): unknown {
+  if (typeof templates !== "object" || templates === null) return templates;
+  const { sectionTitles } = templates as { sectionTitles?: unknown };
+  if (typeof sectionTitles !== "object" || sectionTitles === null) return templates;
+  const nested: Record<string, Record<string, unknown>> = {};
+  for (const [personId, entry] of Object.entries(sectionTitles)) {
+    if (typeof entry !== "string") {
+      nested[personId] = { ...nested[personId], ...(entry as Record<string, unknown>) };
+      continue;
+    }
+    const person = people.find((p) => p.personId === personId);
+    for (const recipientId of [personId, ...(person ? viaPeopleOf(person) : [])]) {
+      nested[recipientId] = { ...nested[recipientId], [personId]: entry };
+    }
+  }
+  return { ...templates, sectionTitles: nested };
 }

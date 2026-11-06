@@ -4,7 +4,8 @@ import { useRef, useState } from 'react';
 import { useForm, useWatch } from 'react-hook-form';
 import { KeyboardAvoidingView, ScrollView, View } from 'react-native';
 
-import { Button, Screen, SubpageFooter, SubpageHeader, useSuccessToast } from '@/components';
+import { type AppSheetRef, Button, Screen, SubpageFooter, SubpageHeader, useSuccessToast } from '@/components';
+import { useKeepFocusedInputVisible } from '@/hooks';
 import { EditSaveActions } from '@/screens/household-person';
 import {
   hasTemplateChanges,
@@ -17,11 +18,14 @@ import {
 } from '../helpers';
 import type { TemplateFormProps } from '../types';
 import { useTemplateFlow } from '../use-template-flow';
+import { LineLabelsSheet } from './line-labels-sheet';
 import { MessageField } from './message-field';
 import { PlaceholderChips } from './placeholder-chips';
 import { PreviewCard } from './preview-card';
 import { RemoveTemplateDialog } from './remove-template-dialog';
 import { RestoreTemplateDialog } from './restore-template-dialog';
+import { SectionLabelsCard } from './section-labels-card';
+import { SectionLabelsSheet } from './section-labels-sheet';
 
 /**
  * The template editor: the message, checked with the shared message rules as the user types, with chips that insert
@@ -48,6 +52,9 @@ export function TemplateForm({ form, onRestored }: TemplateFormProps) {
   const showToast = useSuccessToast();
   const [removing, setRemoving] = useState(false);
   const [restoring, setRestoring] = useState(false);
+  const labelsSheet = useRef<AppSheetRef>(null);
+  const keepFocusedInputVisible = useKeepFocusedInputVisible();
+  const sectionLabelsSheet = useRef<AppSheetRef>(null);
 
   const cursor = useRef<TextSelection>({ start: opened.text.length, end: opened.text.length });
   // Set for the render after an insert, then handed back so the user can move the cursor.
@@ -66,7 +73,11 @@ export function TemplateForm({ form, onRestored }: TemplateFormProps) {
       <SubpageHeader title={opened.title} subtitle={opened.sub} onBack={flow.leave} />
       {/* Edge-to-edge Android does not resize for the keyboard, so the padding keeps the focused field in view. */}
       <KeyboardAvoidingView behavior="padding" className="flex-1">
-        <ScrollView keyboardShouldPersistTaps="handled" contentContainerClassName="px-4 pb-4 pt-2">
+        <ScrollView
+          {...keepFocusedInputVisible}
+          keyboardShouldPersistTaps="handled"
+          contentContainerClassName="px-4 pb-4 pt-2"
+        >
           <View pointerEvents={flow.saving ? 'none' : 'auto'} className="gap-4">
             <View className="gap-2">
               <MessageField
@@ -82,11 +93,18 @@ export function TemplateForm({ form, onRestored }: TemplateFormProps) {
               />
               <PlaceholderChips placeholders={opened.placeholders} onInsert={insert} />
             </View>
+            {/* The latest saved labels, which a save refetches while the message draft stays. */}
+            {form.sectionLabels ? (
+              <SectionLabelsCard
+                block={form.sectionLabels}
+                disabled={flow.saving}
+                onEdit={() => sectionLabelsSheet.current?.open()}
+              />
+            ) : null}
             <PreviewCard
               answer={flow.answer}
               editLabelsDisabled={flow.saving}
-              // The Line labels sheet comes in 10.9.
-              onEditLabels={() => {}}
+              onEditLabels={() => labelsSheet.current?.open()}
             />
           </View>
         </ScrollView>
@@ -104,6 +122,11 @@ export function TemplateForm({ form, onRestored }: TemplateFormProps) {
           <Button label={opened.secondaryAction.label} variant="ghost" disabled={flow.saving} onPress={flow.leave} />
         )}
       </SubpageFooter>
+      {/* The latest labels, not the opened ones: a labels save refetches the editor while the message draft stays. */}
+      <LineLabelsSheet ref={labelsSheet} labels={form.labels} />
+      {form.sectionLabels && form.personId ? (
+        <SectionLabelsSheet ref={sectionLabelsSheet} recipientId={form.personId} block={form.sectionLabels} />
+      ) : null}
       {opened.restore ? (
         <RestoreTemplateDialog
           open={restoring}

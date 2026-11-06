@@ -79,6 +79,8 @@ export const queryKeys = {
    * @param request The draft sent to the preview.
    */
   templatePreview: (request: unknown) => ['template-preview', request] as const,
+  /** Every rendered draft. The prefix of `templatePreview`, so a labels save re-renders the open one. */
+  allTemplatePreviews: ['template-preview'] as const,
   /**
    * What a Household edit would change, by the edit sent.
    * @param edit The edit sent to the preview.

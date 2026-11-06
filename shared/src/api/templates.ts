@@ -1,6 +1,6 @@
 import { z } from 'zod';
 import { personColor } from '../schemas/primitives';
-import { messagePreviewSchema } from './recipient';
+import { messagePreviewSchema, recipientMessageLineSchema } from './recipient';
 
 /** The templates that can be edited: the path of `GET /api/templates/:kind`. */
 export const templateKindSchema = z.enum(['MONTHLY', 'NUDGE']);
@@ -107,17 +107,27 @@ export const templateLineLabelSchema = z.object({
 /** One line label's field in the Line labels sheet. */
 export type TemplateLineLabel = z.infer<typeof templateLineLabelSchema>;
 
-/** One section title's field in the Line labels sheet: the title of the section holding a person's lines. */
-export const templateSectionTitleSchema = z.object({
+/**
+ * One section of a message that holds someone else's lines: its field in the Section labels sheet, and its sample
+ * lines for the sheet's preview. Stored as the section title of the person whose lines it holds.
+ */
+export const templateSectionLabelSchema = z.object({
+  /** Whose lines the section holds. */
   personId: z.string(),
-  /** The field's label, the person's name, e.g. `Priya`. */
+  /** The field's label, e.g. `Sam’s charges`. */
   label: z.string(),
-  /** The custom title without the colon, e.g. `Master Bedroom Share`, or empty for `Yours` or `{name}’s (please collect)`. */
+  /** The custom label without the colon, e.g. `Master Bedroom Share`, or empty for the usual one. */
   value: z.string(),
+  /** The usual label, the empty field's grey text: `Yours` for the recipient's own section, else `Sam’s (please collect)`. */
+  placeholder: z.string(),
+  /** The section's lines from the sample charges the preview uses. */
+  lines: z.array(recipientMessageLineSchema),
+  /** e.g. `$X,XXX.XX`. */
+  subtotal: z.string(),
 });
 
-/** One section title's field in the Line labels sheet. */
-export type TemplateSectionTitle = z.infer<typeof templateSectionTitleSchema>;
+/** One section's field and sample lines in the Section labels sheet. */
+export type TemplateSectionLabel = z.infer<typeof templateSectionLabelSchema>;
 
 /** `GET /api/templates/:kind/editor`: the template editor for the Default or one person's custom template, ready to render. */
 export const templateEditorResponseSchema = z.object({
@@ -151,15 +161,22 @@ export const templateEditorResponseSchema = z.object({
     sharedNote: z.string(),
     /** The household's labels, the same in every template. */
     rows: z.array(templateLineLabelSchema),
-    /** The section title fields, one per person. Null on the Nudge, which has no sections. */
-    sectionTitles: z
-      .object({
-        /** `Section titles`. */
-        title: z.string(),
-        rows: z.array(templateSectionTitleSchema),
-      })
-      .nullable(),
   }),
+  /**
+   * The Section labels card and sheet, between the message and the preview. Only on a Monthly breakdown custom
+   * template, saved or new, for someone others pay via, whose message lists each person's charges in a section.
+   * Null otherwise.
+   */
+  sectionLabels: z
+    .object({
+      /** `Section labels`. */
+      title: z.string(),
+      /** `This person is set to pay for another person(s). …`. */
+      hint: z.string(),
+      /** The recipient's own section first, then each person who pays via them. */
+      rows: z.array(templateSectionLabelSchema),
+    })
+    .nullable(),
 });
 
 /** `GET /api/templates/:kind/editor`: the template editor, ready to render. */
@@ -190,8 +207,11 @@ export type TemplateSaveResponse = z.infer<typeof templateSaveResponseSchema>;
 export const templateLabelsSaveRequestSchema = z.object({
   /** The labels to change. One matching the default clears the custom label. */
   lineLabels: z.partialRecord(z.enum(LINE_LABEL_TYPES), z.string().trim().min(1, 'Enter a label.')),
-  /** The section titles to change, by person. An empty one goes back to `Yours` or `{name}’s (please collect)`. */
-  sectionTitles: z.record(z.string().min(1), z.string().trim()).optional(),
+  /**
+   * The section labels to change, by the message they are in (its recipient), then by the person whose lines the
+   * section holds. An empty one goes back to `Yours` or `{name}’s (please collect)`.
+   */
+  sectionTitles: z.record(z.string().min(1), z.record(z.string().min(1), z.string().trim())).optional(),
 });
 
 /** `POST /api/templates/labels` body: the line labels and section titles together. */

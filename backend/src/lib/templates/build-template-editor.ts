@@ -1,6 +1,7 @@
-import { LINE_LABEL_TYPES, type MessageTemplates, type TemplateEditorResponse, type TemplateKind } from "@splithouse/shared";
+import { LINE_LABEL_TYPES, type HouseholdConfig, type MessageTemplates, type TemplateEditorResponse, type TemplateKind } from "@splithouse/shared";
 import { DEFAULT_MESSAGE_TEMPLATES } from "@/lib/messages/default-templates";
 import { DEFAULT_LINE_LABELS } from "@/lib/messages/line-label";
+import { buildSectionLabels } from "./build-section-labels";
 import type { TemplatePerson } from "./template-people";
 import { customText, defaultText, TEMPLATE_NAMES } from "./template-text";
 
@@ -24,9 +25,15 @@ export interface TemplateEditorInput {
   templates: MessageTemplates;
   /** Who can have a custom template, from `templatePeople`. */
   templatePeople: TemplatePerson[];
+  /** The active month, which the Section labels' sample lines are dated with. */
+  month: string;
+  /** Next month's config, then the active month's when there is one, for the Section labels. */
+  configs: HouseholdConfig[];
+  /** Everyone's names, for the Section labels. */
+  people: { id: string; name: string }[];
 }
 
-/** The Line labels sheet: the household's labels, and on the monthly breakdown a section title per person. */
+/** The Line labels sheet: the household's labels. */
 function labelsSheet(input: TemplateEditorInput): TemplateEditorResponse["labels"] {
   const { kind, templates } = input;
   return {
@@ -37,17 +44,6 @@ function labelsSheet(input: TemplateEditorInput): TemplateEditorResponse["labels
       label: DEFAULT_LINE_LABELS[type],
       value: templates.lineLabels[type] ?? DEFAULT_LINE_LABELS[type],
     })),
-    sectionTitles:
-      kind === "MONTHLY"
-        ? {
-            title: "Section titles",
-            rows: input.templatePeople.map((p) => ({
-              personId: p.personId,
-              label: p.name,
-              value: templates.sectionTitles[p.personId] ?? "",
-            })),
-          }
-        : null,
   };
 }
 
@@ -60,7 +56,8 @@ function labelsSheet(input: TemplateEditorInput): TemplateEditorResponse["labels
  */
 export function buildTemplateEditor(input: TemplateEditorInput): TemplateEditorResponse {
   const { kind, personId, templates } = input;
-  const name = input.templatePeople.find((p) => p.personId === personId)?.name ?? "Someone";
+  const person = input.templatePeople.find((p) => p.personId === personId);
+  const name = person?.name ?? "Someone";
   const own = personId ? customText(templates, kind, personId) : undefined;
   const text = own ?? defaultText(templates, kind);
   const isEdited = personId === null && text !== defaultText(DEFAULT_MESSAGE_TEMPLATES, kind);
@@ -96,5 +93,15 @@ export function buildTemplateEditor(input: TemplateEditorInput): TemplateEditorR
           }
         : null,
     labels: labelsSheet(input),
+    sectionLabels:
+      kind === "MONTHLY" && person
+        ? buildSectionLabels({
+            personId: person.personId,
+            month: input.month,
+            configs: input.configs,
+            templates,
+            people: input.people,
+          })
+        : null,
   };
 }

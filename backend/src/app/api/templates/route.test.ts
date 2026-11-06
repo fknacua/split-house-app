@@ -157,6 +157,12 @@ describe("GET /api/templates/:kind/editor", () => {
     expect(fresh).toMatchObject({ title: "Custom template for Sam", text: DEFAULT_MESSAGE_TEMPLATES.monthly });
   });
 
+  it("sends Section labels for someone others pay via, parsing with the shared schema", async () => {
+    const body = templateEditorResponseSchema.parse(await (await getEditor("MONTHLY", `?personId=${PERSON_IDS.priya}`)).json());
+    expect(body.sectionLabels?.title).toBe("Section labels");
+    expect(body.sectionLabels?.rows[0]).toMatchObject({ personId: PERSON_IDS.priya, placeholder: "Yours" });
+  });
+
   it.each([
     ["another kind", "OTHER", "", 400, "invalid_request"],
     ["the owner", "MONTHLY", `?personId=${PERSON_IDS.alex}`, 404, "no_person"],
@@ -275,6 +281,18 @@ describe("DELETE /api/templates/:kind", () => {
     expect(stored().overrides).toEqual([]);
   });
 
+  it("clears the Section labels of a monthly one's message", async () => {
+    useHousehold(NOV, {
+      templates: {
+        ...DEFAULT_MESSAGE_TEMPLATES,
+        overrides: [{ personId: PERSON_IDS.priya, kind: "MONTHLY", text: "Priya's" }],
+        sectionTitles: { [PERSON_IDS.priya]: { [PERSON_IDS.priya]: "Master Bedroom Share", [PERSON_IDS.sam]: "Room 2 Share" } },
+      },
+    });
+    expect((await remove("MONTHLY", `?personId=${PERSON_IDS.priya}`)).status).toBe(200);
+    expect(stored()).toMatchObject({ overrides: [], sectionTitles: {} });
+  });
+
   it("answers saved without storing when there is none", async () => {
     useHousehold(NOV, { templates: WITH_JORDAN });
     expect((await remove("NUDGE", `?personId=${PERSON_IDS.jordan}`)).status).toBe(200);
@@ -320,18 +338,19 @@ describe("POST /api/templates/labels", () => {
   it("stores the labels and section titles together, parsing with the shared schema", async () => {
     const response = await postLabels({
       lineLabels: { RENT: "Rent", UTILITIES: " PUB " },
-      sectionTitles: { [PERSON_IDS.priya]: "Master Bedroom Share" },
+      sectionTitles: { [PERSON_IDS.priya]: { [PERSON_IDS.sam]: "Room 2 Share" } },
     });
     expect(templateSaveResponseSchema.parse(await response.json())).toEqual({ saved: true });
     expect(stored()).toMatchObject({
       lineLabels: { UTILITIES: "PUB" },
-      sectionTitles: { [PERSON_IDS.priya]: "Master Bedroom Share" },
+      sectionTitles: { [PERSON_IDS.priya]: { [PERSON_IDS.sam]: "Room 2 Share" } },
     });
   });
 
   it.each([
     ["a blank label", { lineLabels: { RENT: " " } }, 400, "invalid_request"],
-    ["a section title for the owner", { lineLabels: {}, sectionTitles: { [PERSON_IDS.alex]: "Mine" } }, 404, "no_person"],
+    ["a section title in the owner's message", { lineLabels: {}, sectionTitles: { [PERSON_IDS.alex]: { [PERSON_IDS.sam]: "Room 2" } } }, 404, "no_person"],
+    ["a section title for the owner's lines", { lineLabels: {}, sectionTitles: { [PERSON_IDS.priya]: { [PERSON_IDS.alex]: "Mine" } } }, 404, "no_person"],
   ])("refuses %s, storing nothing", async (_name, body, status, code) => {
     const response = await postLabels(body);
     expect(response.status).toBe(status);

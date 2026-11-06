@@ -44,9 +44,21 @@ describe("parseHouseholdFile", () => {
       nudge: "n",
       overrides: [],
       lineLabels: {},
-      sectionTitles: { [PERSON_IDS.priya]: "Master Bedroom Share" },
+      sectionTitles: { [PERSON_IDS.priya]: { [PERSON_IDS.priya]: "Master Bedroom Share" } },
     });
     expect(parsed.config).not.toHaveProperty("templates");
+  });
+
+  it("reads older flat section titles in every message that holds the section", () => {
+    const parsed = parseHouseholdFile({
+      ...validFile(),
+      templates: { monthly: "m", nudge: "n", sectionTitles: { [PERSON_IDS.sam]: "Room 2 Share" } },
+    });
+    // Sam's utilities and aircon go via Priya, so Sam's section is in both messages.
+    expect(parsed.templates?.sectionTitles).toEqual({
+      [PERSON_IDS.sam]: { [PERSON_IDS.sam]: "Room 2 Share" },
+      [PERSON_IDS.priya]: { [PERSON_IDS.sam]: "Room 2 Share" },
+    });
   });
 
   it("refuses wording for an unknown person or with a blank title", () => {
@@ -56,12 +68,14 @@ describe("parseHouseholdFile", () => {
         monthly: "m",
         nudge: "n",
         overrides: [{ personId: "person-nobody", kind: "NUDGE", text: "Hi" }],
-        sectionTitles: { "person-nobody": "Room 9" },
+        sectionTitles: { "person-nobody": "Room 9", [PERSON_IDS.priya]: { "person-ghost": "Room 8" } },
       },
     });
     expect(problems).toEqual([
       "templates.overrides.0.personId: Unknown person",
       "templates.sectionTitles.person-nobody: Unknown person",
+      "templates.sectionTitles.person-nobody.person-nobody: Unknown person",
+      `templates.sectionTitles.${PERSON_IDS.priya}.person-ghost: Unknown person`,
     ]);
     expect(problemsOf({ ...validFile(), templates: { monthly: "", nudge: "n" } })[0]).toMatch(/^templates\.monthly:/);
   });

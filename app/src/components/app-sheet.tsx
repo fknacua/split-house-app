@@ -1,5 +1,5 @@
-import { forwardRef, useImperativeHandle, useRef, type ReactNode } from 'react';
-import { Text, View } from 'react-native';
+import { forwardRef, useImperativeHandle, useRef, useState, type ReactNode } from 'react';
+import { Text, useWindowDimensions, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { Alert } from '@/components/alert';
@@ -22,6 +22,9 @@ export interface AppSheetRef {
 
 /** Shown in the failed state when the screen gives no message (copy from the design source). */
 export const DEFAULT_FAILED_MESSAGE = "Couldn't save. Check your connection and try again.";
+
+/** The grabber's height: 10 above the bar, the 4px bar, 12 below. */
+const GRABBER_HEIGHT = 26;
 
 /** The grabber: 32 x 4 on the `track` token, 10px from the top edge (design source). */
 function Grabber() {
@@ -60,6 +63,10 @@ function Grabber() {
  * @param failedMessage - Replaces the default failed-save text.
  * @param disabled - Show the action in its disabled look, such as when a form is invalid.
  * @param snapPoint - The sheet height, such as `'90%'`. Defaults to `'90%'`.
+ * @param fitContent - Size the sheet to its title, body and footer instead, up to `snapPoint`'s share of the screen.
+ *   Past that the body scrolls between the pinned title and footer.
+ * @param actionsInRow - Put Cancel (outline) and the action side by side, Cancel first, instead of the action with a
+ *   Cancel text button under it. Ignored with `dangerAction` or without `actionLabel`.
  * @param onClose - Called after the sheet has closed, by any route.
  */
 export const AppSheet = forwardRef<
@@ -77,6 +84,8 @@ export const AppSheet = forwardRef<
     failedMessage?: string;
     disabled?: boolean;
     snapPoint?: string;
+    fitContent?: boolean;
+    actionsInRow?: boolean;
     onClose?: () => void;
   }
 >(function AppSheet(
@@ -93,12 +102,26 @@ export const AppSheet = forwardRef<
     failedMessage = DEFAULT_FAILED_MESSAGE,
     disabled = false,
     snapPoint = '90%',
+    fitContent = false,
+    actionsInRow = false,
     onClose,
   },
   ref
 ) {
   const sheetRef = useRef<BottomSheetRef>(null);
   const insets = useSafeAreaInsets();
+  const { height: windowHeight } = useWindowDimensions();
+  // The title, body content and footer heights, measured for `fitContent`.
+  const [heights, setHeights] = useState({ header: 0, body: 0, footer: 0 });
+  const measure = (part: keyof typeof heights, height: number) =>
+    setHeights((h) => (h[part] === height ? h : { ...h, [part]: height }));
+  const sheetHeight = fitContent
+    ? Math.min(
+        GRABBER_HEIGHT + heights.header + heights.body + heights.footer,
+        (windowHeight * parseFloat(snapPoint)) / 100
+      )
+    : null;
+  const rowActions = actionsInRow && !!actionLabel && !dangerAction;
 
   useImperativeHandle(
     ref,
@@ -112,7 +135,7 @@ export const AppSheet = forwardRef<
   return (
     <BottomSheet ref={sheetRef} onClose={onClose}>
       <BottomSheetPortal
-        snapPoints={[snapPoint]}
+        snapPoints={[sheetHeight ?? snapPoint]}
         enablePanDownToClose={!saving}
         keyboardBehavior="interactive"
         keyboardBlurBehavior="restore"
@@ -128,7 +151,7 @@ export const AppSheet = forwardRef<
             Not absolute either: the sheet adds bottom padding for over-drag below its visible edge,
             and an absolute child fills that too, which pushes the footer's last button off-screen. */}
         <View className="flex-1">
-          <View className="px-4">
+          <View className="px-4" onLayout={(e) => measure('header', e.nativeEvent.layout.height)}>
             <Text
               accessibilityRole="header"
               className="font-manrope-extrabold text-sheet-title text-foreground"
@@ -142,15 +165,39 @@ export const AppSheet = forwardRef<
             ) : null}
           </View>
 
-          <BottomSheetScrollView keyboardShouldPersistTaps="handled">
+          <BottomSheetScrollView
+            keyboardShouldPersistTaps="handled"
+            onContentSizeChange={(_, height) => measure('body', height)}
+          >
             <View pointerEvents={saving ? 'none' : 'auto'} className="gap-4 px-4 py-3">
               {children}
             </View>
           </BottomSheetScrollView>
 
-          <View className="gap-3 px-4 pt-3" style={{ paddingBottom: insets.bottom + 16 }}>
+          <View
+            className="gap-3 px-4 pt-3"
+            style={{ paddingBottom: insets.bottom + 16 }}
+            onLayout={(e) => measure('footer', e.nativeEvent.layout.height)}
+          >
             {failed ? <Alert variant="danger" message={failedMessage} /> : null}
-            {actionLabel ? (
+            {rowActions ? (
+              <View className="flex-row gap-2">
+                <Button
+                  variant="outline"
+                  label={cancelLabel}
+                  disabled={saving}
+                  className="flex-1"
+                  onPress={() => sheetRef.current?.close()}
+                />
+                <Button
+                  label={failed ? 'Retry' : actionLabel}
+                  loading={saving}
+                  disabled={disabled}
+                  className="flex-1"
+                  onPress={onAction}
+                />
+              </View>
+            ) : actionLabel ? (
               <Button
                 label={failed ? 'Retry' : actionLabel}
                 loading={saving}
@@ -158,7 +205,7 @@ export const AppSheet = forwardRef<
                 onPress={onAction}
               />
             ) : null}
-            {dangerAction ? (
+            {rowActions ? null : dangerAction ? (
               <Button
                 variant="ghost-danger"
                 label={dangerAction.label}

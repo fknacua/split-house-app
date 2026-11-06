@@ -41,6 +41,17 @@ export function hasPayersVia(people: PersonConfig[], personId: string): boolean 
 }
 
 /**
+ * Who a person's charges go via, other than them.
+ *
+ * @param person - The person's config.
+ * @returns The other people's ids, each once.
+ */
+export function viaPeopleOf(person: PersonConfig): string[] {
+  const ids = usedRoutes(person).flatMap((route) => (route?.kind === "VIA" ? [route.viaPersonId] : []));
+  return [...new Set(ids)];
+}
+
+/**
  * Who a tenant's charge can be sent via: anyone in the version who pays directly, but them and the owner.
  *
  * @param people - Everyone in the version.
