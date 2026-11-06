@@ -49,7 +49,7 @@ button{cursor:pointer}
 </div>
 </div>
 </x-dc>
-<script type="text/x-dc" data-dc-script data-props='{"theme":{"editor":"enum","options":["light","dark"],"default":"light"},"title":{"editor":"string","default":"Starts from"},"bgTitle":{"editor":"string","default":"Edit Tenant 2"},"returnHref":{"editor":"string","default":""},"selectedYear":{"editor":"number","default":2027},"selectedMonth":{"editor":"number","default":0},"minYear":{"editor":"number","default":2027},"minMonth":{"editor":"number","default":0},"maxYear":{"editor":"number","default":2030},"maxMonth":{"editor":"number","default":11},"$preview":{"width":400,"height":848}}'>
+<script type="text/x-dc" data-dc-script data-props='{"theme":{"editor":"enum","options":["light","dark"],"default":"light"},"title":{"editor":"string","default":"Starts from"},"bgTitle":{"editor":"string","default":"Edit Tenant 2"},"returnHref":{"editor":"string","default":""},"hrefMap":{"editor":"string","default":""},"selectedYear":{"editor":"number","default":2027},"selectedMonth":{"editor":"number","default":0},"minYear":{"editor":"number","default":2027},"minMonth":{"editor":"number","default":0},"maxYear":{"editor":"number","default":2030},"maxMonth":{"editor":"number","default":11},"$preview":{"width":400,"height":848}}'>
 class Component extends DCLogic {
   renderVals() {
     var dark = this.props.theme === 'dark';
@@ -88,6 +88,9 @@ class Component extends DCLogic {
     var selM = st.selM != null ? st.selM : num(this.props.selectedMonth, 0);
     var year = st.year != null ? st.year : selY;
     var ret = this.props.returnHref || (dark ? 'Household-EditPerson-Dark.dc.html' : 'Household-EditPerson-Light.dc.html');
+    // Optional hrefMap: JSON object keyed "year-monthIndex" (month 0-11) giving a different destination per month. Months not listed use returnHref.
+    var map = {};
+    try { map = this.props.hrefMap ? JSON.parse(this.props.hrefMap) : {}; } catch (e) { map = {}; }
     var months = NAMES.map(function (n, i) {
       var disabled = year < minY || (year === minY && i < minM) || year > maxY || (year === maxY && i > maxM);
       var selected = year === selY && i === selM;
@@ -97,7 +100,7 @@ class Component extends DCLogic {
         bg: selected ? c.primary : 'transparent',
         fg: selected ? c.onPrimary : (disabled ? c.disabledFg : c.onSurface),
         weight: selected ? 800 : 600,
-        enabled: !disabled, href: ret
+        enabled: !disabled, href: map[year + '-' + i] || ret
       };
     });
     var prevDisabled = year <= minY;

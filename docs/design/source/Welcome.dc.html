@@ -32,8 +32,8 @@ body{margin:0}
 <!-- gluestack Progress, segmented (one segment per step) -->
 <div style="display: flex; flex-direction: column; gap: 6px; padding-top: 4px">
 <div style="display: flex; justify-content: space-between; font-size: 12px; line-height: 16px; font-weight: 700"><span>{{progressText}}</span><span style="color: {{c.onSurfaceVariant}}; font-weight: 600">{{progressNote}}</span></div>
-<div role="progressbar" aria-valuemin="0" aria-valuemax="5" aria-valuenow="{{progressNow}}" style="display: flex; gap: 4px">
-<sc-for list="{{bars}}" as="b" hint-placeholder-count="5">
+<div role="progressbar" aria-valuemin="0" aria-valuemax="6" aria-valuenow="{{progressNow}}" style="display: flex; gap: 4px">
+<sc-for list="{{bars}}" as="b" hint-placeholder-count="6">
 <div style="flex: 1 1 0; min-width: 0; height: 4px; box-sizing: border-box; border-radius: 2px; background: {{b.bg}}; border: {{b.border}}"></div>
 </sc-for>
 </div>
@@ -83,7 +83,7 @@ body{margin:0}
 </div>
 </div>
 </x-dc>
-<script type="text/x-dc" data-dc-script data-props='{"state":{"editor":"enum","options":["empty","progress","optional","messagesDone","allDone"],"default":"empty"},"theme":{"editor":"enum","options":["light","dark"],"default":"light"},"$preview":{"width":400,"height":848}}'>
+<script type="text/x-dc" data-dc-script data-props='{"state":{"editor":"enum","options":["empty","started","progress","optional","messagesDone","allDone"],"default":"empty"},"theme":{"editor":"enum","options":["light","dark"],"default":"light"},"$preview":{"width":400,"height":848}}'>
 class Component extends DCLogic {
   renderVals() {
     var dark = this.props.theme === 'dark';
@@ -104,60 +104,64 @@ class Component extends DCLogic {
       footShadow: '0 -6px 14px rgba(0,0,0,0.14)'
     };
     var H = dark ? {
-      home: 'LandlordRooms-FirstRun-Dark.dc.html', add: 'FirstRunPeople-Empty-Dark.dc.html',
+      start: 'FirstRunStart-Default-Dark.dc.html', home: 'LandlordRooms-FirstRun-Dark.dc.html', add: 'FirstRunPeople-Empty-Dark.dc.html',
       split: 'Splits-Dark.dc.html', tpl: 'FirstRunMessages-Empty-Dark.dc.html',
       notif: 'FirstRunReminders-Default-Dark.dc.html', first: 'Home-Upload-Dark.dc.html', upload: 'Upload-Pick-Dark.dc.html'
     } : {
-      home: 'LandlordRooms-FirstRun-Light.dc.html', add: 'FirstRunPeople-Empty-Light.dc.html',
+      start: 'FirstRunStart-Default-Light.dc.html', home: 'LandlordRooms-FirstRun-Light.dc.html', add: 'FirstRunPeople-Empty-Light.dc.html',
       split: 'Splits-Light.dc.html', tpl: 'FirstRunMessages-Empty-Light.dc.html',
       notif: 'FirstRunReminders-Default-Light.dc.html', first: 'Main.dc.html', upload: 'BillUpload.dc.html'
     };
-    var progress = st === 'progress';
+    var started = st === 'started';
+    var progress = st === 'progress' || started;
     var allDone = st === 'allDone';
     var msgDone = st === 'messagesDone' || allDone;
     var optional = st === 'optional' || msgDone;
+    var doneCount = allDone ? 6 : (msgDone ? 5 : (optional ? 4 : (started ? 1 : (progress ? 3 : 0))));
     var raw = [
-      { n: '1', title: 'Rent & rooms', href: H.home,
-        detail: 'What you pay the landlord, and when', done: progress || optional },
-      { n: '2', title: 'People', href: H.add,
-        detail: 'Add your fellow tenants and add their information', done: progress || optional },
-      { n: '3', title: 'Household splits', href: H.split,
-        detail: 'How you and the other tenants split household charges', done: optional, current: progress },
-      { n: '4', title: 'Custom messages', href: H.tpl, optional: true,
-        detail: 'Personalize your messages for each tenant if you wish', done: msgDone },
-      { n: '5', title: 'Reminders', href: H.notif, optional: true,
-        detail: 'A heads-up on bill day and when a payment is overdue', done: allDone }
+      { title: 'Start month', href: H.start,
+        detail: 'Choose the first month you want to track' },
+      { title: 'Rent & rooms', href: H.home,
+        detail: 'What you pay the landlord, and when' },
+      { title: 'People', href: H.add,
+        detail: 'Add your fellow tenants and add their information' },
+      { title: 'Household splits', href: H.split,
+        detail: 'How you and the other tenants split household charges' },
+      { title: 'Custom messages', href: H.tpl, optional: true,
+        detail: 'Personalize your messages for each tenant if you wish' },
+      { title: 'Reminders', href: H.notif, optional: true,
+        detail: 'A heads-up on bill day and when a payment is overdue' }
     ];
     var steps = raw.map(function (s, i) {
-      var cur = !!s.current || (!progress && !optional && i === 0) || (optional && !allDone && i === (msgDone ? 4 : 3));
+      var done = i < doneCount;
+      var cur = i === doneCount && !allDone;
       return {
-        n: s.n, title: s.title, detail: s.detail, href: s.href, optional: !!s.optional,
-        done: s.done, notDone: !s.done,
+        n: String(i + 1), title: s.title, detail: s.detail, href: s.href, optional: !!s.optional,
+        done: done, notDone: !done,
         hasDots: false, dots: dark ? [{ hex: '#FFA040' }, { hex: '#81C784' }] : [{ hex: '#BF4000' }, { hex: '#2E7D32' }],
         divider: i === 0 ? 'transparent' : c.outlineVariant,
         rowBg: cur ? c.selected : 'transparent',
-        dotBg: s.done ? c.successContainer : (cur ? c.primary : 'transparent'),
-        dotFg: s.done ? c.onSuccessContainer : (cur ? c.onPrimary : c.onSurfaceVariant),
-        dotBorder: s.done ? c.successContainer : (cur ? c.primary : c.outline)
+        dotBg: done ? c.successContainer : (cur ? c.primary : 'transparent'),
+        dotFg: done ? c.onSuccessContainer : (cur ? c.onPrimary : c.onSurfaceVariant),
+        dotBorder: done ? c.successContainer : (cur ? c.primary : c.outline)
       };
     });
-    var doneCount = allDone ? 5 : (msgDone ? 4 : (optional ? 3 : (progress ? 2 : 0)));
-    // Required steps (1-3) fill solid green when done. Optional steps (4-5) are outlined instead: green outline when done, gray outline when not (same hollow style as "Not in total" in Splits)
-    var bars = [0, 1, 2, 3, 4].map(function (i) {
-      var done = i < doneCount, opt = i >= 3;
+    // Required steps (1-4) fill solid green when done. Optional steps (5-6) are outlined instead: green outline when done, gray outline when not (same hollow style as "Not in total" in Splits)
+    var bars = [0, 1, 2, 3, 4, 5].map(function (i) {
+      var done = i < doneCount, opt = i >= 4;
       return opt ? { bg: 'transparent', border: '1.5px solid ' + (done ? c.success : c.track) } : { bg: done ? c.success : c.track, border: '0' };
     });
     return {
       c: c, steps: steps, bars: bars,
       isSetup: true, showSkip: optional || allDone, showProgress: progress || optional,
-      progressText: allDone ? 'All steps done' : (doneCount + ' of 5 steps done'), progressNow: String(doneCount),
+      progressText: allDone ? 'All steps done' : (doneCount + ' of 6 steps done'), progressNow: String(doneCount),
       progressNote: allDone ? 'Optional steps included' : '',
       heading: allDone ? 'You’re all set' : (optional ? 'Your household is set up' : 'Set up your household'),
       intro: allDone ? 'Everything is set up. Next, upload your utilities bill if you have one already.' : (optional
         ? (msgDone ? 'Reminders are optional. You can change them any time in Settings.' : 'Custom messages and reminders are optional. You can change both any time in Settings.')
         : 'Tell the app who lives here and what everyone pays. You only do this once — after that it’s one bill a month.'),
-      ctaLabel: allDone ? 'Upload your first utilities bill' : optional ? (msgDone ? 'Continue: Reminders' : 'Continue: Custom messages') : (progress ? 'Continue: Household splits' : 'Start with rent & rooms'),
-      ctaHref: allDone ? H.upload : optional ? (msgDone ? H.notif : H.tpl) : (progress ? H.split : H.home),
+      ctaLabel: allDone ? 'Upload your first utilities bill' : optional ? (msgDone ? 'Continue: Reminders' : 'Continue: Custom messages') : (started ? 'Continue: Rent & rooms' : progress ? 'Continue: Household splits' : 'Start with the start month'),
+      ctaHref: allDone ? H.upload : optional ? (msgDone ? H.notif : H.tpl) : (started ? H.home : progress ? H.split : H.start),
       skipHref: H.first, skipLabel: allDone ? "I don’t have a bill yet" : "Not now"
     };
   }
