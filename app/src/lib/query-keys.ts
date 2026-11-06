@@ -64,10 +64,16 @@ export const queryKeys = {
   /** The Settings screen. Under `allHousehold`, since its Messages rows count the saved templates and an edit can change them. */
   settings: ['household', 'settings'] as const,
   /**
-   * The template editor. Under `allHousehold`, so an edit refreshes it too.
+   * One template's landing page. Under `allHousehold`, so a save, a remove or a household edit refreshes it too.
    * @param kind `MONTHLY` or `NUDGE`.
    */
-  templateForm: (kind: string) => ['household', 'template', kind] as const,
+  templateLanding: (kind: string) => ['household', 'template-landing', kind] as const,
+  /**
+   * The template editor. Under `allHousehold`, so an edit refreshes it too.
+   * @param kind `MONTHLY` or `NUDGE`.
+   * @param personId Whose custom template, or null for the Default.
+   */
+  templateForm: (kind: string, personId: string | null) => ['household', 'template', kind, personId] as const,
   /**
    * A draft template rendered by the server, by the request sent.
    * @param request The draft sent to the preview.

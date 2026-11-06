@@ -10,8 +10,8 @@ import type { TemplateEditorProps } from './types';
 /**
  * The template editor: loads the latest saved values, which fill the form.
  */
-export function TemplateEditor({ kind }: TemplateEditorProps) {
-  const { data, error, isPending } = useTemplateForm(kind);
+export function TemplateEditor({ kind, personId }: TemplateEditorProps) {
+  const { data, error, isPending } = useTemplateForm(kind, personId);
 
   if (!data) {
     return (

@@ -5,7 +5,7 @@ import { Pressable, Text, View } from 'react-native';
 import { Icon } from '@/components';
 import type { MessageRowProps } from '../types';
 
-/** One template in the Messages card: name, detail and a chevron. Opens the template editor. */
+/** One template in the Messages card: name, detail and a chevron. Opens the template's landing page. */
 export function MessageRow({ row, separated }: MessageRowProps) {
   const router = useRouter();
   return (
