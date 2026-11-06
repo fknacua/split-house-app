@@ -5,11 +5,11 @@ import type { MessagesSectionProps } from '../types';
 import { MessageRow } from './message-row';
 import { MessagesSkeleton } from './messages-skeleton';
 
-/** The Messages section: the label above a card with one row per template, or their skeleton while loading. */
+/** The Message templates section: the label above a card with one row per template, or their skeleton while loading. */
 export function MessagesSection({ rows }: MessagesSectionProps) {
   return (
     <View className="gap-2">
-      <Text className="mx-1 mt-2 font-manrope-bold text-label text-on-surface-variant">Messages</Text>
+      <Text className="mx-1 mt-2 font-manrope-bold text-label text-on-surface-variant">Message templates</Text>
       {rows ? (
         <Card padded={false}>
           {rows.map((row, i) => (

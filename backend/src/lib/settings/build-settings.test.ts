@@ -38,7 +38,7 @@ describe("buildSettings", () => {
         { personId: PERSON_IDS.sam, kind: "MONTHLY", text: "Hello {name}" },
         { personId: PERSON_IDS.jordan, kind: "NUDGE", text: "Hi {name}, {charge}" },
       ]),
-    ).toEqual(["Custom versions: 2", "Custom versions: 1"]);
+    ).toEqual(["Custom templates: 2", "Custom templates: 1"]);
   });
 
   it("doesn't count a version for someone who has left", () => {

@@ -3,91 +3,88 @@ import {
   messageTemplatesSchema,
   type LineLabelType,
   type MessageTemplates,
+  type TemplateKind,
+  type TemplateLabelsSaveRequest,
   type TemplateSaveRequest,
 } from "@splithouse/shared";
+import { DEFAULT_MESSAGE_TEMPLATES } from "@/lib/messages/default-templates";
 import { DEFAULT_LINE_LABELS } from "@/lib/messages/line-label";
+import { defaultText } from "./template-text";
 
-/** A person's overrides after a save: replaced in place, added only when it differs from everyone's, or removed by null. */
-function nextOverrides(templates: MessageTemplates, save: TemplateSaveRequest & { personId: string }): MessageTemplates["overrides"] {
-  const isTheirs = (o: MessageTemplates["overrides"][number]) => o.personId === save.personId && o.kind === save.template;
-  if (save.text === null) return templates.overrides.filter((o) => !isTheirs(o));
-  const text = save.text;
-  if (templates.overrides.some(isTheirs)) return templates.overrides.map((o) => (isTheirs(o) ? { ...o, text } : o));
-  const everyones = save.template === "MONTHLY" ? templates.monthly : templates.nudge;
-  return text === everyones
-    ? templates.overrides
-    : [...templates.overrides, { personId: save.personId, kind: save.template, text }];
+const textField = (kind: TemplateKind) => (kind === "MONTHLY" ? "monthly" : "nudge");
+
+/**
+ * Applies a template save: the Default's text, or a person's custom template, added when they have none. A custom
+ * template matching the Default is kept, since the user chose to give that person one.
+ *
+ * @param templates - The wording the save starts from. Not changed.
+ * @param save - The save, already parsed with the shared schema.
+ * @returns The new wording.
+ */
+export function applyTemplateSave(templates: MessageTemplates, save: TemplateSaveRequest): MessageTemplates {
+  const { template: kind, personId, text } = save;
+  if (personId === null) return { ...templates, [textField(kind)]: text };
+  const isTheirs = (o: MessageTemplates["overrides"][number]) => o.personId === personId && o.kind === kind;
+  const overrides = templates.overrides.some(isTheirs)
+    ? templates.overrides.map((o) => (isTheirs(o) ? { ...o, text } : o))
+    : [...templates.overrides, { personId, kind, text }];
+  return { ...templates, overrides };
 }
 
-/** The line labels after a save. One matching the default clears the custom label, and a cleared field keeps its saved value, since the plan refuses it first. */
-function nextLineLabels(templates: MessageTemplates, sent: TemplateSaveRequest["lineLabels"]): MessageTemplates["lineLabels"] {
+/**
+ * Removes a person's custom template, so they get the Default again.
+ *
+ * @param templates - The current wording. Not changed.
+ * @param kind - The monthly breakdown or the nudge.
+ * @param personId - Whose.
+ * @returns The new wording, the same when they had none.
+ */
+export function applyTemplateRemove(templates: MessageTemplates, kind: TemplateKind, personId: string): MessageTemplates {
+  return { ...templates, overrides: templates.overrides.filter((o) => !(o.personId === personId && o.kind === kind)) };
+}
+
+/**
+ * Puts the built-in text back as the Default. Custom templates stay.
+ *
+ * @param templates - The current wording. Not changed.
+ * @param kind - The monthly breakdown or the nudge.
+ * @returns The new wording.
+ */
+export function applyTemplateRestore(templates: MessageTemplates, kind: TemplateKind): MessageTemplates {
+  return { ...templates, [textField(kind)]: defaultText(DEFAULT_MESSAGE_TEMPLATES, kind) };
+}
+
+/**
+ * Applies the Line labels sheet's save. A label matching the default clears the custom one, and so does an empty
+ * section title. Fields not sent keep their value.
+ *
+ * @param templates - The current wording. Not changed.
+ * @param save - The save, already parsed with the shared schema, so every label sent is trimmed and not blank.
+ * @returns The new wording.
+ */
+export function applyLabelsSave(templates: MessageTemplates, save: TemplateLabelsSaveRequest): MessageTemplates {
   const lineLabels = { ...templates.lineLabels };
-  for (const [type, value] of Object.entries(sent ?? {}) as [LineLabelType, string][]) {
-    const label = value.trim();
-    if (label === "") continue;
+  for (const [type, label] of Object.entries(save.lineLabels) as [LineLabelType, string][]) {
     if (label === DEFAULT_LINE_LABELS[type]) delete lineLabels[type];
     else lineLabels[type] = label;
   }
-  return lineLabels;
+  const sectionTitles = { ...templates.sectionTitles };
+  for (const [personId, title] of Object.entries(save.sectionTitles ?? {})) {
+    if (title === "") delete sectionTitles[personId];
+    else sectionTitles[personId] = title;
+  }
+  return { ...templates, lineLabels, sectionTitles };
 }
 
 /**
- * Applies a template save to the wording. A person with no version of their own only gets one when the text differs
- * from everyone's. The result still has to go through `messageTemplatesSchema`.
+ * Checks the new wording and tells whether there is anything to store, so saving the same thing twice is harmless.
  *
- * @param templates - The wording the save starts from. Not changed.
- * @param save - The save. A null `text` removes the person's own version, and does nothing without a person.
- * @returns The new wording.
+ * @param current - The stored wording.
+ * @param next - The wording after the change.
+ * @returns The wording to store, or null when it matches what is stored.
+ * @throws {ZodError} When the result breaks `messageTemplatesSchema`, which the parsed requests already rule out.
  */
-export function applyTemplatesSave(templates: MessageTemplates, save: TemplateSaveRequest): MessageTemplates {
-  const field = save.template === "MONTHLY" ? "monthly" : "nudge";
-  const { personId, text } = save;
-  return {
-    ...templates,
-    ...(personId !== null
-      ? { overrides: nextOverrides(templates, { ...save, personId }) }
-      : text !== null
-        ? { [field]: text }
-        : {}),
-    lineLabels: nextLineLabels(templates, save.lineLabels),
-  };
-}
-
-/** What a template save would do. The preview returns it and the save stores it. */
-export interface TemplatesSavePlan {
-  /** The new wording, or null when nothing changes or anything is invalid. */
-  next: MessageTemplates | null;
-  errors: Record<string, string>;
-  canSave: boolean;
-}
-
-/** The checks on each field. Placeholders aren't checked: an unknown one stays as typed, so it shows in the preview. */
-function fieldErrors(save: TemplateSaveRequest): Record<string, string> {
-  const errors: Record<string, string> = {};
-  const removesEveryones = save.text === null && save.personId === null;
-  if (removesEveryones || save.text?.trim() === "") errors.text = "Write a message.";
-  for (const [type, value] of Object.entries(save.lineLabels ?? {})) {
-    if (value.trim() === "") errors[`lineLabels.${type}`] = "Enter a label.";
-  }
-  return errors;
-}
-
-/**
- * Works out what a template save would do, for the preview and the save alike. Pure: the service reads the wording and
- * stores the result.
- *
- * @param templates - The current wording.
- * @param save - The save.
- * @returns The new wording, the errors per field and whether Save is allowed.
- */
-export function planTemplatesSave(templates: MessageTemplates, save: TemplateSaveRequest): TemplatesSavePlan {
-  const errors = fieldErrors(save);
-  if (Object.keys(errors).length > 0) return { next: null, errors, canSave: false };
-
-  const parsed = messageTemplatesSchema.safeParse(applyTemplatesSave(templates, save));
-  if (!parsed.success) {
-    return { next: null, errors: { form: parsed.error.issues[0].message }, canSave: false };
-  }
-  const next = isDeepStrictEqual(parsed.data, templates) ? null : parsed.data;
-  return { next, errors, canSave: next !== null };
+export function changedTemplates(current: MessageTemplates, next: MessageTemplates): MessageTemplates | null {
+  const parsed = messageTemplatesSchema.parse(next);
+  return isDeepStrictEqual(parsed, current) ? null : parsed;
 }

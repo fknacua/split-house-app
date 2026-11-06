@@ -1,16 +1,27 @@
 import type {
-  TemplateFormQuery,
-  TemplateFormResponse,
+  MessageTemplates,
+  TemplateEditorResponse,
   TemplateKind,
+  TemplateLabelsSaveRequest,
+  TemplateLandingResponse,
+  TemplatePersonQuery,
   TemplatePreviewRequest,
   TemplatePreviewResponse,
   TemplateSaveRequest,
   TemplateSaveResponse,
 } from "@splithouse/shared";
 import { ApiError } from "@/lib/api";
-import { buildTemplateForm, templatePersonIds } from "@/lib/templates/build-template-form";
-import { buildTemplatePreview, previewPersonId } from "@/lib/templates/build-template-preview";
-import { applyTemplatesSave, planTemplatesSave } from "@/lib/templates/plan-templates-save";
+import { buildTemplateEditor } from "@/lib/templates/build-template-editor";
+import { buildTemplateLanding } from "@/lib/templates/build-template-landing";
+import { buildTemplatePreview } from "@/lib/templates/build-template-preview";
+import {
+  applyLabelsSave,
+  applyTemplateRemove,
+  applyTemplateRestore,
+  applyTemplateSave,
+  changedTemplates,
+} from "@/lib/templates/plan-templates-save";
+import { defaultPreviewPerson, templatePeople, type TemplatePerson } from "@/lib/templates/template-people";
 import { readActiveConfig, readNextVersion, type HouseholdFormDb } from "@/services/household/household-form.service";
 import {
   readMessageTemplates,
@@ -19,102 +30,150 @@ import {
   type MessageTemplatesWriteDb,
 } from "./message-templates.service";
 
-/** The slice of the Prisma client the template editor reads, so tests can pass an in-memory fake. */
+/** The slice of the Prisma client the template screens read, so tests can pass an in-memory fake. */
 export type TemplatesDb = HouseholdFormDb & MessageTemplatesDb;
 
-/**
- * Reads who a template can apply to, and refuses a person who isn't one of them.
- *
- * @throws {ApiError} 404 `no_person` for someone unknown, the owner, or someone in neither this month's nor next month's household.
- */
-async function readPersonIds(
-  db: TemplatesDb,
-  next: Awaited<ReturnType<typeof readNextVersion>>,
-  personId: string | null | undefined,
-): Promise<string[]> {
-  const activeConfig = await readActiveConfig(db, next);
-  const personIds = templatePersonIds(activeConfig ? [next.config, activeConfig] : [next.config]);
-  if (personId && (!next.people.some((p) => p.id === personId) || !personIds.includes(personId))) {
-    throw new ApiError(404, "no_person", "This person is not in the household.");
-  }
-  return personIds;
-}
+/** The slice of the Prisma client the template saves use. */
+export type TemplatesWriteDb = TemplatesDb & MessageTemplatesWriteDb;
 
-/**
- * Reads the template editor with the current values. Read-only.
- *
- * @param db - The Prisma client, or a fake in tests.
- * @param kind - The monthly breakdown or the nudge.
- * @param query - Whose version to load. Missing means the one everyone else uses.
- * @returns The template editor.
- * @throws {ApiError} 409 `no_household` before first run; 404 `no_version` when no version covers next month; 404
- * `no_person` as `readPersonIds`.
- */
-export async function getTemplateForm(db: TemplatesDb, kind: TemplateKind, query: TemplateFormQuery): Promise<TemplateFormResponse> {
+/** Reads the active month, who can have a custom template, everyone's names and the wording. */
+async function readTemplatesContext(db: TemplatesDb) {
   const next = await readNextVersion(db);
-  const [personIds, templates] = await Promise.all([readPersonIds(db, next, query.personId), readMessageTemplates(db)]);
-  return buildTemplateForm({
-    kind,
-    personId: query.personId ?? null,
-    config: next.config,
-    templates,
-    personIds,
-    people: next.people,
-  });
-}
-
-/**
- * Renders a draft on a sample person, dated the active month, with what Save would do. The lines come from next month's
- * version through the split engine with sample totals, so every line always shows. Nothing is stored.
- *
- * @param db - The Prisma client, or a fake in tests.
- * @param request - The draft and who to show it on.
- * @returns The caption, the rendered message, whether Save is allowed and the errors per field.
- * @throws {ApiError} The same as `getTemplateForm`.
- */
-export async function previewTemplate(db: TemplatesDb, request: TemplatePreviewRequest): Promise<TemplatePreviewResponse> {
-  const next = await readNextVersion(db);
-  const [, templates] = await Promise.all([readPersonIds(db, next, request.personId), readMessageTemplates(db)]);
-  const { activeMonth, config, people } = next;
-
-  const sampleId = previewPersonId(config, {
-    kind: request.template,
-    personId: request.personId,
-    samplePersonId: request.samplePersonId,
-  });
-  const plan = planTemplatesSave(templates, request);
+  const [activeConfig, templates] = await Promise.all([readActiveConfig(db, next), readMessageTemplates(db)]);
+  const configs = activeConfig ? [next.config, activeConfig] : [next.config];
   return {
-    ...buildTemplatePreview({
-      kind: request.template,
-      text: request.text,
-      month: activeMonth,
-      config,
-      templates: applyTemplatesSave(templates, request),
-      person: { id: sampleId, name: people.find((p) => p.id === sampleId)?.name ?? "Someone" },
-      people: people.map((p) => ({ id: p.id, name: p.name })),
-    }),
-    canSave: plan.canSave,
-    errors: plan.errors,
+    month: next.activeMonth,
+    templates,
+    templatePeople: templatePeople(configs, next.people),
+    people: next.people.map((p) => ({ id: p.id, name: p.name })),
   };
 }
 
 /**
- * Saves a template and the line labels, running the preview's checks again. Applies immediately to every message not
- * yet sent; what was sent stays stored on its `MessageEvent`.
+ * Finds someone who can have a custom template.
+ *
+ * @throws {ApiError} 404 `no_person` for someone unknown, the owner, or someone in neither this month's nor next month's household.
+ */
+function findPerson(people: TemplatePerson[], personId: string): TemplatePerson {
+  const person = people.find((p) => p.personId === personId);
+  if (!person) throw new ApiError(404, "no_person", "This person is not in the household.");
+  return person;
+}
+
+/** Stores the new wording when it differs from what is stored. */
+async function store(db: MessageTemplatesWriteDb, current: MessageTemplates, next: MessageTemplates): Promise<TemplateSaveResponse> {
+  const changed = changedTemplates(current, next);
+  if (changed) await writeMessageTemplates(db, changed);
+  return { saved: true };
+}
+
+/**
+ * Reads one template's landing page: the Default, the custom templates and the For who rows. Read-only.
  *
  * @param db - The Prisma client, or a fake in tests.
- * @param request - The save.
- * @returns That it went through.
- * @throws {ApiError} The same as `getTemplateForm`; 422 `invalid_edit` when a rule fails; 422 `no_changes` when there is
- * nothing to store.
+ * @param kind - The monthly breakdown or the nudge.
+ * @returns The landing page.
+ * @throws {ApiError} 409 `no_household` before first run; 404 `no_version` when no version covers next month.
  */
-export async function saveTemplate(db: TemplatesDb & MessageTemplatesWriteDb, request: TemplateSaveRequest): Promise<TemplateSaveResponse> {
-  const next = await readNextVersion(db);
-  const [, templates] = await Promise.all([readPersonIds(db, next, request.personId), readMessageTemplates(db)]);
-  const plan = planTemplatesSave(templates, request);
-  const messages = Object.values(plan.errors);
-  if (messages.length > 0) throw new ApiError(422, "invalid_edit", messages.join(" "));
-  if (!plan.next) throw new ApiError(422, "no_changes", "There is nothing to save.");
-  await writeMessageTemplates(db, plan.next);
-  return { saved: true };
+export async function getTemplateLanding(db: TemplatesDb, kind: TemplateKind): Promise<TemplateLandingResponse> {
+  const context = await readTemplatesContext(db);
+  return buildTemplateLanding({ kind, ...context });
+}
+
+/**
+ * Reads the template editor for the Default or one person's custom template, saved or new. Read-only.
+ *
+ * @param db - The Prisma client, or a fake in tests.
+ * @param kind - The monthly breakdown or the nudge.
+ * @param query - Whose custom template. Missing means the Default.
+ * @returns The template editor.
+ * @throws {ApiError} The same as `getTemplateLanding`; 404 `no_person` as `findPerson`.
+ */
+export async function getTemplateEditor(db: TemplatesDb, kind: TemplateKind, query: TemplatePersonQuery): Promise<TemplateEditorResponse> {
+  const { templates, templatePeople } = await readTemplatesContext(db);
+  if (query.personId) findPerson(templatePeople, query.personId);
+  return buildTemplateEditor({ kind, personId: query.personId ?? null, templates, templatePeople });
+}
+
+/**
+ * Renders a draft on the person whose custom template it is, else on the Default's person, dated the active month,
+ * with every line from sample charges. Nothing is stored.
+ *
+ * @param db - The Prisma client, or a fake in tests.
+ * @param request - The draft.
+ * @returns The rendered message, or null for blank text or with nobody to show it on.
+ * @throws {ApiError} The same as `getTemplateEditor`.
+ */
+export async function previewTemplate(db: TemplatesDb, request: TemplatePreviewRequest): Promise<TemplatePreviewResponse> {
+  const { month, templates, templatePeople, people } = await readTemplatesContext(db);
+  const person = request.personId ? findPerson(templatePeople, request.personId) : defaultPreviewPerson(templatePeople);
+  if (!person) return { preview: null };
+  return {
+    preview: buildTemplatePreview({
+      kind: request.template,
+      text: request.text,
+      month,
+      config: person.config,
+      templates,
+      person: { id: person.personId, name: person.name },
+      people,
+    }),
+  };
+}
+
+/**
+ * Saves the Default's text or one person's custom template, adding it when they have none. Applies immediately to
+ * every message not yet sent; what was sent stays stored on its `MessageEvent`. Saving the same text again is harmless.
+ *
+ * @param db - The Prisma client, or a fake in tests.
+ * @param request - The save, already parsed with the shared schema, which refuses empty and over-limit text.
+ * @returns That it went through.
+ * @throws {ApiError} The same as `getTemplateEditor`.
+ */
+export async function saveTemplate(db: TemplatesWriteDb, request: TemplateSaveRequest): Promise<TemplateSaveResponse> {
+  const { templates, templatePeople } = await readTemplatesContext(db);
+  if (request.personId) findPerson(templatePeople, request.personId);
+  return store(db, templates, applyTemplateSave(templates, request));
+}
+
+/**
+ * Removes a person's custom template, so they get the Default. Removing one that is already gone is harmless.
+ *
+ * @param db - The Prisma client, or a fake in tests.
+ * @param kind - The monthly breakdown or the nudge.
+ * @param personId - Whose.
+ * @returns That it went through.
+ * @throws {ApiError} The same as `getTemplateEditor`.
+ */
+export async function removeTemplate(db: TemplatesWriteDb, kind: TemplateKind, personId: string): Promise<TemplateSaveResponse> {
+  const { templates, templatePeople } = await readTemplatesContext(db);
+  findPerson(templatePeople, personId);
+  return store(db, templates, applyTemplateRemove(templates, kind, personId));
+}
+
+/**
+ * Saves the built-in text as the Default. Custom templates stay.
+ *
+ * @param db - The Prisma client, or a fake in tests.
+ * @param kind - The monthly breakdown or the nudge.
+ * @returns That it went through.
+ * @throws {ApiError} The same as `getTemplateLanding`.
+ */
+export async function restoreTemplate(db: TemplatesWriteDb, kind: TemplateKind): Promise<TemplateSaveResponse> {
+  const { templates } = await readTemplatesContext(db);
+  return store(db, templates, applyTemplateRestore(templates, kind));
+}
+
+/**
+ * Saves the line labels and section titles together, for every template.
+ *
+ * @param db - The Prisma client, or a fake in tests.
+ * @param request - The save, already parsed with the shared schema, which refuses a blank label.
+ * @returns That it went through.
+ * @throws {ApiError} The same as `getTemplateLanding`; 404 `no_person` for a section title of someone who can't have one.
+ */
+export async function saveTemplateLabels(db: TemplatesWriteDb, request: TemplateLabelsSaveRequest): Promise<TemplateSaveResponse> {
+  const { templates, templatePeople } = await readTemplatesContext(db);
+  for (const personId of Object.keys(request.sectionTitles ?? {})) findPerson(templatePeople, personId);
+  return store(db, templates, applyLabelsSave(templates, request));
 }

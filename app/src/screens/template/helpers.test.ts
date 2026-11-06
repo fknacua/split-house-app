@@ -1,46 +1,32 @@
 import { describe, expect, it } from 'vitest';
 
-import type { TemplateFormResponse } from '@splithouse/shared';
+import type { TemplateEditorResponse } from '@splithouse/shared';
 import { hasTemplateChanges, insertAtCursor, toTemplateDraft, toTemplateFormValues } from './helpers';
 
 const FORM = {
   kind: 'MONTHLY',
   personId: null,
   text: 'Hi {name}!',
-  lineLabels: {
-    rows: [
-      { type: 'RENT', label: 'Rent', value: 'Rent' },
-      { type: 'UTILITIES', label: 'Utilities bill', value: 'PUB' },
-    ],
-  },
-} as TemplateFormResponse;
+} as TemplateEditorResponse;
 
 describe('toTemplateFormValues', () => {
-  it('fills the text and a label per row', () => {
-    expect(toTemplateFormValues(FORM)).toEqual({ text: 'Hi {name}!', lineLabels: { RENT: 'Rent', UTILITIES: 'PUB' } });
+  it('fills the text', () => {
+    expect(toTemplateFormValues(FORM)).toEqual({ text: 'Hi {name}!' });
   });
 });
 
 describe('toTemplateDraft', () => {
-  it('sends the whole form as written', () => {
-    expect(toTemplateDraft({ text: ' Hi ', lineLabels: { RENT: 'Upa' } }, FORM)).toEqual({
-      template: 'MONTHLY',
-      personId: null,
-      text: ' Hi ',
-      lineLabels: { RENT: 'Upa' },
-    });
+  it('sends the text as written', () => {
+    expect(toTemplateDraft({ text: ' Hi ' }, FORM)).toEqual({ template: 'MONTHLY', personId: null, text: ' Hi ' });
   });
 });
 
 describe('hasTemplateChanges', () => {
-  const values = toTemplateFormValues(FORM);
-
   it.each([
-    ['nothing changed', values, false],
-    ['the text changed', { ...values, text: 'Hi' }, true],
-    ['a label changed', { ...values, lineLabels: { ...values.lineLabels, UTILITIES: 'Kuryente' } }, true],
-  ])('%s', (_name, changed, expected) => {
-    expect(hasTemplateChanges(changed, FORM)).toBe(expected);
+    ['nothing changed', 'Hi {name}!', false],
+    ['the text changed', 'Hi', true],
+  ])('%s', (_name, text, expected) => {
+    expect(hasTemplateChanges({ text }, FORM)).toBe(expected);
   });
 });
 

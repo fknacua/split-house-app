@@ -5,9 +5,9 @@ import { queryKeys } from '@/lib';
 import type { TemplateSaveRequest, TemplateSaveResponse } from '@splithouse/shared';
 
 /**
- * Saves a template and the line labels (`POST /api/templates`), which apply immediately. Settings and the editor sit
- * under `allHousehold`, and Recipient shows the wording, so all are refetched; the mutation stays pending until they
- * are, so Save keeps its spinner until the screens behind it are up to date.
+ * Saves the Default's text or one person's custom template (`POST /api/templates`), which applies immediately.
+ * Settings and the editor sit under `allHousehold`, and Recipient shows the wording, so all are refetched; the mutation
+ * stays pending until they are, so Save keeps its spinner until the screens behind it are up to date.
  */
 export function useSaveTemplate() {
   const queryClient = useQueryClient();

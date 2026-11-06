@@ -8,16 +8,12 @@ import { EditSaveActions } from '@/screens/household-person';
 import { hasTemplateChanges, insertAtCursor, toTemplateDraft, toTemplateFormValues, type TemplateFormValues, type TextSelection } from '../helpers';
 import type { TemplateFormProps } from '../types';
 import { useTemplateFlow } from '../use-template-flow';
-import { AppliesToField } from './applies-to-field';
-import { LineLabelsSection } from './line-labels-section';
-import { NudgePreviewCard } from './nudge-preview-card';
 import { PlaceholderChips } from './placeholder-chips';
 import { PreviewCard } from './preview-card';
 
 /**
- * The `template` and `nudge` boards: Applies to, the message with chips that insert at the cursor, the line labels both
- * templates share, and a preview the server renders. A save applies immediately. The server checks every field. Leaving
- * with unsaved changes asks first.
+ * The template editor: the message with chips that insert at the cursor, checked with the shared message rules, and a
+ * preview the server renders. A save applies immediately. Leaving with unsaved changes asks first.
  */
 export function TemplateForm({ form }: TemplateFormProps) {
   // The refetch after a save changes the response while the screen is closing, so the form keeps what it opened on.
@@ -25,8 +21,7 @@ export function TemplateForm({ form }: TemplateFormProps) {
   const { control, setValue, setFocus } = useForm<TemplateFormValues>({ defaultValues: toTemplateFormValues(opened) });
   const values = useWatch({ control }) as TemplateFormValues;
   const dirty = hasTemplateChanges(values, opened);
-  const [samplePersonId, setSamplePersonId] = useState(opened.samples[0]?.personId ?? null);
-  const flow = useTemplateFlow(toTemplateDraft(values, opened), dirty, samplePersonId);
+  const flow = useTemplateFlow(toTemplateDraft(values, opened), dirty);
   const { guard, errors } = flow;
 
   const cursor = useRef<TextSelection>({ start: opened.text.length, end: opened.text.length });
@@ -48,7 +43,6 @@ export function TemplateForm({ form }: TemplateFormProps) {
       <KeyboardAvoidingView behavior="padding" className="flex-1">
         <ScrollView keyboardShouldPersistTaps="handled" contentContainerClassName="px-4 pb-4 pt-2">
           <View pointerEvents={flow.saving ? 'none' : 'auto'} className="gap-4">
-            <AppliesToField appliesTo={opened.appliesTo} personId={opened.personId} />
             <View className="gap-2">
               <TextareaInput
                 lines={6}
@@ -63,17 +57,7 @@ export function TemplateForm({ form }: TemplateFormProps) {
               />
               <PlaceholderChips placeholders={opened.placeholders} onInsert={insert} />
             </View>
-            <LineLabelsSection lineLabels={opened.lineLabels} control={control} errors={errors} />
-            {opened.kind === 'NUDGE' ? (
-              <NudgePreviewCard
-                answer={flow.answer}
-                samples={opened.samples}
-                samplePersonId={samplePersonId}
-                onSampleChange={setSamplePersonId}
-              />
-            ) : (
-              <PreviewCard answer={flow.answer} />
-            )}
+            <PreviewCard answer={flow.answer} />
           </View>
         </ScrollView>
       </KeyboardAvoidingView>

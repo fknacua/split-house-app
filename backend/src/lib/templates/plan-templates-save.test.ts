@@ -2,18 +2,17 @@ import type { MessageTemplates, TemplateSaveRequest } from "@splithouse/shared";
 import { describe, expect, it } from "vitest";
 import { PERSON_IDS } from "@/lib/fixtures/household";
 import { DEFAULT_MESSAGE_TEMPLATES } from "@/lib/messages/default-templates";
-import { applyTemplatesSave, planTemplatesSave } from "./plan-templates-save";
+import {
+  applyLabelsSave,
+  applyTemplateRemove,
+  applyTemplateRestore,
+  applyTemplateSave,
+  changedTemplates,
+} from "./plan-templates-save";
 
 const { jordan, sam } = PERSON_IDS;
 const OWN = "Hi {name}, your own.";
 const BASE = DEFAULT_MESSAGE_TEMPLATES;
-
-const save = (fields: Partial<TemplateSaveRequest>): TemplateSaveRequest => ({
-  template: "MONTHLY",
-  personId: null,
-  text: BASE.monthly,
-  ...fields,
-});
 
 const withTemplates = (templates: Partial<MessageTemplates>): MessageTemplates => ({ ...BASE, ...templates });
 
@@ -25,22 +24,32 @@ const WITH_OWN = withTemplates({
   ],
 });
 
-describe("applyTemplatesSave", () => {
-  it.each<[string, MessageTemplates, Partial<TemplateSaveRequest>, Partial<MessageTemplates>]>([
-    ["changes Everyone's monthly", BASE, { text: "New" }, { monthly: "New" }],
-    ["changes Everyone's nudge", BASE, { template: "NUDGE", text: "New" }, { nudge: "New" }],
-    ["sends text as written", BASE, { text: "  *Hi* {unknown}\n" }, { monthly: "  *Hi* {unknown}\n" }],
+describe("applyTemplateSave", () => {
+  it.each<[string, MessageTemplates, TemplateSaveRequest, Partial<MessageTemplates>]>([
+    ["changes the monthly Default", BASE, { template: "MONTHLY", personId: null, text: "New" }, { monthly: "New" }],
+    ["changes the nudge Default", BASE, { template: "NUDGE", personId: null, text: "New" }, { nudge: "New" }],
     [
-      "adds a person's own version when it differs",
+      "keeps the text as written",
       BASE,
-      { personId: jordan, text: OWN },
+      { template: "MONTHLY", personId: null, text: "  *Hi* {unknown}\n" },
+      { monthly: "  *Hi* {unknown}\n" },
+    ],
+    [
+      "adds a custom template",
+      BASE,
+      { template: "MONTHLY", personId: jordan, text: OWN },
       { overrides: [{ personId: jordan, kind: "MONTHLY", text: OWN }] },
     ],
-    ["adds none when it matches Everyone's", BASE, { personId: jordan }, { overrides: [] }],
     [
-      "replaces a person's own version in place, leaving their other kind and other people",
+      "adds one matching the Default, since the user chose to give them one",
+      BASE,
+      { template: "MONTHLY", personId: jordan, text: BASE.monthly },
+      { overrides: [{ personId: jordan, kind: "MONTHLY", text: BASE.monthly }] },
+    ],
+    [
+      "replaces a custom template in place, leaving the other template and people",
       WITH_OWN,
-      { personId: jordan, text: "Changed" },
+      { template: "MONTHLY", personId: jordan, text: "Changed" },
       {
         overrides: [
           { personId: jordan, kind: "MONTHLY", text: "Changed" },
@@ -49,70 +58,76 @@ describe("applyTemplatesSave", () => {
         ],
       },
     ],
-    [
-      "removes only that kind of that person's version",
-      WITH_OWN,
-      { personId: jordan, text: null },
-      {
-        overrides: [
-          { personId: jordan, kind: "NUDGE", text: "Jordan's nudge" },
-          { personId: sam, kind: "MONTHLY", text: "Sam's" },
-        ],
-      },
-    ],
-    ["sets a custom line label, trimmed", BASE, { lineLabels: { UTILITIES: " PUB " } }, { lineLabels: { UTILITIES: "PUB" } }],
-    [
-      "clears a custom label set back to the default",
-      withTemplates({ lineLabels: { UTILITIES: "PUB", RENT: "Upa" } }),
-      { lineLabels: { UTILITIES: "Utilities bill" } },
-      { lineLabels: { RENT: "Upa" } },
-    ],
-    [
-      "keeps a saved label when the field is cleared, which the plan refuses",
-      withTemplates({ lineLabels: { RENT: "Upa" } }),
-      { lineLabels: { RENT: "  " } },
-      { lineLabels: { RENT: "Upa" } },
-    ],
-  ])("%s", (_name, templates, fields, expected) => {
-    expect(applyTemplatesSave(templates, save(fields))).toEqual({ ...templates, ...expected });
+  ])("%s", (_name, templates, save, expected) => {
+    expect(applyTemplateSave(templates, save)).toEqual({ ...templates, ...expected });
   });
 
-  it("leaves the wording passed alone", () => {
-    const before = structuredClone(WITH_OWN);
-    applyTemplatesSave(WITH_OWN, save({ text: "New", lineLabels: { RENT: "Upa" } }));
-    expect(WITH_OWN).toEqual(before);
+  it("leaves the labels alone", () => {
+    const templates = withTemplates({ lineLabels: { RENT: "Upa" }, sectionTitles: { [sam]: "Room 2" } });
+    const next = applyTemplateSave(templates, { template: "MONTHLY", personId: null, text: "New" });
+    expect(next.lineLabels).toEqual({ RENT: "Upa" });
+    expect(next.sectionTitles).toEqual({ [sam]: "Room 2" });
   });
 });
 
-describe("planTemplatesSave", () => {
-  it("saves a change", () => {
-    const result = planTemplatesSave(BASE, save({ text: "New" }));
-    expect(result).toMatchObject({ canSave: true, errors: {} });
-    expect(result.next?.monthly).toBe("New");
+describe("applyTemplateRemove", () => {
+  it("removes only that person's template of that kind", () => {
+    expect(applyTemplateRemove(WITH_OWN, "MONTHLY", jordan).overrides).toEqual([
+      { personId: jordan, kind: "NUDGE", text: "Jordan's nudge" },
+      { personId: sam, kind: "MONTHLY", text: "Sam's" },
+    ]);
   });
 
-  it("has nothing to save when nothing changes", () => {
-    expect(planTemplatesSave(BASE, save({}))).toEqual({ next: null, errors: {}, canSave: false });
-    expect(planTemplatesSave(BASE, save({ personId: jordan }))).toMatchObject({ canSave: false, errors: {} });
-    expect(planTemplatesSave(BASE, save({ personId: jordan, text: null }))).toMatchObject({ canSave: false, errors: {} });
+  it("changes nothing for someone without one", () => {
+    expect(applyTemplateRemove(WITH_OWN, "NUDGE", sam)).toEqual(WITH_OWN);
+  });
+});
+
+describe("applyTemplateRestore", () => {
+  it.each([
+    ["MONTHLY", "monthly"],
+    ["NUDGE", "nudge"],
+  ] as const)("puts the built-in %s text back, keeping the custom templates", (kind, field) => {
+    const edited = { ...WITH_OWN, monthly: "Edited", nudge: "Edited" };
+    const next = applyTemplateRestore(edited, kind);
+    expect(next[field]).toBe(BASE[field]);
+    expect(next[field === "monthly" ? "nudge" : "monthly"]).toBe("Edited");
+    expect(next.overrides).toEqual(WITH_OWN.overrides);
+  });
+});
+
+describe("applyLabelsSave", () => {
+  it("sets custom labels and clears one matching the default", () => {
+    const templates = withTemplates({ lineLabels: { RENT: "Upa", AIRCON: "AC" } });
+    expect(applyLabelsSave(templates, { lineLabels: { RENT: "Rent", UTILITIES: "PUB" } }).lineLabels).toEqual({
+      UTILITIES: "PUB",
+      AIRCON: "AC",
+    });
   });
 
-  it("removes a person's own version", () => {
-    const result = planTemplatesSave(WITH_OWN, save({ personId: sam, text: null }));
-    expect(result.canSave).toBe(true);
-    expect(result.next?.overrides).toHaveLength(2);
+  it("sets section titles and clears an empty one", () => {
+    const templates = withTemplates({ sectionTitles: { [sam]: "Room 2" } });
+    const next = applyLabelsSave(templates, { lineLabels: {}, sectionTitles: { [sam]: "", [jordan]: "Room 3 Share" } });
+    expect(next.sectionTitles).toEqual({ [jordan]: "Room 3 Share" });
   });
 
-  it("accepts an unknown placeholder, which stays as typed", () => {
-    expect(planTemplatesSave(BASE, save({ text: "Hi {nmae}" })).canSave).toBe(true);
+  it("leaves the template text alone", () => {
+    const next = applyLabelsSave(WITH_OWN, { lineLabels: { RENT: "Upa" } });
+    expect({ ...next, lineLabels: {} }).toEqual({ ...WITH_OWN, lineLabels: {} });
+  });
+});
+
+describe("changedTemplates", () => {
+  it("returns the new wording when it differs", () => {
+    expect(changedTemplates(BASE, { ...BASE, monthly: "New" })).toEqual({ ...BASE, monthly: "New" });
   });
 
-  it.each<[string, Partial<TemplateSaveRequest>, Record<string, string>]>([
-    ["empty text", { text: "" }, { text: "Write a message." }],
-    ["blank text", { text: " \n " }, { text: "Write a message." }],
-    ["removing Everyone's", { text: null }, { text: "Write a message." }],
-    ["an empty line label", { text: "New", lineLabels: { AIRCON: " " } }, { "lineLabels.AIRCON": "Enter a label." }],
-  ])("refuses %s", (_name, fields, errors) => {
-    expect(planTemplatesSave(BASE, save(fields))).toEqual({ next: null, errors, canSave: false });
+  it("returns null when nothing changes", () => {
+    expect(changedTemplates(WITH_OWN, applyTemplateSave(WITH_OWN, { template: "MONTHLY", personId: sam, text: "Sam's" }))).toBeNull();
+    expect(changedTemplates(BASE, applyTemplateRestore(BASE, "NUDGE"))).toBeNull();
+  });
+
+  it("throws when the result breaks the wording schema", () => {
+    expect(() => changedTemplates(BASE, { ...BASE, monthly: "" })).toThrow();
   });
 });
