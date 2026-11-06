@@ -1,3 +1,4 @@
+import { useState } from 'react';
 import { View } from 'react-native';
 
 import { Alert, Screen, SubpageHeader } from '@/components';
@@ -8,10 +9,13 @@ import { TemplateSkeleton } from './components/template-skeleton';
 import type { TemplateEditorProps } from './types';
 
 /**
- * The template editor: loads the latest saved values, which fill the form.
+ * The template editor: loads the latest saved values, which fill the form. A restore reopens the form on the restored
+ * text, without the Restore link.
  */
 export function TemplateEditor({ kind, personId }: TemplateEditorProps) {
   const { data, error, isPending } = useTemplateForm(kind, personId);
+  // Bumped after a restore, so the form refills from the refetched response.
+  const [opening, setOpening] = useState(0);
 
   if (!data) {
     return (
@@ -28,5 +32,5 @@ export function TemplateEditor({ kind, personId }: TemplateEditorProps) {
     );
   }
 
-  return <TemplateForm form={data} />;
+  return <TemplateForm key={opening} form={data} onRestored={() => setOpening((n) => n + 1)} />;
 }

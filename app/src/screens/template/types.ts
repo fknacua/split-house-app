@@ -1,4 +1,8 @@
+import type { Control } from 'react-hook-form';
+import type { TextInputProps } from 'react-native';
+
 import type { TemplateDialog, TemplateEditorResponse, TemplateKind, TemplatePreviewResponse } from '@splithouse/shared';
+import type { TemplateFormValues } from './helpers';
 
 /** Props for {@link RemoveTemplateDialog}. */
 export interface RemoveTemplateDialogProps {
@@ -16,6 +20,20 @@ export interface RemoveTemplateDialogProps {
   onRemoved: () => void;
 }
 
+/** Props for {@link RestoreTemplateDialog}. */
+export interface RestoreTemplateDialogProps {
+  /** Whether the dialog is shown. */
+  open: boolean;
+  /** The monthly breakdown or the nudge, whose Default is restored. */
+  kind: TemplateKind;
+  /** The dialog's text, written by the server. */
+  dialog: TemplateDialog;
+  /** Called by Cancel and the back gesture. */
+  onClose: () => void;
+  /** Called once the Default is restored and the screens behind, the editor included, are refetched. */
+  onRestored: () => void;
+}
+
 /** Props for {@link TemplateEditor}. */
 export interface TemplateEditorProps {
   /** The monthly breakdown or the nudge. */
@@ -28,6 +46,24 @@ export interface TemplateEditorProps {
 export interface TemplateFormProps {
   /** The loaded response. It fills the form when the form opens. */
   form: TemplateEditorResponse;
+  /** Called once the Default is restored, so the editor reopens on the restored text. */
+  onRestored: () => void;
+}
+
+/** Props for {@link MessageField}. */
+export interface MessageFieldProps {
+  /** The form's `control`; the field is `text`. */
+  control: Control<TemplateFormValues>;
+  /** `Restore to original`, or undefined when the Default has nothing to restore. */
+  restoreLabel?: string;
+  /** Opens the restore dialog. */
+  onRestore?: () => void;
+  /** Disables the restore link while saving. */
+  disabled?: boolean;
+  /** Sets the cursor. Leave undefined to let the user move it. */
+  selection?: TextInputProps['selection'];
+  /** Called when the cursor moves or the selected text changes. */
+  onSelectionChange?: TextInputProps['onSelectionChange'];
 }
 
 /** Props for {@link PlaceholderChips}. */
@@ -42,4 +78,8 @@ export interface PlaceholderChipsProps {
 export interface PreviewCardProps {
   /** The server's latest answer, or undefined until the first one arrives. */
   answer: TemplatePreviewResponse | undefined;
+  /** Disables `Edit line labels` while saving. */
+  editLabelsDisabled?: boolean;
+  /** Opens the Line labels sheet. */
+  onEditLabels: () => void;
 }

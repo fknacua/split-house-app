@@ -30,6 +30,19 @@ import {
 } from "@/lib/messages/render";
 import { whatsappLink } from "@/lib/messages/whatsapp-link";
 
+/**
+ * Edit template's target: the person's custom template when they have one of the kind, else the Default.
+ *
+ * @param templates - The current wording.
+ * @param personId - Who the screen is for.
+ * @param template - The monthly breakdown or the nudge.
+ * @returns The target.
+ */
+function editTemplateTarget(templates: MessageTemplates, personId: string, template: MessageKind): RecipientAction["target"] {
+  const own = templates.overrides.some((o) => o.personId === personId && o.kind === template);
+  return own ? { kind: "edit-template", template, personId } : { kind: "edit-template", template };
+}
+
 /** A charge row, as much of it as Recipient needs. */
 export type RecipientChargeRow = BreakdownCharge & { id: string; paidOn: Date | null };
 
@@ -292,7 +305,12 @@ function overdueRecipient(
       label: chosen.nudgedOn ? "Last nudge" : "Nudge",
       meta: chosen.nudgedOn ? `Sent ${formatDateShort(chosen.nudgedOn)}` : "Nudge template",
       ...nudgeMessagePreview(nudgeText),
-      editTemplate: { label: "Edit template", icon: null, enabled: true, target: { kind: "edit-template", template: "NUDGE" } },
+      editTemplate: {
+        label: "Edit template",
+        icon: null,
+        enabled: true,
+        target: editTemplateTarget(input.templates, person.id, "NUDGE"),
+      },
     },
     allPaid: null,
     note: person.whatsappE164 ? null : `No WhatsApp number is set up for ${person.name}.`,
@@ -423,7 +441,7 @@ export function buildRecipient(input: RecipientInput): RecipientResponse {
     label: "Edit template",
     icon: null,
     enabled: true,
-    target: { kind: "edit-template", template: "MONTHLY" },
+    target: editTemplateTarget(input.templates, person.id, "MONTHLY"),
   };
   const shareBill: RecipientAction = { label: "Share bill", icon: null, enabled: hasBill, target: { kind: "share-bill", month } };
   const send = (label: string, icon: RecipientAction["icon"]): RecipientAction => ({

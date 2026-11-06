@@ -14,6 +14,8 @@ export interface FieldControlProps<T extends FieldValues> {
   name: FieldPath<T>;
   label: string;
   required?: boolean;
+  /** A link at the end of the label row, such as `Restore to original`. */
+  labelAction?: ReactNode;
   helper?: string;
   /** Overrides the form state's error, for a server error that is not on the field yet. */
   error?: string;

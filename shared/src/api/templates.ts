@@ -1,5 +1,4 @@
 import { z } from 'zod';
-import { countMessageCharacters } from '../lib/message-text';
 import { personColor } from '../schemas/primitives';
 import { messagePreviewSchema } from './recipient';
 
@@ -15,29 +14,13 @@ export const LINE_LABEL_TYPES = ['RENT', 'UTILITIES', 'AIRCON'] as const;
 /** One of {@link LINE_LABEL_TYPES}. */
 export type LineLabelType = (typeof LINE_LABEL_TYPES)[number];
 
-/** The most characters a template's text can have, as counted by `countMessageCharacters`. */
-export const TEMPLATE_LIMITS: Record<TemplateKind, number> = {
-  MONTHLY: 1000,
-  NUDGE: 500,
-};
-
-/** The message rules for one template: not empty, and within its limit. */
-function templateMessageSchema(kind: TemplateKind) {
-  return z
-    .string()
-    .refine((text) => text.trim() !== '', { message: 'Message can’t be empty', abort: true })
-    // No message: the counter under the field shows the count in danger instead.
-    .refine((text) => countMessageCharacters(text) <= TEMPLATE_LIMITS[kind], { message: '' });
-}
-
 /**
- * The template text's rules per template, which the editor validates against as the user types and the save is parsed
- * with. Empty fails with `Message can’t be empty`; over the limit fails with an empty message.
+ * The template text's rule, which the editor validates against as the user types and the save is parsed with: not
+ * empty (`Message can’t be empty`). There is no length limit.
  */
-export const templateMessageSchemas = {
-  MONTHLY: templateMessageSchema('MONTHLY'),
-  NUDGE: templateMessageSchema('NUDGE'),
-} as const;
+export const templateMessageSchema = z
+  .string()
+  .refine((text) => text.trim() !== '', { message: 'Message can’t be empty' });
 
 /** `GET /api/templates/:kind/editor` and `DELETE /api/templates/:kind` query: whose custom template. Missing means the Default. */
 export const templatePersonQuerySchema = z.object({
@@ -51,6 +34,8 @@ export type TemplatePersonQuery = z.infer<typeof templatePersonQuerySchema>;
 export const templateDialogSchema = z.object({
   title: z.string(),
   body: z.string(),
+  /** What stays, as check lines under the body, e.g. `Custom templates aren’t affected`. */
+  items: z.array(z.string()).optional(),
   confirmLabel: z.string(),
   cancelLabel: z.string(),
 });
@@ -145,8 +130,6 @@ export const templateEditorResponseSchema = z.object({
   sub: z.string(),
   /** The saved text; a new custom template starts from the Default's. */
   text: z.string(),
-  /** The most characters the text can have. */
-  limit: z.number().int().positive(),
   /** The Insert chips, e.g. `{name}`. */
   placeholders: z.array(z.string()),
   /** `Restore to original` and its dialog. Only on the Default once it differs from the built-in text. */
@@ -182,18 +165,15 @@ export const templateEditorResponseSchema = z.object({
 /** `GET /api/templates/:kind/editor`: the template editor, ready to render. */
 export type TemplateEditorResponse = z.infer<typeof templateEditorResponseSchema>;
 
-const saveFor = <K extends TemplateKind>(kind: K) =>
-  z.object({
-    /** Which template. */
-    template: z.literal(kind),
-    /** Whose custom template, or null for the Default. Saving one for someone without one adds it. */
-    personId: z.string().min(1).nullable(),
-    /** Sent as written, including `*bold*` markers. */
-    text: templateMessageSchemas[kind],
-  });
-
-/** `POST /api/templates` body: the Default's or one person's text, which applies immediately. The text follows {@link templateMessageSchemas}. */
-export const templateSaveRequestSchema = z.discriminatedUnion('template', [saveFor('MONTHLY'), saveFor('NUDGE')]);
+/** `POST /api/templates` body: the Default's or one person's text, which applies immediately. The text follows {@link templateMessageSchema}. */
+export const templateSaveRequestSchema = z.object({
+  /** Which template. */
+  template: templateKindSchema,
+  /** Whose custom template, or null for the Default. Saving one for someone without one adds it. */
+  personId: z.string().min(1).nullable(),
+  /** Sent as written, including `*bold*` markers. */
+  text: templateMessageSchema,
+});
 
 /** `POST /api/templates` body: the Default's or one person's text, which applies immediately. */
 export type TemplateSaveRequest = z.infer<typeof templateSaveRequestSchema>;

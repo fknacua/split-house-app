@@ -18,6 +18,7 @@ export function RemoveTemplateDialog({ open, kind, personId, dialog, onClose, on
       icon={Trash2}
       title={dialog.title}
       body={dialog.body}
+      items={dialog.items}
       cancelLabel={dialog.cancelLabel}
       onCancel={() => {
         remove.reset();
