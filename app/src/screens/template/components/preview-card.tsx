@@ -3,7 +3,7 @@ import { Text, View } from 'react-native';
 import { Card, MessagePreview, SkeletonBlock } from '@/components';
 import type { PreviewCardProps } from '../types';
 
-/** The draft as the server rendered it, with who and which month it is shown on. Blocks stand in until the first answer. */
+/** The draft as the server rendered it. Blocks stand in until the first answer; blank text has nothing to preview. */
 export function PreviewCard({ answer }: PreviewCardProps) {
   return (
     <View className="gap-2">
@@ -11,15 +11,12 @@ export function PreviewCard({ answer }: PreviewCardProps) {
         <Text accessibilityRole="header" className="font-manrope-bold text-label text-on-surface">
           Preview
         </Text>
-        {answer ? (
-          <Text className="min-w-0 shrink text-right font-manrope-semibold text-caption text-on-surface-variant">
-            {answer.meta}
-          </Text>
-        ) : null}
       </View>
       <Card padded={false} className="gap-1.5 px-3.5 py-3">
-        {answer ? (
+        {answer?.preview ? (
           <MessagePreview message={answer.preview} />
+        ) : answer ? (
+          <Text className="font-manrope-medium text-caption text-on-surface-variant">Nothing to preview yet</Text>
         ) : (
           <>
             <SkeletonBlock className="h-3.5" />

@@ -1,13 +1,22 @@
-import { templateFormQuerySchema, templateKindSchema } from "@splithouse/shared";
-import { ApiError, parseQuery, requireSession, route } from "@/lib/api";
+import { templateKindSchema, templatePersonQuerySchema } from "@splithouse/shared";
+import { ApiError, parsePathParam, parseQuery, requireSession, route } from "@/lib/api";
 import { prisma } from "@/lib/prisma";
-import { getTemplateForm } from "@/services/templates/templates.service";
+import { getTemplateLanding, removeTemplate } from "@/services/templates/templates.service";
 
-/** The template editor with the latest saved values, for `MONTHLY` or `NUDGE`. `?personId=` loads that person's version. */
-export const GET = route<{ params: Promise<{ kind: string }> }>(async (request, { params }) => {
+type Context = { params: Promise<{ kind: string }> };
+
+/** The landing page for `MONTHLY` or `NUDGE`: the Default, the custom templates and the For who rows. */
+export const GET = route<Context>(async (request, { params }) => {
   await requireSession(request);
-  const kind = templateKindSchema.safeParse((await params).kind);
-  if (!kind.success) throw new ApiError(400, "invalid_request", "Template must be MONTHLY or NUDGE.");
-  const query = parseQuery(request, templateFormQuerySchema);
-  return Response.json(await getTemplateForm(prisma, kind.data, query));
+  const kind = parsePathParam((await params).kind, templateKindSchema, "Template must be MONTHLY or NUDGE.");
+  return Response.json(await getTemplateLanding(prisma, kind));
+});
+
+/** Removes `?personId=`'s custom template, so they get the Default. */
+export const DELETE = route<Context>(async (request, { params }) => {
+  await requireSession(request);
+  const kind = parsePathParam((await params).kind, templateKindSchema, "Template must be MONTHLY or NUDGE.");
+  const { personId } = parseQuery(request, templatePersonQuerySchema);
+  if (!personId) throw new ApiError(400, "invalid_request", "personId is required.");
+  return Response.json(await removeTemplate(prisma, kind, personId));
 });

@@ -43,6 +43,21 @@ export function parseQuery<T>(request: Request, schema: ZodType<T>) {
   return validate(schema, params);
 }
 
+/**
+ * Parses one path segment, e.g. `:kind`.
+ *
+ * @param value - The segment as received.
+ * @param schema - What it must be.
+ * @param message - The error's message when it isn't.
+ * @returns The parsed value.
+ * @throws {ApiError} 400 `invalid_request` with `message` when the segment doesn't parse.
+ */
+export function parsePathParam<T>(value: string, schema: ZodType<T>, message: string): T {
+  const result = schema.safeParse(value);
+  if (!result.success) throw new ApiError(400, "invalid_request", message);
+  return result.data;
+}
+
 function validate<T>(schema: ZodType<T>, value: unknown): T {
   const result = schema.safeParse(value);
   if (!result.success) throw toValidationError(result.error);

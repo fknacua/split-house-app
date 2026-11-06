@@ -3,7 +3,7 @@ import { parseBody, requireSession, route } from "@/lib/api";
 import { prisma } from "@/lib/prisma";
 import { previewTemplate } from "@/services/templates/templates.service";
 
-/** A draft template rendered on a sample person and the active month. Nothing is stored. */
+/** A draft template rendered on its person, else the Default's, dated the active month. Nothing is stored. */
 export const POST = route(async (request) => {
   await requireSession(request);
   const draft = await parseBody(request, templatePreviewRequestSchema);

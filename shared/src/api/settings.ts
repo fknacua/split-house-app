@@ -1,11 +1,11 @@
 import { z } from 'zod';
 
-/** One row of the Messages card: a template and how many people have their own version of it. */
+/** One row of the Message templates card: a template and how many people have a custom template of it. */
 export const settingsMessageRowSchema = z.object({
   /** Which template the row opens. */
   kind: z.enum(['MONTHLY', 'NUDGE']),
   name: z.string(),
-  /** "Same for everyone", or the number of custom versions. */
+  /** `Same for everyone`, or e.g. `Custom templates: 1`. */
   detail: z.string(),
 });
 

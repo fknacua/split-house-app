@@ -1,10 +1,8 @@
-import type { LineLabelType, TemplateFormResponse, TemplatePreviewRequest } from '@splithouse/shared';
+import type { TemplateEditorResponse, TemplatePreviewRequest } from '@splithouse/shared';
 
 /** The template editor's values. */
 export interface TemplateFormValues {
   text: string;
-  /** The label fields, by the charge type they name. */
-  lineLabels: Partial<Record<LineLabelType, string>>;
 }
 
 /** A cursor or selected range in the text. */
@@ -16,37 +14,33 @@ export interface TextSelection {
 /**
  * Fills the form from the server's response.
  *
- * @param form The form response.
+ * @param form The editor response.
  * @returns The form's values.
  */
-export function toTemplateFormValues(form: TemplateFormResponse): TemplateFormValues {
-  return {
-    text: form.text,
-    lineLabels: Object.fromEntries(form.lineLabels.rows.map((row) => [row.type, row.value])),
-  };
+export function toTemplateFormValues(form: TemplateEditorResponse): TemplateFormValues {
+  return { text: form.text };
 }
 
 /**
- * Builds the draft from the whole form, for the preview and the save alike. The server decides what changed and checks
- * every field.
+ * Builds the draft from the form, for the preview and the save alike.
  *
  * @param values The form's values.
- * @param form The form response.
+ * @param form The editor response.
  * @returns The draft.
  */
-export function toTemplateDraft(values: TemplateFormValues, form: TemplateFormResponse): TemplatePreviewRequest {
-  return { template: form.kind, personId: form.personId, text: values.text, lineLabels: values.lineLabels };
+export function toTemplateDraft(values: TemplateFormValues, form: TemplateEditorResponse): TemplatePreviewRequest {
+  return { template: form.kind, personId: form.personId, text: values.text };
 }
 
 /**
  * Whether leaving would lose anything.
  *
  * @param values The form's values.
- * @param form The form response the form opened on.
- * @returns True when the text or a label differs from what it opened on.
+ * @param form The editor response the form opened on.
+ * @returns True when the text differs from what it opened on.
  */
-export function hasTemplateChanges(values: TemplateFormValues, form: TemplateFormResponse): boolean {
-  return values.text !== form.text || form.lineLabels.rows.some((row) => values.lineLabels[row.type] !== row.value);
+export function hasTemplateChanges(values: TemplateFormValues, form: TemplateEditorResponse): boolean {
+  return values.text !== form.text;
 }
 
 /**

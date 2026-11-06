@@ -1,22 +1,22 @@
 import type { HouseholdConfig, MessageTemplates, SettingsMessageRow, SettingsResponse } from "@splithouse/shared";
-import { TEMPLATE_NAMES } from "@/lib/templates/build-template-form";
+import { TEMPLATE_NAMES } from "@/lib/templates/template-text";
 
 const MESSAGE_ROWS: readonly Pick<SettingsMessageRow, "kind" | "name">[] = [
   { kind: "MONTHLY", name: TEMPLATE_NAMES.MONTHLY },
   { kind: "NUDGE", name: TEMPLATE_NAMES.NUDGE },
 ];
 
-const versionsText = (count: number) => {
+const customCountText = (count: number) => {
   return count === 0 ?
     "Same for everyone" :
-    `Custom versions: ${count}`;
+    `Custom templates: ${count}`;
 };
 
 /**
  * The Settings screen, display-ready.
  *
  * @param input - The signed-in email, the config whose people count, or null before first run, and the wording. A
- *   version for someone who has left isn't counted.
+ *   custom template for someone who has left isn't counted.
  * @returns The response for `GET /api/settings`.
  */
 export function buildSettings(input: {
@@ -30,7 +30,7 @@ export function buildSettings(input: {
     email: input.email,
     messages: MESSAGE_ROWS.map((row) => ({
       ...row,
-      detail: versionsText(overrides.filter((o) => o.kind === row.kind).length),
+      detail: customCountText(overrides.filter((o) => o.kind === row.kind).length),
     })),
   };
 }

@@ -38,7 +38,7 @@ describe("getSettings", () => {
   it("counts a saved custom version", async () => {
     const settings = await getSettings(fakeDb([version("2026-11", NOV_2026_CONFIG)], WITH_OVERRIDE), EMAIL);
     expect(settings.email).toBe(EMAIL);
-    expect(settings.messages[0].detail).toBe("Custom versions: 1");
+    expect(settings.messages[0].detail).toBe("Custom templates: 1");
   });
 
   it("doesn't count someone who has left by next month", async () => {
@@ -54,7 +54,7 @@ describe("getSettings", () => {
       fakeDb([version("2027-01", WITHOUT_JORDAN), version("2026-11", NOV_2026_CONFIG)], WITH_OVERRIDE),
       EMAIL,
     );
-    expect(settings.messages[0].detail).toBe("Custom versions: 1");
+    expect(settings.messages[0].detail).toBe("Custom templates: 1");
   });
 
   it("still answers before first run", async () => {
