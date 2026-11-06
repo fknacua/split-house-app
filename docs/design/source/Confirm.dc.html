@@ -55,7 +55,7 @@ body{margin:0}
 </div>
 </div>
 </x-dc>
-<script type="text/x-dc" data-dc-script data-props='{"kind":{"editor":"enum","options":["removePerson","removePersonIncluded","removeVersion","removeNudge","restoreBreakdown","restoreNudge","discard","discardRooms"],"default":"removePerson"},"theme":{"editor":"enum","options":["light","dark"],"default":"light"},"$preview":{"width":400,"height":848}}'>
+<script type="text/x-dc" data-dc-script data-props='{"kind":{"editor":"enum","options":["removePerson","removePersonIncluded","removeVersion","removeNudge","skipMessages","restoreBreakdown","restoreNudge","discard","discardRooms"],"default":"removePerson"},"theme":{"editor":"enum","options":["light","dark"],"default":"light"},"$preview":{"width":400,"height":848}}'>
 class Component extends DCLogic {
   renderVals() {
     var dark = this.props.theme === 'dark';
@@ -109,6 +109,11 @@ class Component extends DCLogic {
       v.body = 'Your edited Default template for ' + (k === 'restoreNudge' ? 'Nudge' : 'Monthly breakdown') + ' will be replaced with the original. Messages already sent won’t change.';
       v.hasKeeps = true; v.keeps = ['Custom templates aren’t affected'];
       v.confirmLabel = 'Restore original'; v.cancelLabel = 'Cancel';
+    } else if (k === 'skipMessages') {
+      v.bgTitle = 'Custom messages'; v.iconUndo = true;
+      v.title = 'Skip custom messages?';
+      v.body = 'Your custom templates will be discarded. You can set up custom templates again in Settings.';
+      v.confirmLabel = 'Discard templates'; v.cancelLabel = 'Keep templates';
     } else if (k === 'removeNudge') {
       v.bgTitle = 'Nudge'; v.iconTrash = true;
       v.title = 'Remove this template?';
@@ -130,6 +135,7 @@ class Component extends DCLogic {
     if (k === 'removeVersion') { v.cancelHref = 'Settings-Override-' + T + '.dc.html'; v.confirmHref = 'Settings-MessagesFirst-' + T + '.dc.html'; }
     else if (k === 'restoreBreakdown') { v.cancelHref = 'Settings-Template-' + T + '.dc.html'; v.confirmHref = 'Settings-TemplateOriginal-' + T + '.dc.html'; }
     else if (k === 'restoreNudge') { v.cancelHref = 'Settings-Nudge-' + T + '.dc.html'; v.confirmHref = 'Settings-NudgeOriginal-' + T + '.dc.html'; }
+    else if (k === 'skipMessages') { v.cancelHref = 'FirstRunMessages-Custom-' + T + '.dc.html'; v.confirmHref = 'Welcome-Notifications-' + T + '.dc.html'; }
     else if (k === 'removeNudge') { v.cancelHref = 'Settings-NudgeOverride-' + T + '.dc.html'; v.confirmHref = 'Settings-NudgeList-' + T + '.dc.html'; }
     else if (k === 'discardRooms') { v.cancelHref = 'LandlordRooms-Changed-' + T + '.dc.html'; v.confirmHref = viewH; }
     else if (k === 'removePersonIncluded') { v.cancelHref = 'Household-EditTenant1-' + T + '.dc.html'; v.confirmHref = viewH; }

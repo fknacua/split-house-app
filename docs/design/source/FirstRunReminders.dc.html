@@ -1,0 +1,153 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>First-run reminders</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&display=swap">
+<style>
+body{margin:0}
+</style>
+</helmet>
+<div style="width: 400px; height: 848px; box-sizing: border-box; padding: 8px; background: #0B0C0C; border-radius: 26px; font-family: Manrope, 'Segoe UI', system-ui, sans-serif; color: {{c.onSurface}}">
+<div style="position: relative; width: 384px; height: 832px; border-radius: 18px; overflow: hidden; background: {{c.background}}; display: flex; flex-direction: column">
+<div style="position: absolute; top: 12px; left: 186px; width: 12px; height: 12px; border-radius: 6px; background: #050505; box-shadow: 0 0 0 2px #1C1D1E"></div>
+<div style="height: 36px; flex-shrink: 0"></div>
+
+<header style="display: flex; align-items: center; gap: 4px; padding: 4px 8px; height: 56px; flex-shrink: 0">
+<a href="{{backHref}}" aria-label="Back" style="width: 48px; height: 48px; border-radius: 24px; color: {{c.onSurface}}; display: flex; align-items: center; justify-content: center">
+<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m12 19-7-7 7-7"></path><path d="M19 12H5"></path></svg>
+</a>
+<div style="display: flex; flex-direction: column">
+<span style="font-size: 20px; line-height: 28px; font-weight: 800">Reminders</span>
+<span style="font-size: 12px; line-height: 16px; font-weight: 600; color: {{c.onSurfaceVariant}}">Optional</span>
+</div>
+</header>
+
+<main style="flex-grow: 1; min-height: 0; overflow-y: auto; overscroll-behavior: contain; scrollbar-width: none; padding: 8px 16px 16px; display: flex; flex-direction: column; gap: 16px">
+<!-- gluestack Card -->
+<div style="background: {{c.surface}}; border-radius: 20px; overflow: hidden; display: flex; flex-direction: column">
+<sc-if value="{{isDenied}}" hint-placeholder-val="{{false}}">
+<div style="padding: 12px; display: flex; flex-direction: column; gap: 12px">
+<!-- gluestack Alert, warning -->
+<div role="alert" style="background: {{c.warningTint}}; border: 1px solid {{c.warningLine}}; border-radius: 12px; padding: 12px 14px; display: flex; align-items: flex-start; gap: 10px">
+<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="{{c.warning}}" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="flex-shrink: 0"><path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3"></path><path d="M12 9v4"></path><path d="M12 17h.01"></path></svg>
+<div style="display: flex; flex-direction: column; gap: 2px; min-width: 0">
+<span style="font-size: 14px; line-height: 20px; font-weight: 700; color: {{c.onSurface}}">Notifications are blocked</span>
+<span style="font-size: 14px; line-height: 20px; font-weight: 500; color: {{c.onSurfaceVariant}}">Reminders can't reach you until you allow notifications for this app.</span>
+</div>
+</div>
+<!-- gluestack Button, outline -->
+<button style="height: 48px; padding: 0 20px; border-radius: 999px; border: 1px solid {{c.outline}}; background: transparent; color: {{c.onSurface}}; font-family: inherit; font-size: 15px; line-height: 20px; font-weight: 700; display: flex; align-items: center; justify-content: center; gap: 8px">
+<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M15 3h6v6"></path><path d="M10 14 21 3"></path><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"></path></svg>
+Open system settings
+</button>
+</div>
+</sc-if>
+<sc-for list="{{notifs}}" as="n" hint-placeholder-count="6">
+<div style="display: flex; align-items: center; gap: 12px; min-height: 64px; padding: 10px 14px 10px 16px; box-sizing: border-box; border-top: 1px solid {{n.divider}}">
+<div style="flex-grow: 1; display: flex; flex-direction: column; gap: 2px">
+<span style="font-size: 14px; line-height: 20px; font-weight: 700; color: {{n.nameFg}}">{{n.name}}</span>
+<span style="font-size: 12px; line-height: 16px; font-weight: 600; color: {{n.detailFg}}">{{n.detail}}</span>
+</div>
+<!-- gluestack Switch -->
+<button role="switch" aria-label="{{n.name}}" aria-checked="{{n.pressed}}" aria-disabled="{{n.disabled}}" onClick="{{n.toggle}}" style="position: relative; display: block; flex-shrink: 0; width: 52px; height: 32px; margin: 6px 0; padding: 0; border-radius: 16px; border: 2px solid {{n.border}}; background: {{n.bg}}; box-sizing: border-box; line-height: 0">
+<span style="position: absolute; top: {{n.thumbTop}}; left: {{n.thumbLeft}}; width: {{n.thumb}}; height: {{n.thumb}}; border-radius: 50%; background: {{n.thumbBg}}; display: flex; align-items: center; justify-content: center; color: {{c.primary}}">
+<sc-if value="{{n.on}}" hint-placeholder-val="{{true}}"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 6 9 17l-5-5"></path></svg></sc-if>
+</span>
+</button>
+</div>
+</sc-for>
+</div>
+<p style="margin: 0 4px; font-size: 12px; line-height: 16px; font-weight: 600; color: {{c.onSurfaceVariant}}">{{helper}}</p>
+<sc-if value="{{isPrompt}}" hint-placeholder-val="{{false}}">
+<!-- CUSTOM: Android system permission dialog (drawn as a stand-in; the real one is rendered by the OS) -->
+<div style="position: absolute; inset: 0; background: {{c.scrim}}; display: flex; align-items: center; justify-content: center; padding: 28px; z-index: 5">
+<div role="alertdialog" style="width: 100%; box-sizing: border-box; background: {{c.sheet}}; border-radius: 28px; padding: 24px; display: flex; flex-direction: column; align-items: center; gap: 16px">
+<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M10.268 21a2 2 0 0 0 3.464 0"></path><path d="M3.262 15.326A1 1 0 0 0 4 17h16a1 1 0 0 0 .74-1.673C19.41 13.956 18 12.499 18 8A6 6 0 0 0 6 8c0 4.499-1.411 5.956-2.738 7.326"></path></svg>
+<span style="font-size: 16px; line-height: 24px; font-weight: 500; text-align: center">Allow SplitHouse to send you notifications?</span>
+<a href="{{allowHref}}" style="align-self: stretch; height: 48px; border-radius: 999px; border: 1px solid {{c.outline}}; color: {{c.onSurface}}; display: flex; align-items: center; justify-content: center; font-size: 15px; font-weight: 700; text-decoration: none">Allow</a>
+<a href="{{denyHref}}" style="align-self: stretch; height: 48px; border-radius: 999px; border: 1px solid {{c.outline}}; color: {{c.onSurface}}; display: flex; align-items: center; justify-content: center; font-size: 15px; font-weight: 700; text-decoration: none">Don’t allow</a>
+</div>
+</div>
+</sc-if>
+</main>
+
+<footer style="flex-shrink: 0; padding: 10px 16px 28px; display: flex; flex-direction: column; gap: 4px; background: {{c.background}}; box-shadow: {{c.footShadow}}">
+<!-- gluestack Button, solid / disabled -->
+<a href="{{ctaHref}}" aria-disabled="{{ctaDisabled}}" style="height: 48px; border-radius: 999px; background: {{ctaBg}}; color: {{ctaFg}}; display: flex; align-items: center; justify-content: center; text-decoration: none; font-size: 15px; line-height: 20px; font-weight: 700">{{ctaLabel}}</a>
+<sc-if value="{{showSkip}}" hint-placeholder-val="{{true}}">
+<!-- gluestack Button, link -->
+<a href="{{skipHref}}" style="height: 48px; border-radius: 999px; color: {{c.onSurface}}; display: flex; align-items: center; justify-content: center; font-size: 15px; line-height: 20px; font-weight: 700; text-decoration: none">Not now</a>
+</sc-if>
+</footer>
+</div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"state":{"editor":"enum","options":["default","prompt","granted","denied"],"default":"default"},"theme":{"editor":"enum","options":["light","dark"],"default":"light"},"$preview":{"width":400,"height":848}}'>
+class Component extends DCLogic {
+  renderVals() {
+    var dark = this.props.theme === 'dark';
+    var st = this.props.state || 'empty';
+    var c = dark ? {
+      background: '#111214', surface: '#1A1C1E', container: '#222427', sheet: '#222427',
+      onSurface: '#E3E3E6', onSurfaceVariant: '#C4C6CB', outline: '#8E9196', outlineVariant: '#2E3134',
+      primary: '#E2E2E6', onPrimary: '#1A1C1E', selected: '#2C2F33', onSelected: '#E3E3E6',
+      disabledBg: '#222427', disabledFg: '#5C5F64', track: '#3A3E43', scrim: 'rgba(0,0,0,0.6)',
+      success: '#66BB6A', successContainer: '#1B5E20', onSuccessContainer: '#CBE4CB',
+      warning: '#FFA726', warningContainer: '#66430F', onWarningContainer: '#FFE2B7', warningTint: '#332108', warningLine: '#F57C00',
+      danger: '#F44336', dangerTint: '#3B1511', dangerLine: '#D32F2F', onDangerTint: '#FFD9D6',
+      info: '#29B6F6', infoTint: '#082431', infoLine: '#1B76A0', infoContainer: '#104962', onInfoContainer: '#B8E7FB',
+      footShadow: '0 -8px 16px rgba(0,0,0,0.45)'
+    } : {
+      background: '#F5F5F7', surface: '#FFFFFF', container: '#E9EAED', sheet: '#FFFFFF',
+      onSurface: '#1A1C1E', onSurfaceVariant: '#45484C', outline: '#74777C', outlineVariant: '#E6E7EA',
+      primary: '#2B2F33', onPrimary: '#FFFFFF', selected: '#E6E7EA', onSelected: '#1A1C1E',
+      disabledBg: '#E9EAED', disabledFg: '#9A9DA2', track: '#D3D5D9', scrim: 'rgba(0,0,0,0.5)',
+      success: '#2E7D32', successContainer: '#C8E6C9', onSuccessContainer: '#1E4620',
+      warning: '#E65100', warningContainer: '#FBE2CC', onWarningContainer: '#663C00', warningTint: '#FFF4E5', warningLine: '#FBE2CC',
+      danger: '#D32F2F', dangerTint: '#FDEDED', dangerLine: '#F6D5D5', onDangerTint: '#5F2120',
+      info: '#0288D1', infoTint: '#E5F6FD', infoLine: '#CCE7F6', infoContainer: '#CCE7F6', onInfoContainer: '#014361',
+      footShadow: '0 -6px 14px rgba(0,0,0,0.14)'
+    };
+    var T = dark ? 'Dark' : 'Light';
+    var self = this;
+    var granted = st === 'granted';
+    var locked = !granted;
+    var raw = [
+      { id: 'upload', name: 'Upload the utilities bill', detail: 'Around the 2nd, daily until uploaded' },
+      { id: 'tenant1', name: 'Collect rent', detail: 'Last working day before the 1st, if unpaid' },
+      { id: 'paysp', name: 'Pay the utilities bill', detail: 'Before the bill’s due date, with what’s collected' },
+      { id: 'checks', name: 'Payment checks', detail: 'On each due date, if still unpaid' },
+      { id: 'fyi', name: 'FYI updates', detail: 'Unusual bill, aircon servicing due, month settled · silent' }
+    ];
+    var off = (this.state && this.state.off) || { fyi: true };
+    var notifs = raw.map(function (n, i) {
+      var on = granted && !off[n.id];
+      return { name: n.name, detail: n.detail, divider: i === 0 && !st.match(/denied/) ? 'transparent' : c.outlineVariant,
+        nameFg: locked ? c.onSurfaceVariant : c.onSurface, detailFg: locked ? c.disabledFg : c.onSurfaceVariant,
+        pressed: on ? 'true' : 'false', disabled: locked ? 'true' : 'false',
+        bg: locked ? c.disabledBg : (on ? c.primary : 'transparent'), border: locked ? c.outlineVariant : (on ? c.primary : c.outline), on: on,
+        thumb: on ? '24px' : '16px', thumbTop: on ? '2px' : '6px', thumbLeft: on ? '22px' : '6px', thumbBg: locked ? c.disabledFg : (on ? c.onPrimary : c.outline),
+        toggle: function () { if (locked) return; var o = {}; for (var k in off) o[k] = off[k]; o[n.id] = on; self.setState({ off: o }); } };
+    });
+    var home = dark ? 'Home-Upload-Dark.dc.html' : 'Main.dc.html';
+    var P = 'FirstRunReminders-';
+    var cta = { default: ['Allow notifications', P + 'Prompt-' + T + '.dc.html'], prompt: ['Allow notifications', '#'], granted: ['Done', 'Welcome-AllDone-' + T + '.dc.html'], denied: ['Continue', home] }[st] || ['Allow notifications', '#'];
+    return {
+      c: c, notifs: notifs, backHref: dark ? 'FirstRunMessages-Empty-Dark.dc.html' : 'FirstRunMessages-Empty-Light.dc.html',
+      isDenied: st === 'denied', isPrompt: st === 'prompt',
+      helper: granted ? 'You can change these any time in Settings.' : (st === 'denied' ? 'Notifications are for this device only' : 'Turn these on after you allow notifications for this app.'),
+      allowHref: P + 'Granted-' + T + '.dc.html', denyHref: P + 'Denied-' + T + '.dc.html',
+      ctaLabel: cta[0], ctaDisabled: 'false', ctaBg: c.primary, ctaFg: c.onPrimary, ctaHref: cta[1],
+      showSkip: st === 'default' || st === 'prompt', skipHref: home
+    };
+  }
+}
+</script>
+</body>
+</html>

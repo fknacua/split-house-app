@@ -294,11 +294,11 @@ class Component extends DCLogic {
     var canSave = dirty && st !== 'error';
     var viewHref = dark ? 'Household-View-Dark.dc.html' : 'Household.dc.html';
     return {
-      scrollMargin: ({ error: '-40px', warning: '-520px', emptyRoom: '-760px', removed: '-760px' }[st] || '0px'),
+      scrollMargin: '0px',
       c: c, cards: cards, isLoading: st === 'loading', isLoaded: st !== 'loading', skel: [1, 2, 3],
       hasPending: pending, summary: summary, showSummary: dirty && summary.length > 0, hasErrors: st === 'error',
       saveDisabled: canSave ? 'false' : 'true', saveBg: canSave ? c.primary : c.disabledBg, saveFg: canSave ? c.onPrimary : c.disabledFg,
-      backHref: dirty ? ('Confirm-DiscardRooms-' + T + '.dc.html') : viewHref,
+      backHref: firstRun ? (T === 'Dark' ? 'Welcome-Empty-Dark.dc.html' : 'Welcome.dc.html') : (dirty ? ('Confirm-DiscardRooms-' + T + '.dc.html') : viewHref),
       addRoomHref: href('AddRoom'), undoHref: href('EmptyRoom'), backToRooms: href('Unchanged'),
       hasSheet: isSheet, sheetTenant: tenantSheet, typeOpts: typeOpts, sheetFields: sheetFields
     };
