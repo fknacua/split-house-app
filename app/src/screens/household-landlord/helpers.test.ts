@@ -50,6 +50,7 @@ const FORM: HouseholdHomeFormResponse = {
       canRemove: true,
     },
   ],
+  roomsToAdd: [],
   newRoomTypes: [
     { roomType: 'TENANT', title: 'Tenant room', badge: { label: 'Empty', tone: 'neutral' } },
     { roomType: 'COMMON', title: 'Common room', badge: null },

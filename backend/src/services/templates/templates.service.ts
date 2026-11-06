@@ -1,4 +1,5 @@
 import type {
+  HouseholdConfig,
   MessageTemplates,
   TemplateEditorResponse,
   TemplateKind,
@@ -22,7 +23,7 @@ import {
   changedTemplates,
 } from "@/lib/templates/plan-templates-save";
 import { defaultPreviewPerson, templatePeople, type TemplatePerson } from "@/lib/templates/template-people";
-import { readActiveConfig, readNextVersion, type HouseholdFormDb } from "@/services/household/household-form.service";
+import { readActiveConfig, readFormContext, requireConfig, type HouseholdFormDb } from "@/services/household/household-form.service";
 import {
   readMessageTemplates,
   writeMessageTemplates,
@@ -36,17 +37,25 @@ export type TemplatesDb = HouseholdFormDb & MessageTemplatesDb;
 /** The slice of the Prisma client the template saves use. */
 export type TemplatesWriteDb = TemplatesDb & MessageTemplatesWriteDb;
 
-/** Reads the active month, both months' configs, who can have a custom template, everyone's names and the wording. */
+/**
+ * Reads the month messages are dated, both months' configs, who can have a custom template, everyone's names and the
+ * wording. In First run the month is the start month, and before Rent & rooms is saved there is no config.
+ */
 async function readTemplatesContext(db: TemplatesDb) {
-  const next = await readNextVersion(db);
-  const [activeConfig, templates] = await Promise.all([readActiveConfig(db, next), readMessageTemplates(db)]);
-  const configs = activeConfig ? [next.config, activeConfig] : [next.config];
+  const context = await readFormContext(db);
+  const { config } = context;
+  if (!config && !context.firstSetup) requireConfig(context);
+  const [activeConfig, templates] = await Promise.all([
+    config ? readActiveConfig(db, { ...context, config }) : null,
+    readMessageTemplates(db),
+  ]);
+  const configs = [config, activeConfig].filter((c): c is HouseholdConfig => c !== null);
   return {
-    month: next.activeMonth,
+    month: context.firstSetup ? context.month : context.activeMonth,
     configs,
     templates,
-    templatePeople: templatePeople(configs, next.people),
-    people: next.people.map((p) => ({ id: p.id, name: p.name })),
+    templatePeople: templatePeople(configs, context.people),
+    people: context.people.map((p) => ({ id: p.id, name: p.name })),
   };
 }
 
@@ -74,7 +83,7 @@ async function store(db: MessageTemplatesWriteDb, current: MessageTemplates, nex
  * @param db - The Prisma client, or a fake in tests.
  * @param kind - The monthly breakdown or the nudge.
  * @returns The landing page.
- * @throws {ApiError} 409 `no_household` before first run; 404 `no_version` when no version covers next month.
+ * @throws {ApiError} 404 `no_version` when no version covers next month.
  */
 export async function getTemplateLanding(db: TemplatesDb, kind: TemplateKind): Promise<TemplateLandingResponse> {
   const context = await readTemplatesContext(db);

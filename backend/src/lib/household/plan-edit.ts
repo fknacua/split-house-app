@@ -56,7 +56,8 @@ export interface HouseholdEditPlan {
 }
 
 const NONE = "—";
-const SPLIT_ERROR = "This comes from the split.";
+/** The message for a value the owner and primary tenant take from the split instead. */
+export const SPLIT_ERROR = "This comes from the split.";
 const ROUTE_ERROR = "Only tenants can pay via someone.";
 const VIA_ERROR = "Choose someone else in the household.";
 const VIA_NOT_DIRECT_ERROR = "This person pays via someone, so choose someone who pays directly.";

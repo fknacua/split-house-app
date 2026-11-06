@@ -61,11 +61,20 @@ describe("GET /api/household/split-form", () => {
     expect(body.pendingNote).toBe("These take effect from December 2026.");
   });
 
-  it("answers 409 before first run", async () => {
+  it("answers 409 rooms_first in First run before Rent & rooms is saved", async () => {
     useHousehold([]);
+    Object.assign(prisma.month, { findFirst: async () => null });
     const response = await GET(request(), undefined);
     expect(response.status).toBe(409);
-    expect(apiErrorBodySchema.parse(await response.json()).error.code).toBe("no_household");
+    expect(apiErrorBodySchema.parse(await response.json()).error.code).toBe("rooms_first");
+  });
+
+  it("reads the first version in First run, starting the current month, with nothing pending", async () => {
+    useHousehold([version("2026-11", NOV_2026_CONFIG)]);
+    Object.assign(prisma.month, { findFirst: async () => null });
+    const body = householdSplitFormResponseSchema.parse(await (await GET(request(), undefined)).json());
+    expect(body.datedTitle).toBe("From November 2026");
+    expect(body.pendingNote).toBeNull();
   });
 
   it("answers 401 without a session", async () => {
