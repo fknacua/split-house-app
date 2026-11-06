@@ -218,9 +218,17 @@ Component and props are what to pass to the source file in `docs/design/source/`
 | Board | Component | Props |
 |---|---|---|
 | Settings · Overview | `Settings` | `state=view` |
-| Settings · Monthly breakdown template | `Settings` | `state=template` |
-| Settings · Tenant 2's own template | `Settings` | `state=override` |
-| Settings · Nudge template | `Settings` | `state=nudge` |
+| Settings · Monthly breakdown landing | `Settings` | `state=list` (variants `loading`, `all`) |
+| Settings · Monthly breakdown, no custom templates | `Settings` | `state=listFirst` |
+| Settings · Monthly breakdown, For who sheet | `Settings` | `state=listSheet` |
+| Settings · Nudge landing | `Settings` | `state=nudgeList` (variants `loading`, `custom`) |
+| Settings · Nudge, For who sheet | `Settings` | `state=nudgeSheet` |
+| Settings · Default monthly breakdown | `Settings` | `state=template` (variants `original`, `empty`, `failed`, `labelsOpen`, `labelsFailed`) |
+| Settings · Custom template for Tenant 2 | `Settings` | `state=override` |
+| Settings · New custom template | `Settings` | `state=new` |
+| Settings · Default nudge | `Settings` | `state=nudge` (variants `original`, `empty`, `failed`, `labelsOpen`) |
+| Settings · Custom nudge for Tenant 2 | `Settings` | `state=nudgeOverride` |
+| Settings · New custom nudge | `Settings` | `state=newNudge` |
 | Settings · Notifications blocked | `Settings` | `state=blocked` |
 
 ### Notifications — Android system UI, copy / channel / actions / icon reference
@@ -235,7 +243,9 @@ Component and props are what to pass to the source file in `docs/design/source/`
 | Board | Component | Props |
 |---|---|---|
 | Confirm · Remove from household | `Confirm` | `kind=removePerson` |
-| Confirm · Remove template version | `Confirm` | `kind=removeVersion` |
+| Confirm · Remove custom template | `Confirm` | `kind=removeVersion` |
+| Confirm · Remove custom nudge | `Confirm` | `kind=removeNudge` |
+| Confirm · Restore original template | `Confirm` | `kind=restoreBreakdown`, `kind=restoreNudge` |
 | Confirm · Discard unsaved changes | `Confirm` | `kind=discard` |
 | Month picker | `MonthPicker` | `title`, `minYear`, `minMonth`, `maxYear`, `maxMonth` |
 | Close November (start next month) | `CloseMonth` | `state=idle` |

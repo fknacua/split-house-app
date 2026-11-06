@@ -55,7 +55,7 @@ body{margin:0}
 </div>
 </div>
 </x-dc>
-<script type="text/x-dc" data-dc-script data-props='{"kind":{"editor":"enum","options":["removePerson","removePersonIncluded","removeVersion","discard","discardRooms"],"default":"removePerson"},"theme":{"editor":"enum","options":["light","dark"],"default":"light"},"$preview":{"width":400,"height":848}}'>
+<script type="text/x-dc" data-dc-script data-props='{"kind":{"editor":"enum","options":["removePerson","removePersonIncluded","removeVersion","removeNudge","restoreBreakdown","restoreNudge","discard","discardRooms"],"default":"removePerson"},"theme":{"editor":"enum","options":["light","dark"],"default":"light"},"$preview":{"width":400,"height":848}}'>
 class Component extends DCLogic {
   renderVals() {
     var dark = this.props.theme === 'dark';
@@ -103,11 +103,22 @@ class Component extends DCLogic {
       v.title = 'Discard changes?';
       v.body = 'Your edits to the landlord rent and rooms haven’t been saved. If you leave now, they’ll be lost.';
       v.confirmLabel = 'Discard'; v.cancelLabel = 'Keep editing';
+    } else if (k === 'restoreBreakdown' || k === 'restoreNudge') {
+      v.bgTitle = 'Default'; v.iconUndo = true;
+      v.title = 'Restore original template?';
+      v.body = 'Your edited Default template for ' + (k === 'restoreNudge' ? 'Nudge' : 'Monthly breakdown') + ' will be replaced with the original. Messages already sent won’t change.';
+      v.hasKeeps = true; v.keeps = ['Custom templates aren’t affected'];
+      v.confirmLabel = 'Restore original'; v.cancelLabel = 'Cancel';
+    } else if (k === 'removeNudge') {
+      v.bgTitle = 'Nudge'; v.iconTrash = true;
+      v.title = 'Remove this template?';
+      v.body = 'Tenant 2 will get the Default template. Messages already sent won’t change.';
+      v.confirmLabel = 'Remove template'; v.cancelLabel = 'Cancel';
     } else if (k === 'removeVersion') {
       v.bgTitle = 'Monthly breakdown'; v.iconTrash = true;
-      v.title = 'Remove this version?';
-      v.body = 'Tenant 2 will get the Everyone template from December 2026. Messages already sent won’t change.';
-      v.confirmLabel = 'Remove version'; v.cancelLabel = 'Cancel';
+      v.title = 'Remove this template?';
+      v.body = 'Tenant 2 will get the Default template. Messages already sent won’t change.';
+      v.confirmLabel = 'Remove template'; v.cancelLabel = 'Cancel';
     } else {
       v.bgTitle = 'Edit Tenant 2'; v.iconUndo = true;
       v.title = 'Discard changes?';
@@ -116,7 +127,10 @@ class Component extends DCLogic {
     }
     var T = dark ? 'Dark' : 'Light';
     var viewH = dark ? 'Household-View-Dark.dc.html' : 'Household.dc.html';
-    if (k === 'removeVersion') { v.cancelHref = 'Settings-Override-' + T + '.dc.html'; v.confirmHref = dark ? 'Settings-View-Dark.dc.html' : 'Settings.dc.html'; }
+    if (k === 'removeVersion') { v.cancelHref = 'Settings-Override-' + T + '.dc.html'; v.confirmHref = 'Settings-MessagesFirst-' + T + '.dc.html'; }
+    else if (k === 'restoreBreakdown') { v.cancelHref = 'Settings-Template-' + T + '.dc.html'; v.confirmHref = 'Settings-TemplateOriginal-' + T + '.dc.html'; }
+    else if (k === 'restoreNudge') { v.cancelHref = 'Settings-Nudge-' + T + '.dc.html'; v.confirmHref = 'Settings-NudgeOriginal-' + T + '.dc.html'; }
+    else if (k === 'removeNudge') { v.cancelHref = 'Settings-NudgeOverride-' + T + '.dc.html'; v.confirmHref = 'Settings-NudgeList-' + T + '.dc.html'; }
     else if (k === 'discardRooms') { v.cancelHref = 'LandlordRooms-Changed-' + T + '.dc.html'; v.confirmHref = viewH; }
     else if (k === 'removePersonIncluded') { v.cancelHref = 'Household-EditTenant1-' + T + '.dc.html'; v.confirmHref = viewH; }
     else { v.cancelHref = 'Household-EditPerson-' + T + '.dc.html'; v.confirmHref = viewH; }
