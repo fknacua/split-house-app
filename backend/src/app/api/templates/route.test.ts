@@ -199,13 +199,6 @@ describe("POST /api/templates/preview", () => {
     expect(templatePreviewResponseSchema.parse(await response.json())).toEqual({ preview: null });
   });
 
-  it("renders text over the limit, which only the save refuses", async () => {
-    const { preview } = templatePreviewResponseSchema.parse(
-      await (await postPreview({ ...DRAFT, template: "NUDGE", text: "x".repeat(501) })).json(),
-    );
-    expect(preview?.text).toBe("x".repeat(501));
-  });
-
   it("still renders when the active month has not opened", async () => {
     useHousehold(NOV, { opened: false });
     expect(templatePreviewResponseSchema.safeParse(await (await postPreview(DRAFT)).json()).success).toBe(true);
@@ -249,8 +242,6 @@ describe("POST /api/templates", () => {
   it.each([
     ["a malformed body", { ...DRAFT, template: "OTHER" }, 400, "invalid_request"],
     ["text with only spaces", { ...DRAFT, text: " \n " }, 400, "invalid_request"],
-    ["a monthly breakdown over 1,000 characters", { ...DRAFT, text: "x".repeat(1001) }, 400, "invalid_request"],
-    ["a nudge over 500 characters", { ...DRAFT, template: "NUDGE", text: "x".repeat(501) }, 400, "invalid_request"],
     ["the owner", { ...DRAFT, personId: PERSON_IDS.alex }, 404, "no_person"],
   ])("refuses %s, storing nothing", async (_name, body, status, code) => {
     const response = await postSave(body);
@@ -264,8 +255,8 @@ describe("POST /api/templates", () => {
     expect((await response.json()).error.message).toBe("text: Message can’t be empty");
   });
 
-  it("accepts a nudge of exactly 500 characters, an emoji counting as 1", async () => {
-    const response = await postSave({ ...DRAFT, template: "NUDGE", text: "x".repeat(499) + "🙏" });
+  it("accepts a long message: there is no length limit", async () => {
+    const response = await postSave({ ...DRAFT, template: "NUDGE", text: "x".repeat(5000) });
     expect(response.status).toBe(200);
   });
 

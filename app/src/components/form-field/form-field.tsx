@@ -21,6 +21,7 @@ import {
  *
  * @param label - The label shown above the control.
  * @param required - Shows the red required marker after the label.
+ * @param labelAction - Optional link at the end of the label row, such as `Restore to original`.
  * @param helper - Hint text under the control. Replaced by `error` while there is one.
  * @param error - Error text under the control, with the alert icon. Also turns the control invalid.
  * @param warning - Amber text under the control, with the warning icon. Replaced by `error`, and replaces `helper`.
@@ -31,6 +32,7 @@ import {
 export function FormField({
   label,
   required,
+  labelAction,
   helper,
   error,
   warning,
@@ -40,6 +42,7 @@ export function FormField({
 }: {
   label: string;
   required?: boolean;
+  labelAction?: ReactNode;
   helper?: string;
   error?: string;
   warning?: string;
@@ -49,15 +52,18 @@ export function FormField({
 }) {
   return (
     <FormControl isInvalid={!!error} isDisabled={disabled} className={className}>
-      <FormControlLabel>
-        <FormControlLabelText className={disabled ? 'text-on-disabled' : undefined}>
-          {label}
-        </FormControlLabelText>
-        {required ? (
-          <FormControlLabelAstrick accessibilityElementsHidden importantForAccessibility="no">
-            {' *'}
-          </FormControlLabelAstrick>
-        ) : null}
+      <FormControlLabel className={labelAction ? 'justify-between gap-2' : undefined}>
+        <View className="flex-row items-center">
+          <FormControlLabelText className={disabled ? 'text-on-disabled' : undefined}>
+            {label}
+          </FormControlLabelText>
+          {required ? (
+            <FormControlLabelAstrick accessibilityElementsHidden importantForAccessibility="no">
+              {' *'}
+            </FormControlLabelAstrick>
+          ) : null}
+        </View>
+        {labelAction}
       </FormControlLabel>
       {children}
       {error ? (

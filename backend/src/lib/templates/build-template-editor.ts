@@ -1,4 +1,4 @@
-import { LINE_LABEL_TYPES, type MessageTemplates, type TemplateEditorResponse, type TemplateKind, TEMPLATE_LIMITS } from "@splithouse/shared";
+import { LINE_LABEL_TYPES, type MessageTemplates, type TemplateEditorResponse, type TemplateKind } from "@splithouse/shared";
 import { DEFAULT_MESSAGE_TEMPLATES } from "@/lib/messages/default-templates";
 import { DEFAULT_LINE_LABELS } from "@/lib/messages/line-label";
 import type { TemplatePerson } from "./template-people";
@@ -71,7 +71,6 @@ export function buildTemplateEditor(input: TemplateEditorInput): TemplateEditorR
     title: personId ? `Custom template for ${name}` : "Default",
     sub: TEMPLATE_NAMES[kind],
     text,
-    limit: TEMPLATE_LIMITS[kind],
     placeholders: PLACEHOLDER_CHIPS[kind],
     restore: isEdited
       ? {
@@ -79,6 +78,7 @@ export function buildTemplateEditor(input: TemplateEditorInput): TemplateEditorR
           dialog: {
             title: "Restore original template?",
             body: `Your edited Default template for ${TEMPLATE_NAMES[kind]} will be replaced with the original. Messages already sent won’t change.`,
+            items: ["Custom templates aren’t affected"],
             confirmLabel: "Restore original",
             cancelLabel: "Cancel",
           },

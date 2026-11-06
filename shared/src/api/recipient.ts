@@ -61,8 +61,13 @@ export const recipientTargetSchema = z.discriminatedUnion('kind', [
   z.object({ kind: z.literal('add-correction'), month: monthKey, personId: z.string() }),
   /** Opens the Share bill sheet (7.10). */
   z.object({ kind: z.literal('share-bill'), month: monthKey }),
-  /** Opens the template in Settings (9A). */
-  z.object({ kind: z.literal('edit-template'), template: z.enum(['MONTHLY', 'NUDGE']) }),
+  /** Opens the template editor: the person's custom template when they have one, else the Default. */
+  z.object({
+    kind: z.literal('edit-template'),
+    template: z.enum(['MONTHLY', 'NUDGE']),
+    /** Set when the person has a custom template of this kind. */
+    personId: z.string().optional(),
+  }),
 ]);
 
 /** Where a Recipient button goes. Carries only what the target needs. */

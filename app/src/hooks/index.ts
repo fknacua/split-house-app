@@ -24,6 +24,7 @@ export * from './use-pull-to-refresh';
 export * from './use-recipient';
 export * from './use-record-message-event';
 export * from './use-remove-template';
+export * from './use-restore-template';
 export * from './use-save-bill';
 export * from './use-save-household-edit';
 export * from './use-save-template';

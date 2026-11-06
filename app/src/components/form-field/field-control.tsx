@@ -16,11 +16,12 @@ export function FieldControl<T extends FieldValues>({
   ...fieldControlProps
 }: RenderPropFieldControlProps<T>) {
   const { binding, message } = useFormControlledField(fieldControlProps);
-  const { label, required, helper, disabled, className } = fieldControlProps;
+  const { label, required, labelAction, helper, disabled, className } = fieldControlProps;
   return (
     <FormField
       label={label}
       required={required}
+      labelAction={labelAction}
       helper={helper}
       error={message}
       disabled={disabled}

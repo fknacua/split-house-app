@@ -1,4 +1,9 @@
-import type { TemplateEditorResponse, TemplatePreviewRequest } from '@splithouse/shared';
+import { z } from 'zod';
+
+import { templateMessageSchema, type TemplateEditorResponse, type TemplatePreviewRequest } from '@splithouse/shared';
+
+/** The template editor's form rules: the shared message schema, so the field checks as the user types what the server checks on save. */
+export const templateFormSchema = z.object({ text: templateMessageSchema });
 
 /** The template editor's values. */
 export interface TemplateFormValues {

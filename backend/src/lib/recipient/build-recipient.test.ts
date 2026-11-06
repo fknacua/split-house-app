@@ -78,6 +78,25 @@ function input(personId: string, charges: RecipientChargeRow[], overrides: Parti
   };
 }
 
+describe("buildRecipient: Edit template", () => {
+  it("opens the person's custom template when they have one of the kind", () => {
+    const templates = {
+      ...DEFAULT_MESSAGE_TEMPLATES,
+      overrides: [{ personId: priya, kind: "MONTHLY" as const, text: "Hi {name}" }],
+    };
+    expect(buildRecipient(input(priya, PRIYA_CHARGES, { templates })).message?.editTemplate.target).toEqual({
+      kind: "edit-template",
+      template: "MONTHLY",
+      personId: priya,
+    });
+    // Someone else's custom template doesn't count.
+    expect(buildRecipient(input(sam, SAM_CHARGES, { templates })).message?.editTemplate.target).toEqual({
+      kind: "edit-template",
+      template: "MONTHLY",
+    });
+  });
+});
+
 describe("buildRecipient: notSent", () => {
   it("builds the primary tenant's page as on the board", () => {
     const r = buildRecipient(input(priya, PRIYA_CHARGES));

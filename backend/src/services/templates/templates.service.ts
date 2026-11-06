@@ -126,7 +126,7 @@ export async function previewTemplate(db: TemplatesDb, request: TemplatePreviewR
  * every message not yet sent; what was sent stays stored on its `MessageEvent`. Saving the same text again is harmless.
  *
  * @param db - The Prisma client, or a fake in tests.
- * @param request - The save, already parsed with the shared schema, which refuses empty and over-limit text.
+ * @param request - The save, already parsed with the shared schema, which refuses empty text.
  * @returns That it went through.
  * @throws {ApiError} The same as `getTemplateEditor`.
  */

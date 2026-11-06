@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 
 import type { TemplateEditorResponse } from '@splithouse/shared';
-import { hasTemplateChanges, insertAtCursor, toTemplateDraft, toTemplateFormValues } from './helpers';
+import { hasTemplateChanges, insertAtCursor, templateFormSchema, toTemplateDraft, toTemplateFormValues } from './helpers';
 
 const FORM = {
   kind: 'MONTHLY',
@@ -39,5 +39,12 @@ describe('insertAtCursor', () => {
     ['past the end', { start: 99, end: 99 }, 'Hi there{x}', 11],
   ])('inserts %s', (_name, selection, text, cursor) => {
     expect(insertAtCursor('Hi there', selection, '{x}')).toEqual({ text, cursor });
+  });
+});
+
+describe('templateFormSchema', () => {
+  it('checks the text with the shared message rule', () => {
+    expect(templateFormSchema.safeParse({ text: 'Hi {name}' }).success).toBe(true);
+    expect(templateFormSchema.safeParse({ text: '  ' }).error?.issues[0]?.message).toBe('Message can’t be empty');
   });
 });

@@ -34,7 +34,6 @@ describe("buildTemplateEditor", () => {
       title: "Default",
       sub: "Monthly breakdown",
       text: DEFAULT_MESSAGE_TEMPLATES.monthly,
-      limit: 1000,
       placeholders: ["{name}", "{month}", "{lines}", "{total}", "{dueDate}"],
       restore: null,
       secondaryAction: { label: "Cancel", kind: "cancel" },
@@ -66,6 +65,7 @@ describe("buildTemplateEditor", () => {
       dialog: {
         title: "Restore original template?",
         body: "Your edited Default template for Monthly breakdown will be replaced with the original. Messages already sent won’t change.",
+        items: ["Custom templates aren’t affected"],
         confirmLabel: "Restore original",
         cancelLabel: "Cancel",
       },
@@ -75,12 +75,11 @@ describe("buildTemplateEditor", () => {
     );
   });
 
-  it("builds the nudge Default with its chips, limit and labels, and no section titles", () => {
+  it("builds the nudge Default with its chips and labels, and no section titles", () => {
     const body = editor({ kind: "NUDGE" });
     expect(body).toMatchObject({
       sub: "Nudge",
       text: DEFAULT_MESSAGE_TEMPLATES.nudge,
-      limit: 500,
       placeholders: ["{name}", "{charge}", "{month}", "{amount}", "{dueDate}"],
       labels: {
         hint: "How each charge is named in {charge}.",
