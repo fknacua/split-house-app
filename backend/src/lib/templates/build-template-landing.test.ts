@@ -47,7 +47,7 @@ describe("buildTemplateLanding", () => {
         ],
       },
     });
-    expect(body.default.preview?.intro).toBe("Hi Priya! Eto na yung breakdown for Nov 2026 😊");
+    expect(body.default.preview?.intro).toEqual([{ text: "Hi Priya! Eto na yung breakdown for Nov 2026 😊", bold: false }]);
     expect(body.default.preview?.sections.map((s) => s.title)).toEqual(["Yours:", "Sam’s (please collect):"]);
   });
 
@@ -60,11 +60,11 @@ describe("buildTemplateLanding", () => {
         initial: "J",
         color: "BLUE",
         sub: "Tenant · Room 3",
-        preview: expect.objectContaining({ intro: "Hi Jordan! Yours." }),
+        preview: expect.objectContaining({ intro: [{ text: "Hi Jordan! Yours.", bold: false }] }),
       },
     ]);
     expect(body.forWho.rows.map((r) => r.personId)).toEqual([priya, sam]);
-    expect(body.default.preview?.intro).toBe("Hi Priya! Eto na yung breakdown for Nov 2026 😊");
+    expect(body.default.preview?.intro).toEqual([{ text: "Hi Priya! Eto na yung breakdown for Nov 2026 😊", bold: false }]);
   });
 
   it("disables Add more once everyone has one", () => {

@@ -31,7 +31,7 @@ const withTemplates = (templates: Partial<MessageTemplates>): MessageTemplates =
 describe("buildTemplatePreview", () => {
   it("shows every line the engine works out, leaving an unknown placeholder as typed", () => {
     const message = preview({})!;
-    expect(message.intro).toBe("Hi Priya! Nov 2026");
+    expect(message.intro).toEqual([{ text: "Hi Priya! Nov 2026", bold: false }]);
     expect(message.sections).toEqual([
       {
         title: "Yours:",
@@ -53,9 +53,8 @@ describe("buildTemplatePreview", () => {
       },
     ]);
     expect(message.outro).toEqual([
-      { text: "*Total:* $1,963.65", isTotal: true },
-      { text: "By 7 Nov", isTotal: false },
-      { text: "{oops}", isTotal: false },
+      { text: "Total:", bold: true },
+      { text: " $1,963.65\nBy 7 Nov\n{oops}", bold: false },
     ]);
   });
 
@@ -90,7 +89,7 @@ describe("buildTemplatePreview", () => {
 
   it("renders a tenant's nudge about their rent, all intro", () => {
     expect(preview({ kind: "NUDGE", text: NUDGE, person: JORDAN })).toEqual({
-      intro: "Hi Jordan! Rent for Nov 2026 ($950.00) due 1 Nov. {oops}",
+      intro: [{ text: "Hi Jordan! Rent for Nov 2026 ($950.00) due 1 Nov. {oops}", bold: false }],
       sections: [],
       outro: [],
       text: "Hi Jordan! Rent for Nov 2026 ($950.00) due 1 Nov. {oops}",

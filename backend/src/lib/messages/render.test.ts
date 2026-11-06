@@ -129,10 +129,6 @@ describe("renderMonthlyMessage", () => {
     );
     expect(message.before).toBe("Hi Priya! Eto na yung breakdown for Nov 2026 😊");
     expect(message.after).toBe("*Total:* $1,963.65\nPaki-send by 7 Nov. Salamat!");
-    expect(message.afterLines).toEqual([
-      { text: "*Total:* $1,963.65", isTotal: true },
-      { text: "Paki-send by 7 Nov. Salamat!", isTotal: false },
-    ]);
     expect(message.breakdown.totalCents).toBe(196365);
   });
 
@@ -155,7 +151,7 @@ describe("renderMonthlyMessage", () => {
     expect(message.text).toBe(
       "Hi Jordan! Eto na yung breakdown for Nov 2026 😊\n\n*Correction: September utilities:* $15.00\n\n*Total:* $15.00",
     );
-    expect(message.afterLines).toEqual([{ text: "*Total:* $15.00", isTotal: true }]);
+    expect(message.after).toBe("*Total:* $15.00");
   });
 
   it("uses the recipient's override, sending its own bold markers as written", () => {
@@ -166,7 +162,6 @@ describe("renderMonthlyMessage", () => {
     );
     expect(message.before).toBe("Jordan, Nov 2026:");
     expect(message.after).toBe("= $1,050.79");
-    expect(message.afterLines).toEqual([{ text: "= $1,050.79", isTotal: true }]);
   });
 
   it("keeps the whole message in before when the template has no {lines}", () => {
@@ -176,7 +171,6 @@ describe("renderMonthlyMessage", () => {
       text: "Hi Jordan, $1,050.79 please",
       before: "Hi Jordan, $1,050.79 please",
       after: "",
-      afterLines: [],
     });
   });
 });

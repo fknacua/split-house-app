@@ -151,26 +151,27 @@ export const recipientMessageSectionSchema = z.object({
 /** One person's lines in the message preview. */
 export type RecipientMessageSection = z.infer<typeof recipientMessageSectionSchema>;
 
-/** One line of the template's text after the sections. */
-export const recipientMessageOutroLineSchema = z.object({
-  /** e.g. `Total: $X,XXX.XX`; an empty string is a blank line. */
+/**
+ * A piece of template text, bold or not, as WhatsApp shows it: the server reads the `*bold*` markers and leaves them
+ * out. Its text may hold line breaks; a bold piece never does.
+ */
+export const messageRunSchema = z.object({
   text: z.string(),
-  /** True for the line holding the total (`{total}` in the template), which the preview stresses. */
-  isTotal: z.boolean(),
+  bold: z.boolean(),
 });
 
-/** One line of the template's text after the sections. */
-export type RecipientMessageOutroLine = z.infer<typeof recipientMessageOutroLineSchema>;
+/** A piece of template text, bold or not, as WhatsApp shows it. */
+export type MessageRun = z.infer<typeof messageRunSchema>;
 
 /** A rendered message: a preview in parts, and the exact text that is sent and copied. Recipient and the template editor both show it. */
 export const messagePreviewSchema = z.object({
   /** The template's text before the sections, e.g. `Hi Priya! Eto na yung breakdown for Nov 2026 😊`; a nudge is all intro. */
-  intro: z.string(),
+  intro: z.array(messageRunSchema),
   /** Empty when the message has no lines, e.g. a nudge. */
   sections: z.array(recipientMessageSectionSchema),
-  /** The template's text after the sections, line by line, e.g. `Total: $X,XXX.XX` then the due line. Empty without one. */
-  outro: z.array(recipientMessageOutroLineSchema),
-  /** The whole message as sent and copied (Copy as plain text), with `*bold*` section titles and line breaks. */
+  /** The template's text after the sections, e.g. **Total:** `$X,XXX.XX` then the due line. Empty without one. */
+  outro: z.array(messageRunSchema),
+  /** The whole message as sent and copied (Copy as plain text), with its `*bold*` markers and line breaks. */
   text: z.string(),
 });
 
