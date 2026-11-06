@@ -10,12 +10,14 @@ import type { TemplateFormProps } from '../types';
 import { useTemplateFlow } from '../use-template-flow';
 import { AppliesToField } from './applies-to-field';
 import { LineLabelsSection } from './line-labels-section';
+import { NudgePreviewCard } from './nudge-preview-card';
 import { PlaceholderChips } from './placeholder-chips';
 import { PreviewCard } from './preview-card';
 
 /**
- * The `template` board: Applies to, the message with chips that insert at the cursor, the line labels and a preview the
- * server renders. A save applies immediately. The server checks every field. Leaving with unsaved changes asks first.
+ * The `template` and `nudge` boards: Applies to, the message with chips that insert at the cursor, the line labels both
+ * templates share, and a preview the server renders. A save applies immediately. The server checks every field. Leaving
+ * with unsaved changes asks first.
  */
 export function TemplateForm({ form }: TemplateFormProps) {
   // The refetch after a save changes the response while the screen is closing, so the form keeps what it opened on.
@@ -23,7 +25,8 @@ export function TemplateForm({ form }: TemplateFormProps) {
   const { control, setValue, setFocus } = useForm<TemplateFormValues>({ defaultValues: toTemplateFormValues(opened) });
   const values = useWatch({ control }) as TemplateFormValues;
   const dirty = hasTemplateChanges(values, opened);
-  const flow = useTemplateFlow(toTemplateDraft(values, opened), dirty);
+  const [samplePersonId, setSamplePersonId] = useState(opened.samples[0]?.personId ?? null);
+  const flow = useTemplateFlow(toTemplateDraft(values, opened), dirty, samplePersonId);
   const { guard, errors } = flow;
 
   const cursor = useRef<TextSelection>({ start: opened.text.length, end: opened.text.length });
@@ -61,7 +64,16 @@ export function TemplateForm({ form }: TemplateFormProps) {
               <PlaceholderChips placeholders={opened.placeholders} onInsert={insert} />
             </View>
             <LineLabelsSection lineLabels={opened.lineLabels} control={control} errors={errors} />
-            <PreviewCard answer={flow.answer} />
+            {opened.kind === 'NUDGE' ? (
+              <NudgePreviewCard
+                answer={flow.answer}
+                samples={opened.samples}
+                samplePersonId={samplePersonId}
+                onSampleChange={setSamplePersonId}
+              />
+            ) : (
+              <PreviewCard answer={flow.answer} />
+            )}
           </View>
         </ScrollView>
       </KeyboardAvoidingView>

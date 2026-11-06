@@ -21,7 +21,7 @@ export const templateFormQuerySchema = z.object({
 /** `GET /api/templates/:kind` query: whose version to load. */
 export type TemplateFormQuery = z.infer<typeof templateFormQuerySchema>;
 
-/** One line label's field on the monthly breakdown editor. */
+/** One line label's field on the template editor. */
 export const templateLineLabelSchema = z.object({
   type: z.enum(LINE_LABEL_TYPES),
   /** The field's label, the name the charge has by default, e.g. `Utilities bill`. */
@@ -30,7 +30,7 @@ export const templateLineLabelSchema = z.object({
   value: z.string(),
 });
 
-/** One line label's field on the monthly breakdown editor. */
+/** One line label's field on the template editor. */
 export type TemplateLineLabel = z.infer<typeof templateLineLabelSchema>;
 
 /** `GET /api/templates/:kind`: the template editor with the current values, ready to render. */
@@ -53,14 +53,12 @@ export const templateFormResponseSchema = z.object({
     note: z.string(),
   }),
   lineLabels: z.object({
-    /** `Line labels`, or `{charge} names` on the nudge. */
+    /** `Line labels`. */
     title: z.string(),
-    /** e.g. `How each charge is named in {lines}.`. */
+    /** e.g. `How each charge is named in {lines}. Nudges use them too.`. */
     note: z.string(),
-    /** The fields on the monthly breakdown. Empty on the nudge, which only lists the names. */
+    /** The fields, the same on both templates: the labels are the whole household's, used by both. */
     rows: z.array(templateLineLabelSchema),
-    /** The nudge's read-only names, with the recurring charges running next month. Empty on the monthly breakdown. */
-    chargeNames: z.array(z.string()),
   }),
   /** Who the nudge preview can show, for the compact sample group. Empty on the monthly breakdown or with a person loaded. */
   samples: z.array(z.object({ personId: z.string(), label: z.string() })),

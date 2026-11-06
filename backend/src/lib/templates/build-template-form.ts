@@ -5,7 +5,6 @@ import {
   type TemplateFormResponse,
   type TemplateKind,
 } from "@splithouse/shared";
-import { runningCharges } from "@/lib/household/plan-recurring-edit";
 import { DEFAULT_LINE_LABELS } from "@/lib/messages/line-label";
 
 /** What each template is called, on the Messages rows and the editor. */
@@ -65,9 +64,7 @@ export interface TemplateFormInput {
   kind: TemplateKind;
   /** The person loaded, one of `personIds`, or null for the version everyone else uses. */
   personId: string | null;
-  /** The month after the active one, whose recurring charges the nudge names. */
-  month: string;
-  /** The version in effect at that month. */
+  /** The version in effect next month, whose people the nudge samples. */
   config: HouseholdConfig;
   /** The current wording. */
   templates: MessageTemplates;
@@ -77,13 +74,14 @@ export interface TemplateFormInput {
 }
 
 /**
- * The template editor, display-ready, with the current values.
+ * The template editor, display-ready, with the current values. Both templates show the same line label fields, which
+ * hold the whole household's labels, so a change in one shows in the other.
  *
- * @param input - The template, the person, next month and its version, the wording, who it can apply to and the names.
+ * @param input - The template, the person, next month's version, the wording, who it can apply to and the names.
  * @returns The response for `GET /api/templates/:kind`.
  */
 export function buildTemplateForm(input: TemplateFormInput): TemplateFormResponse {
-  const { kind, personId, month, config, templates } = input;
+  const { kind, personId, config, templates } = input;
   const names = new Map(input.people.map((p) => [p.id, p.name]));
   const nameOf = (id: string) => names.get(id) ?? "Someone";
   const own = personId ? templates.overrides.find((o) => o.personId === personId && o.kind === kind) : undefined;
@@ -105,12 +103,11 @@ export function buildTemplateForm(input: TemplateFormInput): TemplateFormRespons
       note: appliesToNote(templates, kind, personId ? { name: nameOf(personId), hasOwn: own !== undefined } : null),
     },
     lineLabels: {
-      title: isMonthly ? "Line labels" : "{charge} names",
-      note: isMonthly ? "How each charge is named in {lines}." : "Uses the same line labels as the monthly breakdown.",
-      rows: isMonthly
-        ? LINE_LABEL_TYPES.map((type) => ({ type, label: DEFAULT_LINE_LABELS[type], value: labelOf(type) }))
-        : [],
-      chargeNames: isMonthly ? [] : [...LINE_LABEL_TYPES.map(labelOf), ...runningCharges(config, month).map((r) => r.label)],
+      title: "Line labels",
+      note: isMonthly
+        ? "How each charge is named in {lines}. Nudges use them too."
+        : "How each charge is named in {charge}. The monthly breakdown uses them too.",
+      rows: LINE_LABEL_TYPES.map((type) => ({ type, label: DEFAULT_LINE_LABELS[type], value: labelOf(type) })),
     },
     samples: isMonthly || personId ? [] : nudgeSampleIds(config).map((id) => ({ personId: id, label: nameOf(id) })),
     secondaryAction: own ? { label: "Remove this version", kind: "remove-version" } : { label: "Cancel", kind: "cancel" },

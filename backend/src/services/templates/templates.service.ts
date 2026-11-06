@@ -56,7 +56,6 @@ export async function getTemplateForm(db: TemplatesDb, kind: TemplateKind, query
   return buildTemplateForm({
     kind,
     personId: query.personId ?? null,
-    month: next.month,
     config: next.config,
     templates,
     personIds,

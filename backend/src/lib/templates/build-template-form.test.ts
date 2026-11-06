@@ -18,7 +18,6 @@ const form = (input: Partial<TemplateFormInput>) =>
   buildTemplateForm({
     kind: "MONTHLY",
     personId: null,
-    month: "2026-12",
     config: NOV_2026_CONFIG,
     templates: DEFAULT_MESSAGE_TEMPLATES,
     personIds: [priya, sam, jordan],
@@ -48,13 +47,12 @@ describe("buildTemplateForm", () => {
       },
       lineLabels: {
         title: "Line labels",
-        note: "How each charge is named in {lines}.",
+        note: "How each charge is named in {lines}. Nudges use them too.",
         rows: [
           { type: "RENT", label: "Rent", value: "Rent" },
           { type: "UTILITIES", label: "Utilities bill", value: "Utilities bill" },
           { type: "AIRCON", label: "Aircon servicing", value: "Aircon servicing" },
         ],
-        chargeNames: [],
       },
       samples: [],
       secondaryAction: { label: "Cancel", kind: "cancel" },
@@ -62,17 +60,20 @@ describe("buildTemplateForm", () => {
     });
   });
 
-  it("builds the nudge, with its placeholders, names and samples", () => {
+  it("builds the nudge, with its placeholders, the shared line labels and samples", () => {
     const result = form({ kind: "NUDGE", templates: withTemplates({ lineLabels: { UTILITIES: "PUB" } }) });
     expect(result.title).toBe("Nudge");
     expect(result.text).toBe(DEFAULT_MESSAGE_TEMPLATES.nudge);
     expect(result.placeholders).toEqual(["{name}", "{charge}", "{month}", "{amount}", "{dueDate}"]);
     expect(result.appliesTo.note).toBe("Everyone gets this nudge. Pick someone to give them their own version.");
     expect(result.lineLabels).toEqual({
-      title: "{charge} names",
-      note: "Uses the same line labels as the monthly breakdown.",
-      rows: [],
-      chargeNames: ["Rent", "PUB", "Aircon servicing", "Starhub"],
+      title: "Line labels",
+      note: "How each charge is named in {charge}. The monthly breakdown uses them too.",
+      rows: [
+        { type: "RENT", label: "Rent", value: "Rent" },
+        { type: "UTILITIES", label: "Utilities bill", value: "PUB" },
+        { type: "AIRCON", label: "Aircon servicing", value: "Aircon servicing" },
+      ],
     });
     expect(result.samples).toEqual([
       { personId: jordan, label: "Jordan" },
