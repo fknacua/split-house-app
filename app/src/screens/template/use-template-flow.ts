@@ -11,18 +11,20 @@ import type { TemplatePreviewRequest } from '@splithouse/shared';
  *
  * @param draft The draft the form's values make now.
  * @param dirty Whether leaving would lose anything.
+ * @param samplePersonId Who the nudge preview shows, or null with no samples. It only goes to the preview, never the save.
  * @returns The preview's answer, the save, the leave guard and what the footer shows.
  */
-export function useTemplateFlow(draft: TemplatePreviewRequest, dirty: boolean) {
+export function useTemplateFlow(draft: TemplatePreviewRequest, dirty: boolean, samplePersonId: string | null) {
   const router = useRouter();
   const save = useSaveTemplate();
   const showToast = useSuccessToast();
-  const previewedDraft = useDebouncedValue(draft, PREVIEW_DELAY_MS);
-  const preview = useTemplatePreview(previewedDraft);
+  const request = { ...draft, samplePersonId };
+  const previewedRequest = useDebouncedValue(request, PREVIEW_DELAY_MS);
+  const preview = useTemplatePreview(previewedRequest);
   const answered =
     !preview.isPlaceholderData &&
     preview.isSuccess &&
-    JSON.stringify(draft) === JSON.stringify(previewedDraft);
+    JSON.stringify(request) === JSON.stringify(previewedRequest);
   const answer = preview.data;
   const errors = answer?.errors ?? {};
 

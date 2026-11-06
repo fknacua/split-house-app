@@ -42,3 +42,13 @@ export interface PreviewCardProps {
   /** The server's latest answer, or undefined until the first one arrives. */
   answer: TemplatePreviewResponse | undefined;
 }
+
+/** Props for {@link NudgePreviewCard}. */
+export interface NudgePreviewCardProps extends PreviewCardProps {
+  /** Who the preview can show. */
+  samples: TemplateFormResponse['samples'];
+  /** Who it shows, or null with no samples. */
+  samplePersonId: string | null;
+  /** Called with the tapped sample's person. */
+  onSampleChange: (personId: string) => void;
+}

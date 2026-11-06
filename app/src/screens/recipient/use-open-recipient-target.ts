@@ -15,8 +15,8 @@ const CANT_OPEN_WHATSAPP = 'WhatsApp couldn’t be opened. No message is sent.';
  * it was opened (a nudge on its charge). Nudge again with no chosen charge first asks which one.
  * Mark paid opens Record payment with the person, and the charge when given, chosen, and Edit
  * payment opens the payment sheet on a paid charge, and Share bill the Share bill sheet
- * (`RecipientSheetsProvider`). Edit template opens the monthly template editor. The nudge's (10.5)
- * and Add correction (Phase 11) do nothing until their steps.
+ * (`RecipientSheetsProvider`). Edit template opens that template's editor. Add correction (Phase 11)
+ * does nothing until its step.
  *
  * @param charges - The screen's charge rows; the overdue ones are offered when Nudge again asks which.
  * @returns `openTarget`, which opens a target; `sending`, true while a send is being recorded; and
@@ -70,10 +70,7 @@ export function useOpenRecipientTarget(charges: RecipientChargeRow[] = []) {
         openShareBill(target.month);
         return;
       case 'edit-template':
-        // The nudge's editor comes at 10.5.
-        if (target.template === 'MONTHLY') {
-          router.push({ pathname: '/settings/template/[kind]', params: { kind: target.template } });
-        }
+        router.push({ pathname: '/settings/template/[kind]', params: { kind: target.template } });
         return;
       case 'add-correction': // Phase 11
         return;
