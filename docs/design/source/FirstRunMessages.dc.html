@@ -1,0 +1,99 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>First-run custom messages</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&display=swap">
+<style>
+body{margin:0}
+</style>
+</helmet>
+<div style="width: 400px; height: 848px; box-sizing: border-box; padding: 8px; background: #0B0C0C; border-radius: 26px; font-family: Manrope, 'Segoe UI', system-ui, sans-serif; color: {{c.onSurface}}">
+<div style="position: relative; width: 384px; height: 832px; border-radius: 18px; overflow: hidden; background: {{c.background}}; display: flex; flex-direction: column">
+<div style="position: absolute; top: 12px; left: 186px; width: 12px; height: 12px; border-radius: 6px; background: #050505; box-shadow: 0 0 0 2px #1C1D1E"></div>
+<div style="height: 36px; flex-shrink: 0"></div>
+
+<header style="display: flex; align-items: center; gap: 4px; padding: 4px 8px; height: 56px; flex-shrink: 0">
+<a href="{{backHref}}" aria-label="Back" style="width: 48px; height: 48px; border-radius: 24px; color: {{c.onSurface}}; display: flex; align-items: center; justify-content: center">
+<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m12 19-7-7 7-7"></path><path d="M19 12H5"></path></svg>
+</a>
+<div style="display: flex; flex-direction: column">
+<span style="font-size: 20px; line-height: 28px; font-weight: 800">Custom messages</span>
+<span style="font-size: 12px; line-height: 16px; font-weight: 600; color: {{c.onSurfaceVariant}}">Optional</span>
+</div>
+</header>
+
+<main style="flex-grow: 1; min-height: 0; overflow-y: auto; overscroll-behavior: contain; scrollbar-width: none; padding: 8px 16px 16px; display: flex; flex-direction: column; gap: 16px">
+<!-- gluestack Card -->
+<div style="background: {{c.surface}}; border-radius: 20px; overflow: hidden; display: flex; flex-direction: column">
+<sc-for list="{{types}}" as="t" hint-placeholder-count="2">
+<a href="{{t.href}}" style="display: flex; align-items: center; gap: 12px; min-height: 76px; padding: 12px 10px 12px 16px; box-sizing: border-box; border-top: 1px solid {{t.divider}}; color: inherit; text-decoration: none">
+<div style="flex-grow: 1; min-width: 0; display: flex; flex-direction: column; gap: 2px">
+<span style="font-size: 14px; line-height: 20px; font-weight: 700">{{t.name}}</span>
+<span style="font-size: 12px; line-height: 16px; font-weight: 600; color: {{c.onSurfaceVariant}}; text-wrap: balance">{{t.desc}}</span>
+<span style="font-size: 12px; line-height: 16px; font-weight: 700; color: {{t.statusFg}}">{{t.status}}</span>
+</div>
+<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="flex-shrink: 0; color: {{c.onSurfaceVariant}}"><path d="m9 18 6-6-6-6"></path></svg>
+</a>
+</sc-for>
+</div>
+<p style="margin: 0 4px; font-size: 12px; line-height: 16px; font-weight: 600; color: {{c.onSurfaceVariant}}">You can change these any time in Settings.</p>
+</main>
+
+<footer style="flex-shrink: 0; padding: 10px 16px 28px; display: flex; flex-direction: column; gap: 4px; background: {{c.background}}; box-shadow: {{c.footShadow}}">
+<!-- gluestack Button, solid / disabled -->
+<a href="{{ctaHref}}" aria-disabled="{{ctaDisabled}}" style="height: 48px; border-radius: 999px; background: {{ctaBg}}; color: {{ctaFg}}; display: flex; align-items: center; justify-content: center; text-decoration: none; font-size: 15px; line-height: 20px; font-weight: 700">{{ctaLabel}}</a>
+<!-- gluestack Button, link -->
+<a href="{{skipHref}}" style="height: 48px; border-radius: 999px; color: {{c.onSurface}}; display: flex; align-items: center; justify-content: center; font-size: 15px; line-height: 20px; font-weight: 700; text-decoration: none">Not now</a>
+</footer>
+</div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"state":{"editor":"enum","options":["empty","custom"],"default":"empty"},"theme":{"editor":"enum","options":["light","dark"],"default":"light"},"$preview":{"width":400,"height":848}}'>
+class Component extends DCLogic {
+  renderVals() {
+    var dark = this.props.theme === 'dark';
+    var st = this.props.state || 'empty';
+    var c = dark ? {
+      background: '#111214', surface: '#1A1C1E', container: '#222427', sheet: '#222427',
+      onSurface: '#E3E3E6', onSurfaceVariant: '#C4C6CB', outline: '#8E9196', outlineVariant: '#2E3134',
+      primary: '#E2E2E6', onPrimary: '#1A1C1E', selected: '#2C2F33', onSelected: '#E3E3E6',
+      disabledBg: '#222427', disabledFg: '#5C5F64', track: '#3A3E43', scrim: 'rgba(0,0,0,0.6)',
+      success: '#66BB6A', successContainer: '#1B5E20', onSuccessContainer: '#CBE4CB',
+      warning: '#FFA726', warningContainer: '#66430F', onWarningContainer: '#FFE2B7', warningTint: '#332108', warningLine: '#F57C00',
+      danger: '#F44336', dangerTint: '#3B1511', dangerLine: '#D32F2F', onDangerTint: '#FFD9D6',
+      info: '#29B6F6', infoTint: '#082431', infoLine: '#1B76A0', infoContainer: '#104962', onInfoContainer: '#B8E7FB',
+      footShadow: '0 -8px 16px rgba(0,0,0,0.45)'
+    } : {
+      background: '#F5F5F7', surface: '#FFFFFF', container: '#E9EAED', sheet: '#FFFFFF',
+      onSurface: '#1A1C1E', onSurfaceVariant: '#45484C', outline: '#74777C', outlineVariant: '#E6E7EA',
+      primary: '#2B2F33', onPrimary: '#FFFFFF', selected: '#E6E7EA', onSelected: '#1A1C1E',
+      disabledBg: '#E9EAED', disabledFg: '#9A9DA2', track: '#D3D5D9', scrim: 'rgba(0,0,0,0.5)',
+      success: '#2E7D32', successContainer: '#C8E6C9', onSuccessContainer: '#1E4620',
+      warning: '#E65100', warningContainer: '#FBE2CC', onWarningContainer: '#663C00', warningTint: '#FFF4E5', warningLine: '#FBE2CC',
+      danger: '#D32F2F', dangerTint: '#FDEDED', dangerLine: '#F6D5D5', onDangerTint: '#5F2120',
+      info: '#0288D1', infoTint: '#E5F6FD', infoLine: '#CCE7F6', infoContainer: '#CCE7F6', onInfoContainer: '#014361',
+      footShadow: '0 -6px 14px rgba(0,0,0,0.14)'
+    };
+    var T = dark ? 'Dark' : 'Light';
+    var custom = st === 'custom';
+    var types = [
+      { name: 'Monthly breakdown', desc: 'Sent when the month’s charges are ready', status: custom ? 'Custom templates: 1' : 'Same for everyone', href: custom ? 'Settings-Messages-' + T + '.dc.html' : 'Settings-MessagesFirst-' + T + '.dc.html' },
+      { name: 'Nudge', desc: 'Sent when a payment is overdue', status: 'Same for everyone', href: 'Settings-NudgeList-' + T + '.dc.html' }
+    ].map(function (t, i) { t.divider = i === 0 ? 'transparent' : c.outlineVariant; t.statusFg = t.status === 'Same for everyone' ? c.onSurfaceVariant : c.success; return t; });
+    return {
+      c: c, types: types, backHref: dark ? 'Welcome-Notifications-Dark.dc.html' : 'Welcome-Notifications-Light.dc.html',
+      ctaLabel: 'Save', ctaDisabled: custom ? 'false' : 'true', ctaBg: custom ? c.primary : c.disabledBg, ctaFg: custom ? c.onPrimary : c.disabledFg,
+      ctaHref: custom ? (dark ? 'Welcome-MessagesDone-Dark.dc.html' : 'Welcome-MessagesDone-Light.dc.html') : '#',
+      skipHref: custom ? 'Confirm-SkipMessages-' + T + '.dc.html' : (dark ? 'Welcome-Notifications-Dark.dc.html' : 'Welcome-Notifications-Light.dc.html')
+    };
+  }
+}
+</script>
+</body>
+</html>

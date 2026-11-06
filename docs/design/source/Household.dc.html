@@ -374,7 +374,7 @@ No empty rooms
 </sc-if>
 <sc-if value="{{isEditMode}}" hint-placeholder-val="{{true}}">
 <!-- gluestack Button, solid / disabled -->
-<button aria-disabled="{{saveDisabled}}" style="height: 48px; border-radius: 999px; border: 0; background: {{saveBg}}; color: {{saveFg}}; font-family: inherit; font-size: 15px; line-height: 20px; font-weight: 700">{{saveLabel}}</button>
+<a href="{{saveHref}}" aria-disabled="{{saveDisabled}}" style="height: 48px; border-radius: 999px; border: 0; background: {{saveBg}}; color: {{saveFg}}; display: flex; align-items: center; justify-content: center; text-decoration: none; font-size: 15px; line-height: 20px; font-weight: 700">{{saveLabel}}</a>
 <!-- gluestack Button, link -->
 <a href="{{secondaryHref}}" style="height: 48px; border-radius: 999px; color: {{secondaryFg}}; font-size: 15px; line-height: 20px; font-weight: 700; display: flex; align-items: center; justify-content: center; text-decoration: none">{{secondaryLabel}}</a>
 </sc-if>
@@ -383,12 +383,14 @@ No empty rooms
 </div>
 </div>
 </x-dc>
-<script type="text/x-dc" data-dc-script data-props='{"state":{"editor":"enum","options":["view","loading","addPerson","addPersonRoom","addPersonNoRoom","editPerson","editPersonBoth","editPrimary","editTenant1","viewPerson","viewPrimary","viewTenant1"],"default":"view"},"theme":{"editor":"enum","options":["light","dark"],"default":"light"},"$preview":{"width":400,"height":848}}'>
+<script type="text/x-dc" data-dc-script data-props='{"state":{"editor":"enum","options":["view","loading","addPerson","addPersonRoom","addPersonNoRoom","addPersonFR","addPersonFilledFR","addPersonFilled2FR","addPersonFilledFRE","addPersonFilled2FRE","editPerson","editPersonBoth","editPrimary","editTenant1","viewPerson","viewPrimary","viewTenant1"],"default":"view"},"theme":{"editor":"enum","options":["light","dark"],"default":"light"},"$preview":{"width":400,"height":848}}'>
 class Component extends DCLogic {
   renderVals() {
     var dark = this.props.theme === 'dark';
     var st = this.props.state || 'view';
     var exclRent = ['Tenant 2'];
+    var fre = /FRE$/.test(st); if (fre) st = st.slice(0, -1);
+    var fr = /FR$/.test(st); if (fr) st = st.slice(0, -2);
     var addVariant = st;
     if (/^addPerson/.test(st)) st = 'addPerson';
     var ro = /^view[A-Z]/.test(st);
@@ -428,7 +430,7 @@ class Component extends DCLogic {
       c: c, isView: viewing, isLoading: st === 'loading', isLoaded: st !== 'loading',
       isEdit: !viewing, isEditPerson: st === 'editPerson' || st === 'editPrimary' || st === 'editTenant1' || st === 'addPerson',
       addHref: dark ? 'Household-AddPerson-Dark.dc.html' : 'Household-AddPerson-Light.dc.html',
-      saveLabel: 'Save changes', hasPays: true,
+      saveLabel: 'Save changes', saveHref: '#', hasPays: true,
       editHomeHref: dark ? 'LandlordRooms-Unchanged-Dark.dc.html' : 'LandlordRooms.dc.html', landlordHref: dark ? 'LandlordRooms-Unchanged-Dark.dc.html' : 'LandlordRooms.dc.html',
       homeHref: dark ? 'Home-Upload-Dark.dc.html' : 'Main.dc.html',
       historyHref: dark ? 'History-List-Dark.dc.html' : 'History.dc.html',
@@ -444,7 +446,7 @@ class Component extends DCLogic {
       people: [
         { initial: 'PT', name: 'Primary Tenant', role: 'Master room · pays you directly', href: dark ? 'Household-EditPrimary-Dark.dc.html' : 'Household-EditPrimary-Light.dc.html', facts: [
           { label: 'Rent · due 7th', value: '$1,675.00' }, { label: 'Utilities · due 7th', value: '1.5 shares' } ] },
-        { initial: 'T1', name: 'Tenant 1', role: 'Room 2 · utilities and aircon via Primary Tenant', href: dark ? 'Household-EditTenant1-Dark.dc.html' : 'Household-EditTenant1-Light.dc.html', facts: [
+        { initial: 'T1', name: 'Tenant 1', role: 'Room 2 · pays via Primary Tenant', href: dark ? 'Household-EditTenant1-Dark.dc.html' : 'Household-EditTenant1-Light.dc.html', facts: [
           { label: 'Rent · due 28th', value: '$950.00' }, { label: 'Utilities · due 7th', value: '1 share' } ] },
         { initial: 'T2', name: 'Tenant 2', role: 'Room 3 · pays you directly', href: editPersonHref, facts: [
           { label: 'Rent · due 1st', value: '$950.00' }, { label: 'Utilities · due 4th', value: '1 share' } ] },
@@ -525,20 +527,35 @@ class Component extends DCLogic {
     v.previewTitle = '';
     var room = null;
     if (st === 'addPerson') {
-      v.editTitle = 'Add subtenant'; v.editSub = 'New person in the household';
-      var picked = addVariant === 'addPersonRoom', noRoom = addVariant === 'addPersonNoRoom';
+      v.editTitle = fr ? 'Add person' : 'Add subtenant'; v.editSub = 'New person in the household';
+      var filled = addVariant === 'addPersonFilled' ? 1 : (addVariant === 'addPersonFilled2' ? 2 : 0);
+      var picked = addVariant === 'addPersonRoom' || filled > 0, noRoom = addVariant === 'addPersonNoRoom';
+      var FV = filled === 1 ? { name: 'Tenant 1', shares: '1', rentDue: '28th', utilDue: '7th', wa: '8123 4567', room: 'Room 2' }
+        : (filled === 2 ? { name: 'Tenant 2', shares: '1', rentDue: '1st', utilDue: '4th', wa: '9123 4567', room: 'Room 3' } : { name: '', shares: '', rentDue: '', utilDue: '', wa: '', room: 'Room 3' });
       v.fields = [
-        field('name', 'Name (used in messages)', '', false, true, 'e.g. first name'),
-        field('shares', 'Utility shares', '', false, false, 'e.g. 1'), field('rentDue', 'Rent due', '', false, false, 'Day, e.g. 1st'),
-        field('utilDue', 'Utilities due', '', false, false, 'Day, e.g. 4th'), field('deposit', 'Deposit held (SGD)', '', false, false, 'Optional'),
-        field('wa', 'WhatsApp', '', false, true, '8123 4567')
+        field('name', 'Name (used in messages)', FV.name, false, true, 'e.g. first name'),
+        field('shares', 'Utility shares', FV.shares, false, false, 'e.g. 1'), field('rentDue', 'Rent due', FV.rentDue, false, false, 'Day, e.g. 1st'),
+        field('utilDue', 'Utilities due', FV.utilDue, false, false, 'Day, e.g. 4th'), field('deposit', 'Deposit held (SGD)', '', false, false, 'Optional'),
+        field('wa', 'WhatsApp', FV.wa, false, true, '8123 4567')
       ];
       v.payGroups = payGroups(null, null);
       v.preview = []; v.noChanges = true; // Add has no summary: the form is the summary
-      room = { sel: true, value: picked ? 'Room 3' : 'Choose a room', empty: !picked, disabled: noRoom, noRoom: noRoom,
+      room = { sel: true, value: picked ? FV.room : 'Choose a room', empty: !picked, disabled: noRoom, noRoom: noRoom,
         facts: picked ? [ { label: 'Rent (SGD)', value: '$950.00' }, { label: 'Aircon units', value: '1' } ] : [], link: noRoom, linkLabel: 'Open Landlord & rooms' };
-      v.saveLabel = 'Save changes'; v.saveDisabled = 'true'; v.saveBg = c.disabledBg; v.saveFg = c.disabledFg;
+      v.saveLabel = fr ? 'Add person' : 'Save changes'; v.saveDisabled = filled ? 'false' : 'true'; v.saveBg = filled ? c.primary : c.disabledBg; v.saveFg = filled ? c.onPrimary : c.disabledFg;
       v.secondaryLabel = 'Cancel'; v.secondaryFg = c.primary;
+      if (fr) {
+        var TT = dark ? 'Dark' : 'Light';
+        v.saveHref = filled === 2 ? 'FirstRunPeople-List-' + TT + '.dc.html' : 'FirstRunPeople-One-' + TT + '.dc.html';
+        v.frBack = filled === 2 ? 'FirstRunPeople-One-' + TT + '.dc.html' : 'FirstRunPeople-Empty-' + TT + '.dc.html';
+        if (fre) {
+          var back = filled === 2 ? 'FirstRunPeople-List-' + TT + '.dc.html' : 'FirstRunPeople-One-' + TT + '.dc.html';
+          v.editTitle = 'Edit ' + FV.name; v.editSub = FV.room + ' · subtenant';
+          v.saveLabel = 'Save changes'; v.saveHref = back; v.frBack = back;
+          v.secondaryLabel = 'Remove from household'; v.secondaryFg = c.danger;
+          v.frRemove = filled === 2 ? 'FirstRunPeople-One-' + TT + '.dc.html' : 'FirstRunPeople-Empty-' + TT + '.dc.html';
+        }
+      }
     } else if (st === 'editPerson') {
       v.editTitle = 'Edit Tenant 2'; v.editSub = 'Room 3 · subtenant';
       v.fields = [
@@ -600,10 +617,10 @@ class Component extends DCLogic {
           hasNoRoom: !!room.noRoom, hasRoomFacts: rf.length > 0, roomFacts: rf, hasRoomLink: !!room.link && !ro || (!!room.link && room.noRoom), roomLinkLabel: room.linkLabel || '' }));
       }
       v.groups.push(mk({ title: ro ? 'Amounts' : 'From December 2026', fields: dated }));
-      v.groups.forEach(function (g, i) { g.divider = i === 0 ? 'transparent' : c.outlineVariant; g.padTop = i === 0 ? '4px' : '18px'; g.mt = (i === 0 && !ro && (st === 'editPerson' || both)) ? '-440px' : ((i === 0 && (addVariant === 'addPersonRoom' || addVariant === 'addPersonNoRoom')) ? '-440px' : '0px'); });
+      v.groups.forEach(function (g, i) { g.divider = i === 0 ? 'transparent' : c.outlineVariant; g.padTop = i === 0 ? '4px' : '18px'; g.mt = '0px'; });
     }
     // Colour: default per person, then whatever was tapped
-    var defaultColor = both ? 3 : { editPerson: 2, editPrimary: 0, editTenant1: 1, addPerson: 3 }[st];
+    var defaultColor = both ? 3 : { editPerson: 2, editPrimary: 0, editTenant1: 1, addPerson: (typeof filled !== 'undefined' && filled) ? filled : 3 }[st];
     var pickedColor = (this.state && this.state.color != null) ? this.state.color : defaultColor;
     var self2 = this;
     v.hasColorField = defaultColor != null;
@@ -632,6 +649,7 @@ class Component extends DCLogic {
     var T = dark ? 'Dark' : 'Light';
     v.secondaryHref = /^Remove/.test(v.secondaryLabel || '') ? (st === 'editTenant1' ? 'Confirm-RemovePersonIncluded-' + T + '.dc.html' : (dark ? 'Confirm-RemovePerson-Dark.dc.html' : 'Confirm.dc.html')) : viewHref;
     if (st === 'editPerson') v.backHref = 'Confirm-Discard-' + T + '.dc.html';
+    if (fr && st === 'addPerson') { v.backHref = v.frBack; v.secondaryHref = fre ? v.frRemove : v.frBack; }
     return v;
   }
 }
