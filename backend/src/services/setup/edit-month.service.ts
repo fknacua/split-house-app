@@ -1,15 +1,22 @@
-import { addMonths } from "@splithouse/shared";
+import { addMonths, type SetupStepId } from "@splithouse/shared";
 import { currentMonth } from "@/lib/month";
+import { effectiveStartMonth } from "@/lib/setup/start-month";
 import { getActiveMonth, type ActiveMonthDb } from "@/services/months/active-month.service";
+import { readSetup, type SetupReadDb } from "./setup-record.service";
+
+/** What reading where edits start needs. */
+export type EditMonthDb = ActiveMonthDb & SetupReadDb;
 
 /**
- * The month First run's household starts, which the first version starts from. Until the `Setup` record holds the
- * chosen month (11.2), it is the current month.
+ * The month First run's household starts, which the first version starts from: the saved start month, or the current
+ * month when none is saved or the saved one has passed.
  *
+ * @param db - The Prisma client, a transaction, or a fake in tests.
  * @returns The month key, `YYYY-MM`.
  */
-export async function getStartMonth(): Promise<string> {
-  return currentMonth();
+export async function getStartMonth(db: SetupReadDb): Promise<string> {
+  const { startMonth } = await readSetup(db);
+  return effectiveStartMonth(startMonth, currentMonth());
 }
 
 /** Where household edits start, and whether First run is still on. */
@@ -20,17 +27,23 @@ export interface EditMonth {
   activeMonth: string;
   /** True while no month is open: every edit then works on the one first version. */
   firstSetup: boolean;
+  /** First run's done steps, in order; empty once a month is open, since they are not read then. */
+  doneSteps: SetupStepId[];
 }
 
 /**
  * Works out where household edits start. Read-only.
  *
  * @param db - The Prisma client, a transaction, or a fake in tests.
- * @returns The month edits start from, the active month and whether First run is still on.
+ * @returns The month edits start from, the active month, whether First run is still on and its done steps.
  */
-export async function getEditMonth(db: ActiveMonthDb): Promise<EditMonth> {
+export async function getEditMonth(db: EditMonthDb): Promise<EditMonth> {
   const opened = await db.month.findFirst({ orderBy: { month: "desc" }, select: { month: true } });
-  if (!opened) return { month: await getStartMonth(), activeMonth: currentMonth(), firstSetup: true };
+  if (!opened) {
+    const { startMonth, doneSteps } = await readSetup(db);
+    const current = currentMonth();
+    return { month: effectiveStartMonth(startMonth, current), activeMonth: current, firstSetup: true, doneSteps };
+  }
   const activeMonth = await getActiveMonth(db);
-  return { month: addMonths(activeMonth, 1), activeMonth, firstSetup: false };
+  return { month: addMonths(activeMonth, 1), activeMonth, firstSetup: false, doneSteps: [] };
 }

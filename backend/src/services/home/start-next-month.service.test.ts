@@ -96,6 +96,22 @@ function fakeDb(settled: boolean, opened: string[] = ["2026-11"]) {
 
 afterEach(() => vi.unstubAllEnvs());
 
+describe("First run (no month open)", () => {
+  it("Home answers 409 setup_incomplete and opens nothing, though a version covers the month", async () => {
+    vi.stubEnv("DEV_NOW", "2026-11-03T09:00:00+08:00");
+    const { db, months } = fakeDb(false, []);
+    await expect(getHome(db)).rejects.toMatchObject({ status: 409, code: "setup_incomplete" });
+    expect(months.size).toBe(0);
+  });
+
+  it("Start next month answers 409 setup_incomplete and opens nothing", async () => {
+    vi.stubEnv("DEV_NOW", "2026-11-03T09:00:00+08:00");
+    const { db, months } = fakeDb(true, []);
+    await expect(startNextMonth(db)).rejects.toMatchObject({ status: 409, code: "setup_incomplete" });
+    expect(months.size).toBe(0);
+  });
+});
+
 describe("startNextMonth", () => {
   it("opens the month after the settled one, and Home then shows it with no bill", async () => {
     vi.stubEnv("DEV_NOW", "2026-11-29T09:00:00+08:00");

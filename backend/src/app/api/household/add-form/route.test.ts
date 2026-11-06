@@ -20,6 +20,7 @@ function useHousehold(versions: (typeof VERSION)[]) {
   Object.assign(prisma, {
     month: { findFirst: async () => ({ month: "2026-11" }) },
     householdVersion: { findMany: async () => versions },
+    setup: { findUnique: async () => ({ startMonth: null, doneSteps: ["startMonth", "rentAndRooms", "people"] }) },
     person: {
       findMany: async () => [
         { id: PERSON_IDS.alex, name: "Alex", whatsappE164: null, color: "TEAL", isOwner: true },

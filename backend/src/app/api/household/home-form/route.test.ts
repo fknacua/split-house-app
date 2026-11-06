@@ -27,6 +27,7 @@ function useHousehold(versions: ReturnType<typeof version>[]) {
       findUnique: async () => null,
     },
     householdVersion: { findMany: async () => versions },
+    setup: { findUnique: async () => ({ startMonth: null, doneSteps: ["startMonth", "rentAndRooms", "people"] }) },
     person: {
       findMany: async () => [
         { id: PERSON_IDS.alex, name: "Alex", whatsappE164: null, color: "TEAL", isOwner: true },
@@ -83,6 +84,30 @@ describe("GET /api/household/home-form", () => {
     expect(body.rooms).toHaveLength(5);
     expect(body.roomsToAdd).toEqual([]);
     expect(body.pendingNote).toBeNull();
+  });
+
+  it("answers 409 start_month_first in First run before Start month is saved", async () => {
+    useHousehold([]);
+    Object.assign(prisma, {
+      month: { findFirst: async () => null },
+      setup: { findUnique: async () => null },
+    });
+    const response = await GET(request(), undefined);
+    expect(response.status).toBe(409);
+    expect(apiErrorBodySchema.parse(await response.json()).error).toEqual({
+      code: "start_month_first",
+      message: "Choose the start month first.",
+    });
+  });
+
+  it("starts the blank form from a saved later start month", async () => {
+    useHousehold([]);
+    Object.assign(prisma, {
+      month: { findFirst: async () => null },
+      setup: { findUnique: async () => ({ startMonth: "2027-01", doneSteps: ["startMonth"] }) },
+    });
+    const body = householdHomeFormResponseSchema.parse(await (await GET(request(), undefined)).json());
+    expect(body.datedTitle).toBe("From January 2027");
   });
 
   it("answers 404 no_version when a month is open but no version covers next month", async () => {

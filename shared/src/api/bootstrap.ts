@@ -1,15 +1,14 @@
 import { z } from 'zod';
 import { monthKey } from '../schemas/primitives';
-import { setupStepSchema } from '../schemas/setup';
 
 /** `GET /api/bootstrap`: what the app needs right after sign-in and on launch. */
 export const bootstrapResponseSchema = z.object({
-  /** A household version exists. False sends the app to first-run setup. */
+  /** A household version exists. */
   hasHousehold: z.boolean(),
+  /** First run is finished: a month is open. False sends the app to Welcome. */
+  setupComplete: z.boolean(),
   /** The active billing month, `YYYY-MM`: the newest opened month, or the calendar month in Asia/Singapore when that is later. */
   currentMonth: monthKey,
-  /** The first-run checklist, in display order. */
-  setupProgress: z.array(setupStepSchema),
 });
 
 /** `GET /api/bootstrap`: what the app needs right after sign-in and on launch. */

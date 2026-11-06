@@ -27,6 +27,7 @@ function useHousehold(versions: ReturnType<typeof version>[]) {
       findUnique: async () => null,
     },
     householdVersion: { findMany: async () => versions },
+    setup: { findUnique: async () => ({ startMonth: null, doneSteps: ["startMonth", "rentAndRooms", "people"] }) },
     person: {
       findMany: async () => [
         { id: PERSON_IDS.alex, name: "Alex", whatsappE164: null, color: "TEAL", isOwner: true },
@@ -67,6 +68,17 @@ describe("GET /api/household/split-form", () => {
     const response = await GET(request(), undefined);
     expect(response.status).toBe(409);
     expect(apiErrorBodySchema.parse(await response.json()).error.code).toBe("rooms_first");
+  });
+
+  it("answers 409 people_first in First run before People is done", async () => {
+    useHousehold([version("2026-11", NOV_2026_CONFIG)]);
+    Object.assign(prisma, {
+      month: { findFirst: async () => null, findUnique: async () => null },
+      setup: { findUnique: async () => ({ startMonth: null, doneSteps: ["startMonth", "rentAndRooms"] }) },
+    });
+    const response = await GET(request(), undefined);
+    expect(response.status).toBe(409);
+    expect(apiErrorBodySchema.parse(await response.json()).error).toEqual({ code: "people_first", message: "Save people first." });
   });
 
   it("reads the first version in First run, starting the current month, with nothing pending", async () => {

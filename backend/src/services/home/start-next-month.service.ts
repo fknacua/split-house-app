@@ -11,8 +11,8 @@ import { getHome, type HomeDb } from "./home.service";
  * @param db - The Prisma client, or a fake in tests.
  * @returns The month that was opened.
  * @throws {ApiError} 409 `not_settled` when the newest month is not settled, 409 `month_already_open`
- * when the next month is already open (for example a second tap), and 409 `no_household` when no
- * household version covers the next month.
+ * when the next month is already open (for example a second tap), 409 `no_household` when no
+ * household version covers the next month, and `getHome`'s 409 `setup_incomplete` while no month has opened.
  */
 export async function startNextMonth(db: HomeDb): Promise<StartNextMonthResponse> {
   const home = await getHome(db);

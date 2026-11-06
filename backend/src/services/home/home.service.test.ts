@@ -159,9 +159,9 @@ describe("getHome", () => {
     expect(home.status).toBe("collecting");
   });
 
-  it("answers 409 when no month can be open because there is no household yet", async () => {
+  it("answers 409 setup_incomplete while no month has opened", async () => {
     vi.stubEnv("DEV_NOW", "2026-11-01T09:00:00+08:00");
-    await expect(getHome(fakeDb(false))).rejects.toMatchObject({ status: 409 });
+    await expect(getHome(fakeDb(false))).rejects.toMatchObject({ status: 409, code: "setup_incomplete" });
   });
 });
 
