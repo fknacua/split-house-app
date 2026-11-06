@@ -12,15 +12,15 @@ import { ApiError } from "@/lib/api";
 import { buildFirstHomeForm, buildHomeForm } from "@/lib/household/build-home-form";
 import { buildAddPersonForm, buildHouseholdForm } from "@/lib/household/build-household-form";
 import { buildSplitForm } from "@/lib/household/build-split-form";
-import type { ActiveMonthDb } from "@/services/months/active-month.service";
-import { getEditMonth } from "@/services/setup/edit-month.service";
+import { requireStepsBefore } from "@/lib/setup/steps";
+import { getEditMonth, type EditMonthDb } from "@/services/setup/edit-month.service";
 
 const VERSION_SELECT = { startsFromMonth: true, schemaVersion: true, config: true } as const;
 const PERSON_SELECT = { id: true, name: true, whatsappE164: true, color: true, isOwner: true } as const;
 
 /** The slice of the Prisma client this service uses, so tests can pass an in-memory fake. */
-export interface HouseholdFormDb extends ActiveMonthDb {
-  month: ActiveMonthDb["month"] & {
+export interface HouseholdFormDb extends EditMonthDb {
+  month: EditMonthDb["month"] & {
     findUnique(args: {
       where: { month: string };
       select: { householdVersion: { select: { schemaVersion: true; config: true } } };
@@ -44,18 +44,18 @@ export interface HouseholdFormDb extends ActiveMonthDb {
  * version once a month is open, or in First run the one first version, whatever month it starts in.
  *
  * @param db - The Prisma client, or a fake in tests.
- * @returns The active month, whether First run is on, every version, the people, the month edits start from and
- * the config they build on, null when there is none.
+ * @returns The active month, whether First run is on and its done steps, every version, the people, the month edits
+ * start from and the config they build on, null when there is none.
  */
 export async function readFormContext(db: HouseholdFormDb) {
-  const [{ month, activeMonth, firstSetup }, versions, people] = await Promise.all([
+  const [{ month, activeMonth, firstSetup, doneSteps }, versions, people] = await Promise.all([
     getEditMonth(db),
     db.householdVersion.findMany({ orderBy: { startsFromMonth: "desc" }, select: VERSION_SELECT }),
     db.person.findMany({ select: PERSON_SELECT }),
   ]);
   const version = firstSetup ? versions[0] : versions.find((v) => v.startsFromMonth <= month);
   const config = version ? parseHouseholdConfig(version.schemaVersion, version.config) : null;
-  return { activeMonth, firstSetup, versions, people, month, config };
+  return { activeMonth, firstSetup, doneSteps, versions, people, month, config };
 }
 
 /**
@@ -124,10 +124,12 @@ export async function getHouseholdAddForm(db: HouseholdFormDb): Promise<Househol
  *
  * @param db - The Prisma client, or a fake in tests.
  * @returns The Landlord & rooms screen.
- * @throws {ApiError} 404 `no_version` when no version covers next month.
+ * @throws {ApiError} 409 `start_month_first` in First run before Start month is saved; 404 `no_version` when no
+ * version covers next month.
  */
 export async function getHouseholdHomeForm(db: HouseholdFormDb): Promise<HouseholdHomeFormResponse> {
   const context = await readFormContext(db);
+  if (context.firstSetup) requireStepsBefore("rentAndRooms", context.doneSteps);
   if (!context.config && context.firstSetup) return buildFirstHomeForm(context.month);
   const next = requireConfig(context);
   const activeConfig = await readActiveConfig(db, next);
@@ -140,10 +142,11 @@ export async function getHouseholdHomeForm(db: HouseholdFormDb): Promise<Househo
  *
  * @param db - The Prisma client, or a fake in tests.
  * @returns The Household split screen.
- * @throws {ApiError} The same as `readNextVersion`.
+ * @throws {ApiError} The same as `readNextVersion`; 409 `people_first` in First run before People is done.
  */
 export async function getHouseholdSplitForm(db: HouseholdFormDb): Promise<HouseholdSplitFormResponse> {
   const next = await readNextVersion(db);
+  if (next.firstSetup) requireStepsBefore("householdSplits", next.doneSteps);
   const activeConfig = await readActiveConfig(db, next);
   return buildSplitForm({ month: next.month, config: next.config, activeConfig, people: next.people });
 }

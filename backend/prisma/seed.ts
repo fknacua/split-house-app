@@ -95,6 +95,7 @@ async function wipeDomainTables() {
   await prisma.messageTemplates.deleteMany();
   await prisma.person.deleteMany();
   await prisma.settings.deleteMany();
+  await prisma.setup.deleteMany();
 }
 
 async function seedPeople() {

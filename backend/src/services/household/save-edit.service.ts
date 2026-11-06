@@ -23,8 +23,9 @@ import { planHomeEdit } from "@/lib/household/plan-home-edit";
 import { planRecurringEdit, planRemoveRecurring, runningCharges } from "@/lib/household/plan-recurring-edit";
 import { planRemovePerson } from "@/lib/household/plan-remove-person";
 import { planSplitEdit } from "@/lib/household/plan-split-edit";
-import type { ActiveMonthDb } from "@/services/months/active-month.service";
-import { getEditMonth } from "@/services/setup/edit-month.service";
+import { requireStepsBefore } from "@/lib/setup/steps";
+import { getEditMonth, type EditMonthDb } from "@/services/setup/edit-month.service";
+import { markStepsDone, type SetupWriteDb } from "@/services/setup/setup-record.service";
 
 const VERSION_SELECT = { id: true, startsFromMonth: true, schemaVersion: true, config: true } as const;
 const PERSON_SELECT = { id: true, name: true, whatsappE164: true, color: true, isOwner: true } as const;
@@ -32,7 +33,7 @@ const PERSON_SELECT = { id: true, name: true, whatsappE164: true, color: true, i
 const LAST_MONTH = "9999-12";
 
 /** The reads an edit needs, so tests can pass an in-memory fake. */
-export interface HouseholdEditReadDb extends ActiveMonthDb {
+export interface HouseholdEditReadDb extends EditMonthDb {
   householdVersion: {
     findMany(args: {
       select: typeof VERSION_SELECT;
@@ -47,6 +48,7 @@ export interface HouseholdEditReadDb extends ActiveMonthDb {
 
 /** The slice of a Prisma transaction client saving an edit uses. */
 export interface HouseholdEditTx extends HouseholdEditReadDb {
+  setup: SetupWriteDb["setup"];
   householdVersion: HouseholdEditReadDb["householdVersion"] & {
     updateMany(args: {
       where: { id: string; months: { none: object } };
@@ -83,7 +85,7 @@ function isUniqueViolation(err: unknown): boolean {
  * month it starts in, since a save moves it to the start month; before Rent & rooms is saved there is none.
  */
 async function readContext(db: HouseholdEditReadDb) {
-  const [{ month, firstSetup }, rows, people] = await Promise.all([
+  const [{ month, firstSetup, doneSteps }, rows, people] = await Promise.all([
     getEditMonth(db),
     db.householdVersion.findMany({ select: VERSION_SELECT }),
     db.person.findMany({ select: PERSON_SELECT }),
@@ -95,7 +97,7 @@ async function readContext(db: HouseholdEditReadDb) {
   // First run has one version; the newest is it.
   const base: ParsedVersion | null = versionInEffect(versions, firstSetup ? LAST_MONTH : month);
   const existing = rows.find((row) => row.startsFromMonth === (firstSetup ? base?.startsFromMonth : month)) ?? null;
-  return { month, firstSetup, base, people, existing };
+  return { month, firstSetup, doneSteps, base, people, existing };
 }
 
 /**
@@ -151,6 +153,7 @@ async function loadRemovePlan(db: HouseholdEditReadDb, edit: HouseholdRemovePers
 async function loadHomePlan(db: HouseholdEditReadDb, edit: HouseholdHomeEdit) {
   const context = await readContext(db);
   if (!context.base && !context.firstSetup) noBase(false);
+  if (context.firstSetup) requireStepsBefore("rentAndRooms", context.doneSteps);
   const newRoomIds = edit.newRooms.map(() => randomUUID());
   const ownerId = context.people.find((p) => p.isOwner)?.id ?? randomUUID();
   const masterIndex = edit.newRooms.findIndex((room) => room.roomType === "MASTER");
@@ -174,11 +177,13 @@ async function loadHomePlan(db: HouseholdEditReadDb, edit: HouseholdHomeEdit) {
   };
 }
 
-/** Plans a Household split edit to next month's version. */
+/** Plans a Household split edit to next month's version. In First run, People must be done first. */
 async function loadSplitPlan(db: HouseholdEditReadDb, edit: HouseholdSplitEdit) {
-  const { month, base, people, existing } = await loadContext(db);
+  const { month, firstSetup, doneSteps, base, people, existing } = await loadContext(db);
+  if (firstSetup) requireStepsBefore("householdSplits", doneSteps);
   return {
     month,
+    firstSetup,
     existing,
     plan: planSplitEdit({ edit, names: new Map(people.map((p) => [p.id, p.name])), month, base }),
   };
@@ -285,7 +290,11 @@ async function saveVersionPlan(
  */
 async function saveHomeEdit(tx: HouseholdEditTx, edit: HouseholdHomeEdit, ownerName: string | undefined): Promise<HouseholdEditSaveResponse> {
   const loaded = await loadHomePlan(tx, edit);
-  if (!loaded.isFirst) return saveVersionPlan(tx, loaded);
+  if (!loaded.isFirst) {
+    const saved = await saveVersionPlan(tx, loaded);
+    if (loaded.firstSetup) await markStepsDone(tx, ["rentAndRooms"]);
+    return saved;
+  }
 
   const { plan, month, ownerId, people } = loaded;
   const messages = Object.values(plan.errors);
@@ -296,7 +305,16 @@ async function saveHomeEdit(tx: HouseholdEditTx, edit: HouseholdHomeEdit, ownerN
     await tx.person.create({ data: { id: ownerId, name: ownerName, whatsappE164: null, color: "TEAL", isOwner: true } });
   }
   await storeVersion(tx, month, null, plan.nextConfig);
+  await markStepsDone(tx, ["rentAndRooms"]);
   return { savedFromMonth: month };
+}
+
+/** Checks and stores a Household split edit. In First run it also marks Household splits done. */
+async function saveSplitEdit(tx: HouseholdEditTx, edit: HouseholdSplitEdit): Promise<HouseholdEditSaveResponse> {
+  const loaded = await loadSplitPlan(tx, edit);
+  const saved = await saveVersionPlan(tx, loaded);
+  if (loaded.firstSetup) await markStepsDone(tx, ["householdSplits"]);
+  return saved;
 }
 
 /** Checks and stores an edit to someone, inside the caller's transaction. */
@@ -325,7 +343,8 @@ async function savePersonEdit(tx: HouseholdEditTx, edit: HouseholdPersonEdit): P
  * @param edit - The edit.
  * @returns The summary groups, whether Save is allowed and the errors per field.
  * @throws {ApiError} 409 `rooms_first` for any edit but Landlord & rooms in First run before Rent & rooms is saved;
- * 404 `no_version` when no version covers next month; 404 `no_person` for an unknown person or someone not in the
+ * in First run, 409 `start_month_first` for Landlord & rooms before Start month is saved and `people_first` for a
+ * Household split before People is done; 404 `no_version` when no version covers next month; 404 `no_person` for an unknown person or someone not in the
  * version; 404 `no_charge` for a recurring charge not running next month.
  */
 export async function previewHouseholdEdit(db: HouseholdEditReadDb, edit: HouseholdEdit): Promise<HouseholdEditPreviewResponse> {
@@ -382,7 +401,8 @@ export async function previewHouseholdEdit(db: HouseholdEditReadDb, edit: Househ
  * A Landlord & rooms, Household split or recurring charge edit changes only that version.
  *
  * In First run every edit updates the one first version and starts it from the start month. The first Landlord &
- * rooms save creates it, with the master room and the owner's `Person` row; removing someone deletes their row.
+ * rooms save creates it, with the master room and the owner's `Person` row; removing someone deletes their row. A
+ * Landlord & rooms or Household split save marks its step done.
  *
  * @param db - The Prisma client, or a fake in tests.
  * @param edit - The edit.
@@ -398,7 +418,7 @@ export async function saveHouseholdEdit(db: HouseholdEditDb, edit: HouseholdEdit
       if (edit.kind === "addPerson") return saveAddPerson(tx, edit);
       if (edit.kind === "removePerson") return saveRemovePerson(tx, edit);
       if (edit.kind === "home") return saveHomeEdit(tx, edit, ownerName);
-      if (edit.kind === "split") return saveVersionPlan(tx, await loadSplitPlan(tx, edit));
+      if (edit.kind === "split") return saveSplitEdit(tx, edit);
       if (edit.kind === "recurring") return saveVersionPlan(tx, await loadRecurringPlan(tx, edit));
       if (edit.kind === "removeRecurring") return saveVersionPlan(tx, await loadRemoveRecurringPlan(tx, edit));
       return savePersonEdit(tx, edit);

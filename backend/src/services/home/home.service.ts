@@ -73,19 +73,25 @@ export type HomeDb = MonthOpenDb & {
 
 /**
  * Opens the calendar month if it is not open yet, then reads the newest opened month and hands it
- * to `buildHome`. The server picks the month, so the client's time zone never matters.
+ * to `buildHome`. The server picks the month, so the client's time zone never matters. Until First run
+ * has finished, which opens the first month, nothing opens here.
  *
  * @param db - The Prisma client, or a fake in tests.
  * @returns The Home response for that month.
- * @throws {ApiError} 409 when there is no household version yet, so no month can be open.
+ * @throws {ApiError} 409 `setup_incomplete` while no month has opened.
  */
 export async function getHome(db: HomeDb): Promise<HomeResponse> {
+  const newestOpened = () =>
+    db.month.findFirst({
+      orderBy: { month: "desc" },
+      select: { month: true, householdVersion: { select: { schemaVersion: true, config: true } } },
+    });
+  if (!(await newestOpened())) {
+    throw new ApiError(409, "setup_incomplete", "Finish setting up the household first.");
+  }
   await openMonthIfNeeded(db, currentMonth());
-  const opened = await db.month.findFirst({
-    orderBy: { month: "desc" },
-    select: { month: true, householdVersion: { select: { schemaVersion: true, config: true } } },
-  });
-  if (!opened) throw new ApiError(409, "no_household", "Set up the household first.");
+  const opened = await newestOpened();
+  if (!opened) throw new Error("The newest opened month disappeared");
 
   // The draft is looked up by id only: its PDF bytes stay in the database.
   const [people, charges, bill, draft, messages, earlierUnpaid] = await Promise.all([

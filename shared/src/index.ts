@@ -9,6 +9,7 @@ export * from './api/me';
 export * from './api/payment';
 export * from './api/recipient';
 export * from './api/settings';
+export * from './api/setup';
 export * from './api/templates';
 export * from './lib/bill';
 export * from './lib/date';
@@ -17,4 +18,4 @@ export * from './lib/month';
 export * from './lib/payment';
 export * from './schemas/household-config';
 export * from './schemas/primitives';
-export * from './schemas/setup';
+

@@ -30,6 +30,7 @@ function useHousehold(versions: ReturnType<typeof version>[], pinned: Record<str
           : null,
     },
     householdVersion: { findMany: async () => versions },
+    setup: { findUnique: async () => ({ startMonth: null, doneSteps: ["startMonth", "rentAndRooms", "people"] }) },
     person: {
       findMany: async () => [
         { id: PERSON_IDS.alex, name: "Alex", whatsappE164: null, color: "TEAL", isOwner: true },

@@ -101,14 +101,26 @@ const PEOPLE: PersonRow[] = [
 function fakeDb(
   versions: VersionRow[] = [version("2026-11", NOV_2026_CONFIG)],
   lockedIds: string[] = [],
-  { opened = "2026-11", people = PEOPLE }: { opened?: string | null; people?: PersonRow[] } = {},
+  {
+    opened = "2026-11",
+    people = PEOPLE,
+    setup = { startMonth: null, doneSteps: [] },
+  }: { opened?: string | null; people?: PersonRow[]; setup?: { startMonth: string | null; doneSteps: string[] } } = {},
 ) {
   const state = {
     versions: [...versions],
     people: [...people],
+    setup: { ...setup },
   };
   const tx: HouseholdEditTx = {
     month: { findFirst: async () => (opened ? { month: opened } : null) },
+    setup: {
+      findUnique: async () => state.setup,
+      upsert: async ({ update }) => {
+        state.setup = { startMonth: update.startMonth ?? state.setup.startMonth, doneSteps: update.doneSteps };
+        return state.setup;
+      },
+    },
     householdVersion: {
       findMany: async () => state.versions,
       updateMany: async ({ where, data }) => {
@@ -823,8 +835,10 @@ describe("First run (no month open)", () => {
     utilitiesViaPersonId: null,
   };
   const addTenant: HouseholdAddPersonEdit = { ...addPrimary, name: "Casey", roomId: "room-4", utilityShares: 1000 };
-  const fresh = (people: PersonRow[] = []) => fakeDb([], [], { opened: null, people });
-  const firstVersion = (startsFromMonth = "2026-11") => fakeDb([version(startsFromMonth, OWNER_ONLY)], [], { opened: null, people: [ALEX] });
+  const fresh = (people: PersonRow[] = [], doneSteps = ["startMonth"], startMonth: string | null = "2026-11") =>
+    fakeDb([], [], { opened: null, people, setup: { startMonth, doneSteps } });
+  const firstVersion = (startsFromMonth = "2026-11", doneSteps = ["startMonth", "rentAndRooms"]) =>
+    fakeDb([version(startsFromMonth, OWNER_ONLY)], [], { opened: null, people: [ALEX], setup: { startMonth: startsFromMonth, doneSteps } });
   const configOf = (row: VersionRow | undefined) => row?.config as HouseholdConfig;
   const splitsOf = (config: HouseholdConfig) =>
     [config.categories.rent, config.categories.utilities, config.categories.aircon].map((c) => [c.ownerBps, c.primaryBps]);
@@ -878,6 +892,24 @@ describe("First run (no month open)", () => {
       ]);
     });
 
+    it("marks Rent & rooms done with the first save", async () => {
+      const { db, state } = fresh();
+      await saveHouseholdEdit(db, firstHome(), "Alex");
+      expect(state.setup.doneSteps).toEqual(["startMonth", "rentAndRooms"]);
+    });
+
+    it("starts the first version from a saved later start month", async () => {
+      const { db, state } = fresh([], ["startMonth"], "2027-01");
+      expect(await saveHouseholdEdit(db, firstHome(), "Alex")).toEqual({ savedFromMonth: "2027-01" });
+      expect(state.versions.map((v) => v.startsFromMonth)).toEqual(["2027-01"]);
+    });
+
+    it("answers 409 start_month_first to Rent & rooms before Start month is saved", async () => {
+      const refused = { status: 409, code: "start_month_first", message: "Choose the start month first." };
+      await expect(previewHouseholdEdit(fresh([], [], null).db, firstHome())).rejects.toMatchObject(refused);
+      await expect(saveHouseholdEdit(fresh([], [], null).db, firstHome(), "Alex")).rejects.toMatchObject(refused);
+    });
+
     it("reuses an owner row that already exists", async () => {
       const { db, state } = fresh([ALEX]);
       await saveHouseholdEdit(db, firstHome(), "Someone else");
@@ -910,6 +942,27 @@ describe("First run (no month open)", () => {
       const { db, state } = firstVersion("2026-10");
       await saveHouseholdEdit(db, homeEdit({ landlordDueDay: 2 }));
       expect(state.versions.map((v) => v.startsFromMonth)).toEqual(["2026-11"]);
+    });
+
+    it("keeps Rent & rooms done when it is saved again", async () => {
+      const { db, state } = firstVersion();
+      await saveHouseholdEdit(db, homeEdit({ landlordRentCents: 310000 }));
+      expect(state.setup.doneSteps).toEqual(["startMonth", "rentAndRooms"]);
+    });
+
+    it("answers 409 people_first to a Household split edit before People is done", async () => {
+      const refused = { status: 409, code: "people_first", message: "Save people first." };
+      const sent: HouseholdEdit = { kind: "split", tenantShares: [], rentPrimaryBps: 4000 };
+      await expect(previewHouseholdEdit(firstVersion().db, sent)).rejects.toMatchObject(refused);
+      await expect(saveHouseholdEdit(firstVersion().db, sent)).rejects.toMatchObject(refused);
+    });
+
+    it("saves a Household split once People is done and marks Household splits done", async () => {
+      const { db, state } = firstVersion("2026-11", ["startMonth", "rentAndRooms", "people"]);
+      await saveHouseholdEdit(db, addPrimary);
+      expect(await saveHouseholdEdit(db, { kind: "split", tenantShares: [], rentPrimaryBps: 4000 })).toEqual({ savedFromMonth: "2026-11" });
+      expect(configOf(state.versions[0]).categories.rent).toMatchObject({ ownerBps: 6000, primaryBps: 4000 });
+      expect(state.setup.doneSteps).toEqual(["startMonth", "rentAndRooms", "people", "householdSplits"]);
     });
 
     it("shows a summary, since there are saved values to compare with", async () => {

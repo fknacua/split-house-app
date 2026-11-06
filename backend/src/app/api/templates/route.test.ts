@@ -51,6 +51,7 @@ function useHousehold(
         opened ? { householdVersion: { schemaVersion: HOUSEHOLD_SCHEMA_VERSION, config: NOV_2026_CONFIG } } : null,
     },
     householdVersion: { findMany: async () => rows },
+    setup: { findUnique: async () => ({ startMonth: null, doneSteps: ["startMonth", "rentAndRooms", "people"] }) },
     person: { findMany: async () => PEOPLE },
     messageTemplates: { findUnique: async () => (templates ? { templates } : null), upsert },
   });

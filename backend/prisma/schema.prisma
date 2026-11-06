@@ -307,3 +307,14 @@ model MessageTemplates {
 
   @@map("message_templates")
 }
+
+// Single row (id is always "singleton"): First run's start month (`YYYY-MM`, null until chosen) and the step ids
+// recorded as done. Created on first write; read only while no month is open.
+model Setup {
+  id         String   @id @default("singleton")
+  startMonth String?
+  doneSteps  String[] @default([])
+  updatedAt  DateTime @updatedAt
+
+  @@map("setup")
+}
