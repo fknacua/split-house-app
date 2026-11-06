@@ -97,7 +97,7 @@ Added during design:
 | Share bill (sheet) | Choose the bill PDF or a text summary (optionally with each person's share), then Android's share sheet. Opened from the Recipient screen only | PDF; summary; system share sheet |
 | Notifications | Heads-up and shade matching the notification table below; Paid on a notification opens Record payment | Heads-up; shade |
 | First-run setup | Checklist: Rent and rooms, People, Your split, Messages (optional) | Empty; in progress |
-| Confirmations | Remove person, remove template version, discard changes. Filled Cancel, red outline destructive button | Three dialogs |
+| Confirmations | Remove person, remove custom template, restore original template, discard changes. Filled Cancel, red outline destructive button | Four dialogs |
 
 Also added in the gluestack v5 rewrite (Oct 14, 2026): Sign in with Google, a blocking Can't reach the server prompt with Retry (replacing the offline indicator), returning-user loading, loading and saving states, a leftover bill draft on Home, and a Turn on reminders step in first-run setup.
 
@@ -191,7 +191,7 @@ These settled during design and override anything earlier in this brief that dis
 - **No payment details.** PayNow and similar are not stored in v1.
 - **Notifications** are a catalog of messages, not a dated schedule. Paid on a notification opens the Record payment sheet instead of marking paid directly.
 - **Bills:** View bill is read-only. Marking the bill paid is a sheet with the amount and date, reached from Home. Share bill is reached from the Recipient screen. Bill upload is in-app only in v1 (share-in is deferred): the PDF is read on the backend into a draft that Francis reviews and edits, and Save stores it. A PDF that can't be read is kept only if Francis confirms it is the right bill, then he types the amounts.
-- **Settings:** the "Applies to" choice is a dropdown. The nudge template is edited separately from the monthly breakdown template.
+- **Settings (redesigned 2026-11-06):** each template type (monthly breakdown, nudge) has a landing page with its Default template (what everyone else gets) and its Custom templates, at most one per person, added through a "For who" sheet. One editor serves the Default, a custom template and a new one, with a character counter, `Restore to original` on an edited Default, and `Remove this template` on a custom one. Line labels and section titles are edited in a sheet opened from the editor's preview and are shared by both template types. The word is always "template", never "version".
 
 ## Tech stack
 

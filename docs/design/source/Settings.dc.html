@@ -52,7 +52,7 @@ body{margin:0}
 </div>
 </div>
 
-<h2 style="margin: 8px 4px 0; font-size: 14px; line-height: 20px; font-weight: 700; color: {{c.onSurfaceVariant}}">Messages</h2>
+<h2 style="margin: 8px 4px 0; font-size: 14px; line-height: 20px; font-weight: 700; color: {{c.onSurfaceVariant}}">Message templates</h2>
 <!-- gluestack Card -->
 <div style="background: {{c.surface}}; border-radius: 20px; overflow: hidden; display: flex; flex-direction: column">
 <sc-for list="{{templates}}" as="t" hint-placeholder-count="2">
@@ -126,6 +126,130 @@ Open system settings
 </nav>
 </sc-if>
 
+<sc-if value="{{isList}}" hint-placeholder-val="{{false}}">
+<header style="display: flex; align-items: center; gap: 4px; padding: 4px 8px; height: 56px; flex-shrink: 0">
+<a href="{{L.view}}" aria-label="Back" style="width: 48px; height: 48px; border-radius: 24px; color: {{c.onSurface}}; display: flex; align-items: center; justify-content: center">
+<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m12 19-7-7 7-7"></path><path d="M19 12H5"></path></svg>
+</a>
+<div style="display: flex; flex-direction: column">
+<span style="font-size: 20px; line-height: 28px; font-weight: 800">{{listTitle}}</span>
+<span style="font-size: 12px; line-height: 16px; font-weight: 600; color: {{c.onSurfaceVariant}}">Message template</span>
+</div>
+</header>
+
+<sc-if value="{{listLoading}}" hint-placeholder-val="{{false}}">
+<!-- Loading: Skeleton blocks in place of both sections -->
+<main aria-busy="true" style="flex-grow: 1; min-height: 0; overflow-y: auto; overscroll-behavior: contain; scrollbar-width: none; padding: 8px 16px 16px; display: flex; flex-direction: column; gap: 16px">
+<div aria-hidden="true" style="display: flex; flex-direction: column; gap: 8px">
+<div style="padding: 0 4px; display: flex; justify-content: space-between; align-items: center">
+<div style="display: flex; flex-direction: column; gap: 4px"><div style="width: 64px; height: 14px; border-radius: 7px; background: {{c.skel}}"></div><div style="width: 140px; height: 12px; border-radius: 6px; background: {{c.skel}}"></div></div>
+<div style="width: 52px; height: 14px; border-radius: 7px; background: {{c.skel}}"></div>
+</div>
+<div style="background: {{c.surface}}; border-radius: 20px; padding: 14px 16px; display: flex; flex-direction: column; gap: 10px">
+<div style="width: 90%; height: 12px; border-radius: 6px; background: {{c.skel}}"></div><div style="width: 100%; height: 12px; border-radius: 6px; background: {{c.skel}}"></div><div style="width: 100%; height: 12px; border-radius: 6px; background: {{c.skel}}"></div><div style="width: 100%; height: 12px; border-radius: 6px; background: {{c.skel}}"></div><div style="width: 100%; height: 12px; border-radius: 6px; background: {{c.skel}}"></div><div style="width: 60%; height: 12px; border-radius: 6px; background: {{c.skel}}"></div>
+</div>
+</div>
+<div aria-hidden="true" style="display: flex; flex-direction: column; gap: 8px">
+<div style="padding: 0 4px; display: flex; justify-content: space-between; align-items: center">
+<div style="width: 116px; height: 14px; border-radius: 7px; background: {{c.skel}}"></div><div style="width: 96px; height: 14px; border-radius: 7px; background: {{c.skel}}"></div>
+</div>
+<div style="background: {{c.surface}}; border-radius: 20px; padding: 14px 16px; display: flex; flex-direction: column; gap: 10px">
+<div style="display: flex; align-items: center; gap: 12px"><div style="width: 40px; height: 40px; border-radius: 20px; flex-shrink: 0; background: {{c.skel}}"></div><div style="display: flex; flex-direction: column; gap: 6px"><div style="width: 72px; height: 14px; border-radius: 7px; background: {{c.skel}}"></div><div style="width: 110px; height: 12px; border-radius: 6px; background: {{c.skel}}"></div></div></div>
+<div style="width: 100%; height: 12px; border-radius: 6px; background: {{c.skel}}"></div><div style="width: 100%; height: 12px; border-radius: 6px; background: {{c.skel}}"></div><div style="width: 100%; height: 12px; border-radius: 6px; background: {{c.skel}}"></div><div style="width: 70%; height: 12px; border-radius: 6px; background: {{c.skel}}"></div>
+</div>
+</div>
+</main>
+</sc-if>
+
+<sc-if value="{{listLoaded}}" hint-placeholder-val="{{true}}">
+<main style="flex-grow: 1; min-height: 0; overflow-y: auto; overscroll-behavior: contain; scrollbar-width: none; padding: 8px 16px 16px; display: flex; flex-direction: column; gap: 16px">
+<div style="display: flex; flex-direction: column; gap: 8px">
+<div style="padding: 0 4px; display: flex; justify-content: space-between; align-items: center; gap: 8px">
+<div style="display: flex; flex-direction: column"><h2 style="margin: 0; font-size: 14px; line-height: 20px; font-weight: 700">Default</h2><span style="font-size: 12px; line-height: 16px; font-weight: 600; color: {{c.onSurfaceVariant}}">What everyone else gets</span></div>
+<!-- gluestack Button, link -->
+<a href="{{L.edit}}" style="margin: -14px -4px; min-height: 48px; padding: 0 4px; display: flex; align-items: center; gap: 6px; font-size: 14px; line-height: 20px; font-weight: 700; color: {{c.primary}}; text-decoration: none"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21.174 6.812a1 1 0 0 0-3.986-3.987L3.842 16.174a2 2 0 0 0-.5.83l-1.321 4.352a.5.5 0 0 0 .623.622l4.353-1.32a2 2 0 0 0 .83-.497z"></path><path d="m15 5 4 4"></path></svg>Edit</a>
+</div>
+<!-- gluestack Card -->
+<div style="background: {{c.surface}}; border-radius: 20px; padding: 14px 16px; display: flex; flex-direction: column; gap: 10px">
+<!-- CUSTOM: Message preview formatting (same as the editor Preview) -->
+<div style="display: flex; flex-direction: column; gap: 6px; font-size: 13px; line-height: 17px; font-weight: 500">
+<p style="margin: 0; white-space: pre-line">{{ev.intro}}</p>
+<sc-for list="{{ev.sections}}" as="sec" hint-placeholder-count="2">
+<div style="display: flex; flex-direction: column; gap: 2px">
+<span style="font-weight: 700">{{sec.title}}</span>
+<sc-for list="{{sec.lines}}" as="ln" hint-placeholder-count="3">
+<div style="display: flex; justify-content: space-between; gap: 8px"><span style="color: {{c.onSurfaceVariant}}">{{ln.label}}</span><span style="white-space: nowrap; font-variant-numeric: tabular-nums">{{ln.value}}</span></div>
+</sc-for>
+<sc-if value="{{sec.hasSubtotal}}" hint-placeholder-val="{{true}}">
+<div style="display: flex; justify-content: space-between; gap: 12px; padding-top: 2px; border-top: 1px dashed {{c.outlineVariant}}; font-weight: 700"><span>Subtotal</span><span style="font-variant-numeric: tabular-nums">{{sec.subtotal}}</span></div>
+</sc-if>
+</div>
+</sc-for>
+<sc-if value="{{ev.hasTotal}}" hint-placeholder-val="{{true}}"><div style="display: flex; justify-content: space-between; padding: 6px 0 0; border-top: 1px solid {{c.outline}}; font-size: 15px; line-height: 20px; font-weight: 800"><span>Total</span><span style="font-variant-numeric: tabular-nums">{{ev.total}}</span></div></sc-if>
+<sc-if value="{{ev.hasOutro}}" hint-placeholder-val="{{true}}"><p style="margin: 0; white-space: pre-line">{{ev.outro}}</p></sc-if>
+</div>
+</div>
+</div>
+
+<div style="display: flex; flex-direction: column; gap: 8px">
+<div style="padding: 0 4px; display: flex; justify-content: space-between; align-items: center; gap: 8px"><h2 style="margin: 0; font-size: 14px; line-height: 20px; font-weight: 700">Custom templates</h2>
+<sc-if value="{{canAdd}}" hint-placeholder-val="{{true}}"><!-- gluestack Button, link --><a href="{{L.sheet}}" style="margin: -14px -4px; min-height: 48px; padding: 0 4px; display: flex; align-items: center; gap: 6px; font-size: 14px; line-height: 20px; font-weight: 700; color: {{c.primary}}; text-decoration: none"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"></path><circle cx="9" cy="7" r="4"></circle><path d="M19 8v6"></path><path d="M22 11h-6"></path></svg>Add more</a></sc-if>
+<sc-if value="{{cantAdd}}" hint-placeholder-val="{{false}}"><!-- gluestack Button, link, disabled: everyone already has a custom template --><span aria-disabled="true" style="margin: -14px -4px; min-height: 48px; padding: 0 4px; display: flex; align-items: center; gap: 6px; font-size: 14px; line-height: 20px; font-weight: 700; color: {{c.disabledFg}}"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"></path><circle cx="9" cy="7" r="4"></circle><path d="M19 8v6"></path><path d="M22 11h-6"></path></svg>Add more</span></sc-if>
+</div>
+<sc-if value="{{noCustom}}" hint-placeholder-val="{{false}}">
+<!-- gluestack Card, empty state -->
+<div style="background: {{c.surface}}; border-radius: 20px; padding: 20px 16px; display: flex; flex-direction: column; align-items: center; gap: 12px">
+<span style="font-size: 14px; line-height: 20px; font-weight: 600; color: {{c.onSurfaceVariant}}">No custom templates yet</span>
+<!-- gluestack Button, outline -->
+<a href="{{L.sheet}}" style="height: 48px; box-sizing: border-box; padding: 0 20px; border-radius: 999px; border: 1px solid {{c.outline}}; background: transparent; color: {{c.onSurface}}; display: flex; align-items: center; gap: 8px; font-size: 15px; line-height: 20px; font-weight: 700; text-decoration: none"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"></path><circle cx="9" cy="7" r="4"></circle><path d="M19 8v6"></path><path d="M22 11h-6"></path></svg>Add custom template</a>
+</div>
+</sc-if>
+<sc-for list="{{customs}}" as="cu" hint-placeholder-count="1">
+<!-- gluestack Card -->
+<div style="background: {{c.surface}}; border-radius: 20px; padding: 14px 16px; display: flex; flex-direction: column; gap: 10px">
+<div style="display: flex; align-items: center; gap: 12px">
+<span aria-hidden="true" style="width: 40px; height: 40px; border-radius: 20px; background: {{cu.color}}; color: {{cu.onColor}}; display: flex; align-items: center; justify-content: center; font-size: 14px; line-height: 20px; font-weight: 800; flex-shrink: 0">{{cu.initials}}</span>
+<div style="flex-grow: 1; min-width: 0; display: flex; flex-direction: column">
+<span style="font-size: 14px; line-height: 20px; font-weight: 700">{{cu.name}}</span>
+<span style="font-size: 12px; line-height: 16px; font-weight: 600; color: {{c.onSurfaceVariant}}">{{cu.sub}}</span>
+</div>
+</div>
+<div style="display: flex; flex-direction: column; gap: 6px; font-size: 13px; line-height: 17px; font-weight: 500">
+<p style="margin: 0; white-space: pre-line">{{cu.intro}}</p>
+<sc-for list="{{cu.sections}}" as="sec" hint-placeholder-count="1">
+<div style="display: flex; flex-direction: column; gap: 2px">
+<span style="font-weight: 700">{{sec.title}}</span>
+<sc-for list="{{sec.lines}}" as="ln" hint-placeholder-count="2">
+<div style="display: flex; justify-content: space-between; gap: 8px"><span style="color: {{c.onSurfaceVariant}}">{{ln.label}}</span><span style="white-space: nowrap; font-variant-numeric: tabular-nums">{{ln.value}}</span></div>
+</sc-for>
+</div>
+</sc-for>
+<sc-if value="{{cu.hasTotal}}" hint-placeholder-val="{{true}}"><div style="display: flex; justify-content: space-between; padding: 6px 0 0; border-top: 1px solid {{c.outline}}; font-size: 15px; line-height: 20px; font-weight: 800"><span>Total</span><span style="font-variant-numeric: tabular-nums">{{cu.total}}</span></div></sc-if>
+<sc-if value="{{cu.hasOutro}}" hint-placeholder-val="{{true}}"><p style="margin: 0; white-space: pre-line">{{cu.outro}}</p></sc-if>
+</div>
+<div style="display: flex; justify-content: flex-end">
+<!-- gluestack Button, outline -->
+<a href="{{cu.href}}" style="height: 44px; padding: 0 16px; border-radius: 999px; border: 1px solid {{c.outline}}; display: flex; align-items: center; font-size: 14px; font-weight: 700; color: {{c.onSurface}}; text-decoration: none">Edit</a>
+</div>
+</div>
+</sc-for>
+</div>
+</main>
+</sc-if>
+
+<sc-if value="{{hasSheet}}" hint-placeholder-val="{{false}}">
+<a href="{{L.back}}" aria-label="Close" style="position: absolute; inset: 0; background: {{c.scrim}}"></a>
+<!-- gluestack Select / BottomSheet (same as the other select sheets) -->
+<section role="dialog" aria-labelledby="whoTitle" style="position: absolute; left: 0; right: 0; bottom: 0; background: {{c.sheet}}; border-radius: 28px 28px 0 0; padding: 12px 16px 16px; display: flex; flex-direction: column; gap: 4px; border: 1px solid {{c.outlineVariant}}; border-bottom: 0">
+<span aria-hidden="true" style="width: 32px; height: 4px; border-radius: 2px; background: {{c.track}}; align-self: center; margin-bottom: 8px"></span>
+<h2 id="whoTitle" style="margin: 0 0 4px; padding: 0 12px; font-size: 16px; line-height: 24px; font-weight: 800">For who</h2>
+<sc-for list="{{people}}" as="p" hint-placeholder-count="2">
+<a href="{{L.newC}}" style="min-height: 48px; display: flex; align-items: center; padding: 0 12px; border-radius: 12px; font-size: 15px; line-height: 22px; font-weight: 500; color: {{c.onSurface}}; text-decoration: none"><span>{{p.name}} · {{p.type}}</span></a>
+</sc-for>
+</section>
+</sc-if>
+</sc-if>
+
 <sc-if value="{{isEditor}}" hint-placeholder-val="{{false}}">
 <header style="display: flex; align-items: center; gap: 4px; padding: 4px 8px; height: 56px; flex-shrink: 0">
 <a href="{{backHref}}" aria-label="Back" style="width: 48px; height: 48px; border-radius: 24px; color: {{c.onSurface}}; display: flex; align-items: center; justify-content: center">
@@ -133,77 +257,46 @@ Open system settings
 </a>
 <div style="display: flex; flex-direction: column">
 <span style="font-size: 20px; line-height: 28px; font-weight: 800">{{editorTitle}}</span>
-<span style="font-size: 12px; line-height: 16px; font-weight: 600; color: {{c.onSurfaceVariant}}">Message template</span>
+<span style="font-size: 12px; line-height: 16px; font-weight: 600; color: {{c.onSurfaceVariant}}">{{editorSub}}</span>
 </div>
 </header>
 
 <main style="flex-grow: 1; min-height: 0; overflow-y: auto; overscroll-behavior: contain; scrollbar-width: none; padding: 8px 16px 16px; display: flex; flex-direction: column; gap: 16px">
 
-<!-- gluestack FormControl + Select: Applies to -->
-<div style="display: flex; flex-direction: column; gap: 6px">
-<label id="whoLabel" style="font-size: 14px; line-height: 20px; font-weight: 700; color: {{c.onSurface}}">Applies to</label>
-<button aria-haspopup="listbox" aria-labelledby="whoLabel whoValue" style="width: 100%; height: 48px; box-sizing: border-box; padding: 0 14px; border: 1px solid {{c.outline}}; border-radius: 12px; background: {{c.surface}}; display: flex; align-items: center; gap: 8px; font-family: inherit; color: {{c.onSurface}}; text-align: left">
-<span id="whoValue" style="flex-grow: 1; min-width: 0; font-size: 16px; line-height: 24px; font-weight: 500">{{whoValue}}</span>
-<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="flex-shrink: 0; color: {{c.onSurfaceVariant}}"><path d="m6 9 6 6 6-6"></path></svg>
-</button>
-<span style="font-size: 12px; line-height: 16px; font-weight: 500; color: {{c.onSurfaceVariant}}">{{whoNote}}</span>
-</div>
-
-<!-- gluestack FormControl + Select (month list, bottom sheet): Starts from -->
-<div style="display: flex; flex-direction: column; gap: 6px">
-<label id="fromLabel" style="font-size: 14px; line-height: 20px; font-weight: 700; color: {{c.onSurface}}">Starts from</label>
-<button aria-haspopup="listbox" aria-labelledby="fromLabel fromValue" style="width: 100%; height: 48px; box-sizing: border-box; padding: 0 14px; border: 1px solid {{c.outline}}; border-radius: 12px; background: {{c.surface}}; display: flex; align-items: center; gap: 8px; font-family: inherit; color: {{c.onSurface}}; text-align: left">
-<span id="fromValue" style="flex-grow: 1; min-width: 0; font-size: 16px; line-height: 24px; font-weight: 500">January 2027</span>
-<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="flex-shrink: 0; color: {{c.onSurfaceVariant}}"><path d="m6 9 6 6 6-6"></path></svg>
-</button>
-<span style="font-size: 12px; line-height: 16px; font-weight: 500; color: {{c.onSurfaceVariant}}">Previous months keep their old values.</span>
-</div>
-
 <div style="display: flex; flex-direction: column; gap: 8px">
-<!-- gluestack FormControl + Textarea (focused) -->
+<!-- gluestack FormControl + Textarea (focused, or invalid) -->
 <div style="display: flex; flex-direction: column; gap: 6px">
+<div style="display: flex; justify-content: space-between; align-items: center; gap: 8px">
 <label for="tpl" style="font-size: 14px; line-height: 20px; font-weight: 700; color: {{c.onSurface}}">Message</label>
-<div style="box-sizing: border-box; min-height: 96px; padding: 12px 14px; border: 1px solid {{c.primary}}; box-shadow: 0 0 0 1px {{c.primary}}; border-radius: 12px; background: {{c.surface}}">
-<textarea id="tpl" value="{{template}}" style="display: block; width: 100%; height: 156px; box-sizing: border-box; padding: 0; border: 0; outline: 0; background: transparent; resize: none; font-family: inherit; font-size: 16px; line-height: 24px; font-weight: 500; color: {{c.onSurface}}"></textarea>
+<sc-if value="{{hasRestore}}" hint-placeholder-val="{{false}}"><!-- gluestack Button, link: only when the Default was saved with edits --><a href="{{restoreHref}}" style="margin: -14px -4px; min-height: 48px; padding: 0 4px; display: flex; align-items: center; gap: 6px; font-size: 14px; line-height: 20px; font-weight: 700; color: {{c.primary}}; text-decoration: none"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 7v6h6"></path><path d="M21 17a9 9 0 0 0-9-9 9 9 0 0 0-6 2.3L3 13"></path></svg>Restore to original</a></sc-if>
+</div>
+<div style="box-sizing: border-box; min-height: 96px; padding: 12px 14px; border: 1px solid {{msgBorder}}; box-shadow: 0 0 0 1px {{msgBorder}}; border-radius: 12px; background: {{c.surface}}">
+<textarea id="tpl" value="{{template}}" onInput="{{onMsg}}" aria-invalid="{{msgInvalid}}" style="display: block; width: 100%; height: 156px; box-sizing: border-box; padding: 0; border: 0; outline: 0; background: transparent; resize: none; font-family: inherit; font-size: 16px; line-height: 24px; font-weight: 500; color: {{c.onSurface}}"></textarea>
+</div>
+<div style="display: flex; justify-content: space-between; align-items: flex-start; gap: 12px; padding: 0 4px">
+<span role="alert" style="flex-grow: 1; min-width: 0; font-size: 12px; line-height: 16px; font-weight: 600; color: {{c.danger}}">{{msgError}}</span>
+<span style="flex-shrink: 0; font-size: 12px; line-height: 16px; font-weight: 600; color: {{countFg}}; font-variant-numeric: tabular-nums">{{countText}}</span>
 </div>
 </div>
 <div style="display: flex; flex-wrap: wrap; gap: 8px">
 <span style="align-self: center; font-size: 14px; line-height: 20px; font-weight: 700; color: {{c.onSurfaceVariant}}; padding-right: 2px">Insert</span>
 <sc-for list="{{placeholders}}" as="p" hint-placeholder-count="6">
 <!-- gluestack Button, outline, small -->
-<button style="height: 44px; padding: 0 14px; border-radius: 999px; border: 1px solid {{c.outline}}; background: transparent; color: {{c.onSurface}}; font-family: inherit; font-size: 14px; line-height: 20px; font-weight: 700">{{p}}</button>
-</sc-for>
-</div>
-</div>
-
-<sc-if value="{{isBreakdown}}" hint-placeholder-val="{{true}}">
-<div style="display: flex; flex-direction: column; gap: 8px">
-<div style="display: flex; flex-direction: column; gap: 2px; padding: 0 4px">
-<h2 style="margin: 0; font-size: 14px; line-height: 20px; font-weight: 700">Line labels</h2>
-<span style="font-size: 12px; line-height: 16px; font-weight: 600; color: {{c.onSurfaceVariant}}">How each charge is named in {lines}.</span>
-</div>
-<!-- gluestack Card -->
-<div style="background: {{c.surface}}; border-radius: 20px; padding: 16px; display: flex; flex-direction: column; gap: 16px">
-<sc-for list="{{labels}}" as="l" hint-placeholder-count="4">
-<!-- gluestack FormControl + Input -->
-<div style="display: flex; flex-direction: column; gap: 6px">
-<label for="{{l.id}}" style="font-size: 14px; line-height: 20px; font-weight: 700; color: {{c.onSurface}}">{{l.charge}}</label>
-<div style="height: 48px; box-sizing: border-box; border: 1px solid {{l.border}}; box-shadow: {{l.ring}}; border-radius: 12px; background: {{c.surface}}; display: flex; align-items: center; gap: 8px; padding: 0 14px">
-<input id="{{l.id}}" value="{{l.value}}" style="flex-grow: 1; min-width: 0; border: 0; outline: 0; background: transparent; font-family: Manrope, sans-serif; font-size: 16px; font-weight: 500; color: {{c.onSurface}}">
-</div>
-</div>
+<button onClick="{{p.click}}" style="height: 44px; padding: 0 14px; border-radius: 999px; border: 1px solid {{c.outline}}; background: transparent; color: {{c.onSurface}}; font-family: inherit; font-size: 14px; line-height: 20px; font-weight: 700">{{p.label}}</button>
 </sc-for>
 </div>
 </div>
 
 <div style="display: flex; flex-direction: column; gap: 8px">
-<div style="display: flex; justify-content: space-between; align-items: baseline; padding: 0 4px">
+<div style="display: flex; justify-content: space-between; align-items: center; padding: 0 4px">
 <h2 style="margin: 0; font-size: 14px; line-height: 20px; font-weight: 700">Preview</h2>
-<span style="font-size: 12px; line-height: 16px; font-weight: 600; color: {{c.onSurfaceVariant}}">{{previewMeta}}</span>
+<!-- gluestack Button, link -->
+<button onClick="{{openLabels}}" style="margin: -14px -4px; min-height: 48px; padding: 0 4px; border: 0; background: transparent; display: flex; align-items: center; gap: 6px; font-family: inherit; font-size: 14px; line-height: 20px; font-weight: 700; color: {{c.primary}}"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21.174 6.812a1 1 0 0 0-3.986-3.987L3.842 16.174a2 2 0 0 0-.5.83l-1.321 4.352a.5.5 0 0 0 .623.622l4.353-1.32a2 2 0 0 0 .83-.497z"></path><path d="m15 5 4 4"></path></svg>Edit line labels</button>
 </div>
 <!-- CUSTOM: Message preview formatting (inside gluestack Card) -->
 <div style="background: {{c.surface}}; border-radius: 20px; padding: 12px 14px; display: flex; flex-direction: column; gap: 6px; font-size: 13px; line-height: 17px; font-weight: 500">
-<p style="margin: 0">{{pIntro}}</p>
+<sc-if value="{{previewEmpty}}" hint-placeholder-val="{{false}}"><span style="color: {{c.onSurfaceVariant}}">Nothing to preview yet</span></sc-if>
+<sc-if value="{{hasIntro}}" hint-placeholder-val="{{true}}"><p style="margin: 0; white-space: pre-line">{{pIntro}}</p></sc-if>
 <sc-for list="{{pSections}}" as="sec" hint-placeholder-count="2">
 <div style="display: flex; flex-direction: column; gap: 2px">
 <span style="font-weight: 700">{{sec.title}}</span>
@@ -215,61 +308,71 @@ Open system settings
 </sc-if>
 </div>
 </sc-for>
-<div style="display: flex; justify-content: space-between; padding: 6px 0 0; border-top: 1px solid {{c.outline}}; font-size: 15px; line-height: 20px; font-weight: 800"><span>Total</span><span style="font-variant-numeric: tabular-nums">{{pTotal}}</span></div>
-<p style="margin: 0">{{pOutro}}</p>
-</div>
-</div>
-</sc-if>
-
-<sc-if value="{{isNudge}}" hint-placeholder-val="{{false}}">
-<div style="display: flex; flex-direction: column; gap: 8px">
-<div style="display: flex; flex-direction: column; gap: 2px; padding: 0 4px">
-<h2 style="margin: 0; font-size: 14px; line-height: 20px; font-weight: 700">{charge} names</h2>
-<span style="font-size: 12px; line-height: 16px; font-weight: 600; color: {{c.onSurfaceVariant}}">Uses the same line labels as the monthly breakdown.</span>
-</div>
-<!-- gluestack Card -->
-<div style="background: {{c.surface}}; border-radius: 20px; padding: 14px; display: flex; flex-wrap: wrap; gap: 8px">
-<sc-for list="{{chargeNames}}" as="cn" hint-placeholder-count="4">
-<!-- gluestack Badge, muted -->
-<span style="padding: 2px 10px; border-radius: 999px; display: flex; align-items: center; background: {{c.container}}; color: {{c.onSurfaceVariant}}; font-size: 12px; line-height: 16px; font-weight: 700">{{cn}}</span>
-</sc-for>
+<sc-if value="{{hasTotal}}" hint-placeholder-val="{{true}}"><div style="display: flex; justify-content: space-between; padding: 6px 0 0; border-top: 1px solid {{c.outline}}; font-size: 15px; line-height: 20px; font-weight: 800"><span>Total</span><span style="font-variant-numeric: tabular-nums">{{pTotal}}</span></div></sc-if>
+<sc-if value="{{hasOutro}}" hint-placeholder-val="{{true}}"><p style="margin: 0; white-space: pre-line">{{pOutro}}</p></sc-if>
 </div>
 </div>
 
-<div style="display: flex; flex-direction: column; gap: 8px">
-<div style="display: flex; justify-content: space-between; align-items: center; padding: 0 4px">
-<h2 style="margin: 0; font-size: 14px; line-height: 20px; font-weight: 700">Preview</h2>
-<!-- CUSTOM: Connected button group (preview sample) -->
-<div role="group" aria-label="Preview sample" style="display: flex; gap: 2px">
-<sc-for list="{{samples}}" as="sm" hint-placeholder-count="2">
-<button aria-pressed="{{sm.pressed}}" onClick="{{sm.pick}}" style="min-width: 72px; height: 44px; padding: 0 14px; box-sizing: border-box; border: 0; border-radius: {{sm.radius}}; background: {{sm.bg}}; color: {{sm.fg}}; font-family: inherit; font-size: 14px; line-height: 20px; font-weight: 700; display: flex; align-items: center; justify-content: center; transition: border-radius 0.15s ease, background-color 0.15s ease, color 0.15s ease">{{sm.label}}</button>
-</sc-for>
-</div>
-</div>
-<!-- gluestack Card -->
-<div style="background: {{c.surface}}; border-radius: 20px; padding: 14px; display: flex; flex-direction: column; gap: 8px">
-<p style="margin: 0; font-size: 15px; line-height: 22px; font-weight: 500">{{nudgeText}}</p>
-<span style="font-size: 12px; line-height: 16px; font-weight: 600; color: {{c.onSurfaceVariant}}">{{nudgeMeta}}</span>
-</div>
-</div>
-</sc-if>
 </main>
 
 <footer style="flex-shrink: 0; padding: 10px 16px 28px; display: flex; flex-direction: column; gap: 4px; background: {{c.background}}; box-shadow: {{c.footShadow}}">
+<sc-if value="{{isFailed}}" hint-placeholder-val="{{false}}">
+<!-- gluestack Alert, danger: failed save -->
+<div style="padding-bottom: 6px"><div role="alert" style="display: flex; align-items: center; gap: 10px; padding: 10px 12px; border-radius: 12px; background: {{c.dangerTint}}; border: 1px solid {{c.dangerLine}}">
+<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="flex-shrink: 0; color: {{c.danger}}"><circle cx="12" cy="12" r="10"></circle><path d="M12 8v4"></path><path d="M12 16h.01"></path></svg>
+<span style="font-size: 13px; line-height: 18px; font-weight: 700; color: {{c.onDangerTint}}">Couldn’t save. Check your connection and try again.</span>
+</div></div>
+</sc-if>
 <!-- gluestack Button, solid -->
-<button style="height: 48px; border-radius: 999px; border: 0; background: {{c.primary}}; color: {{c.onPrimary}}; font-family: inherit; font-size: 15px; line-height: 20px; font-weight: 700">Save from Jan 2027</button>
+<button aria-disabled="{{saveBtnDisabled}}" style="height: 48px; border-radius: 999px; border: 0; background: {{saveBtnBg}}; color: {{saveBtnFg}}; font-family: inherit; font-size: 15px; line-height: 20px; font-weight: 700">{{saveBtnLabel}}</button>
 <!-- gluestack Button, link -->
 <a href="{{secondaryHref}}" style="height: 48px; border-radius: 999px; color: {{secondaryFg}}; font-size: 15px; line-height: 20px; font-weight: 700; display: flex; align-items: center; justify-content: center; text-decoration: none">{{secondaryLabel}}</a>
 </footer>
+<sc-if value="{{sheetOpen}}" hint-placeholder-val="{{false}}">
+<button aria-label="Close" onClick="{{cancelLabels}}" style="position: absolute; inset: 0; border: 0; padding: 0; background: {{c.scrim}}"></button>
+<!-- gluestack Select / BottomSheet (same shell as the other sheets) -->
+<section role="dialog" aria-labelledby="llTitle" style="position: absolute; left: 0; right: 0; bottom: 0; background: {{c.sheet}}; border-radius: 28px 28px 0 0; padding: 12px 16px 16px; display: flex; flex-direction: column; gap: 12px; border: 1px solid {{c.outlineVariant}}; border-bottom: 0">
+<span aria-hidden="true" style="width: 32px; height: 4px; border-radius: 2px; background: {{c.track}}; align-self: center; margin-bottom: 4px"></span>
+<div style="display: flex; flex-direction: column; gap: 2px; padding: 0 4px">
+<h2 id="llTitle" style="margin: 0; font-size: 16px; line-height: 24px; font-weight: 800">Line labels</h2>
+<span style="font-size: 12px; line-height: 16px; font-weight: 600; color: {{c.onSurfaceVariant}}">{{labelsHint}}</span>
+<span style="display: flex; align-items: center; gap: 4px; font-size: 12px; line-height: 16px; font-weight: 600; color: {{c.onSurfaceVariant}}"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 17H7A5 5 0 0 1 7 7h2"></path><path d="M15 7h2a5 5 0 1 1 0 10h-2"></path><path d="M8 12h8"></path></svg>{{labelsShared}}</span>
+</div>
+<sc-for list="{{labels}}" as="l" hint-placeholder-count="4">
+<!-- gluestack FormControl + Input -->
+<div style="display: flex; flex-direction: column; gap: 6px">
+<label for="{{l.id}}" style="font-size: 14px; line-height: 20px; font-weight: 700; color: {{c.onSurface}}">{{l.charge}}</label>
+<div style="height: 48px; box-sizing: border-box; border: 1px solid {{l.border}}; box-shadow: {{l.ring}}; border-radius: 12px; background: {{c.sheet}}; display: flex; align-items: center; gap: 8px; padding: 0 14px">
+<input id="{{l.id}}" value="{{l.value}}" onInput="{{l.onInput}}" style="flex-grow: 1; min-width: 0; border: 0; outline: 0; background: transparent; font-family: Manrope, sans-serif; font-size: 16px; font-weight: 500; color: {{c.onSurface}}">
+</div>
+</div>
+</sc-for>
+<sc-if value="{{labelsFailed}}" hint-placeholder-val="{{false}}">
+<!-- gluestack Alert, danger: failed save -->
+<div role="alert" style="display: flex; align-items: center; gap: 10px; padding: 10px 12px; border-radius: 12px; background: {{c.dangerTint}}; border: 1px solid {{c.dangerLine}}">
+<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="flex-shrink: 0; color: {{c.danger}}"><circle cx="12" cy="12" r="10"></circle><path d="M12 8v4"></path><path d="M12 16h.01"></path></svg>
+<span style="font-size: 13px; line-height: 18px; font-weight: 700; color: {{c.onDangerTint}}">Couldn’t save. Check your connection and try again.</span>
+</div>
+</sc-if>
+<div style="display: flex; gap: 8px; padding-top: 4px">
+<!-- gluestack Button, outline -->
+<button onClick="{{cancelLabels}}" style="flex: 1 1 0; height: 48px; border-radius: 999px; border: 1px solid {{c.outline}}; background: transparent; color: {{c.onSurface}}; font-family: inherit; font-size: 15px; line-height: 20px; font-weight: 700">Cancel</button>
+<!-- gluestack Button, solid -->
+<button onClick="{{saveLabels}}" aria-disabled="{{saveDisabled}}" style="flex: 1 1 0; height: 48px; border-radius: 999px; border: 0; background: {{saveBg}}; color: {{saveFg}}; font-family: inherit; font-size: 15px; line-height: 20px; font-weight: 700">{{saveLabelsLabel}}</button>
+</div>
+</section>
+</sc-if>
 </sc-if>
 </div>
 </div>
 </x-dc>
-<script type="text/x-dc" data-dc-script data-props='{"state":{"editor":"enum","options":["view","blocked","template","override","nudge"],"default":"view"},"theme":{"editor":"enum","options":["light","dark"],"default":"light"},"$preview":{"width":400,"height":848}}'>
+<script type="text/x-dc" data-dc-script data-props='{"state":{"editor":"enum","options":["view","blocked","list","listFirst","listSheet","nudgeList","nudgeSheet","template","override","new","nudge","newNudge","templateLabels","nudgeOverride"],"default":"view"},"variant":{"editor":"enum","options":["none","loading","all","custom","empty","original","failed","labelsOpen","labelsFailed"],"default":"none"},"theme":{"editor":"enum","options":["light","dark"],"default":"light"},"$preview":{"width":400,"height":848}}'>
 class Component extends DCLogic {
   renderVals() {
     var dark = this.props.theme === 'dark';
     var st = this.props.state || 'view';
+    var variant = this.props.variant || 'none';
+    var openDefault = st === 'templateLabels' || variant === 'labelsOpen' || variant === 'labelsFailed'; if (st === 'templateLabels') st = 'template';
     var self = this;
     var c = dark ? {
       background: '#111214', surface: '#1A1C1E', container: '#222427', sheet: '#222427',
@@ -280,7 +383,8 @@ class Component extends DCLogic {
       warning: '#FFA726', warningContainer: '#66430F', onWarningContainer: '#FFE2B7', warningTint: '#332108', warningLine: '#F57C00',
       danger: '#F44336', dangerTint: '#3B1511', dangerLine: '#D32F2F', onDangerTint: '#FFD9D6',
       info: '#29B6F6', infoTint: '#082431', infoLine: '#1B76A0', infoContainer: '#104962', onInfoContainer: '#B8E7FB',
-      footShadow: '0 -8px 16px rgba(0,0,0,0.45)'
+      footShadow: '0 -8px 16px rgba(0,0,0,0.45)',
+      skel: 'linear-gradient(100deg, #222427 0%, #222427 35%, rgba(255,255,255,0.07) 50%, #222427 65%, #222427 100%)'
     } : {
       background: '#F5F5F7', surface: '#FFFFFF', container: '#E9EAED', sheet: '#FFFFFF',
       onSurface: '#1A1C1E', onSurfaceVariant: '#45484C', outline: '#74777C', outlineVariant: '#E6E7EA',
@@ -290,15 +394,23 @@ class Component extends DCLogic {
       warning: '#E65100', warningContainer: '#FBE2CC', onWarningContainer: '#663C00', warningTint: '#FFF4E5', warningLine: '#FBE2CC',
       danger: '#D32F2F', dangerTint: '#FDEDED', dangerLine: '#F6D5D5', onDangerTint: '#5F2120',
       info: '#0288D1', infoTint: '#E5F6FD', infoLine: '#CCE7F6', infoContainer: '#CCE7F6', onInfoContainer: '#014361',
-      footShadow: '0 -6px 14px rgba(0,0,0,0.14)'
+      footShadow: '0 -6px 14px rgba(0,0,0,0.14)',
+      skel: 'linear-gradient(100deg, #E9EAED 0%, #E9EAED 35%, rgba(255,255,255,0.65) 50%, #E9EAED 65%, #E9EAED 100%)'
     };
-    var L = dark ? {
-      home: 'Home-Upload-Dark.dc.html', history: 'History-List-Dark.dc.html', household: 'Household-View-Dark.dc.html',
-      view: 'Settings-View-Dark.dc.html', template: 'Settings-Template-Dark.dc.html', override: 'Settings-Override-Dark.dc.html', nudge: 'Settings-Nudge-Dark.dc.html'
-    } : {
-      home: 'Main.dc.html', history: 'History.dc.html', household: 'Household.dc.html',
-      view: 'Settings.dc.html', template: 'Settings-Template-Light.dc.html', override: 'Settings-Override-Light.dc.html', nudge: 'Settings-Nudge-Light.dc.html'
+    var T = dark ? 'Dark' : 'Light';
+    var L = {
+      home: dark ? 'Home-Upload-Dark.dc.html' : 'Main.dc.html', history: dark ? 'History-List-Dark.dc.html' : 'History.dc.html',
+      household: dark ? 'Household-View-Dark.dc.html' : 'Household.dc.html', view: dark ? 'Settings-View-Dark.dc.html' : 'Settings.dc.html',
+      list: 'Settings-Messages-' + T + '.dc.html', listFirst: 'Settings-MessagesFirst-' + T + '.dc.html', listSheet: 'Settings-MessagesSheet-' + T + '.dc.html',
+      nudgeList: 'Settings-NudgeList-' + T + '.dc.html', nudgeSheet: 'Settings-NudgeSheet-' + T + '.dc.html',
+      template: 'Settings-Template-' + T + '.dc.html', override: 'Settings-Override-' + T + '.dc.html', nudge: 'Settings-Nudge-' + T + '.dc.html',
+      newC: 'Settings-New-' + T + '.dc.html', newNudge: 'Settings-NewNudge-' + T + '.dc.html',
+      nudgeListCustom: 'Settings-NudgeListCustom-' + T + '.dc.html', nudgeOverride: 'Settings-NudgeOverride-' + T + '.dc.html',
+      restoreBreakdown: 'Confirm-RestoreBreakdown-' + T + '.dc.html', restoreNudge: 'Confirm-RestoreNudge-' + T + '.dc.html', removeNudge: 'Confirm-RemoveNudge-' + T + '.dc.html'
     };
+    var isNudgeFlow = st === 'nudge' || st === 'newNudge' || st === 'nudgeOverride' || st === 'nudgeList' || st === 'nudgeSheet';
+    var cancelTo = isNudgeFlow ? (st === 'nudgeOverride' ? L.nudgeListCustom : L.nudgeList) : L.list;
+    var isListSt = st === 'list' || st === 'listFirst' || st === 'listSheet' || st === 'nudgeList' || st === 'nudgeSheet';
     var blocked = st === 'blocked';
     // Notification toggles (interactive in Play). When blocked by Android: all off and disabled.
     var off = (this.state && this.state.off) || { fyi: true };
@@ -327,17 +439,19 @@ class Component extends DCLogic {
       };
     });
     var v = {
-      c: c, isView: st === 'view' || blocked, isEditor: !(st === 'view' || blocked), isBlocked: blocked, notifs: notifs,
+      c: c, L: {}, isView: st === 'view' || blocked, isList: isListSt, isEditor: !(st === 'view' || blocked || isListSt), isBlocked: blocked, notifs: notifs,
       // Blocked still is shown scrolled down so the Notifications section is in frame
       scrollOffset: blocked ? '-400px' : '0px',
-      homeHref: L.home, historyHref: L.history, householdHref: L.household, backHref: L.view,
+      homeHref: L.home, historyHref: L.history, householdHref: L.household, backHref: cancelTo,
       templates: [
-        { name: 'Monthly breakdown', detail: '1 custom version', href: L.template, divider: 'transparent' },
-        { name: 'Nudge', detail: 'Same for everyone', href: L.nudge, divider: c.outlineVariant }
+        { name: 'Monthly breakdown', detail: '1 custom template', href: L.list, divider: 'transparent' },
+        { name: 'Nudge', detail: 'Same for everyone', href: L.nudgeList, divider: c.outlineVariant }
       ],
-      placeholders: st === 'nudge' ? ['{name}', '{charge}', '{month}', '{amount}', '{dueDate}'] : ['{name}', '{month}', '{lines}', '{total}', '{dueDate}'],
-      editorTitle: st === 'nudge' ? 'Nudge' : 'Monthly breakdown',
-      isBreakdown: st === 'template' || st === 'override', isNudge: st === 'nudge'
+      editorTitle: { template: 'Default', override: 'Custom template for Jordan', 'new': 'Custom template for Sam', nudge: 'Default', nudgeOverride: 'Custom template for Jordan', newNudge: 'Custom template for Sam' }[st] || '',
+      editorSub: isNudgeFlow ? 'Nudge' : 'Monthly breakdown',
+      listTitle: isNudgeFlow ? 'Nudge' : 'Monthly breakdown',
+      editScroll: '0px',
+      listLoading: isListSt && variant === 'loading', listLoaded: !(isListSt && variant === 'loading')
     };
     var themeSel = (this.state && this.state.themeSel) || 'System';
     v.themes = ['Light', 'Dark', 'System'].map(function (l, i, arr) {
@@ -348,66 +462,152 @@ class Component extends DCLogic {
         pick: function () { self.setState({ themeSel: l }); } };
     });
     v.themeNote = themeSel === 'System' ? 'Follows your phone’s light or dark setting' : (themeSel === 'Light' ? 'Always light' : 'Always dark');
-    var label = function (id, charge, value, changed, i) {
-      return { id: id, charge: charge, value: value, border: changed ? c.primary : c.outline,
-        ring: changed ? ('0 0 0 1px ' + c.primary) : 'none' };
-    };
-    v.labels = [
-      label('lRent', 'Rent', 'Rent', false, 0),
-      label('lSp', 'Utilities bill', 'Kuryente at tubig', true, 1),
-      label('lAir', 'Aircon servicing', 'Aircon servicing', false, 2),
-      label('lStar', 'Starhub', 'Starhub', false, 3)
-    ];
-    v.whoValue = st === 'override' ? 'Tenant 2' : 'Everyone';
+    var sub = function (t, m) { return t.replace(/\{(\w+)\}/g, function (x, k) { return m[k] != null ? m[k] : x; }); };
+    var DEF = [['lRent', 'Rent', 'Rent'], ['lSp', 'Utilities bill', 'Kuryente at tubig'], ['lAir', 'Aircon servicing', 'Aircon servicing'], ['lStar', 'Starhub', 'Starhub']];
+    var applied = (this.state && this.state.applied) || DEF.map(function (d) { return d[2]; });
+    var sheetOpen = (this.state && this.state.sheet != null) ? this.state.sheet : openDefault;
+    var draft = (this.state && this.state.draft) || applied;
+    var blank = draft.some(function (x) { return !x.trim(); });
+    v.sheetOpen = sheetOpen; v.saveDisabled = blank ? 'true' : 'false';
+    v.labelsFailed = variant === 'labelsFailed'; v.saveLabelsLabel = v.labelsFailed ? 'Retry' : 'Save';
+    v.labelsHint = isNudgeFlow ? 'How each charge is named in {charge}.' : 'How each charge is named in {lines}.';
+    v.labelsShared = isNudgeFlow ? 'Shared with Monthly breakdown templates' : 'Shared with Nudge templates';
+    v.saveBg = blank ? c.disabledBg : c.primary; v.saveFg = blank ? c.disabledFg : c.onPrimary;
+    v.openLabels = function () { self.setState({ sheet: true, draft: applied.slice() }); };
+    v.cancelLabels = function () { self.setState({ sheet: false, draft: null }); };
+    v.saveLabels = function () { if (blank) return; self.setState({ sheet: false, applied: draft.slice(), draft: null }); };
+    v.labels = DEF.map(function (d, i) {
+      var changed = draft[i] !== applied[i], bad = !draft[i].trim();
+      return { id: d[0], charge: d[1], value: draft[i],
+        border: bad ? c.danger : (changed ? c.primary : c.outline), ring: bad ? ('0 0 0 1px ' + c.danger) : (changed ? ('0 0 0 1px ' + c.primary) : 'none'),
+        onInput: function (e) { var dd = draft.slice(); dd[i] = e.target.value; self.setState({ draft: dd }); } };
+    });
+    // Message text (editable in Play). Default shows the saved edit; "original" is the built-in text
+    var ORIG_B = 'Hi {name}, here’s your breakdown for {month}:\n\n{lines}\n\nTotal: {total}\nPlease pay by {dueDate}. Thank you!';
+    var ORIG_N = 'Hi {name}! Friendly reminder: {charge} for {month} ({amount}) was due on {dueDate}. Thank you!';
+    var EDIT_B = 'Hi {name}! Eto na yung breakdown for {month} 😊\n\n{lines}\n\nTotal: {total}\nPaki-send by {dueDate}. Salamat!';
+    var EDIT_N = 'Hi {name}! Paalala lang, yung {charge} for {month} ({amount}) ay due nung {dueDate}. Salamat! 🙏';
+    var JORDAN_B = 'Hi {name}! Here’s your breakdown for {month}.\n\n{lines}\n\nTotal: {total}\nPlease send by {dueDate}. Thanks!';
+    var JORDAN_N = 'Hi {name}, quick reminder that {charge} for {month} ({amount}) was due on {dueDate}. Thanks!';
+    var isDefaultEd = st === 'template' || st === 'nudge';
+    var baseMsg = { template: EDIT_B, override: JORDAN_B, 'new': EDIT_B, nudge: EDIT_N, nudgeOverride: JORDAN_N, newNudge: EDIT_N }[st] || '';
+    if (isDefaultEd && variant === 'original') baseMsg = isNudgeFlow ? ORIG_N : ORIG_B;
+    if (isDefaultEd && variant === 'empty') baseMsg = '';
+    var msg = (this.state && this.state.msg != null) ? this.state.msg : baseMsg;
+    var limit = isNudgeFlow ? 500 : 1000;
+    var mEmpty = !msg.trim(), mOver = msg.length > limit;
+    var mBad = mEmpty || mOver;
+    v.template = msg;
+    v.msgInvalid = mBad ? 'true' : 'false';
+    v.msgBorder = mBad ? c.danger : c.primary;
+    v.msgError = mEmpty ? 'Message can’t be empty' : (mOver ? ('Over the limit by ' + (msg.length - limit)) : '');
+    v.countText = msg.length + '/' + (limit === 1000 ? '1,000' : '500') + ' characters';
+    v.countFg = mOver ? c.danger : c.onSurfaceVariant;
+    v.onMsg = function (e) { self.setState({ msg: e.target.value }); };
+    v.placeholders = (isNudgeFlow ? ['{name}', '{charge}', '{month}', '{amount}', '{dueDate}'] : ['{name}', '{month}', '{lines}', '{total}', '{dueDate}']).map(function (ph) {
+      return { label: ph, click: function () { self.setState({ msg: msg + ph }); } };
+    });
+    v.hasRestore = isDefaultEd && variant !== 'original';
+    v.restoreHref = isNudgeFlow ? L.restoreNudge : L.restoreBreakdown;
+    v.isFailed = variant === 'failed';
+    v.saveBtnDisabled = mBad ? 'true' : 'false';
+    v.saveBtnBg = mBad ? c.disabledBg : c.primary; v.saveBtnFg = mBad ? c.disabledFg : c.onPrimary;
+    v.saveBtnLabel = v.isFailed ? 'Retry' : 'Save changes';
+    v.previewEmpty = mEmpty; v.hasIntro = !mEmpty;
     if (st === 'template') {
-      v.whoNote = 'Everyone without their own version uses this.';
-      v.template = 'Hi {name}! Eto na yung breakdown for {month} 😊\n\n{lines}\n\nTotal: {total}\nPaki-send by {dueDate}. Salamat!';
-      v.previewMeta = 'Primary Tenant · Nov 2026 sample';
-      v.pIntro = 'Hi Alex! Eto na yung breakdown for Nov 2026 😊';
       v.pSections = [
         { title: 'Yours:', hasSubtotal: true, subtotal: '$1,862.86', lines: [
-          { label: 'Rent', value: '$1,675.00' },
-          { label: 'Kuryente at tubig (1.5 of 5 shares)', value: '$123.69' },
-          { label: 'Aircon servicing (2 of 6 units)', value: '$36.67' },
-          { label: 'Starhub', value: '$27.50' } ] },
+          { label: applied[0], value: '$1,675.00' },
+          { label: applied[1] + ' (1.5 of 5 shares)', value: '$123.69' },
+          { label: applied[2] + ' (2 of 6 units)', value: '$36.67' },
+          { label: applied[3], value: '$27.50' } ] },
         { title: 'Tenant 1’s (please collect):', hasSubtotal: true, subtotal: '$100.79', lines: [
-          { label: 'Kuryente at tubig (1 of 5 shares)', value: '$82.46' },
-          { label: 'Aircon servicing (1 of 6 units)', value: '$18.33' } ] }
+          { label: applied[1] + ' (1 of 5 shares)', value: '$82.46' },
+          { label: applied[2] + ' (1 of 6 units)', value: '$18.33' } ] }
       ];
-      v.pTotal = '$1,963.65'; v.pOutro = 'Paki-send by 7 Nov. Salamat!';
+      v.pTotal = '$1,963.65'; v.pMap = { name: 'Alex', month: 'Nov 2026', dueDate: '7 Nov' };
       v.secondaryLabel = 'Cancel'; v.secondaryFg = c.primary;
     } else if (st === 'override') {
-      v.whoNote = 'Only Tenant 2 gets this version. Removing it puts them back on Everyone’s.';
-      v.template = 'Hi {name}! Here’s your breakdown for {month}.\n\n{lines}\n\nTotal: {total}\nPlease send by {dueDate}. Thanks!';
-      v.previewMeta = 'Tenant 2 · Nov 2026 sample';
-      v.pIntro = 'Hi Jordan! Here’s your breakdown for Nov 2026.';
       v.pSections = [
         { title: 'Utilities:', hasSubtotal: false, subtotal: '', lines: [
-          { label: 'Kuryente at tubig (1 of 5 shares)', value: '$82.46' },
-          { label: 'Aircon servicing (1 of 6 units)', value: '$18.33' } ] }
+          { label: applied[1] + ' (1 of 5 shares)', value: '$82.46' },
+          { label: applied[2] + ' (1 of 6 units)', value: '$18.33' } ] }
       ];
-      v.pTotal = '$100.79'; v.pOutro = 'Please send by 4 Nov. Thanks!';
-      v.secondaryLabel = 'Remove this version'; v.secondaryFg = c.danger;
-    } else if (st === 'nudge') {
-      v.whoNote = 'Everyone gets this nudge. Pick someone to give them their own version.';
-      v.template = 'Hi {name}! Paalala lang, yung {charge} for {month} ({amount}) ay due nung {dueDate}. Salamat! 🙏';
-      v.chargeNames = ['Rent', 'Kuryente at tubig', 'Aircon servicing', 'Starhub'];
-      var sample = (this.state && this.state.sample) || 'Tenant 2';
-      var data = {
-        'Tenant 2': { text: 'Hi Jordan! Paalala lang, yung rent for Nov 2026 ($950.00) ay due nung 1 Nov. Salamat! 🙏', meta: 'Tenant 2 · rent overdue since 1 Nov' },
-        'Primary Tenant': { text: 'Hi Alex! Paalala lang, yung kuryente at tubig for Nov 2026 ($123.69) ay due nung 7 Nov. Salamat! 🙏', meta: 'Primary Tenant · utilities share, sample' }
-      };
-      v.samples = ['Tenant 2', 'Primary Tenant'].map(function (l, i, arr) {
-        var on = l === sample;
-        var first = i === 0, last = i === arr.length - 1;
-        var radius = on ? '24px' : ((first ? '24px' : '8px') + ' ' + (last ? '24px' : '8px') + ' ' + (last ? '24px' : '8px') + ' ' + (first ? '24px' : '8px'));
-        return { label: l, on: on, pressed: on ? 'true' : 'false', bg: on ? c.primary : c.selected, fg: on ? c.onPrimary : c.onSurface, radius: radius,
-          pick: function () { self.setState({ sample: l }); } };
-      });
-      v.nudgeText = data[sample].text; v.nudgeMeta = data[sample].meta;
+      v.pTotal = '$100.79'; v.pMap = { name: 'Jordan', month: 'Nov 2026', dueDate: '4 Nov' };
+      v.secondaryLabel = 'Remove this template'; v.secondaryFg = c.danger;
+    } else if (st === 'nudge' || st === 'newNudge' || st === 'nudgeOverride') {
+      v.pSections = [];
+      v.hasTotal = false;
+      var nm = { nudge: ['Alex', '$123.69', '7 Nov'], newNudge: ['Sam', '$82.46', '4 Nov'], nudgeOverride: ['Jordan', '$82.46', '4 Nov'] }[st];
+      v.pIntro = mEmpty ? '' : sub(v.template, { name: nm[0], charge: applied[1], month: 'Nov 2026', amount: nm[1], dueDate: nm[2] });
+      v.pOutro = ''; v.hasOutro = false;
+      v.secondaryLabel = st === 'nudgeOverride' ? 'Remove this template' : 'Cancel'; v.secondaryFg = st === 'nudgeOverride' ? c.danger : c.primary;
+    } else if (st === 'new') {
+      v.pSections = [
+        { title: 'Yours:', hasSubtotal: false, subtotal: '', lines: [ { label: applied[0], value: '$950.00' } ] }
+      ];
+      v.pTotal = '$950.00'; v.pMap = { name: 'Sam', month: 'Nov 2026', dueDate: '28 Nov' };
       v.secondaryLabel = 'Cancel'; v.secondaryFg = c.primary;
     }
-    v.secondaryHref = /^Remove/.test(v.secondaryLabel || '') ? 'Confirm-RemoveVersion-' + (dark ? 'Dark' : 'Light') + '.dc.html' : L.view;
+    if (v.pMap) {
+      var parts = v.template.split('{lines}');
+      if (mEmpty) { v.pIntro = ''; v.pOutro = ''; v.pSections = []; v.hasTotal = false; v.hasOutro = false; }
+      else if (parts.length < 2) { v.pIntro = sub(v.template.trim(), v.pMap); v.pOutro = ''; v.pSections = []; v.hasTotal = false; v.hasOutro = false; }
+      else {
+        v.pIntro = sub(parts[0].trim(), v.pMap); v.hasIntro = !!v.pIntro;
+        v.pOutro = sub(parts[1].trim().split('\n').filter(function (l) { return l.indexOf('{total}') < 0; }).join('\n'), v.pMap);
+        v.hasTotal = true; v.hasOutro = !!v.pOutro;
+      }
+    }
+    if (isNudgeFlow) { v.hasIntro = !mEmpty; }
+
+    // Landing page (Default + custom templates)
+    if (isListSt) {
+      var mkSec = function (title, lines, sub) { return { title: title, hasSubtotal: !!sub, subtotal: sub || '', lines: lines.map(function (x) { return { label: x[0], value: x[1] }; }) }; };
+      var onCol = dark ? '#111214' : '#FFFFFF';
+      var col = function (l, d) { return dark ? d : l; };
+      var PEOPLE = {
+        alex: { name: 'Alex', sub: 'Primary Tenant · Master room', initials: 'PT', color: col('#1565C0', '#64B5F6') },
+        sam: { name: 'Sam', sub: 'Tenant · Room 2', initials: 'T1', color: col('#BF4000', '#FFA040') },
+        jordan: { name: 'Jordan', sub: 'Tenant · Room 3', initials: 'T2', color: col('#2E7D32', '#81C784') }
+      };
+      var mkCustom = function (key, msgObj, href) {
+        var pr = PEOPLE[key];
+        return { name: pr.name, sub: pr.sub, initials: pr.initials, color: pr.color, onColor: onCol, href: href,
+          intro: msgObj.intro, sections: msgObj.sections || [], hasTotal: !!msgObj.total, total: msgObj.total || '', hasOutro: !!msgObj.outro, outro: msgObj.outro || '' };
+      };
+      var BR = {
+        jordan: { intro: 'Hi Jordan! Here’s your breakdown for Nov 2026.', total: '$100.79', outro: 'Please send by 4 Nov. Thanks!', sections: [
+          mkSec('Utilities:', [['Kuryente at tubig (1 of 5 shares)', '$82.46'], ['Aircon servicing (1 of 6 units)', '$18.33']]) ] },
+        alex: { intro: 'Hi Alex, your breakdown for Nov 2026 is below.', total: '$1,835.36', outro: 'Please pay by 7 Nov. Thank you!', sections: [
+          mkSec('Yours:', [['Rent', '$1,675.00'], ['Kuryente at tubig (1.5 of 5 shares)', '$123.69'], ['Aircon servicing (2 of 6 units)', '$36.67']]) ] },
+        sam: { intro: 'Hi Sam! Your breakdown for Nov 2026.', total: '$950.00', outro: 'Please send by 28 Nov. Thanks!', sections: [
+          mkSec('Yours:', [['Rent', '$950.00']]) ] }
+      };
+      var overrideHref = isNudgeFlow ? L.nudgeOverride : L.override;
+      var customs = [];
+      if (isNudgeFlow) {
+        if (variant === 'custom') customs = [mkCustom('jordan', { intro: 'Hi Jordan, quick reminder that Kuryente at tubig for Nov 2026 ($82.46) was due on 4 Nov. Thanks!' }, overrideHref)];
+      } else if (st === 'list' || st === 'listSheet') {
+        customs = variant === 'all' && st === 'list'
+          ? [mkCustom('alex', BR.alex, overrideHref), mkCustom('sam', BR.sam, overrideHref), mkCustom('jordan', BR.jordan, overrideHref)]
+          : [mkCustom('jordan', BR.jordan, overrideHref)];
+      }
+      v.customs = customs; v.hasCustom = customs.length > 0; v.noCustom = !v.hasCustom;
+      v.cantAdd = variant === 'all' && st === 'list'; v.canAdd = v.hasCustom && !v.cantAdd;
+      v.L = { view: L.view, back: isNudgeFlow ? L.nudgeList : (st === 'listFirst' ? L.listFirst : L.list), sheet: isNudgeFlow ? L.nudgeSheet : L.listSheet,
+        edit: isNudgeFlow ? L.nudge : L.template, override: overrideHref, newC: isNudgeFlow ? L.newNudge : L.newC };
+      v.hasSheet = (st === 'listSheet' || st === 'nudgeSheet') && variant !== 'loading';
+      v.people = [{ name: 'Alex', type: 'Primary Tenant' }, { name: 'Sam', type: 'Tenant' }];
+      if (isNudgeFlow) {
+        v.ev = { intro: 'Hi Alex! Paalala lang, yung Kuryente at tubig for Nov 2026 ($123.69) ay due nung 7 Nov. Salamat! 🙏', sections: [], hasTotal: false, total: '', hasOutro: false, outro: '' };
+      } else {
+        v.ev = { intro: 'Hi Alex! Eto na yung breakdown for Nov 2026 😊', hasTotal: true, total: '$1,963.65', hasOutro: true, outro: 'Paki-send by 7 Nov. Salamat!', sections: [
+          mkSec('Yours:', [['Rent', '$1,675.00'], ['Kuryente at tubig (1.5 of 5 shares)', '$123.69'], ['Aircon servicing (2 of 6 units)', '$36.67'], ['Starhub', '$27.50']], '$1,862.86'),
+          mkSec('Tenant 1’s (please collect):', [['Kuryente at tubig (1 of 5 shares)', '$82.46'], ['Aircon servicing (1 of 6 units)', '$18.33']], '$100.79') ] };
+      }
+    }
+    v.secondaryHref = /^Remove/.test(v.secondaryLabel || '') ? (isNudgeFlow ? L.removeNudge : 'Confirm-RemoveVersion-' + T + '.dc.html') : cancelTo;
     return v;
   }
 }
