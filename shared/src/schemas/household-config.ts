@@ -124,11 +124,29 @@ export const messageTemplatesSchema = z.object({
     .default([]),
   // Custom line labels, e.g. { UTILITIES: "Kuryente at tubig" }.
   lineLabels: chargeTypeRecord(z.string().trim().min(1)).default({}),
-  // Custom breakdown section titles by the person whose lines the section holds, without the
-  // colon, e.g. { "person-priya": "Master Bedroom Share" }. Missing means "Yours" or
-  // "{name}’s (please collect)".
-  sectionTitles: z.record(z.string().min(1), z.string().trim().min(1)).default({}),
+  // Custom breakdown section titles (Section labels) by the message they are in, then by the
+  // person whose lines the section holds, without the colon, e.g.
+  // { "person-priya": { "person-priya": "Master Bedroom Share", "person-sam": "Room 2 Share" } }.
+  // Missing means "Yours" or "{name}’s (please collect)". The older flat shape, a title per
+  // person, still loads: each title is kept for that person's own message.
+  sectionTitles: z
+    .preprocess(nestFlatSectionTitles, z.record(z.string().min(1), z.record(z.string().min(1), z.string().trim().min(1))))
+    .default({}),
 });
+
+/**
+ * Reads the older flat section titles, `{ personId: title }`, as nested ones, keeping each title for that person's
+ * own message: `{ personId: { personId: title } }`. Nested values pass through.
+ *
+ * @param value - The stored `sectionTitles`.
+ * @returns The value with every flat title nested.
+ */
+export function nestFlatSectionTitles(value: unknown): unknown {
+  if (typeof value !== "object" || value === null || Array.isArray(value)) return value;
+  return Object.fromEntries(
+    Object.entries(value).map(([personId, entry]) => [personId, typeof entry === "string" ? { [personId]: entry } : entry]),
+  );
+}
 
 /** The message wording, with defaults filled in. */
 export type MessageTemplates = z.infer<typeof messageTemplatesSchema>;

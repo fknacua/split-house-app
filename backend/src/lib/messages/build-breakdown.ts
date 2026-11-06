@@ -4,6 +4,18 @@ import { chargeDueDate } from "@/lib/home/due-dates";
 import { roomOf, sharedAirconUnits, totalAirconUnits } from "@/lib/household/room-amounts";
 import { lineLabel } from "./line-label";
 
+/**
+ * A section's title when it has no custom one: `Yours` for the recipient's own lines, else the collect title.
+ *
+ * @param personId - Whose lines the section holds.
+ * @param recipientId - Who the message goes to.
+ * @param name - The name of the person whose lines they are.
+ * @returns e.g. `Yours` or `Sam’s (please collect)`, without the colon.
+ */
+export function usualSectionTitle(personId: string, recipientId: string, name: string | undefined): string {
+  return personId === recipientId ? "Yours" : `${name ?? "Someone"}’s (please collect)`;
+}
+
 /** A charge, as much of it as a breakdown needs. */
 export interface BreakdownCharge {
   personId: string;
@@ -150,8 +162,8 @@ export function buildBreakdown(input: BreakdownInput): Breakdown {
     );
     const subtotalCents = lines.reduce((s, l) => s + l.amountCents, 0);
     const title =
-      input.templates.sectionTitles[personId] ??
-      (personId === input.recipientId ? "Yours" : `${names.get(personId) ?? "Someone"}’s (please collect)`);
+      input.templates.sectionTitles[input.recipientId]?.[personId] ??
+      usualSectionTitle(personId, input.recipientId, names.get(personId));
     return {
       personId,
       title: titled ? `${title}:` : null,

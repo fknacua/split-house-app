@@ -112,10 +112,17 @@ describe("buildBreakdown", () => {
     );
   });
 
-  it("uses the custom section titles, adding the colon", () => {
+  it("ignores section titles set for another person's message", () => {
+    const templates = { ...DEFAULT_MESSAGE_TEMPLATES, sectionTitles: { [jordan]: { [sam]: "Common Room 1" } } };
+    const b = buildBreakdown(input(priya, { templates }));
+
+    expect(b.sections.map((s) => s.title)).toEqual(["Yours:", "Sam’s (please collect):"]);
+  });
+
+  it("uses the custom section titles of the recipient's message, adding the colon", () => {
     const templates = {
       ...DEFAULT_MESSAGE_TEMPLATES,
-      sectionTitles: { [priya]: "Master Bedroom Share", [sam]: "Common Room 1" },
+      sectionTitles: { [priya]: { [priya]: "Master Bedroom Share", [sam]: "Common Room 1" } },
     };
     const b = buildBreakdown(input(priya, { templates }));
 

@@ -36,13 +36,14 @@ export type TemplatesDb = HouseholdFormDb & MessageTemplatesDb;
 /** The slice of the Prisma client the template saves use. */
 export type TemplatesWriteDb = TemplatesDb & MessageTemplatesWriteDb;
 
-/** Reads the active month, who can have a custom template, everyone's names and the wording. */
+/** Reads the active month, both months' configs, who can have a custom template, everyone's names and the wording. */
 async function readTemplatesContext(db: TemplatesDb) {
   const next = await readNextVersion(db);
   const [activeConfig, templates] = await Promise.all([readActiveConfig(db, next), readMessageTemplates(db)]);
   const configs = activeConfig ? [next.config, activeConfig] : [next.config];
   return {
     month: next.activeMonth,
+    configs,
     templates,
     templatePeople: templatePeople(configs, next.people),
     people: next.people.map((p) => ({ id: p.id, name: p.name })),
@@ -90,9 +91,9 @@ export async function getTemplateLanding(db: TemplatesDb, kind: TemplateKind): P
  * @throws {ApiError} The same as `getTemplateLanding`; 404 `no_person` as `findPerson`.
  */
 export async function getTemplateEditor(db: TemplatesDb, kind: TemplateKind, query: TemplatePersonQuery): Promise<TemplateEditorResponse> {
-  const { templates, templatePeople } = await readTemplatesContext(db);
+  const { month, configs, templates, templatePeople, people } = await readTemplatesContext(db);
   if (query.personId) findPerson(templatePeople, query.personId);
-  return buildTemplateEditor({ kind, personId: query.personId ?? null, templates, templatePeople });
+  return buildTemplateEditor({ kind, personId: query.personId ?? null, templates, templatePeople, month, configs, people });
 }
 
 /**
@@ -137,7 +138,8 @@ export async function saveTemplate(db: TemplatesWriteDb, request: TemplateSaveRe
 }
 
 /**
- * Removes a person's custom template, so they get the Default. Removing one that is already gone is harmless.
+ * Removes a person's custom template, so they get the Default. A monthly one takes its Section labels with it.
+ * Removing one that is already gone is harmless.
  *
  * @param db - The Prisma client, or a fake in tests.
  * @param kind - The monthly breakdown or the nudge.
@@ -174,6 +176,8 @@ export async function restoreTemplate(db: TemplatesWriteDb, kind: TemplateKind):
  */
 export async function saveTemplateLabels(db: TemplatesWriteDb, request: TemplateLabelsSaveRequest): Promise<TemplateSaveResponse> {
   const { templates, templatePeople } = await readTemplatesContext(db);
-  for (const personId of Object.keys(request.sectionTitles ?? {})) findPerson(templatePeople, personId);
+  for (const [recipientId, titles] of Object.entries(request.sectionTitles ?? {})) {
+    for (const personId of [recipientId, ...Object.keys(titles)]) findPerson(templatePeople, personId);
+  }
   return store(db, templates, applyLabelsSave(templates, request));
 }

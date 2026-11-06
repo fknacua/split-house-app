@@ -1,7 +1,12 @@
 import type { Control } from 'react-hook-form';
 import type { TextInputProps } from 'react-native';
 
-import type { TemplateDialog, TemplateEditorResponse, TemplateKind, TemplatePreviewResponse } from '@splithouse/shared';
+import type {
+  TemplateDialog,
+  TemplateEditorResponse,
+  TemplateKind,
+  TemplatePreviewResponse,
+} from '@splithouse/shared';
 import type { TemplateFormValues } from './helpers';
 
 /** Props for {@link RemoveTemplateDialog}. */
@@ -72,6 +77,36 @@ export interface PlaceholderChipsProps {
   placeholders: string[];
   /** Called with the tapped chip. */
   onInsert: (placeholder: string) => void;
+}
+
+/** Props for {@link LineLabelsSheet}. */
+export interface LineLabelsSheetProps {
+  /** The latest saved labels; the sheet refills from them each time it opens. */
+  labels: TemplateEditorResponse['labels'];
+}
+
+/** The Section labels card and sheet's content, from the editor response. */
+export type SectionLabelsBlock = NonNullable<TemplateEditorResponse['sectionLabels']>;
+
+/** The section labels by person, without the colon; empty for the usual one. */
+export type SectionLabels = Record<string, string>;
+
+/** Props for {@link SectionLabelsCard}. */
+export interface SectionLabelsCardProps {
+  /** The latest saved labels. */
+  block: SectionLabelsBlock;
+  /** Disables `Edit` while the template saves. */
+  disabled?: boolean;
+  /** Opens the Section labels sheet. */
+  onEdit: () => void;
+}
+
+/** Props for {@link SectionLabelsSheet}. */
+export interface SectionLabelsSheetProps {
+  /** Whose message the labels are for: the person whose custom template this is. */
+  recipientId: string;
+  /** The latest saved labels; the sheet refills from them each time it opens. */
+  block: SectionLabelsBlock;
 }
 
 /** Props for {@link PreviewCard}. */

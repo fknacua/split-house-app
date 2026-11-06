@@ -10,7 +10,7 @@ import {
   changedTemplates,
 } from "./plan-templates-save";
 
-const { jordan, sam } = PERSON_IDS;
+const { jordan, priya, sam } = PERSON_IDS;
 const OWN = "Hi {name}, your own.";
 const BASE = DEFAULT_MESSAGE_TEMPLATES;
 
@@ -63,10 +63,10 @@ describe("applyTemplateSave", () => {
   });
 
   it("leaves the labels alone", () => {
-    const templates = withTemplates({ lineLabels: { RENT: "Upa" }, sectionTitles: { [sam]: "Room 2" } });
+    const templates = withTemplates({ lineLabels: { RENT: "Upa" }, sectionTitles: { [sam]: { [sam]: "Room 2" } } });
     const next = applyTemplateSave(templates, { template: "MONTHLY", personId: null, text: "New" });
     expect(next.lineLabels).toEqual({ RENT: "Upa" });
-    expect(next.sectionTitles).toEqual({ [sam]: "Room 2" });
+    expect(next.sectionTitles).toEqual({ [sam]: { [sam]: "Room 2" } });
   });
 });
 
@@ -80,6 +80,19 @@ describe("applyTemplateRemove", () => {
 
   it("changes nothing for someone without one", () => {
     expect(applyTemplateRemove(WITH_OWN, "NUDGE", sam)).toEqual(WITH_OWN);
+  });
+
+  it("clears the section labels of a monthly one's message, leaving other messages'", () => {
+    const templates = withTemplates({
+      ...WITH_OWN,
+      sectionTitles: { [jordan]: { [jordan]: "Room 3", [sam]: "Room 2" }, [priya]: { [sam]: "Room 2 Share" } },
+    });
+    expect(applyTemplateRemove(templates, "MONTHLY", jordan).sectionTitles).toEqual({ [priya]: { [sam]: "Room 2 Share" } });
+  });
+
+  it("keeps the section labels when removing a nudge", () => {
+    const templates = withTemplates({ ...WITH_OWN, sectionTitles: { [jordan]: { [jordan]: "Room 3" } } });
+    expect(applyTemplateRemove(templates, "NUDGE", jordan).sectionTitles).toEqual({ [jordan]: { [jordan]: "Room 3" } });
   });
 });
 
@@ -105,10 +118,18 @@ describe("applyLabelsSave", () => {
     });
   });
 
-  it("sets section titles and clears an empty one", () => {
-    const templates = withTemplates({ sectionTitles: { [sam]: "Room 2" } });
-    const next = applyLabelsSave(templates, { lineLabels: {}, sectionTitles: { [sam]: "", [jordan]: "Room 3 Share" } });
-    expect(next.sectionTitles).toEqual({ [jordan]: "Room 3 Share" });
+  it("sets section titles in one message, clears an empty one and keeps other messages'", () => {
+    const templates = withTemplates({ sectionTitles: { [priya]: { [sam]: "Room 2" }, [jordan]: { [jordan]: "Room 3" } } });
+    const next = applyLabelsSave(templates, {
+      lineLabels: {},
+      sectionTitles: { [priya]: { [sam]: "", [priya]: "Master Bedroom Share" } },
+    });
+    expect(next.sectionTitles).toEqual({ [priya]: { [priya]: "Master Bedroom Share" }, [jordan]: { [jordan]: "Room 3" } });
+  });
+
+  it("drops a message with no section titles left", () => {
+    const templates = withTemplates({ sectionTitles: { [priya]: { [sam]: "Room 2" } } });
+    expect(applyLabelsSave(templates, { lineLabels: {}, sectionTitles: { [priya]: { [sam]: "" } } }).sectionTitles).toEqual({});
   });
 
   it("leaves the template text alone", () => {

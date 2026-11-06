@@ -32,7 +32,8 @@ export function applyTemplateSave(templates: MessageTemplates, save: TemplateSav
 }
 
 /**
- * Removes a person's custom template, so they get the Default again.
+ * Removes a person's custom template, so they get the Default again. Removing a monthly one also clears the Section
+ * labels of their message, so it goes back to `Yours` and the collect titles.
  *
  * @param templates - The current wording. Not changed.
  * @param kind - The monthly breakdown or the nudge.
@@ -40,7 +41,13 @@ export function applyTemplateSave(templates: MessageTemplates, save: TemplateSav
  * @returns The new wording, the same when they had none.
  */
 export function applyTemplateRemove(templates: MessageTemplates, kind: TemplateKind, personId: string): MessageTemplates {
-  return { ...templates, overrides: templates.overrides.filter((o) => !(o.personId === personId && o.kind === kind)) };
+  const sectionTitles = { ...templates.sectionTitles };
+  if (kind === "MONTHLY") delete sectionTitles[personId];
+  return {
+    ...templates,
+    overrides: templates.overrides.filter((o) => !(o.personId === personId && o.kind === kind)),
+    sectionTitles,
+  };
 }
 
 /**
@@ -55,8 +62,8 @@ export function applyTemplateRestore(templates: MessageTemplates, kind: Template
 }
 
 /**
- * Applies the Line labels sheet's save. A label matching the default clears the custom one, and so does an empty
- * section title. Fields not sent keep their value.
+ * Applies a Line labels or Section labels save. A label matching the default clears the custom one, and so does an
+ * empty section label. Fields not sent keep their value.
  *
  * @param templates - The current wording. Not changed.
  * @param save - The save, already parsed with the shared schema, so every label sent is trimmed and not blank.
@@ -69,9 +76,14 @@ export function applyLabelsSave(templates: MessageTemplates, save: TemplateLabel
     else lineLabels[type] = label;
   }
   const sectionTitles = { ...templates.sectionTitles };
-  for (const [personId, title] of Object.entries(save.sectionTitles ?? {})) {
-    if (title === "") delete sectionTitles[personId];
-    else sectionTitles[personId] = title;
+  for (const [recipientId, titles] of Object.entries(save.sectionTitles ?? {})) {
+    const message = { ...sectionTitles[recipientId] };
+    for (const [personId, title] of Object.entries(titles)) {
+      if (title === "") delete message[personId];
+      else message[personId] = title;
+    }
+    if (Object.keys(message).length > 0) sectionTitles[recipientId] = message;
+    else delete sectionTitles[recipientId];
   }
   return { ...templates, lineLabels, sectionTitles };
 }

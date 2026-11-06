@@ -21,6 +21,9 @@ const editor = (input: Partial<TemplateEditorInput>) =>
     personId: null,
     templates: DEFAULT_MESSAGE_TEMPLATES,
     templatePeople: templatePeople([NOV_2026_CONFIG], PEOPLE),
+    month: "2026-11",
+    configs: [NOV_2026_CONFIG],
+    people: PEOPLE,
     ...input,
   });
 
@@ -47,15 +50,8 @@ describe("buildTemplateEditor", () => {
           { type: "UTILITIES", label: "Utilities bill", value: "Utilities bill" },
           { type: "AIRCON", label: "Aircon servicing", value: "Aircon servicing" },
         ],
-        sectionTitles: {
-          title: "Section titles",
-          rows: [
-            { personId: priya, label: "Priya", value: "" },
-            { personId: sam, label: "Sam", value: "" },
-            { personId: jordan, label: "Jordan", value: "" },
-          ],
-        },
       },
+      sectionLabels: null,
     });
   });
 
@@ -75,7 +71,7 @@ describe("buildTemplateEditor", () => {
     );
   });
 
-  it("builds the nudge Default with its chips and labels, and no section titles", () => {
+  it("builds the nudge Default with its chips and labels", () => {
     const body = editor({ kind: "NUDGE" });
     expect(body).toMatchObject({
       sub: "Nudge",
@@ -84,8 +80,8 @@ describe("buildTemplateEditor", () => {
       labels: {
         hint: "How each charge is named in {charge}.",
         sharedNote: "Shared with Monthly breakdown templates",
-        sectionTitles: null,
       },
+      sectionLabels: null,
     });
   });
 
@@ -116,10 +112,41 @@ describe("buildTemplateEditor", () => {
     });
   });
 
-  it("reads the saved labels and section titles", () => {
-    const templates = withTemplates({ lineLabels: { UTILITIES: "PUB" }, sectionTitles: { [priya]: "Master Bedroom Share" } });
-    const { labels } = editor({ templates });
+  it("reads the saved labels", () => {
+    const { labels } = editor({ templates: withTemplates({ lineLabels: { UTILITIES: "PUB" } }) });
     expect(labels.rows[1].value).toBe("PUB");
-    expect(labels.sectionTitles?.rows[0]).toEqual({ personId: priya, label: "Priya", value: "Master Bedroom Share" });
+  });
+
+  it("gives Section labels to the custom template of someone others pay via, one row per section", () => {
+    const templates = withTemplates({ lineLabels: { UTILITIES: "PUB" }, sectionTitles: { [priya]: { [priya]: "Master Bedroom Share" } } });
+    const { sectionLabels } = editor({ personId: priya, templates });
+    expect(sectionLabels).toMatchObject({
+      title: "Section labels",
+      hint: "This person is set to pay for another person(s). Message will list each person’s charges under their own title.",
+    });
+    const rows = sectionLabels!.rows;
+    expect(rows[0]).toMatchObject({ personId: priya, label: "Priya’s charges", value: "Master Bedroom Share", placeholder: "Yours" });
+    expect(rows.slice(1).map((r) => r.placeholder)).toEqual(
+      rows.slice(1).map((r) => `${PEOPLE.find((p) => p.id === r.personId)!.name}’s (please collect)`),
+    );
+    expect(rows.length).toBeGreaterThan(1);
+    expect(rows.every((r) => r.lines.length > 0 && r.subtotal.startsWith("$"))).toBe(true);
+    // The sample lines read the saved line labels, as the preview does.
+    expect(rows[1].lines.map((l) => l.label)).toContain("PUB");
+  });
+
+  it("keeps Section labels while someone still pays via them this month, after an edit ends it next month", () => {
+    const allDirect = {
+      ...NOV_2026_CONFIG,
+      people: NOV_2026_CONFIG.people.map((p) => ({ ...p, routes: {} })),
+    };
+    expect(editor({ personId: priya, configs: [allDirect, NOV_2026_CONFIG] }).sectionLabels).not.toBeNull();
+    expect(editor({ personId: priya, configs: [allDirect] }).sectionLabels).toBeNull();
+  });
+
+  it("has no Section labels on the Default, the nudge, or for someone nobody pays via", () => {
+    expect(editor({}).sectionLabels).toBeNull();
+    expect(editor({ kind: "NUDGE", personId: priya }).sectionLabels).toBeNull();
+    expect(editor({ personId: jordan }).sectionLabels).toBeNull();
   });
 });

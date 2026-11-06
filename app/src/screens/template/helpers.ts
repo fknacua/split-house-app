@@ -1,6 +1,12 @@
 import { z } from 'zod';
 
-import { templateMessageSchema, type TemplateEditorResponse, type TemplatePreviewRequest } from '@splithouse/shared';
+import {
+  templateLabelsSaveRequestSchema,
+  templateMessageSchema,
+  type TemplateEditorResponse,
+  type TemplatePreviewRequest,
+} from '@splithouse/shared';
+import type { SectionLabels, SectionLabelsBlock } from './types';
 
 /** The template editor's form rules: the shared message schema, so the field checks as the user types what the server checks on save. */
 export const templateFormSchema = z.object({ text: templateMessageSchema });
@@ -60,4 +66,49 @@ export function insertAtCursor(text: string, selection: TextSelection, placehold
   const start = Math.min(selection.start, text.length);
   const end = Math.min(selection.end, text.length);
   return { text: text.slice(0, start) + placeholder + text.slice(end), cursor: start + placeholder.length };
+}
+
+/** The Line labels sheet's values: the request it saves, so the shared schema checks them as the user types. */
+export type LabelsFormValues = z.input<typeof templateLabelsSaveRequestSchema>;
+
+/**
+ * Fills the Line labels sheet from the server's response.
+ *
+ * @param labels The editor response's `labels`.
+ * @returns Every label. Section titles are edited in the editor's Section titles accordion, not here.
+ */
+export function toLabelsFormValues(labels: TemplateEditorResponse['labels']): LabelsFormValues {
+  return { lineLabels: Object.fromEntries(labels.rows.map((row) => [row.type, row.value])) };
+}
+
+/**
+ * Whether the sheet has anything to save.
+ *
+ * @param values The sheet's values.
+ * @param labels The editor response's `labels` the sheet opened on.
+ * @returns True when a label differs from what the sheet opened on.
+ */
+export function hasLabelsChanges(values: LabelsFormValues, labels: TemplateEditorResponse['labels']): boolean {
+  return JSON.stringify(values) !== JSON.stringify(toLabelsFormValues(labels));
+}
+
+/**
+ * The label a section shows: the custom one, else the usual one the server sends as the field's placeholder.
+ *
+ * @param labels The labels by person.
+ * @param row The section.
+ * @returns e.g. `Master Bedroom Share`, or `Yours` when blank.
+ */
+export function sectionLabelOf(labels: SectionLabels, row: SectionLabelsBlock['rows'][number]): string {
+  return labels[row.personId]?.trim() || row.placeholder;
+}
+
+/**
+ * Fills the Section labels sheet from the server's response.
+ *
+ * @param block The editor response's `sectionLabels`.
+ * @returns The saved labels by person, empty for the usual one.
+ */
+export function toSectionLabels(block: SectionLabelsBlock): SectionLabels {
+  return Object.fromEntries(block.rows.map((row) => [row.personId, row.value]));
 }
