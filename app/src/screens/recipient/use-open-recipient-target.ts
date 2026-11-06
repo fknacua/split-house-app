@@ -70,7 +70,7 @@ export function useOpenRecipientTarget(charges: RecipientChargeRow[] = []) {
         openShareBill(target.month);
         return;
       case 'edit-template':
-        router.push({ pathname: '/settings/template/[kind]', params: { kind: target.template } });
+        router.push({ pathname: '/settings/template/[kind]/editor', params: { kind: target.template } });
         return;
       case 'add-correction': // Phase 11
         return;

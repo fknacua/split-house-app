@@ -9,11 +9,15 @@ import type { TemplateEditorResponse, TemplateKind } from '@splithouse/shared';
  * screen closes, so the form never opens on old values.
  *
  * @param kind The monthly breakdown or the nudge.
+ * @param personId Whose custom template, new or saved, or null for the Default.
  */
-export function useTemplateForm(kind: TemplateKind) {
+export function useTemplateForm(kind: TemplateKind, personId: string | null) {
   return useQuery({
-    queryKey: queryKeys.templateForm(kind),
-    queryFn: () => apiFetch<TemplateEditorResponse>(`/api/templates/${kind}/editor`),
+    queryKey: queryKeys.templateForm(kind, personId),
+    queryFn: () =>
+      apiFetch<TemplateEditorResponse>(
+        `/api/templates/${kind}/editor${personId ? `?personId=${encodeURIComponent(personId)}` : ''}`,
+      ),
     gcTime: 0,
   });
 }

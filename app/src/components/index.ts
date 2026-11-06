@@ -23,6 +23,7 @@ export * from './file-card';
 export * from './form-field';
 export * from './google-button';
 export * from './icon';
+export * from './link-button';
 export * from './message-preview/message-preview';
 export * from './money-input';
 export * from './month-picker/month-picker';

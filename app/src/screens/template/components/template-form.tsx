@@ -1,15 +1,25 @@
+import { useRouter } from 'expo-router';
 import { Undo } from 'lucide-react-native';
 import { useRef, useState } from 'react';
 import { useForm, useWatch } from 'react-hook-form';
 import { KeyboardAvoidingView, ScrollView, View } from 'react-native';
 
-import { Button, ConfirmDialog, Screen, SubpageFooter, SubpageHeader, TextareaInput } from '@/components';
+import {
+  Button,
+  ConfirmDialog,
+  Screen,
+  SubpageFooter,
+  SubpageHeader,
+  TextareaInput,
+  useSuccessToast,
+} from '@/components';
 import { EditSaveActions } from '@/screens/household-person';
 import { hasTemplateChanges, insertAtCursor, toTemplateDraft, toTemplateFormValues, type TemplateFormValues, type TextSelection } from '../helpers';
 import type { TemplateFormProps } from '../types';
 import { useTemplateFlow } from '../use-template-flow';
 import { PlaceholderChips } from './placeholder-chips';
 import { PreviewCard } from './preview-card';
+import { RemoveTemplateDialog } from './remove-template-dialog';
 
 /**
  * The template editor: the message with chips that insert at the cursor, checked with the shared message rules, and a
@@ -23,6 +33,9 @@ export function TemplateForm({ form }: TemplateFormProps) {
   const dirty = hasTemplateChanges(values, opened);
   const flow = useTemplateFlow(toTemplateDraft(values, opened), dirty);
   const { guard, errors } = flow;
+  const router = useRouter();
+  const showToast = useSuccessToast();
+  const [removing, setRemoving] = useState(false);
 
   const cursor = useRef<TextSelection>({ start: opened.text.length, end: opened.text.length });
   // Set for the render after an insert, then handed back so the user can move the cursor.
@@ -63,8 +76,32 @@ export function TemplateForm({ form }: TemplateFormProps) {
       </KeyboardAvoidingView>
       <SubpageFooter>
         <EditSaveActions flow={flow} disabled={!dirty} />
-        <Button label={opened.secondaryAction.label} variant="ghost" disabled={flow.saving} onPress={guard.requestLeave} />
+        {opened.secondaryAction.kind === 'remove' ? (
+          <Button
+            label={opened.secondaryAction.label}
+            variant="ghost-danger"
+            disabled={flow.saving}
+            onPress={() => setRemoving(true)}
+          />
+        ) : (
+          <Button label={opened.secondaryAction.label} variant="ghost" disabled={flow.saving} onPress={guard.requestLeave} />
+        )}
       </SubpageFooter>
+      {opened.removeDialog && opened.personId ? (
+        <RemoveTemplateDialog
+          open={removing}
+          kind={opened.kind}
+          personId={opened.personId}
+          dialog={opened.removeDialog}
+          onClose={() => setRemoving(false)}
+          onRemoved={() => {
+            showToast('Changes saved');
+            // Back to the landing page, past the unsaved-changes guard: the template is gone.
+            if (router.canGoBack()) router.back();
+            else router.replace({ pathname: '/settings/template/[kind]', params: { kind: opened.kind } });
+          }}
+        />
+      ) : null}
       <ConfirmDialog
         open={guard.asking}
         icon={Undo}
