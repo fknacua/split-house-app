@@ -20,6 +20,18 @@ describe("buildSettings", () => {
     expect(settingsResponseSchema.safeParse(settings).success).toBe(true);
   });
 
+  it("gives each row its description, and the tone of its status", () => {
+    const rows = buildSettings({
+      email: EMAIL,
+      config: NOV_2026_CONFIG,
+      templates: { ...DEFAULT_MESSAGE_TEMPLATES, overrides: [{ personId: PERSON_IDS.jordan, kind: "MONTHLY", text: "Hi" }] },
+    }).messages;
+    expect(rows.map((m) => [m.description, m.tone])).toEqual([
+      ["Sent when the month’s charges are ready", "success"],
+      ["Sent when a payment is overdue", "muted"],
+    ]);
+  });
+
   it("says the same for everyone with no custom version", () => {
     expect(details([])).toEqual(["Same for everyone", "Same for everyone"]);
   });

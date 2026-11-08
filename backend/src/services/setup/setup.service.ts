@@ -13,10 +13,12 @@ import { ApiError } from "@/lib/api";
 import { currentMonth } from "@/lib/month";
 import { openMonthIfNeeded, type MonthOpenDb } from "@/lib/month-open";
 import { now } from "@/lib/now";
+import { hasCustomTemplate } from "@/lib/setup/build-messages";
 import { buildWelcome } from "@/lib/setup/build-welcome";
 import { buildStartMonthPage, effectiveStartMonth } from "@/lib/setup/start-month";
 import { requiredStepsDone, requireStepsBefore } from "@/lib/setup/steps";
 import type { ActiveMonthDb } from "@/services/months/active-month.service";
+import { readMessageTemplates, type MessageTemplatesDb } from "@/services/templates/message-templates.service";
 import { markStepsDone, readSetup, type SetupReadDb, type SetupRecord, type SetupWriteDb } from "./setup-record.service";
 
 /** The reads First run's pages need, so tests can pass an in-memory fake. */
@@ -39,6 +41,9 @@ export interface SetupSaveTx extends SetupWriteDb {
 export interface SetupSaveDb extends ActiveMonthDb, SetupSaveTx {
   $transaction<T>(fn: (tx: SetupSaveTx) => Promise<T>): Promise<T>;
 }
+
+/** What marking People or Custom messages needs: the saves, and the wording for Custom messages. */
+export type SetupMarkDb = SetupSaveDb & MessageTemplatesDb;
 
 /** What finishing needs: the saves, and opening the start month. */
 export type SetupFinishDb = SetupSaveDb & MonthOpenDb;
@@ -106,24 +111,26 @@ export async function saveSetupStartMonth(db: SetupSaveDb, { month }: SetupStart
 }
 
 /**
- * Marks People or Custom messages done, from their pages' Save. The steps before it must be done, and People needs
- * someone besides the owner.
+ * Marks People or Custom messages done, from their pages' Save. The steps before it must be done, People needs
+ * someone besides the owner, and Custom messages a custom template (the page's Save is disabled until then).
  *
  * @param db - The Prisma client, or a fake in tests.
  * @param step - The step.
  * @returns The steps now done.
  * @throws {ApiError} 409 `setup_done` once a month is open; 409 for the first earlier step not done (see
- * `requireStepsBefore`); 409 `no_people` for People while nobody but the owner is in the household.
+ * `requireStepsBefore`); 409 `no_people` for People while nobody but the owner is in the household; 409
+ * `no_templates` for Custom messages while nobody in it has a custom template.
  */
-export async function markSetupStep(db: SetupSaveDb, step: SetupMarkableStep): Promise<SetupSaveResponse> {
+export async function markSetupStep(db: SetupMarkDb, step: SetupMarkableStep): Promise<SetupSaveResponse> {
   const { doneSteps } = await readFirstRun(db);
   requireStepsBefore(step, doneSteps);
-  if (step === "people") {
-    const [version] = await db.householdVersion.findMany({ select: { schemaVersion: true, config: true } });
-    const config = version ? parseHouseholdConfig(version.schemaVersion, version.config) : null;
-    if (!config?.people.some((p) => p.role !== "OWNER")) {
-      throw new ApiError(409, "no_people", "Add someone first.");
-    }
+  const [version] = await db.householdVersion.findMany({ select: { schemaVersion: true, config: true } });
+  const config = version ? parseHouseholdConfig(version.schemaVersion, version.config) : null;
+  if (step === "people" && !config?.people.some((p) => p.role !== "OWNER")) {
+    throw new ApiError(409, "no_people", "Add someone first.");
+  }
+  if (step === "messages" && !(config && hasCustomTemplate(config, await readMessageTemplates(db)))) {
+    throw new ApiError(409, "no_templates", "Add a custom template first.");
   }
   return { doneSteps: (await markStepsDone(db, [step])).doneSteps };
 }

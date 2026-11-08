@@ -1,6 +1,7 @@
 import { z } from 'zod';
 import { monthKey } from '../schemas/primitives';
 import { householdActionSchema, householdPersonSchema } from './household';
+import { settingsMessageRowSchema } from './settings';
 
 /** First run's steps, in the order of `Welcome.dc.html`. Reminders joins in Phase 13. */
 export const SETUP_STEP_IDS = ['startMonth', 'rentAndRooms', 'people', 'householdSplits', 'messages'] as const;
@@ -161,7 +162,10 @@ export const setupFinishResponseSchema = z.object({
 /** `POST /api/setup/finish`: the month that opened and where to go. */
 export type SetupFinishResponse = z.infer<typeof setupFinishResponseSchema>;
 
-/** `POST /api/setup/start-month` and `POST /api/setup/steps/:id`: the steps now done. */
+/**
+ * `POST /api/setup/start-month`, `POST /api/setup/steps/:id` and `POST /api/setup/messages/discard`: the steps now
+ * done.
+ */
 export const setupSaveResponseSchema = z.object({
   doneSteps: z.array(z.enum(SETUP_STEP_IDS)),
 });
@@ -196,3 +200,49 @@ export const setupPeopleResponseSchema = z.object({
 
 /** `GET /api/setup/people`: First run's People page, ready to render. */
 export type SetupPeopleResponse = z.infer<typeof setupPeopleResponseSchema>;
+
+/** A confirm dialog's text, e.g. `skipMessages`. */
+export const setupConfirmSchema = z.object({
+  /** e.g. `Skip custom messages?`. */
+  title: z.string(),
+  body: z.string(),
+  /** e.g. `Discard templates`. */
+  confirmLabel: z.string(),
+  /** e.g. `Keep templates`. */
+  cancelLabel: z.string(),
+});
+
+/** A confirm dialog's text. */
+export type SetupConfirm = z.infer<typeof setupConfirmSchema>;
+
+/** `GET /api/setup/messages`: First run's Custom messages page, ready to render. */
+export const setupMessagesResponseSchema = z.object({
+  /** `Custom messages`. */
+  title: z.string(),
+  /** `Optional`, under the title. */
+  sub: z.string(),
+  /** Monthly breakdown and Nudge, from the same builder as Settings' rows. */
+  rows: z.array(settingsMessageRowSchema),
+  /** `You can change these any time in Settings.` */
+  note: z.string(),
+  /** The footer button, which marks Custom messages done through `POST /api/setup/steps/messages`. */
+  save: z.object({
+    /** `Save`. */
+    label: z.string(),
+    /** True once anyone in the household has a custom template. */
+    enabled: z.boolean(),
+  }),
+  /** The link under it. */
+  skip: z.object({
+    /** `Not now`. */
+    label: z.string(),
+    /**
+     * The `skipMessages` dialog while a custom template exists; its confirm calls `POST /api/setup/messages/discard`.
+     * Null when there is none, and `Not now` goes straight back to Welcome.
+     */
+    confirm: setupConfirmSchema.nullable(),
+  }),
+});
+
+/** `GET /api/setup/messages`: First run's Custom messages page, ready to render. */
+export type SetupMessagesResponse = z.infer<typeof setupMessagesResponseSchema>;

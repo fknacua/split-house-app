@@ -14,9 +14,11 @@ import {
   setupSaveResponseSchema,
   setupStartMonthResponseSchema,
   type HouseholdConfig,
+  type MessageTemplates,
 } from "@splithouse/shared";
 import { ApiError, requireSession } from "@/lib/api";
 import { NOV_2026_CONFIG, PERSON_IDS, ROOM_IDS } from "@/lib/fixtures/household";
+import { DEFAULT_MESSAGE_TEMPLATES } from "@/lib/messages/default-templates";
 import { prisma } from "@/lib/prisma";
 import { POST as FINISH } from "./finish/route";
 import { GET } from "./route";
@@ -48,10 +50,11 @@ let state: State;
 
 /** An in-memory database holding First run's state: the months, the versions, the `Setup` row and the charges. */
 function useDb(
-  { config = NOV_2026_CONFIG, setup = null, months = [] }: {
+  { config = NOV_2026_CONFIG, setup = null, months = [], templates = null }: {
     config?: HouseholdConfig | null;
     setup?: State["setup"];
     months?: string[];
+    templates?: MessageTemplates | null;
   } = {},
 ) {
   state = {
@@ -89,6 +92,7 @@ function useDb(
           .filter((v) => v.startsFromMonth <= where.startsFromMonth.lte)
           .sort((a, b) => b.startsFromMonth.localeCompare(a.startsFromMonth))[0] ?? null,
     },
+    messageTemplates: { findUnique: async () => (templates ? { templates } : null) },
     charge: {
       createMany: async ({ data }: { data: { month: string }[] }) => {
         state.charges.push(...data);
@@ -222,10 +226,16 @@ describe("POST /api/setup/steps/:id", () => {
     await expectError(await MARK(post("/steps/people"), step("people")), 409, "rooms_first");
   });
 
-  it("marks Custom messages done once the required steps are", async () => {
-    useDb({ setup: { startMonth: null, doneSteps: REQUIRED } });
+  it("marks Custom messages done once the required steps are and someone has a custom template", async () => {
+    const templates = { ...DEFAULT_MESSAGE_TEMPLATES, overrides: [{ personId: PERSON_IDS.jordan, kind: "MONTHLY" as const, text: "Hi" }] };
+    useDb({ setup: { startMonth: null, doneSteps: REQUIRED }, templates });
     const body = setupSaveResponseSchema.parse(await (await MARK(post("/steps/messages"), step("messages"))).json());
     expect(body.doneSteps).toEqual([...REQUIRED, "messages"]);
+  });
+
+  it("answers 409 no_templates for Custom messages while nobody has a custom template", async () => {
+    useDb({ setup: { startMonth: null, doneSteps: REQUIRED } });
+    await expectError(await MARK(post("/steps/messages"), step("messages")), 409, "no_templates");
   });
 
   it("answers 409 splits_first for Custom messages before Household splits", async () => {
