@@ -378,8 +378,8 @@ export const householdHomeFormResponseSchema = z.object({
   title: z.string(),
   /** `Rent, due dates and rooms`. */
   sub: z.string(),
-  /** The heading above the cards, e.g. `From December 2026`. */
-  datedTitle: z.string(),
+  /** The heading above the cards, e.g. `From December 2026`. Null in First run, where every edit saves into the first version. */
+  datedTitle: z.string().nullable(),
   /** e.g. `These take effect from December 2026.` while saved values differ from the active month's; otherwise null. */
   pendingNote: z.string().nullable(),
   values: z.object({
@@ -467,8 +467,8 @@ export type HouseholdSplitRoomRow = z.infer<typeof householdSplitRoomRowSchema>;
 export const householdSplitFormResponseSchema = z.object({
   /** `Household split`. */
   title: z.string(),
-  /** The heading above the cards, e.g. `From December 2026`. */
-  datedTitle: z.string(),
+  /** The heading above the cards, e.g. `From December 2026`. Null in First run, where every edit saves into the first version. */
+  datedTitle: z.string().nullable(),
   /** e.g. `These take effect from December 2026.` while saved values differ from the active month's; otherwise null. */
   pendingNote: z.string().nullable(),
   /** e.g. `Split between you and Priya`. Null with no primary tenant, when the split control is left out. */

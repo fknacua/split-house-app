@@ -94,4 +94,9 @@ describe("buildSplitForm", () => {
     expect(body.primary).toBeNull();
     expect(body.amounts.rent.primary).toBeNull();
   });
+
+  it("leaves out the heading above the cards in First run", () => {
+    const body = buildSplitForm({ month: "2026-12", config: NOV_2026_CONFIG, activeConfig: NOV_2026_CONFIG, people: PEOPLE, firstSetup: true });
+    expect(householdSplitFormResponseSchema.parse(body).datedTitle).toBeNull();
+  });
 });

@@ -85,7 +85,7 @@ describe("GET /api/household/split-form", () => {
     useHousehold([version("2026-11", NOV_2026_CONFIG)]);
     Object.assign(prisma.month, { findFirst: async () => null });
     const body = householdSplitFormResponseSchema.parse(await (await GET(request(), undefined)).json());
-    expect(body.datedTitle).toBe("From November 2026");
+    expect(body.datedTitle).toBeNull();
     expect(body.pendingNote).toBeNull();
   });
 
