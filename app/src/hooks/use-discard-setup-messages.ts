@@ -5,7 +5,7 @@ import { queryKeys } from '@/lib';
 import type { SetupSaveResponse } from '@splithouse/shared';
 
 /**
- * Discards every custom template and un-marks Custom messages (`POST /api/setup/messages/discard`), from the
+ * Discards every custom template and skips Custom messages (`POST /api/setup/messages/discard`), from the
  * `skipMessages` dialog. Welcome shows the step, and the template screens and Recipient show the wording, so all are
  * refetched; the mutation stays pending until they are.
  */

@@ -2,7 +2,8 @@ import { useCallback } from 'react';
 import { RefreshControl, ScrollView } from 'react-native';
 
 import { Alert, Card, Screen } from '@/components';
-import { useFinishSetup, usePullToRefresh, useSetup } from '@/hooks';
+import { useFinishSetup, usePullToRefresh, useSetup, useSkipSetupStep } from '@/hooks';
+import type { SetupSkippableStep } from '@splithouse/shared';
 import { WelcomeFooter } from './components/welcome-footer';
 import { WelcomeHeader } from './components/welcome-header';
 import { WelcomeRow } from './components/welcome-row';
@@ -11,17 +12,22 @@ import { useOpenSetupTarget } from './use-open-setup-target';
 
 /**
  * First run's step page (`Welcome.dc.html`: `empty`, `started`, `progress`, `optional`, `allDone`).
- * Everything shown comes from `GET /api/setup`; the app only renders it and opens the targets. `Not now` and
- * `Finish setup` finish First run, and the session gate then opens Home.
+ * Everything shown comes from `GET /api/setup`; the app only renders it and opens the targets. `Not now` skips the
+ * optional step and Welcome moves on; only `Finish setup` finishes First run, and the session gate then opens Home.
  * The session gate shows this screen, with no tabs, until a month is open.
  */
 export function Welcome() {
   const { data, error, isPending, refetch } = useSetup();
   const { refreshing, onRefresh } = usePullToRefresh(refetch);
+  const skip = useSkipSetupStep();
   const finish = useFinishSetup();
+  const { mutate: skipStep } = skip;
   const { mutate: finishSetup } = finish;
+  const onSkip = useCallback((step: SetupSkippableStep) => skipStep(step), [skipStep]);
   const onFinish = useCallback(() => finishSetup(), [finishSetup]);
-  const open = useOpenSetupTarget(onFinish);
+  const open = useOpenSetupTarget({ onSkip, onFinish });
+  const pending = skip.isPending ? 'skip-step' : finish.isPending ? 'finish' : null;
+  const failed = skip.error ?? finish.error;
 
   return (
     <Screen>
@@ -50,8 +56,8 @@ export function Welcome() {
               primary={data.primary}
               secondary={data.secondary}
               onOpen={open}
-              finishing={finish.isPending}
-              error={finish.error?.message ?? null}
+              pending={pending}
+              error={failed?.message ?? null}
             />
           ) : null}
         </>

@@ -9,7 +9,7 @@ import {
   type MessageTemplatesDb,
   type MessageTemplatesWriteDb,
 } from "@/services/templates/message-templates.service";
-import { unmarkStep, type SetupWriteDb } from "./setup-record.service";
+import { markStepsDone, type SetupWriteDb } from "./setup-record.service";
 
 /** The reads of the Custom messages page, so tests can pass an in-memory fake. */
 export type SetupMessagesDb = HouseholdFormDb & MessageTemplatesDb;
@@ -48,8 +48,9 @@ export async function getSetupMessages(db: SetupMessagesDb): Promise<SetupMessag
 }
 
 /**
- * Discards every custom template, Monthly breakdown and Nudge, with their section titles, and marks Custom messages
- * not done. The Defaults and line labels stay. Discarding with none is harmless.
+ * Discards every custom template, Monthly breakdown and Nudge, with their section titles, and skips Custom messages:
+ * it counts as done, as `Not now` without a template does, so Welcome moves on. The Defaults and line labels stay.
+ * Discarding with none is harmless.
  *
  * @param db - The Prisma client, or a fake in tests.
  * @returns The steps now done.
@@ -59,6 +60,6 @@ export async function discardSetupMessages(db: SetupMessagesDiscardDb): Promise<
   await readMessagesStep(db);
   return db.$transaction(async (tx) => {
     await writeMessageTemplates(tx, discardCustomTemplates(await readMessageTemplates(tx)));
-    return { doneSteps: (await unmarkStep(tx, "messages")).doneSteps };
+    return { doneSteps: (await markStepsDone(tx, ["messages"])).doneSteps };
   });
 }

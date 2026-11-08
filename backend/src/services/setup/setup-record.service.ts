@@ -65,21 +65,3 @@ export async function markStepsDone(db: SetupWriteDb, steps: SetupStepId[], star
   return { startMonth: row.startMonth, doneSteps: doneStepsOf(row.doneSteps) };
 }
 
-/**
- * Records a step as not done, as discarding custom templates does for Custom messages. Creates the row if missing.
- *
- * @param db - The Prisma client, a transaction, or a fake in tests.
- * @param step - The step to take off. A step not done stays not done.
- * @returns The record after the write.
- */
-export async function unmarkStep(db: SetupWriteDb, step: SetupStepId): Promise<SetupRecord> {
-  const { doneSteps } = await readSetup(db);
-  const next = doneSteps.filter((id) => id !== step);
-  const row = await db.setup.upsert({
-    where: { id: SETUP_ID },
-    create: { id: SETUP_ID, doneSteps: next },
-    update: { doneSteps: next },
-    select: SETUP_SELECT,
-  });
-  return { startMonth: row.startMonth, doneSteps: doneStepsOf(row.doneSteps) };
-}

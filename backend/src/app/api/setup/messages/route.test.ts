@@ -126,20 +126,20 @@ describe("GET /api/setup/messages", () => {
 });
 
 describe("POST /api/setup/messages/discard", () => {
-  it("removes every custom template and section title, keeps the Defaults and line labels, and un-marks the step", async () => {
-    useFirstRun({ templates: CUSTOM });
+  it("removes every custom template and section title, keeps the Defaults and line labels, and skips the step", async () => {
+    useFirstRun({ templates: CUSTOM, doneSteps: REQUIRED });
     const response = await DISCARD(discard(), undefined);
     expect(response.status).toBe(200);
-    expect(setupSaveResponseSchema.parse(await response.json()).doneSteps).toEqual(REQUIRED);
+    expect(setupSaveResponseSchema.parse(await response.json()).doneSteps).toEqual([...REQUIRED, "messages"]);
     expect(state.templates).toEqual({ ...CUSTOM, overrides: [], sectionTitles: {} });
     const page = setupMessagesResponseSchema.parse(await (await GET(get(), undefined)).json());
     expect(page.save.enabled).toBe(false);
   });
 
-  it("is harmless with no custom template", async () => {
+  it("is harmless with no custom template, and still skips the step", async () => {
     useFirstRun({ doneSteps: REQUIRED });
     const body = setupSaveResponseSchema.parse(await (await DISCARD(discard(), undefined)).json());
-    expect(body.doneSteps).toEqual(REQUIRED);
+    expect(body.doneSteps).toEqual([...REQUIRED, "messages"]);
     expect(state.templates).toMatchObject({ overrides: [], sectionTitles: {} });
   });
 

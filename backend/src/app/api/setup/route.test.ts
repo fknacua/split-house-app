@@ -24,6 +24,7 @@ import { POST as FINISH } from "./finish/route";
 import { GET } from "./route";
 import { GET as GET_START, POST as SAVE_START } from "./start-month/route";
 import { POST as MARK } from "./steps/[id]/route";
+import { POST as SKIP } from "./steps/[id]/skip/route";
 
 /** The first version after Rent & rooms: the owner alone. */
 const OWNER_ONLY: HouseholdConfig = {
@@ -129,7 +130,7 @@ describe("GET /api/setup", () => {
     useDb({ setup: { startMonth: "2026-11", doneSteps: REQUIRED } });
     const body = setupResponseSchema.parse(await (await GET(get(""), undefined)).json());
     expect(body.heading).toBe("Your household is set up");
-    expect(body.secondary).toEqual({ label: "Not now", target: { kind: "finish" } });
+    expect(body.secondary).toEqual({ label: "Not now", target: { kind: "skip-step", step: "messages" } });
   });
 
   it("answers 409 setup_done once a month is open", async () => {
@@ -251,6 +252,33 @@ describe("POST /api/setup/steps/:id", () => {
   it("answers 409 setup_done once a month is open", async () => {
     useDb({ months: ["2026-11"] });
     await expectError(await MARK(post("/steps/people"), step("people")), 409, "setup_done");
+  });
+});
+
+describe("POST /api/setup/steps/:id/skip", () => {
+  it("counts Custom messages done with no custom template, so Welcome moves to allDone", async () => {
+    useDb({ setup: { startMonth: "2026-11", doneSteps: REQUIRED } });
+    const response = await SKIP(post("/steps/messages/skip"), step("messages"));
+    expect(response.status).toBe(200);
+    expect(setupSaveResponseSchema.parse(await response.json()).doneSteps).toEqual([...REQUIRED, "messages"]);
+    const welcome = setupResponseSchema.parse(await (await GET(get(""), undefined)).json());
+    expect(welcome.primary).toEqual({ label: "Finish setup", target: { kind: "finish" } });
+    expect(state.months).toEqual([]);
+  });
+
+  it("answers 409 splits_first before Household splits", async () => {
+    useDb({ setup: { startMonth: null, doneSteps: ["startMonth", "rentAndRooms", "people"] } });
+    await expectError(await SKIP(post("/steps/messages/skip"), step("messages")), 409, "splits_first");
+  });
+
+  it("answers 400 for a required step", async () => {
+    useDb();
+    await expectError(await SKIP(post("/steps/people/skip"), step("people")), 400, "invalid_request");
+  });
+
+  it("answers 409 setup_done once a month is open", async () => {
+    useDb({ months: ["2026-11"] });
+    await expectError(await SKIP(post("/steps/messages/skip"), step("messages")), 409, "setup_done");
   });
 });
 

@@ -4,24 +4,28 @@ import { useState } from 'react';
 import { ScrollView, Text } from 'react-native';
 
 import { Alert, Button, Card, ConfirmDialog, Screen, SubpageFooter, SubpageHeader } from '@/components';
-import { useDiscardSetupMessages, useMarkSetupStep } from '@/hooks';
+import { useDiscardSetupMessages, useMarkSetupStep, useSkipSetupStep } from '@/hooks';
 import { MessageRow } from '@/screens/settings/components/message-row';
 import type { MessagesPageProps } from '../types';
 
 /**
  * The `FirstRunMessages` board (`empty`, `custom`): Settings' two template rows, each opening its landing page, and
- * the note. `Save` marks the step and goes back to Welcome. `Not now` goes straight back with no custom template;
- * otherwise it asks first (`Confirm` `skipMessages`), and `Discard templates` discards them, un-marks the step and goes
- * back. A failed mark shows above Save, as on People; a failed discard shows in the dialog.
+ * the note. `Save` marks the step and goes back to Welcome. `Not now` skips the step (it counts as done) and
+ * goes back with no custom template; otherwise it asks first (`Confirm` `skipMessages`), and `Discard templates`
+ * discards them, skips the step and goes back. Welcome then shows `allDone`. A failed mark or skip shows above the
+ * buttons, as on People; a failed discard shows in the dialog.
  */
 export function MessagesPage({ page }: MessagesPageProps) {
   const router = useRouter();
   const mark = useMarkSetupStep();
   const discard = useDiscardSetupMessages();
+  const skipStep = useSkipSetupStep();
   const [confirming, setConfirming] = useState(false);
   const dialog = page.skip.confirm;
 
-  const skip = () => (dialog ? setConfirming(true) : router.back());
+  const skip = () =>
+    dialog ? setConfirming(true) : skipStep.mutate('messages', { onSuccess: () => router.back() });
+  const failed = mark.error ?? skipStep.error;
   const discardAndLeave = () =>
     discard.mutate(undefined, {
       onSuccess: () => {
@@ -46,14 +50,20 @@ export function MessagesPage({ page }: MessagesPageProps) {
         <Text className="mx-1 font-manrope-semibold text-caption text-on-surface-variant">{page.note}</Text>
       </ScrollView>
       <SubpageFooter>
-        {mark.error ? <Alert variant="danger" message={mark.error.message} className="mb-1.5" /> : null}
+        {failed ? <Alert variant="danger" message={failed.message} className="mb-1.5" /> : null}
         <Button
           label={page.save.label}
           loading={mark.isPending}
-          disabled={!page.save.enabled}
+          disabled={!page.save.enabled || skipStep.isPending}
           onPress={() => mark.mutate('messages', { onSuccess: () => router.back() })}
         />
-        <Button label={page.skip.label} variant="ghost" disabled={mark.isPending} onPress={skip} />
+        <Button
+          label={page.skip.label}
+          variant="ghost"
+          loading={skipStep.isPending}
+          disabled={mark.isPending}
+          onPress={skip}
+        />
       </SubpageFooter>
       {dialog ? (
         <ConfirmDialog
