@@ -356,9 +356,9 @@ export type HouseholdHomeRoom = z.infer<typeof householdHomeRoomSchema>;
 
 /** `GET /api/household/home-form`: the Landlord & rooms screen, with the latest saved values, ready to render. */
 export const householdHomeFormResponseSchema = z.object({
-  /** `Landlord & rooms`. */
+  /** `Rent & rooms`. */
   title: z.string(),
-  /** `Rent you pay the landlord`. */
+  /** `Rent, due dates and rooms`. */
   sub: z.string(),
   /** The heading above the cards, e.g. `From December 2026`. */
   datedTitle: z.string(),
@@ -709,8 +709,8 @@ export type HouseholdEdit = z.infer<typeof householdEditSchema>;
 export const householdEditRowSchema = z.object({
   /** e.g. `Rent due`. The screen is already about the person, so it has no name in it. */
   label: z.string(),
-  /** e.g. `$X,XXX.XX`. */
-  from: z.string(),
+  /** e.g. `$X,XXX.XX`. Null when there was nothing before (a room added): the card shows only the new value. */
+  from: z.string().nullable(),
   /** e.g. `$X,XXX.XX`. */
   to: z.string(),
 });
@@ -720,8 +720,8 @@ export type HouseholdEditRow = z.infer<typeof householdEditRowSchema>;
 
 /** A group in the summary card. A group with no rows is left out. */
 export const householdEditGroupSchema = z.object({
-  /** `Saves now` or `Saves from Dec 2026`. */
-  title: z.string(),
+  /** `Saves now` or `Saves from Dec 2026`. Null in First run, where every edit saves into the first version. */
+  title: z.string().nullable(),
   rows: z.array(householdEditRowSchema),
 });
 

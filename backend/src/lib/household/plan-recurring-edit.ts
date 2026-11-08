@@ -9,6 +9,7 @@ import {
   type HouseholdRecurringEdit,
 } from "@splithouse/shared";
 import { applyRecurringCharge } from "./apply-edit";
+import { changedRows } from "./summary-rows";
 import type { ParsedVersion } from "./plan-edit";
 
 type RecurringCharge = HouseholdConfig["recurring"][number];
@@ -84,7 +85,7 @@ function summaryRows(from: RecurringCharge, to: RecurringCharge, names: Map<stri
     { label: "Who", from: nameOf(names, from.personId), to: nameOf(names, to.personId) },
     { label: "End month", from: endMonthText(from.endMonth), to: endMonthText(to.endMonth) },
   ];
-  return rows.filter((row) => row.from !== row.to);
+  return changedRows(rows);
 }
 
 /**

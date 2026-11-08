@@ -51,6 +51,7 @@ function SessionStack() {
       </Stack.Protected>
       <Stack.Protected guard={signedIn && !setupComplete}>
         <Stack.Screen name="welcome" />
+        <Stack.Screen name="setup/start-month" />
       </Stack.Protected>
       <Stack.Protected guard={signedIn}>
         <Stack.Screen name="bill/[month]/upload" />

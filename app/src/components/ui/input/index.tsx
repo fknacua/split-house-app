@@ -1,7 +1,8 @@
 'use client';
 import React from 'react';
 import { createInput } from '@gluestack-ui/core/input/creator';
-import { View, Pressable, TextInput } from 'react-native';
+import { View, Pressable } from 'react-native';
+import { SheetAwareTextInput } from '../bottomsheet/sheet-aware-text-input';
 import { tva, withStyleContext } from '@gluestack-ui/utils/nativewind-utils';
 import { styled } from 'nativewind';
 import type { VariantProps } from '@gluestack-ui/utils/nativewind-utils';
@@ -15,7 +16,8 @@ const UIInput = createInput({
   Root: withStyleContext(View, SCOPE),
   Icon: StyledUIIcon,
   Slot: Pressable,
-  Input: TextInput,
+  // Inside a bottom sheet this is the sheet's own text input, so the sheet moves above the keyboard.
+  Input: SheetAwareTextInput,
 });
 
 

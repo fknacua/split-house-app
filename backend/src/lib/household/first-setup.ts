@@ -1,4 +1,4 @@
-import type { HouseholdConfig } from "@splithouse/shared";
+import type { HouseholdConfig, HouseholdEditGroup } from "@splithouse/shared";
 import { SHARE_SCALE } from "./amount-text";
 
 const WHOLE_BPS = 10000;
@@ -42,4 +42,18 @@ export function withPrimarySplit(config: HouseholdConfig, primaryBps: number): H
     ...config,
     categories: { rent: { ...rent, ...split }, utilities: { ...utilities, ...split }, aircon: { ...aircon, ...split } },
   };
+}
+
+/**
+ * The summary card's groups in First run: one group with no title. Every First run edit saves into the first version,
+ * which starts in the start month, so `Saves now` and `Saves from {month}` say nothing; the rows stay, in order.
+ *
+ * @param groups - The groups the plan worked out.
+ * @param firstSetup - Whether no month is open yet.
+ * @returns The groups as they are once a month is open, otherwise their rows under one untitled group.
+ */
+export function firstSetupGroups(groups: HouseholdEditGroup[], firstSetup: boolean): HouseholdEditGroup[] {
+  if (!firstSetup) return groups;
+  const rows = groups.flatMap((group) => group.rows);
+  return rows.length > 0 ? [{ title: null, rows }] : [];
 }

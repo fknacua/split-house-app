@@ -12,6 +12,7 @@ import {
   SubpageFooter,
   SubpageHeader,
 } from '@/components';
+import { useKeepFocusedInputVisible } from '@/hooks';
 import { EditSaveActions, EditSummaryCard, useEditFlow } from '@/screens/household-person';
 import { hasHomeChanges, toHomeEdit, toHomeFormValues, type HomeFormValues } from '../helpers';
 import type { LandlordRoomsFormProps } from '../types';
@@ -38,6 +39,7 @@ export function LandlordRoomsForm({ form }: LandlordRoomsFormProps) {
   const flow = useEditFlow(toHomeEdit(values), dirty);
   const { errors, warnings, guard } = flow;
   const sheetRef = useRef<AppSheetRef>(null);
+  const keepFocusedInputVisible = useKeepFocusedInputVisible();
   const hasFieldErrors = Object.keys(errors).some((key) => key !== 'form');
 
   const savedCards = (type: (typeof ROOM_ORDER)[number]) =>
@@ -65,9 +67,30 @@ export function LandlordRoomsForm({ form }: LandlordRoomsFormProps) {
       );
     });
 
+  // The server's rooms to add come first in `newRooms`, so their cards keep the server's title, rent and occupants.
   const newCards = (type: (typeof ROOM_ORDER)[number]) =>
     newRooms.map((room, index) => {
       if (room.roomType !== type) return null;
+      const seeded = opened.roomsToAdd[index];
+      if (seeded) {
+        const calculated = flow.masterRent === undefined ? seeded.calculatedRent : (flow.masterRent ?? '—');
+        return (
+          <RoomCard
+            key={room.id}
+            control={control}
+            path={`newRooms.${index}`}
+            errorKey={`newRooms.${index}`}
+            roomType={type}
+            title={seeded.title}
+            badge={seeded.badge}
+            calculatedRent={type === 'MASTER' ? calculated : null}
+            occupants={seeded.occupants}
+            errors={errors}
+            warnings={warnings}
+            onRemove={seeded.canRemove ? () => remove(index) : null}
+          />
+        );
+      }
       const content = opened.newRoomTypes.find((t) => t.roomType === type);
       return (
         <RoomCard
@@ -92,7 +115,11 @@ export function LandlordRoomsForm({ form }: LandlordRoomsFormProps) {
       <SubpageHeader title={opened.title} subtitle={opened.sub} onBack={guard.requestLeave} />
       {/* Edge-to-edge Android does not resize for the keyboard, so the padding keeps the focused field in view. */}
       <KeyboardAvoidingView behavior="padding" className="flex-1">
-        <ScrollView keyboardShouldPersistTaps="handled" contentContainerClassName="gap-3 px-4 pb-4 pt-2">
+        <ScrollView
+          {...keepFocusedInputVisible}
+          keyboardShouldPersistTaps="handled"
+          contentContainerClassName="gap-3 px-4 pb-4 pt-2"
+        >
           <View pointerEvents={flow.saving ? 'none' : 'auto'} className="gap-3">
             <DatedHeading title={opened.datedTitle} note={opened.pendingNote} />
             <LandlordFields control={control} errors={errors} />
@@ -117,7 +144,7 @@ export function LandlordRoomsForm({ form }: LandlordRoomsFormProps) {
         open={guard.asking}
         icon={Undo}
         title="Discard changes?"
-        body="Your edits to the landlord rent and rooms haven’t been saved. If you leave now, they’ll be lost."
+        body="Your edits to the rent and rooms haven’t been saved. If you leave now, they’ll be lost."
         cancelLabel="Keep editing"
         onCancel={guard.keepEditing}
         confirmLabel="Discard"

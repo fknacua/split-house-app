@@ -24,7 +24,7 @@ export function RoomField({ control, rooms, error }: RoomFieldProps) {
       {noRoom ? (
         <>
           <Alert variant="info" message="No empty rooms" />
-          <LandlordRoomsLink label="Open Landlord & rooms" />
+          <LandlordRoomsLink label="Open Rent & rooms" />
         </>
       ) : null}
       {picked ? <RoomFacts facts={picked.facts} /> : null}

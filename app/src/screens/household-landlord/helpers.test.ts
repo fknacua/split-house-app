@@ -4,8 +4,8 @@ import type { HouseholdHomeFormResponse } from '@splithouse/shared';
 import { EMPTY_NEW_ROOM, hasHomeChanges, isNewRoomFilled, toHomeEdit, toHomeFormValues } from './helpers';
 
 const FORM: HouseholdHomeFormResponse = {
-  title: 'Landlord & rooms',
-  sub: 'Rent you pay the landlord',
+  title: 'Rent & rooms',
+  sub: 'Rent, due dates and rooms',
   datedTitle: 'From December 2026',
   pendingNote: null,
   values: { landlordRentCents: 430000, landlordDueDay: 1, billDueDay: 16 },
@@ -106,6 +106,35 @@ describe('toHomeEdit', () => {
   it('fills a blank First run form with nulls', () => {
     const blank = { ...FORM, values: { landlordRentCents: null, landlordDueDay: null, billDueDay: null } };
     expect(toHomeFormValues(blank)).toMatchObject({ landlordRentCents: null, landlordDueDay: null, billDueDay: null });
+  });
+
+  it('seeds the rooms to add and sends the master room as a new room', () => {
+    const first: HouseholdHomeFormResponse = {
+      ...FORM,
+      values: { landlordRentCents: null, landlordDueDay: null, billDueDay: null },
+      rooms: [],
+      roomsToAdd: [
+        {
+          roomType: 'MASTER',
+          title: 'Master room',
+          name: 'Master room',
+          airconUnits: null,
+          rentCents: null,
+          includeInTotal: null,
+          calculatedRent: '—',
+          occupants: 'You',
+          badge: null,
+          canRemove: false,
+        },
+      ],
+    };
+    const values = toHomeFormValues(first);
+    expect(values.newRooms).toEqual([
+      { roomType: 'MASTER', name: 'Master room', airconUnits: null, rentCents: null, includeInTotal: false },
+    ]);
+    expect(hasHomeChanges(values, first)).toBe(false);
+    values.newRooms[0].airconUnits = 2;
+    expect(toHomeEdit(values).newRooms).toEqual([{ roomType: 'MASTER', name: 'Master room', airconUnits: 2 }]);
   });
 });
 

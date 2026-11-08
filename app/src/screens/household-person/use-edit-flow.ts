@@ -1,7 +1,13 @@
 import { useRouter } from 'expo-router';
 
 import { useSuccessToast } from '@/components';
-import { useDebouncedValue, useHouseholdEditPreview, useSaveHouseholdEdit, useUnsavedGuard } from '@/hooks';
+import {
+  useBootstrap,
+  useDebouncedValue,
+  useHouseholdEditPreview,
+  useSaveHouseholdEdit,
+  useUnsavedGuard,
+} from '@/hooks';
 import { ApiRequestError } from '@/lib/api';
 import type { HouseholdEdit } from '@splithouse/shared';
 
@@ -18,7 +24,8 @@ export const requestMessage = (error: Error | null) => (error instanceof ApiRequ
 
 /**
  * What a Household form does with its edit: previews it as it changes, saves it and returns to the overview with
- * a toast, and asks first when leaving with unsaved changes.
+ * a toast (in first setup, back to the page that opened it, such as Welcome), and asks first when leaving with
+ * unsaved changes.
  *
  * @param edit The edit the form's values make now.
  * @param dirty Whether leaving would lose anything.
@@ -28,6 +35,7 @@ export function useEditFlow(edit: HouseholdEdit, dirty: boolean) {
   const router = useRouter();
   const save = useSaveHouseholdEdit();
   const showToast = useSuccessToast();
+  const setupComplete = useBootstrap().data?.setupComplete ?? true;
   const previewedEdit = useDebouncedValue(edit, PREVIEW_DELAY_MS);
   const preview = useHouseholdEditPreview(previewedEdit);
   const answered =
@@ -47,7 +55,9 @@ export function useEditFlow(edit: HouseholdEdit, dirty: boolean) {
     save.mutate(edit, {
       onSuccess: () => {
         showToast('Changes saved');
-        router.dismissTo('/household');
+        // In first setup there is no Household tab, so the editor goes back to the page that opened it.
+        if (setupComplete) router.dismissTo('/household');
+        else leave();
       },
     });
 

@@ -87,7 +87,7 @@ export function PersonForm({ form }: PersonFormProps) {
             {form.room.length > 0 ? (
               <FormSection title="Room" separated>
                 <RoomFacts facts={form.room} />
-                <LandlordRoomsLink label="Change on Landlord & rooms" />
+                <LandlordRoomsLink label="Change on Rent & rooms" />
               </FormSection>
             ) : null}
 

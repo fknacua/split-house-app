@@ -68,3 +68,29 @@ describe('monthPickerOpeningYear', () => {
     expect(monthPickerOpeningYear('', [], '2026-11')).toBe(2026);
   });
 });
+
+describe('open-ended months', () => {
+  const from = { from: '2027-01' };
+
+  it('allows every month from the first one onward', () => {
+    expect(monthPickerCells(2026, from, '').some((cell) => cell.allowed)).toBe(false);
+    expect(monthPickerCells(2027, from, '').every((cell) => cell.allowed)).toBe(true);
+    expect(monthPickerCells(2040, from, '').every((cell) => cell.allowed)).toBe(true);
+  });
+
+  it('allows a first month in the middle of its year from that month', () => {
+    const cells = monthPickerCells(2026, { from: '2026-11' }, '');
+    expect(cells.filter((cell) => cell.allowed).map((cell) => cell.name)).toEqual(['Nov', 'Dec']);
+  });
+
+  it('always has a next year and goes back no further than the first', () => {
+    expect(monthPickerAdjacentYears(2027, from)).toEqual({ previous: null, next: 2028 });
+    expect(monthPickerAdjacentYears(2029, from)).toEqual({ previous: 2028, next: 2030 });
+  });
+
+  it('opens on this year when the first month is in it, otherwise on the first month’s year', () => {
+    expect(monthPickerOpeningYear('', { from: '2026-12' }, '2026-11')).toBe(2026);
+    expect(monthPickerOpeningYear('', from, '2026-11')).toBe(2027);
+    expect(monthPickerOpeningYear('2028-03', from, '2026-11')).toBe(2028);
+  });
+});

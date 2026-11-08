@@ -40,10 +40,11 @@ export const EMPTY_NEW_ROOM: NewRoomFormValues = {
 };
 
 /**
- * Fills the form from the server's response.
+ * Fills the form from the server's response. The rooms to add (First run's master room before the first save) start
+ * in `newRooms`, so they go with the save.
  *
  * @param form The form response.
- * @returns The form's values, with no room removed or added.
+ * @returns The form's values, with no room removed and only the server's rooms to add.
  */
 export function toHomeFormValues(form: HouseholdHomeFormResponse): HomeFormValues {
   return {
@@ -57,7 +58,13 @@ export function toHomeFormValues(form: HouseholdHomeFormResponse): HomeFormValue
       includeInTotal: room.includeInTotal ?? false,
       removed: false,
     })),
-    newRooms: [],
+    newRooms: form.roomsToAdd.map((room) => ({
+      roomType: room.roomType,
+      name: room.name,
+      airconUnits: room.airconUnits,
+      rentCents: room.rentCents,
+      includeInTotal: room.includeInTotal ?? false,
+    })),
   };
 }
 

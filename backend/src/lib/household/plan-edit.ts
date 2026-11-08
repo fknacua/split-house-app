@@ -14,6 +14,7 @@ import {
   type PersonConfig,
 } from "@splithouse/shared";
 import { applyHouseholdEdit } from "./apply-edit";
+import { changedRows } from "./summary-rows";
 import { personColorName } from "./person-color";
 import { hasPayersVia, paysViaSomeone, routeText, viaOf } from "./route-via";
 
@@ -154,7 +155,7 @@ export function planPersonChanges(edit: HouseholdPersonEdit, person: EditPerson)
       errors.whatsappE164 = "Enter a valid phone number.";
     } else if (edit.whatsappE164 !== person.whatsappE164) {
       changes.whatsappE164 = edit.whatsappE164;
-      rows.push({ label: "WhatsApp", from: person.whatsappE164 ?? NONE, to: edit.whatsappE164 ?? NONE });
+      rows.push({ label: "WhatsApp", from: person.whatsappE164, to: edit.whatsappE164 ?? NONE });
     }
   }
   if (edit.color !== undefined && edit.color !== person.color) {
@@ -187,7 +188,7 @@ function datedRows(fromConfig: HouseholdConfig, toConfig: HouseholdConfig, perso
       to: routeText(viaOf(to, "UTILITIES"), names),
     },
   ];
-  return rows.filter((row) => row.from !== row.to);
+  return changedRows(rows);
 }
 
 /**

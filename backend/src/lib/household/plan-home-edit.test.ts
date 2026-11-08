@@ -35,7 +35,7 @@ describe("planHomeEdit", () => {
       {
         title: "Saves from Dec 2026",
         rows: [
-          { label: "Landlord rent", from: "$4,300.00", to: "$4,400.00" },
+          { label: "Rent amount", from: "$4,300.00", to: "$4,400.00" },
           { label: "Your rent share", from: "$1,675.00", to: "$1,725.00" },
           { label: "Priya’s rent", from: "$1,675.00", to: "$1,725.00" },
         ],
@@ -123,8 +123,8 @@ describe("planHomeEdit", () => {
       rooms: [{ id: ROOM_IDS.room3, name: "Study", airconUnits: 2, includeInTotal: true }],
     });
     expect(rowsOf(result)).toEqual([
-      { label: "Pay landlord on", from: "1st", to: "5th" },
-      { label: "Utilities bill due", from: "16th", to: "18th" },
+      { label: "Rent due date", from: "1st", to: "5th" },
+      { label: "Utilities due date", from: "16th", to: "18th" },
       { label: "Room 3 name", from: "Room 3", to: "Study" },
       { label: "Room 3 aircon units", from: "1", to: "2" },
       { label: "Room 3 in total", from: "No", to: "Yes" },
@@ -137,7 +137,7 @@ describe("planHomeEdit", () => {
 
   it("clears the optional bill due day, leaving no key behind", () => {
     const result = plan({ billDueDay: null });
-    expect(rowsOf(result)).toEqual([{ label: "Utilities bill due", from: "16th", to: "—" }]);
+    expect(rowsOf(result)).toEqual([{ label: "Utilities due date", from: "16th", to: "—" }]);
     expect(result.nextConfig?.categories.utilities).not.toHaveProperty("billDueDay");
   });
 
@@ -153,8 +153,8 @@ describe("planHomeEdit", () => {
       ["room-a", "room-b"],
     );
     expect(rowsOf(result)).toEqual([
-      { label: "Room 4", from: "—", to: "Added" },
-      { label: "Study", from: "—", to: "Added" },
+      { label: "Room 4", from: null, to: "Added" },
+      { label: "Study", from: null, to: "Added" },
       { label: "Aircon units", from: "6", to: "7" },
     ]);
     expect(result.nextConfig?.rooms.at(-2)).toEqual({
@@ -177,7 +177,7 @@ describe("planHomeEdit", () => {
       newRooms: [{ roomType: "TENANT", name: "", airconUnits: null, rentCents: null, includeInTotal: true }],
     });
     expect(result.errors).toEqual({
-      landlordRentCents: "Enter the landlord rent.",
+      landlordRentCents: "Enter the rent amount.",
       landlordDueDay: "Enter a day from 1 to 31.",
       [`rooms.${ROOM_IDS.room2}.name`]: "Enter a room name.",
       [`rooms.${ROOM_IDS.room2}.airconUnits`]: "Enter the aircon units.",

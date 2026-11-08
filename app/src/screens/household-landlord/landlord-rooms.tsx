@@ -15,7 +15,7 @@ export function LandlordRooms() {
   if (!data) {
     return (
       <Screen>
-        <SubpageHeader title="Landlord & rooms" loading={isPending} />
+        <SubpageHeader title="Rent & rooms" loading={isPending} />
         {error instanceof ApiRequestError ? (
           <View className="px-4 pt-2">
             <Alert variant="danger" message={error.message} />

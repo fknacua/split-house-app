@@ -61,7 +61,7 @@ export interface RoomFactsProps {
 
 /** Props for {@link LandlordRoomsLink}. */
 export interface LandlordRoomsLinkProps {
-  /** e.g. `Change on Landlord & rooms`. */
+  /** e.g. `Change on Rent & rooms`. */
   label: string;
 }
 
