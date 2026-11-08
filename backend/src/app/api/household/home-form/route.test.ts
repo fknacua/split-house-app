@@ -68,7 +68,7 @@ describe("GET /api/household/home-form", () => {
     const response = await GET(request(), undefined);
     expect(response.status).toBe(200);
     const body = householdHomeFormResponseSchema.parse(await response.json());
-    expect(body.datedTitle).toBe("From November 2026");
+    expect(body.datedTitle).toBeNull();
     expect(body.pendingNote).toBeNull();
     expect(body.values).toEqual({ landlordRentCents: null, landlordDueDay: null, billDueDay: null });
     expect(body.rooms).toEqual([]);
@@ -98,16 +98,6 @@ describe("GET /api/household/home-form", () => {
       code: "start_month_first",
       message: "Choose the start month first.",
     });
-  });
-
-  it("starts the blank form from a saved later start month", async () => {
-    useHousehold([]);
-    Object.assign(prisma, {
-      month: { findFirst: async () => null },
-      setup: { findUnique: async () => ({ startMonth: "2027-01", doneSteps: ["startMonth"] }) },
-    });
-    const body = householdHomeFormResponseSchema.parse(await (await GET(request(), undefined)).json());
-    expect(body.datedTitle).toBe("From January 2027");
   });
 
   it("answers 404 no_version when a month is open but no version covers next month", async () => {

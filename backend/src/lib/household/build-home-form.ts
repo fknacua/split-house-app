@@ -18,6 +18,8 @@ export interface HomeFormInput {
   config: HouseholdConfig;
   /** The active month's config, to tell whether the saved values have taken effect yet. */
   activeConfig: HouseholdConfig | null;
+  /** True in First run: every edit saves into the first version, so the heading above the cards is left out. */
+  firstSetup?: boolean;
   /** Everyone's `Person` rows, for the names. */
   people: { id: string; name: string }[];
 }
@@ -81,7 +83,7 @@ function roomCard(config: HouseholdConfig, room: HouseholdRoom, names: Map<strin
  * @returns The response for `GET /api/household/home-form`.
  */
 export function buildHomeForm(input: HomeFormInput): HouseholdHomeFormResponse {
-  const { activeConfig, config, month } = input;
+  const { activeConfig, config, month, firstSetup } = input;
   const names = new Map(input.people.map((p) => [p.id, p.name]));
   const { rent, utilities } = config.categories;
   const monthLabel = formatMonthLabel(month);
@@ -90,7 +92,7 @@ export function buildHomeForm(input: HomeFormInput): HouseholdHomeFormResponse {
   return {
     title: "Rent & rooms",
     sub: "Rent, due dates and rooms",
-    datedTitle: `From ${monthLabel}`,
+    datedTitle: firstSetup ? null : `From ${monthLabel}`,
     pendingNote: isPending ? `These take effect from ${monthLabel}.` : null,
     values: {
       landlordRentCents: rent.landlordRentCents,
@@ -107,16 +109,16 @@ export function buildHomeForm(input: HomeFormInput): HouseholdHomeFormResponse {
 
 /**
  * The Landlord & rooms screen for First run's first save, before any version exists: every field blank, no saved
- * rooms, and the master room to add, which can't be removed.
+ * rooms, the master room to add, which can't be removed, and no heading above the cards, since it saves into the
+ * first version.
  *
- * @param month - The start month, `YYYY-MM`, which the first version starts from.
  * @returns The response for `GET /api/household/home-form`.
  */
-export function buildFirstHomeForm(month: string): HouseholdHomeFormResponse {
+export function buildFirstHomeForm(): HouseholdHomeFormResponse {
   return {
     title: "Rent & rooms",
     sub: "Rent, due dates and rooms",
-    datedTitle: `From ${formatMonthLabel(month)}`,
+    datedTitle: null,
     pendingNote: null,
     values: { landlordRentCents: null, landlordDueDay: null, billDueDay: null },
     rooms: [],

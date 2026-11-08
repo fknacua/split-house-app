@@ -11,8 +11,8 @@ export interface LandlordRoomsFormProps {
 
 /** Props for {@link DatedHeading}. */
 export interface DatedHeadingProps {
-  /** e.g. `From December 2026`. */
-  title: string;
+  /** e.g. `From December 2026`, or null in First run, when only the note, if any, shows. */
+  title: string | null;
   /** The line with the clock under it, or null for none. */
   note: string | null;
 }

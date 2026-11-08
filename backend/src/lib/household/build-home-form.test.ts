@@ -130,4 +130,9 @@ describe("buildHomeForm", () => {
     const config = { ...NOV_2026_CONFIG, recurring: [] };
     expect(form(config, NOV_2026_CONFIG).pendingNote).toBeNull();
   });
+
+  it("leaves out the heading above the cards in First run", () => {
+    const body = buildHomeForm({ month: "2026-12", config: NOV_2026_CONFIG, activeConfig: NOV_2026_CONFIG, people: PEOPLE, firstSetup: true });
+    expect(householdHomeFormResponseSchema.parse(body).datedTitle).toBeNull();
+  });
 });

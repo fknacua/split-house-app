@@ -18,6 +18,8 @@ export interface SplitFormInput {
   config: HouseholdConfig;
   /** The active month's config, to tell whether the saved values have taken effect yet. */
   activeConfig: HouseholdConfig | null;
+  /** True in First run: every edit saves into the first version, so the heading above the cards is left out. */
+  firstSetup?: boolean;
   /** Everyone's `Person` rows, for the names and colors. */
   people: { id: string; name: string; color: PersonColor }[];
 }
@@ -53,7 +55,7 @@ function comparableValues(config: HouseholdConfig) {
  * @throws {Error} When the config has no owner.
  */
 export function buildSplitForm(input: SplitFormInput): HouseholdSplitFormResponse {
-  const { activeConfig, config, month } = input;
+  const { activeConfig, config, month, firstSetup } = input;
   const nameOf = (personId: string) => input.people.find((p) => p.id === personId)?.name ?? "Someone";
   const colorOf = (personId: string) => input.people.find((p) => p.id === personId)?.color ?? FALLBACK_COLOR;
   const owner = config.people.find((p) => p.role === "OWNER");
@@ -67,7 +69,7 @@ export function buildSplitForm(input: SplitFormInput): HouseholdSplitFormRespons
 
   return {
     title: "Household split",
-    datedTitle: `From ${monthLabel}`,
+    datedTitle: firstSetup ? null : `From ${monthLabel}`,
     pendingNote: isPending ? `These take effect from ${monthLabel}.` : null,
     splitTitle: primary ? `Split between you and ${nameOf(primary.personId)}` : null,
     owner: { name: "You", color: colorOf(owner.personId) },

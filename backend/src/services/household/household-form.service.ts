@@ -132,10 +132,10 @@ export async function getHouseholdAddForm(db: HouseholdFormDb): Promise<Househol
 export async function getHouseholdHomeForm(db: HouseholdFormDb): Promise<HouseholdHomeFormResponse> {
   const context = await readFormContext(db);
   if (context.firstSetup) requireStepsBefore("rentAndRooms", context.doneSteps);
-  if (!context.config && context.firstSetup) return buildFirstHomeForm(context.month);
+  if (!context.config && context.firstSetup) return buildFirstHomeForm();
   const next = requireConfig(context);
   const activeConfig = await readActiveConfig(db, next);
-  return buildHomeForm({ month: next.month, config: next.config, activeConfig, people: next.people });
+  return buildHomeForm({ month: next.month, config: next.config, activeConfig, people: next.people, firstSetup: next.firstSetup });
 }
 
 /**
@@ -150,7 +150,7 @@ export async function getHouseholdSplitForm(db: HouseholdFormDb): Promise<Househ
   const next = await readNextVersion(db);
   if (next.firstSetup) requireStepsBefore("householdSplits", next.doneSteps);
   const activeConfig = await readActiveConfig(db, next);
-  return buildSplitForm({ month: next.month, config: next.config, activeConfig, people: next.people });
+  return buildSplitForm({ month: next.month, config: next.config, activeConfig, people: next.people, firstSetup: next.firstSetup });
 }
 
 /**
