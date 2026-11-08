@@ -7,18 +7,6 @@ import { readSetup, type SetupReadDb } from "./setup-record.service";
 /** What reading where edits start needs. */
 export type EditMonthDb = ActiveMonthDb & SetupReadDb;
 
-/**
- * The month First run's household starts, which the first version starts from: the saved start month, or the current
- * month when none is saved or the saved one has passed.
- *
- * @param db - The Prisma client, a transaction, or a fake in tests.
- * @returns The month key, `YYYY-MM`.
- */
-export async function getStartMonth(db: SetupReadDb): Promise<string> {
-  const { startMonth } = await readSetup(db);
-  return effectiveStartMonth(startMonth, currentMonth());
-}
-
 /** Where household edits start, and whether First run is still on. */
 export interface EditMonth {
   /** The month a new edit starts from: the start month in First run, otherwise the month after the active one. */
