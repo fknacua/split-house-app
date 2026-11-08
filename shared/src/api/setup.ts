@@ -1,5 +1,6 @@
 import { z } from 'zod';
 import { monthKey } from '../schemas/primitives';
+import { householdActionSchema, householdPersonSchema } from './household';
 
 /** First run's steps, in the order of `Welcome.dc.html`. Reminders joins in Phase 13. */
 export const SETUP_STEP_IDS = ['startMonth', 'rentAndRooms', 'people', 'householdSplits', 'messages'] as const;
@@ -167,3 +168,31 @@ export const setupSaveResponseSchema = z.object({
 
 /** `POST /api/setup/start-month` and `POST /api/setup/steps/:id`: the steps now done. */
 export type SetupSaveResponse = z.infer<typeof setupSaveResponseSchema>;
+
+/**
+ * `GET /api/setup/people`: First run's People page, ready to render. The cards are Household's, with View and Edit and
+ * no sub line: the primary tenant, then the tenants. The owner has no card.
+ */
+export const setupPeopleResponseSchema = z.object({
+  /** `People`. */
+  title: z.string(),
+  /** `Who pays you`. */
+  sub: z.string(),
+  /** `People`, the list's heading. */
+  heading: z.string(),
+  people: z.array(householdPersonSchema),
+  /** The empty card while nobody is added: `No people yet` and its `Add person` button. Null once someone is. */
+  empty: z.object({ text: z.string(), add: householdActionSchema }).nullable(),
+  /** `Add more`, beside the heading once someone is added. Null until then. */
+  addMore: householdActionSchema.nullable(),
+  /** The footer button, which marks People done through `POST /api/setup/steps/people`. */
+  save: z.object({
+    /** `Save people`. */
+    label: z.string(),
+    /** True once anyone besides the owner is in the household. */
+    enabled: z.boolean(),
+  }),
+});
+
+/** `GET /api/setup/people`: First run's People page, ready to render. */
+export type SetupPeopleResponse = z.infer<typeof setupPeopleResponseSchema>;

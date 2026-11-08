@@ -14,7 +14,8 @@ import type { useEditFlow } from './use-edit-flow';
 
 /** Props for {@link FormSection}. */
 export interface FormSectionProps {
-  title: string;
+  /** Null for an untitled group, e.g. the dated group in First run. */
+  title: string | null;
   /** A line under the title, or null for none. */
   note?: string | null;
   /** Draws the rule above the section. False for the first one. */

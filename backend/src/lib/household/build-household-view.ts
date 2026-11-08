@@ -66,8 +66,26 @@ function personFacts(config: HouseholdConfig, person: PersonConfig, remainders: 
   ];
 }
 
+/** What the person cards read. */
+type PersonCardsInput = Pick<HouseholdViewInput, "config" | "editablePersonIds" | "people">;
+
+/**
+ * The person cards as Household draws them, for a page that lists people without the rest of Household (First run's
+ * People): the primary tenant, the tenants in config order, then the owner as `You`.
+ *
+ * @param input - The config, who gets View and Edit, and everyone's names and colors.
+ * @returns The cards.
+ */
+export function buildPersonCards(input: PersonCardsInput): HouseholdPerson[] {
+  const lookup: PersonLookup = {
+    names: new Map(input.people.map((p) => [p.id, p.name])),
+    colors: new Map(input.people.map((p) => [p.id, p.color])),
+  };
+  return personCards(input, remaindersOf(input.config), lookup);
+}
+
 /** Everyone's cards as drawn: the primary tenant, the tenants in config order, then the owner as `You`. */
-function personCards(input: HouseholdViewInput, remainders: Remainders, { names, colors }: PersonLookup): HouseholdPerson[] {
+function personCards(input: PersonCardsInput, remainders: Remainders, { names, colors }: PersonLookup): HouseholdPerson[] {
   const { config } = input;
   const { owner, primary } = remainders;
   const tenants = config.people.filter((p) => p.role === "TENANT");

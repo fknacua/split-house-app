@@ -48,6 +48,7 @@ describe("GET /api/household/add-form", () => {
     expect(body.title).toBe("Add subtenant");
     expect(body.sub).toBe("New person in the household");
     expect(body.datedTitle).toBe("From December 2026");
+    expect(body.saveLabel).toBe("Save changes");
   });
 
   it("defaults to the first color nobody in the version uses, and never offers Teal", async () => {
@@ -81,14 +82,45 @@ describe("GET /api/household/add-form", () => {
       {
         id: ROOM_IDS.room3,
         name: "Room 3",
+        role: "TENANT",
         facts: [
           { label: "Rent (SGD)", value: "$950.00" },
           { label: "Aircon units", value: "1" },
         ],
+        note: null,
       },
     ]);
   });
 
+  it("reads Add person in First run, undated, offering the master room while there is no primary tenant", async () => {
+    // November's household without its primary tenant, Sam paying directly, everything split to the owner.
+    const config = {
+      ...NOV_2026_CONFIG,
+      people: NOV_2026_CONFIG.people.filter((p) => p.personId !== PERSON_IDS.priya).map((p) => ({ ...p, routes: {} })),
+      categories: {
+        rent: { ...NOV_2026_CONFIG.categories.rent, ownerBps: 10000, primaryBps: 0 },
+        utilities: { ...NOV_2026_CONFIG.categories.utilities, ownerBps: 10000, primaryBps: 0 },
+        aircon: { ownerBps: 10000, primaryBps: 0 },
+      },
+      recurring: [],
+    };
+    useHousehold([{ ...VERSION, config }]);
+    Object.assign(prisma.month, { findFirst: async () => null });
+    const response = await GET(request(), undefined);
+    expect(response.status).toBe(200);
+    const body = householdAddFormResponseSchema.parse(await response.json());
+    expect(body).toMatchObject({ title: "Add person", saveLabel: "Add person", datedTitle: null });
+    expect(body.rooms.map((r) => [r.name, r.role])).toEqual([["Master room", "PRIMARY"]]);
+    expect(body.rooms[0].note).toContain("Household splits");
+  });
+
+  it("answers 409 in First run before the steps ahead of People are done", async () => {
+    Object.assign(prisma.month, { findFirst: async () => null });
+    Object.assign(prisma.setup, { findUnique: async () => ({ startMonth: null, doneSteps: [] }) });
+    const response = await GET(request(), undefined);
+    expect(response.status).toBe(409);
+    expect((await response.json()).error.code).toBe("start_month_first");
+  });
   it("answers 409 rooms_first in First run before Rent & rooms is saved", async () => {
     useHousehold([]);
     Object.assign(prisma.month, { findFirst: async () => null });

@@ -29,39 +29,66 @@ export interface HouseholdFormInput {
   personId: string;
   /** Everyone's `Person` rows. */
   people: { id: string; name: string; whatsappE164: string | null; color: PersonColor; isOwner: boolean }[];
+  /** True in First run: every edit saves into the first version, so the dated group has no title. */
+  firstSetup?: boolean;
 }
+
+/** The note under the master room on Add person in First run. */
+export const PRIMARY_ROOM_NOTE = "Their rent, utilities and aircon come from Household splits, where they start at 50/50 with you.";
+
+/** The remove dialog's body in First run, where nobody has been charged yet. */
+export const FIRST_SETUP_REMOVE_BODY = "You need to create a new entry again if you wish to include them again.";
 
 /** Money without its `$`, since the label says SGD. */
 const plainMoney = (cents: number) => formatCents(cents).replace("$", "");
 const dayText = (day: number | undefined) => (day ? formatDayOrdinal(day) : NONE);
 
+/** The dated group's title: `From {month}`, or none in First run. */
+const datedTitleOf = (month: string, firstSetup: boolean | undefined) => (firstSetup ? null : `From ${formatMonthLabel(month)}`);
+
+/** The master room, offered in First run while there is no primary tenant. Picking it makes them the primary tenant. */
+function primaryRoomChoice(config: HouseholdConfig, firstSetup: boolean | undefined): HouseholdAddFormResponse["rooms"] {
+  const master = config.rooms.find((room) => room.roomType === "MASTER");
+  if (!firstSetup || !master || config.people.some((p) => p.role === "PRIMARY")) return [];
+  return [{ id: master.id, name: master.name, role: "PRIMARY", facts: [], note: PRIMARY_ROOM_NOTE }];
+}
+
 /**
- * The Add subtenant screen, display-ready. The default color is the first one nobody in the config uses.
+ * The Add subtenant screen, display-ready, or Add person in First run, which also offers the master room while there
+ * is no primary tenant. The default color is the first one nobody in the config uses.
  *
- * @param input - The month the tenant joins from, its config and everyone's rows.
+ * @param input - The month the person joins from, its config, everyone's rows and whether First run is on.
  * @returns The response for `GET /api/household/add-form`.
  */
-export function buildAddPersonForm(input: Pick<HouseholdFormInput, "month" | "config" | "people">): HouseholdAddFormResponse {
-  const { config, month, people } = input;
+export function buildAddPersonForm(
+  input: Pick<HouseholdFormInput, "month" | "config" | "people" | "firstSetup">,
+): HouseholdAddFormResponse {
+  const { config, month, people, firstSetup } = input;
   const inConfig = new Set(config.people.map((p) => p.personId));
   const color = nextPersonColor(people.filter((p) => inConfig.has(p.id)).map((p) => p.color));
 
   return {
-    title: "Add subtenant",
+    title: firstSetup ? "Add person" : "Add subtenant",
     sub: "New person in the household",
-    datedTitle: `From ${formatMonthLabel(month)}`,
+    saveLabel: firstSetup ? "Add person" : "Save changes",
+    datedTitle: datedTitleOf(month, firstSetup),
     color,
     colorName: personColorName(color),
     swatches: TENANT_PERSON_COLORS.map((c) => ({ color: c, name: personColorName(c) })),
     sentViaOptions: sentViaChoices(config.people, new Map(people.map((p) => [p.id, p.name])), null),
-    rooms: emptyTenantRooms(config).map((room) => ({
-      id: room.id,
-      name: room.name,
-      facts: [
-        { label: "Rent (SGD)", value: formatCents(room.rentCents) },
-        { label: "Aircon units", value: String(room.airconUnits) },
-      ],
-    })),
+    rooms: [
+      ...primaryRoomChoice(config, firstSetup),
+      ...emptyTenantRooms(config).map((room) => ({
+        id: room.id,
+        name: room.name,
+        role: "TENANT" as const,
+        facts: [
+          { label: "Rent (SGD)", value: formatCents(room.rentCents) },
+          { label: "Aircon units", value: String(room.airconUnits) },
+        ],
+        note: null,
+      })),
+    ],
   };
 }
 
@@ -106,6 +133,8 @@ export function buildHouseholdForm(input: HouseholdFormInput): HouseholdFormResp
 
   const names = new Map(input.people.map((p) => [p.id, p.name]));
   const isTenant = person.role === "TENANT";
+  // In First run anyone added can be removed, the primary tenant too; once a month is open, only a tenant.
+  const removable = isTenant || (input.firstSetup === true && person.role === "PRIMARY");
   const rentVia = viaOf(person, "RENT");
   const utilitiesVia = viaOf(person, "UTILITIES");
   const dueRows = {
@@ -128,7 +157,7 @@ export function buildHouseholdForm(input: HouseholdFormInput): HouseholdFormResp
     personId,
     title: `Edit ${row.name}`,
     viewTitle: row.name,
-    datedTitle: `From ${monthLabel}`,
+    datedTitle: datedTitleOf(month, input.firstSetup),
     pendingNote:
       isDeepStrictEqual(activePerson, person) && isDeepStrictEqual(activeRoom, room)
         ? null
@@ -169,9 +198,13 @@ export function buildHouseholdForm(input: HouseholdFormInput): HouseholdFormResp
           ]
         : [],
     },
-    secondaryAction: isTenant
+    secondaryAction: removable
       ? { label: "Remove from household", kind: "remove-person" }
       : { label: "Cancel", kind: "cancel" },
-    removeDialog: isTenant ? removeDialog(config, person, names, monthLabel) : null,
+    removeDialog: !removable
+      ? null
+      : input.firstSetup
+        ? { title: `Remove ${row.name} from household?`, body: FIRST_SETUP_REMOVE_BODY, roomLine: null, keeps: [] }
+        : removeDialog(config, person, names, monthLabel),
   };
 }

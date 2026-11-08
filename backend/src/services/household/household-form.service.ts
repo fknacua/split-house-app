@@ -106,15 +106,17 @@ export async function readActiveConfig(
 }
 
 /**
- * Reads the Add subtenant form: the version in effect next month, which is what a new tenant joins. Read-only.
+ * Reads the Add subtenant form: the version in effect next month, which is what a new tenant joins. In First run it is
+ * Add person, on the first version, with the master room while there is no primary tenant. Read-only.
  *
  * @param db - The Prisma client, or a fake in tests.
- * @returns The Add subtenant screen.
- * @throws {ApiError} The same as `readNextVersion`.
+ * @returns The Add subtenant or Add person screen.
+ * @throws {ApiError} The same as `readNextVersion`; in First run, 409 for the first step before People not done.
  */
 export async function getHouseholdAddForm(db: HouseholdFormDb): Promise<HouseholdAddFormResponse> {
-  const { month, config, people } = await readNextVersion(db);
-  return buildAddPersonForm({ month, config, people });
+  const { month, config, people, firstSetup, doneSteps } = await readNextVersion(db);
+  if (firstSetup) requireStepsBefore("people", doneSteps);
+  return buildAddPersonForm({ month, config, people, firstSetup });
 }
 
 /**
@@ -164,11 +166,11 @@ export async function getHouseholdSplitForm(db: HouseholdFormDb): Promise<Househ
  */
 export async function getHouseholdForm(db: HouseholdFormDb, query: HouseholdFormQuery): Promise<HouseholdFormResponse> {
   const next = await readNextVersion(db);
-  const { month, config, people } = next;
+  const { month, config, people, firstSetup } = next;
   const known = people.some((p) => p.id === query.personId);
   if (!known || !config.people.some((p) => p.personId === query.personId)) {
     throw new ApiError(404, "no_person", "This person is not in the household next month.");
   }
   const activeConfig = await readActiveConfig(db, next);
-  return buildHouseholdForm({ month, config, activeConfig, personId: query.personId, people });
+  return buildHouseholdForm({ month, config, activeConfig, personId: query.personId, people, firstSetup });
 }
