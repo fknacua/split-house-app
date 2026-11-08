@@ -10,7 +10,7 @@ import {
   ActionsheetDragIndicator,
   ActionsheetDragIndicatorWrapper,
 } from '@/components/ui/select/select-actionsheet';
-import { monthPickerAdjacentYears, monthPickerCells, type MonthPickerCell } from './helpers';
+import { monthPickerAdjacentYears, monthPickerCells, type MonthPickerCell, type MonthPickerMonths } from './helpers';
 
 /** Cells per row of the month grid. */
 const MONTHS_PER_ROW = 3;
@@ -68,7 +68,7 @@ function MonthCell({ cell, onPress }: { cell: MonthPickerCell; onPress: (month: 
  * @param title - The sheet's title, such as "Starts from".
  * @param year - The year shown.
  * @param onYearChange - Called by the year arrows.
- * @param months - The months that can be picked, as `YYYY-MM` keys.
+ * @param months - The months that can be picked: `YYYY-MM` keys, or `{ from }` for every month from one onward.
  * @param value - The picked month, or `''`.
  * @param onPick - Called with the month tapped.
  * @param onClose - Called when the sheet is dismissed.
@@ -87,7 +87,7 @@ export function MonthPickerSheet({
   title: string;
   year: number;
   onYearChange: (year: number) => void;
-  months: string[];
+  months: MonthPickerMonths;
   value: string;
   onPick: (month: string) => void;
   onClose: () => void;

@@ -13,6 +13,7 @@ import {
 } from "@splithouse/shared";
 import { splitRemainderByBps } from "@/lib/split/engine";
 import { applyHomeEdit } from "./apply-edit";
+import { changedRows } from "./summary-rows";
 import { DAY_ERROR, type ParsedVersion } from "./plan-edit";
 import { masterRentCents, peopleIn, totalAirconUnits } from "./room-amounts";
 
@@ -118,8 +119,8 @@ function fieldChecks(edit: HouseholdHomeEdit, config: HouseholdConfig, isFirst: 
     else if (value !== undefined && value < 0) errors[key] = NEGATIVE_ERROR;
   };
 
-  if (isBlank(edit.landlordRentCents)) blank("landlordRentCents", "Enter the landlord rent.");
-  else checkAmount("landlordRentCents", edit.landlordRentCents, "Enter the landlord rent.");
+  if (isBlank(edit.landlordRentCents)) blank("landlordRentCents", "Enter the rent amount.");
+  else checkAmount("landlordRentCents", edit.landlordRentCents, "Enter the rent amount.");
   if (isBlank(edit.landlordDueDay)) blank("landlordDueDay", DAY_ERROR);
   const days = [
     ["landlordDueDay", edit.landlordDueDay ?? undefined],
@@ -206,7 +207,7 @@ function roomRows(room: HouseholdRoom, next: HouseholdRoom | undefined): Househo
 /** The summary rows: only what differs between the two configs. */
 function summaryRows(from: HouseholdConfig, to: HouseholdConfig, names: Map<string, string>): HouseholdEditRow[] {
   const landlord = {
-    label: "Landlord rent",
+    label: "Rent amount",
     from: formatCents(from.categories.rent.landlordRentCents),
     to: formatCents(to.categories.rent.landlordRentCents),
   };
@@ -217,15 +218,15 @@ function summaryRows(from: HouseholdConfig, to: HouseholdConfig, names: Map<stri
 
   const rows: HouseholdEditRow[] = [
     landlord,
-    { label: "Pay landlord on", from: dayText(from.categories.rent.landlordDueDay), to: dayText(to.categories.rent.landlordDueDay) },
-    { label: "Utilities bill due", from: dayText(from.categories.utilities.billDueDay), to: dayText(to.categories.utilities.billDueDay) },
+    { label: "Rent due date", from: dayText(from.categories.rent.landlordDueDay), to: dayText(to.categories.rent.landlordDueDay) },
+    { label: "Utilities due date", from: dayText(from.categories.utilities.billDueDay), to: dayText(to.categories.utilities.billDueDay) },
     ...from.rooms.flatMap((room) =>
       roomRows(
         room,
         to.rooms.find((r) => r.id === room.id),
       ),
     ),
-    ...added.map((room) => ({ label: room.name, from: NONE, to: "Added" })),
+    ...added.map((room) => ({ label: room.name, from: null, to: "Added" })),
     // The boards leave this row out beside Landlord rent, which already explains it.
     ...(master && landlord.from === landlord.to
       ? [{ label: `${master.name} rent`, from: formatCents(masterRentCents(from)), to: formatCents(masterRentCents(to)) }]
@@ -242,7 +243,7 @@ function summaryRows(from: HouseholdConfig, to: HouseholdConfig, names: Map<stri
       : []),
     { label: "Aircon units", from: String(totalAirconUnits(from)), to: String(totalAirconUnits(to)) },
   ];
-  return rows.filter((row) => row.from !== row.to);
+  return changedRows(rows);
 }
 
 /**

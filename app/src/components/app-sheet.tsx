@@ -11,6 +11,7 @@ import {
   BottomSheetScrollView,
   type BottomSheetRef,
 } from '@/components/ui/bottomsheet';
+import { InSheetContext } from '@/components/ui/bottomsheet/sheet-aware-text-input';
 
 /** What a screen can call on an `AppSheet` through its ref. */
 export interface AppSheetRef {
@@ -139,7 +140,9 @@ export const AppSheet = forwardRef<
         enablePanDownToClose={!saving}
         keyboardBehavior="interactive"
         keyboardBlurBehavior="restore"
-        android_keyboardInputMode="adjustResize"
+        // Not adjustResize: there the sheet waits for Android to shrink the window, which edge-to-edge never does,
+        // so the keyboard covered the lower fields. With adjustPan the sheet lifts itself above the keyboard.
+        android_keyboardInputMode="adjustPan"
         handleComponent={Grabber}
         backdropComponent={(props) => (
           <BottomSheetBackdrop {...props} pressBehavior={saving ? 'none' : 'close'} />
@@ -170,7 +173,8 @@ export const AppSheet = forwardRef<
             onContentSizeChange={(_, height) => measure('body', height)}
           >
             <View pointerEvents={saving ? 'none' : 'auto'} className="gap-4 px-4 py-3">
-              {children}
+              {/* The fields in the body use the sheet's own text input, so the sheet moves above the keyboard. */}
+              <InSheetContext.Provider value={true}>{children}</InSheetContext.Provider>
             </View>
           </BottomSheetScrollView>
 

@@ -20,8 +20,8 @@ describe("buildHomeForm", () => {
   it("gives the headings and the landlord values", () => {
     const body = form();
     expect(body).toMatchObject({
-      title: "Landlord & rooms",
-      sub: "Rent you pay the landlord",
+      title: "Rent & rooms",
+      sub: "Rent, due dates and rooms",
       datedTitle: "From December 2026",
       pendingNote: null,
       values: { landlordRentCents: 430000, landlordDueDay: 1, billDueDay: 16 },

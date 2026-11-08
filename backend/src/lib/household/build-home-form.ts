@@ -88,8 +88,8 @@ export function buildHomeForm(input: HomeFormInput): HouseholdHomeFormResponse {
   const isPending = !activeConfig || !isDeepStrictEqual(comparableValues(activeConfig), comparableValues(config));
 
   return {
-    title: "Landlord & rooms",
-    sub: "Rent you pay the landlord",
+    title: "Rent & rooms",
+    sub: "Rent, due dates and rooms",
     datedTitle: `From ${monthLabel}`,
     pendingNote: isPending ? `These take effect from ${monthLabel}.` : null,
     values: {
@@ -114,8 +114,8 @@ export function buildHomeForm(input: HomeFormInput): HouseholdHomeFormResponse {
  */
 export function buildFirstHomeForm(month: string): HouseholdHomeFormResponse {
   return {
-    title: "Landlord & rooms",
-    sub: "Rent you pay the landlord",
+    title: "Rent & rooms",
+    sub: "Rent, due dates and rooms",
     datedTitle: `From ${formatMonthLabel(month)}`,
     pendingNote: null,
     values: { landlordRentCents: null, landlordDueDay: null, billDueDay: null },

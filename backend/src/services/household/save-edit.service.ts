@@ -16,7 +16,7 @@ import {
   type PersonColor,
 } from "@splithouse/shared";
 import { ApiError } from "@/lib/api";
-import { emptyHouseholdConfig } from "@/lib/household/first-setup";
+import { emptyHouseholdConfig, firstSetupGroups } from "@/lib/household/first-setup";
 import { planAddPerson } from "@/lib/household/plan-add-person";
 import { planHouseholdEdit, versionInEffect, type HouseholdEditPlan, type ParsedVersion } from "@/lib/household/plan-edit";
 import { planHomeEdit } from "@/lib/household/plan-home-edit";
@@ -120,13 +120,14 @@ async function loadContext(db: HouseholdEditReadDb) {
 
 /** Plans an edit to someone in next month's version. */
 async function loadPlan(db: HouseholdEditReadDb, edit: HouseholdPersonEdit) {
-  const { month, base, people, existing } = await loadContext(db);
+  const { month, firstSetup, base, people, existing } = await loadContext(db);
   const person = people.find((p) => p.id === edit.personId);
   if (!person || !base.config.people.some((p) => p.personId === edit.personId)) {
     throw new ApiError(404, "no_person", "This person is not in the household next month.");
   }
   return {
     month,
+    firstSetup,
     existing,
     plan: planHouseholdEdit({ edit, person, names: new Map(people.map((p) => [p.id, p.name])), month, base }),
   };
@@ -358,9 +359,9 @@ export async function previewHouseholdEdit(db: HouseholdEditReadDb, edit: Househ
     return { groups: [], canSave: plan.canSave, errors: plan.errors };
   }
   if (edit.kind === "home") {
-    const { plan } = await loadHomePlan(db, edit);
+    const { firstSetup, plan } = await loadHomePlan(db, edit);
     return {
-      groups: plan.groups,
+      groups: firstSetupGroups(plan.groups, firstSetup),
       canSave: plan.canSave,
       errors: plan.errors,
       warnings: plan.warnings,
@@ -368,9 +369,9 @@ export async function previewHouseholdEdit(db: HouseholdEditReadDb, edit: Househ
     };
   }
   if (edit.kind === "split") {
-    const { plan } = await loadSplitPlan(db, edit);
+    const { firstSetup, plan } = await loadSplitPlan(db, edit);
     return {
-      groups: plan.groups,
+      groups: firstSetupGroups(plan.groups, firstSetup),
       canSave: plan.canSave,
       errors: plan.errors,
       warnings: plan.warnings,
@@ -385,9 +386,9 @@ export async function previewHouseholdEdit(db: HouseholdEditReadDb, edit: Househ
     const { plan } = await loadRemoveRecurringPlan(db, edit);
     return { groups: [], canSave: plan.canSave, errors: plan.errors };
   }
-  const { plan } = await loadPlan(db, edit);
+  const { firstSetup, plan } = await loadPlan(db, edit);
   return {
-    groups: plan.groups,
+    groups: firstSetupGroups(plan.groups, firstSetup),
     canSave: plan.canSave,
     errors: plan.errors,
   };

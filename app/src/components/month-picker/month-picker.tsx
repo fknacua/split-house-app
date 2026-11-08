@@ -5,15 +5,15 @@ import { Pressable, View } from 'react-native';
 import { type BareInputProps, withFormControlledField } from '@/components/form-field/';
 import { Input, InputField, InputIcon, InputSlot } from '@/components/ui/input';
 import { formatMonthLabel } from '@splithouse/shared';
-import { monthPickerOpeningYear } from './helpers';
+import { monthPickerOpeningYear, type MonthPickerMonths } from './helpers';
 import { MonthPickerSheet } from './month-picker-sheet';
 
 /** The props only the month picker has, on top of the shared input props. */
 export interface MonthPickerOwnProps {
   /** The sheet's title, such as "Starts from". */
   sheetTitle: string;
-  /** The months that can be picked, as `YYYY-MM` keys. */
-  months: string[];
+  /** The months that can be picked: `YYYY-MM` keys, or `{ from }` for every month from one onward. */
+  months: MonthPickerMonths;
   /** Shown in the field while no month is picked (the value is `''`). */
   placeholder?: string;
   /** Shows an × button to clear a picked month. Off by default; pass `true` to opt in. */
@@ -103,7 +103,7 @@ const BareMonthPicker = forwardRef<ComponentRef<typeof View>, BareInputProps & M
  * when nothing is picked. Standalone, pass `value` and `onChange`; inside a form, pass `fieldControlProps`.
  *
  * @param sheetTitle - The sheet's title, such as "Starts from".
- * @param months - The month keys that can be picked. A month not listed shows disabled.
+ * @param months - The month keys that can be picked, or `{ from }` for every month from one onward. A month not allowed shows disabled.
  * @param placeholder - Shown while nothing is picked.
  * @param clearable - Shows an × button to clear the month. Defaults to `false`; pass `true` to show it.
  * @param value - The picked month key, or `''` (standalone only).

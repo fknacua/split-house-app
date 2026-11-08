@@ -6,8 +6,9 @@ import type { HouseholdEdit, HouseholdEditSaveResponse } from '@splithouse/share
 
 /**
  * Saves a Household edit (`POST /api/household/edits`). A name shows on Home, History, Recipient, View bill
- * and the payment sheets as well as Household, so all are refetched; the mutation stays pending until they
- * are, so Save keeps its spinner until the screens behind it are up to date.
+ * and the payment sheets as well as Household, so all are refetched. In first setup a save also marks or changes
+ * Welcome's steps, so the setup query is refetched too. The mutation stays pending until they are, so Save keeps its
+ * spinner until the screens behind it are up to date.
  */
 export function useSaveHouseholdEdit() {
   const queryClient = useQueryClient();
@@ -23,6 +24,7 @@ export function useSaveHouseholdEdit() {
         queryClient.invalidateQueries({ queryKey: queryKeys.allBills }),
         queryClient.invalidateQueries({ queryKey: queryKeys.allChargePayments }),
         queryClient.invalidateQueries({ queryKey: queryKeys.allPaymentOptions }),
+        queryClient.invalidateQueries({ queryKey: queryKeys.setup }),
       ]),
   });
 }

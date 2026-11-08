@@ -11,6 +11,7 @@ import {
 } from "@splithouse/shared";
 import { amountText } from "./amount-text";
 import { applySplitEdit } from "./apply-edit";
+import { changedRows } from "./summary-rows";
 import type { ParsedVersion } from "./plan-edit";
 import { splitAmounts } from "./split-amounts";
 import { remaindersOf } from "./split-remainders";
@@ -125,7 +126,7 @@ function totalErrors(edit: HouseholdSplitEdit, applied: HouseholdConfig, names: 
 }
 
 /** One person's row, or none when the text doesn't change. */
-const row = (label: string, from: string, to: string): HouseholdEditRow[] => (from === to ? [] : [{ label, from, to }]);
+const row = (label: string, from: string, to: string): HouseholdEditRow[] => changedRows([{ label, from, to }]);
 
 /** The summary rows, card by card: only what differs between the two configs. */
 function summaryRows(from: HouseholdConfig, to: HouseholdConfig, names: Map<string, string>): HouseholdEditRow[] {

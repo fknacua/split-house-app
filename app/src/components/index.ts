@@ -28,6 +28,8 @@ export * from './link-button';
 export * from './message-preview/message-preview';
 export * from './money-input';
 export * from './month-picker/month-picker';
+export * from './month-picker/month-picker-sheet';
+export type { MonthPickerMonths } from './month-picker/helpers';
 export * from './month-select-field';
 export * from './phone-input';
 export * from './progress';

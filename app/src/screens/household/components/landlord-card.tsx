@@ -13,7 +13,7 @@ export function LandlordCard({ label, amount, stats, edit, onOpen }: LandlordCar
   return (
     <Pressable
       accessibilityRole="button"
-      accessibilityLabel="Edit landlord rent and rooms"
+      accessibilityLabel="Edit rent and rooms"
       onPress={() => onOpen(edit.target)}
       className="gap-3 rounded-dialog bg-selected px-4.5 py-4"
     >

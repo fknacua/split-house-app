@@ -316,7 +316,7 @@ describe("previewHouseholdEdit", () => {
     );
     expect(preview.errors).toEqual({});
     expect(preview.groups[0].rows).toEqual([
-      { label: "Utilities due", from: "—", to: "7th" },
+      { label: "Utilities due", from: null, to: "7th" },
       { label: "Utilities paid", from: "Via Priya", to: "Directly" },
     ]);
   });
@@ -965,9 +965,11 @@ describe("First run (no month open)", () => {
       expect(state.setup.doneSteps).toEqual(["startMonth", "rentAndRooms", "people", "householdSplits"]);
     });
 
-    it("shows a summary, since there are saved values to compare with", async () => {
+    it("shows a summary with no title, since there are saved values to compare with", async () => {
       const preview = await previewHouseholdEdit(firstVersion().db, homeEdit({ landlordRentCents: 310000 }));
-      expect(preview.groups[0]?.title).toBe("Saves from Nov 2026");
+      expect(preview.groups).toHaveLength(1);
+      expect(preview.groups[0]).toMatchObject({ title: null });
+      expect(preview.groups[0]?.rows.length).toBeGreaterThan(0);
     });
 
     it("refuses a second master room", async () => {

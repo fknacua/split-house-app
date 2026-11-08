@@ -1,14 +1,16 @@
 'use client';
 import React from 'react';
 import { createTextarea } from '@gluestack-ui/core/textarea/creator';
-import { View, TextInput } from 'react-native';
+import { View } from 'react-native';
+import { SheetAwareTextInput } from '../bottomsheet/sheet-aware-text-input';
 import { tva, withStyleContext } from '@gluestack-ui/utils/nativewind-utils';
 import type { VariantProps } from '@gluestack-ui/utils/nativewind-utils';
 
 const SCOPE = 'TEXTAREA';
 const UITextarea = createTextarea({
   Root: withStyleContext(View, SCOPE),
-  Input: TextInput,
+  // Inside a bottom sheet this is the sheet's own text input, so the sheet moves above the keyboard.
+  Input: SheetAwareTextInput,
 });
 
 const textareaStyle = tva({
