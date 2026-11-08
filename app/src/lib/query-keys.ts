@@ -13,6 +13,8 @@ export const queryKeys = {
   setup: ['setup'] as const,
   /** First run's Start month page (`GET /api/setup/start-month`). Under `setup`, so a first-setup save refreshes it too. */
   setupStartMonth: ['setup', 'start-month'] as const,
+  /** First run's People page (`GET /api/setup/people`). Under `setup`, so every first-setup save, an added or removed person too, refreshes it. */
+  setupPeople: ['setup', 'people'] as const,
   /** Home: the newest opened month. The server picks the month, so there is no month in the key. */
   home: ['home'] as const,
   /** The History list. Also the prefix of every `historyMonth` key, so invalidating it refreshes both. */

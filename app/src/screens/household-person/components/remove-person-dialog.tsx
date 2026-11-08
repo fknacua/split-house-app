@@ -2,18 +2,20 @@ import { useRouter } from 'expo-router';
 import { UserMinus } from 'lucide-react-native';
 
 import { ConfirmDialog, DEFAULT_FAILED_MESSAGE, useSuccessToast } from '@/components';
-import { useSaveHouseholdEdit } from '@/hooks';
+import { useBootstrap, useSaveHouseholdEdit } from '@/hooks';
 import type { RemovePersonDialogProps } from '../types';
 import { requestMessage } from '../use-edit-flow';
 
 /**
  * The `removePerson` board, its text written by the server. They leave from next month, so there is no month to
- * pick. Removing returns to the overview with a toast; a refusal or a failure stays open with the message.
+ * pick. Removing returns to the overview with a toast (in First run, to People); a refusal or a failure stays open
+ * with the message. In First run the text has no room line and no check lines.
  */
 export function RemovePersonDialog({ open, personId, dialog, onClose }: RemovePersonDialogProps) {
   const router = useRouter();
   const showToast = useSuccessToast();
   const remove = useSaveHouseholdEdit();
+  const setupComplete = useBootstrap().data?.setupComplete ?? true;
 
   return (
     <ConfirmDialog
@@ -35,7 +37,8 @@ export function RemovePersonDialog({ open, personId, dialog, onClose }: RemovePe
           {
             onSuccess: () => {
               showToast('Changes saved');
-              router.dismissTo('/household');
+              // In First run there is no Household tab: the person was opened from People.
+              router.dismissTo(setupComplete ? '/household' : '/setup/people');
             },
           },
         )

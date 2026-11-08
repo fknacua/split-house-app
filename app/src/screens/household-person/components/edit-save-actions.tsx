@@ -2,8 +2,8 @@ import { Alert, Button, DEFAULT_FAILED_MESSAGE } from '@/components';
 import { requestMessage } from '../use-edit-flow';
 import type { EditSaveActionsProps } from '../types';
 
-/** The top of a Household form's footer: what stops the save, then Save changes, which reads Retry after a failure. */
-export function EditSaveActions({ flow, disabled }: EditSaveActionsProps) {
+/** The top of a Household form's footer: what stops the save, then the Save button, which reads Retry after a failure. */
+export function EditSaveActions({ flow, disabled, label = 'Save changes' }: EditSaveActionsProps) {
   return (
     <>
       {flow.noticeError ? <Alert variant="danger" message={flow.noticeError} className="mb-1.5" /> : null}
@@ -15,7 +15,7 @@ export function EditSaveActions({ flow, disabled }: EditSaveActionsProps) {
         />
       ) : null}
       <Button
-        label={flow.saving ? 'Saving' : flow.failed ? 'Retry' : 'Save changes'}
+        label={flow.saving ? 'Saving' : flow.failed ? 'Retry' : label}
         loading={flow.saving}
         // The save's refetch changes the loaded values, so the checks only count before it starts.
         disabled={!flow.saving && (disabled || !flow.canSave)}

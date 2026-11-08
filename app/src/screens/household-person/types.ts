@@ -48,7 +48,7 @@ export interface RouteFieldProps {
 /** Props for {@link RoomField}. */
 export interface RoomFieldProps {
   control: Control<PersonFormValues>;
-  /** The empty tenant rooms. None shows the no-room state. */
+  /** The rooms on offer: in First run the master room first, then the empty tenant rooms. None shows the no-room state. */
   rooms: HouseholdAddFormResponse['rooms'];
   /** The server's message for the Room field. */
   error?: string;
@@ -106,6 +106,8 @@ export interface EditSaveActionsProps {
   flow: Pick<ReturnType<typeof useEditFlow>, 'noticeError' | 'failed' | 'saveError' | 'saving' | 'canSave' | 'onSave'>;
   /** The form's own checks stop the save. The server's answer counts as well. */
   disabled: boolean;
+  /** The button's label when idle: `Save changes` unless the form says otherwise, e.g. `Add person`. */
+  label?: string;
 }
 
 /** Props for {@link RemovePersonDialog}. */

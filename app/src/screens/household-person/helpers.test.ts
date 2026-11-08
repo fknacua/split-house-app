@@ -3,9 +3,11 @@ import { describe, expect, it } from 'vitest';
 import type { HouseholdAddFormResponse, HouseholdFormResponse } from '@splithouse/shared';
 import {
   addPersonFormSchema,
+  addPersonFormSchemaFor,
   hasAddPersonInput,
   hasUnpickedRoute,
   hasUnsavedChanges,
+  isPrimaryRoom,
   personFormSchema,
   toAddPersonEdit,
   toAddPersonFormValues,
@@ -197,5 +199,48 @@ describe('Add subtenant', () => {
     expect(hasAddPersonInput({ ...opened, color: 'BLUE' }, form)).toBe(true);
     expect(hasAddPersonInput({ ...opened, rentVia: '' }, form)).toBe(true);
     expect(hasAddPersonInput({ ...opened, whatsapp: '+6581234567' }, form)).toBe(true);
+  });
+});
+
+describe('Add person in First run', () => {
+  const rooms: HouseholdAddFormResponse['rooms'] = [
+    { id: 'room-master', name: 'Master room', role: 'PRIMARY', facts: [], note: 'From the split.' },
+    { id: 'room-3', name: 'Room 3', role: 'TENANT', facts: [], note: null },
+  ];
+  const schema = addPersonFormSchemaFor(rooms);
+  const base = {
+    name: 'Casey',
+    whatsapp: '',
+    color: 'BLUE' as const,
+    rentDueDay: 7,
+    utilitiesDueDay: 7,
+    utilityShares: null,
+    depositCents: null,
+    rentVia: null,
+    utilitiesVia: null,
+  };
+
+  it('knows the master room makes them the primary tenant', () => {
+    expect(isPrimaryRoom(rooms, 'room-master')).toBe(true);
+    expect(isPrimaryRoom(rooms, 'room-3')).toBe(false);
+    expect(isPrimaryRoom(rooms, '')).toBe(false);
+  });
+
+  it('needs no shares for the master room, but still for a tenant room', () => {
+    expect(schema.safeParse({ ...base, roomId: 'room-master' }).success).toBe(true);
+    expect(schema.safeParse({ ...base, roomId: 'room-3' }).success).toBe(false);
+  });
+
+  it('sends no shares, deposit or routes for the primary tenant, whatever the hidden fields hold', () => {
+    const values = { ...base, roomId: 'room-master', utilityShares: 1000, depositCents: 50000, rentVia: 'person-x', utilitiesVia: '' };
+    expect(toAddPersonEdit(values, true)).toMatchObject({
+      roomId: 'room-master',
+      utilityShares: null,
+      depositCents: 0,
+      rentViaPersonId: null,
+      utilitiesViaPersonId: null,
+    });
+    expect(hasUnpickedRoute(values, true)).toBe(false);
+    expect(hasUnpickedRoute(values)).toBe(true);
   });
 });
