@@ -11,19 +11,19 @@ const STEPS: Record<SetupStepId, { title: string; detail: string; optional: bool
   },
   rentAndRooms: {
     title: "Rent & rooms",
-    detail: "What you pay the landlord, and when",
+    detail: "Rent, due dates and rooms",
     optional: false,
     target: { kind: "edit-home" },
   },
   people: {
     title: "People",
-    detail: "Add your fellow tenants and add their information",
+    detail: "Add your fellow tenants and their information",
     optional: false,
     target: { kind: "setup-people" },
   },
   householdSplits: {
     title: "Household splits",
-    detail: "How you and the other tenants split household charges",
+    detail: "How you split household charges",
     optional: false,
     target: { kind: "edit-splits" },
   },
@@ -36,7 +36,7 @@ const STEPS: Record<SetupStepId, { title: string; detail: string; optional: bool
 };
 
 const INTRO_SETUP =
-  "Tell the app who lives here and what everyone pays. You only do this once — after that it’s one bill a month.";
+  "Tell the app who lives here and what everyone pays. You only do this once.";
 // Reminders joins this text with its step in Phase 13 (13.7).
 const INTRO_OPTIONAL = "Custom messages are optional. You can change them any time in Settings.";
 const INTRO_ALL_DONE = "Everything is set up. Next, upload your utilities bill if you have one already.";

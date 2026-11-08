@@ -32,6 +32,7 @@ export * from './use-save-template';
 export * from './use-save-template-labels';
 export * from './use-save-payment';
 export * from './use-settings';
+export * from './use-setup';
 export * from './use-template-form';
 export * from './use-template-landing';
 export * from './use-template-preview';

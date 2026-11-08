@@ -3,6 +3,7 @@
 // use the wrappers only.
 export * from './accordion';
 export * from './alert';
+export * from './app-logo';
 export * from './app-provider';
 export * from './app-sheet';
 export * from './badge';

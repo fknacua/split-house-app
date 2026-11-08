@@ -1,10 +1,6 @@
-import { Image } from 'expo-image';
 import { Text, View } from 'react-native';
 
-import { Alert, GoogleButton, Screen } from '@/components';
-
-// The animated app icon (squircle) replaces the design's house glyph tile (Francis's call).
-const APP_ICON = require('../../../assets/images/app-icon/splithouse-squircle-loop.webp');
+import { Alert, AppLogo, GoogleButton, Screen } from '@/components';
 
 /** The five sign-in states in `SignIn.dc.html`. */
 export type SignInState = 'out' | 'signing' | 'failed' | 'notAllowed' | 'ended';
@@ -27,11 +23,7 @@ export function SignInView({
     <Screen>
       <View className="flex-1 justify-center gap-8 px-6 pb-7">
         <View className="items-start gap-4">
-          <Image
-            source={APP_ICON}
-            style={{ width: 64, height: 64 }}
-            accessibilityElementsHidden
-          />
+          <AppLogo />
           <Text className="font-manrope-extrabold text-title text-on-surface">SplitHouse</Text>
           <Text className="font-manrope-medium text-body text-on-surface-variant">
             Sign in with your Google account to see this month’s rent and utilities.

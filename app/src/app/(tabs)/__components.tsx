@@ -790,7 +790,11 @@ function SurfacesDemo() {
         ]}
       />
       <Text className="font-manrope-bold text-label text-on-surface-variant">Setup steps</Text>
-      <SegmentedProgress total={4} done={stepsDone} accessibilityLabel="Setup steps" />
+      <SegmentedProgress
+        segments={[0, 1, 2, 3, 4].map((i) => ({ optional: i === 4, done: i < stepsDone }))}
+        done={stepsDone}
+        accessibilityLabel="Setup steps"
+      />
       <ConnectedButtonGroup
         fit
         label="Steps done"
@@ -800,6 +804,7 @@ function SurfacesDemo() {
           { label: '0', value: '0' },
           { label: '2', value: '2' },
           { label: '4', value: '4' },
+          { label: '5', value: '5' },
         ]}
       />
 

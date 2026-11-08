@@ -19,6 +19,7 @@ const badgeStyle = tva({
       warning: 'bg-warning-container',
       danger: 'bg-danger-container',
       info: 'bg-info-container',
+      disabled: 'bg-disabled',
     },
   },
 });
@@ -40,6 +41,7 @@ const variantContent = {
   warning: 'text-on-warning-container',
   danger: 'text-on-danger-container',
   info: 'text-on-info-container',
+  disabled: 'text-on-disabled',
 };
 
 const badgeTextStyle = tva(
