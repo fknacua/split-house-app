@@ -1,6 +1,6 @@
 import type { SetupAction, SetupResponse, SetupRow, SetupTarget } from '@splithouse/shared';
 
-/** Opens a Welcome target. Targets for screens not built yet do nothing. */
+/** Opens a Welcome target. */
 export type OpenSetupTarget = (target: SetupTarget) => void;
 
 /** Props for {@link WelcomeHeader}. */
@@ -30,7 +30,11 @@ export interface StepDotProps {
 /** Props for {@link WelcomeFooter}. */
 export interface WelcomeFooterProps {
   primary: SetupAction;
-  /** `Not now` or `I don’t have a bill yet`; null for none. */
+  /** `Not now` in `optional`; null for none. */
   secondary: SetupAction | null;
   onOpen: OpenSetupTarget;
+  /** True while finishing runs: the finish button shows the spinner and the other is disabled. */
+  finishing: boolean;
+  /** A failed finish's message, shown above the buttons; null for none. */
+  error: string | null;
 }

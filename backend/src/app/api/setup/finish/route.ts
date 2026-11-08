@@ -1,11 +1,9 @@
-import { setupFinishRequestSchema } from "@splithouse/shared";
-import { parseBody, requireSession, route } from "@/lib/api";
+import { requireSession, route } from "@/lib/api";
 import { prisma } from "@/lib/prisma";
 import { finishSetup } from "@/services/setup/setup.service";
 
-/** Finishes First run: opens the start month and says where to go next. */
+/** Finishes First run: opens the start month. The app then goes to Home. */
 export const POST = route(async (request) => {
   await requireSession(request);
-  const body = await parseBody(request, setupFinishRequestSchema);
-  return Response.json(await finishSetup(prisma, body));
+  return Response.json(await finishSetup(prisma));
 });

@@ -129,7 +129,7 @@ describe("GET /api/setup", () => {
     useDb({ setup: { startMonth: "2026-11", doneSteps: REQUIRED } });
     const body = setupResponseSchema.parse(await (await GET(get(""), undefined)).json());
     expect(body.heading).toBe("Your household is set up");
-    expect(body.secondary).toEqual({ label: "Not now", target: { kind: "finish", then: "home" } });
+    expect(body.secondary).toEqual({ label: "Not now", target: { kind: "finish" } });
   });
 
   it("answers 409 setup_done once a month is open", async () => {
@@ -255,20 +255,20 @@ describe("POST /api/setup/steps/:id", () => {
 });
 
 describe("POST /api/setup/finish", () => {
-  it("opens the start month and goes Home, parsing with the shared schema", async () => {
+  it("opens the start month, parsing with the shared schema", async () => {
     useDb({ setup: { startMonth: "2026-11", doneSteps: REQUIRED } });
-    const response = await FINISH(post("/finish", { then: "home" }), undefined);
+    const response = await FINISH(post("/finish"), undefined);
     expect(response.status).toBe(200);
-    expect(setupFinishResponseSchema.parse(await response.json())).toEqual({ month: "2026-11", target: { kind: "home" } });
+    expect(setupFinishResponseSchema.parse(await response.json())).toEqual({ month: "2026-11" });
     expect(state.months.map((m) => m.month)).toEqual(["2026-11"]);
     expect(state.charges.length).toBeGreaterThan(0);
     expect(state.charges.every((c) => c.month === "2026-11")).toBe(true);
   });
 
-  it("opens a future start month early, moving the version there, and goes to its bill upload", async () => {
+  it("opens a future start month early, moving the version there", async () => {
     useDb({ setup: { startMonth: "2027-01", doneSteps: [...REQUIRED, "messages"] } });
-    const body = setupFinishResponseSchema.parse(await (await FINISH(post("/finish", { then: "bill-upload" }), undefined)).json());
-    expect(body).toEqual({ month: "2027-01", target: { kind: "bill-upload", month: "2027-01" } });
+    const body = setupFinishResponseSchema.parse(await (await FINISH(post("/finish"), undefined)).json());
+    expect(body).toEqual({ month: "2027-01" });
     expect(state.versions[0].startsFromMonth).toBe("2027-01");
     expect(state.months.map((m) => m.month)).toEqual(["2027-01"]);
   });
@@ -276,26 +276,21 @@ describe("POST /api/setup/finish", () => {
   it("opens the current month when the saved start month has passed", async () => {
     vi.stubEnv("DEV_NOW", "2026-12-02T09:00:00+08:00");
     useDb({ setup: { startMonth: "2026-11", doneSteps: REQUIRED } });
-    const body = setupFinishResponseSchema.parse(await (await FINISH(post("/finish", { then: "home" }), undefined)).json());
+    const body = setupFinishResponseSchema.parse(await (await FINISH(post("/finish"), undefined)).json());
     expect(body.month).toBe("2026-12");
     expect(state.versions[0].startsFromMonth).toBe("2026-12");
   });
 
   it("answers 409 steps_incomplete until the required steps are done, and opens nothing", async () => {
     useDb({ setup: { startMonth: "2026-11", doneSteps: ["startMonth", "rentAndRooms", "people"] } });
-    await expectError(await FINISH(post("/finish", { then: "home" }), undefined), 409, "steps_incomplete");
+    await expectError(await FINISH(post("/finish"), undefined), 409, "steps_incomplete");
     expect(state.months).toEqual([]);
   });
 
   it("answers 409 setup_done once a month is open, so a second tap opens nothing more", async () => {
     useDb({ setup: { startMonth: "2026-11", doneSteps: REQUIRED } });
-    await FINISH(post("/finish", { then: "home" }), undefined);
-    await expectError(await FINISH(post("/finish", { then: "home" }), undefined), 409, "setup_done");
+    await FINISH(post("/finish"), undefined);
+    await expectError(await FINISH(post("/finish"), undefined), 409, "setup_done");
     expect(state.months).toHaveLength(1);
-  });
-
-  it("answers 400 for a bad target", async () => {
-    useDb();
-    await expectError(await FINISH(post("/finish", { then: "history" }), undefined), 400, "invalid_request");
   });
 });

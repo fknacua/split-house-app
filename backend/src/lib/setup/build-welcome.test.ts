@@ -65,21 +65,18 @@ describe("buildWelcome", () => {
     expect(welcome.progress?.text).toBe("4 of 5 steps done");
     expect(states(REQUIRED)).toEqual(["done", "done", "done", "done", "current"]);
     expect(welcome.primary).toEqual({ label: "Continue: Custom messages", target: { kind: "setup-messages" } });
-    expect(welcome.secondary).toEqual({ label: "Not now", target: { kind: "finish", then: "home" } });
+    expect(welcome.secondary).toEqual({ label: "Not now", target: { kind: "finish" } });
   });
 
-  it("draws `allDone`: upload the first bill, or finish without one", () => {
+  it("draws `allDone`: Finish setup, with no link under it", () => {
     const welcome = setupResponseSchema.parse(buildWelcome([...REQUIRED, "messages"]));
     expect(welcome.heading).toBe("You’re all set");
     expect(welcome.intro).toBe("Everything is set up. Next, upload your utilities bill if you have one already.");
     expect(welcome.progress).toMatchObject({ text: "All steps done", note: "Optional steps included", done: 5 });
     expect(welcome.progress?.segments.every((s) => s.done)).toBe(true);
     expect(welcome.rows.every((r) => r.state === "done")).toBe(true);
-    expect(welcome.primary).toEqual({
-      label: "Upload your first utilities bill",
-      target: { kind: "finish", then: "bill-upload" },
-    });
-    expect(welcome.secondary).toEqual({ label: "I don’t have a bill yet", target: { kind: "finish", then: "home" } });
+    expect(welcome.primary).toEqual({ label: "Finish setup", target: { kind: "finish" } });
+    expect(welcome.secondary).toBeNull();
   });
 
   it("gives each row its own target", () => {

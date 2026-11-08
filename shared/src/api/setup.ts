@@ -15,12 +15,6 @@ export const setupMarkableStepSchema = z.enum(['people', 'messages']);
 /** One of the steps `POST /api/setup/steps/:id` marks. */
 export type SetupMarkableStep = z.infer<typeof setupMarkableStepSchema>;
 
-/** Where finishing First run goes next. */
-export const setupFinishThenSchema = z.enum(['home', 'bill-upload']);
-
-/** Where finishing First run goes next. */
-export type SetupFinishThen = z.infer<typeof setupFinishThenSchema>;
-
 /** Where a Welcome row or button leads. The app navigates; it decides nothing. */
 export const setupTargetSchema = z.discriminatedUnion('kind', [
   z.object({ kind: z.literal('start-month') }),
@@ -28,8 +22,8 @@ export const setupTargetSchema = z.discriminatedUnion('kind', [
   z.object({ kind: z.literal('setup-people') }),
   z.object({ kind: z.literal('edit-splits') }),
   z.object({ kind: z.literal('setup-messages') }),
-  /** Calls `POST /api/setup/finish` with `then`, then opens the target it returns. */
-  z.object({ kind: z.literal('finish'), then: setupFinishThenSchema }),
+  /** Calls `POST /api/setup/finish`, which opens the start month; the app then goes to Home. */
+  z.object({ kind: z.literal('finish') }),
 ]);
 
 /** Where a Welcome row or button leads. The app navigates; it decides nothing. */
@@ -93,7 +87,7 @@ export const setupResponseSchema = z.object({
   rows: z.array(setupRowSchema),
   /** The main footer button, e.g. `Continue: Rent & rooms`. */
   primary: setupActionSchema,
-  /** The link under it, `Not now` or `I don’t have a bill yet`; null when there is none. */
+  /** The link under it, `Not now` while Custom messages is not done; null when there is none. */
   secondary: setupActionSchema.nullable(),
 });
 
@@ -141,25 +135,13 @@ export const setupStartMonthRequestSchema = z.object({
 /** `POST /api/setup/start-month` body. */
 export type SetupStartMonthRequest = z.infer<typeof setupStartMonthRequestSchema>;
 
-/** `POST /api/setup/finish` body. */
-export const setupFinishRequestSchema = z.object({
-  then: setupFinishThenSchema,
-});
-
-/** `POST /api/setup/finish` body. */
-export type SetupFinishRequest = z.infer<typeof setupFinishRequestSchema>;
-
-/** `POST /api/setup/finish`: the month that opened and where to go. */
+/** `POST /api/setup/finish` (no body): the month that opened. The app goes to Home. */
 export const setupFinishResponseSchema = z.object({
   /** The start month, now open. */
   month: monthKey,
-  target: z.discriminatedUnion('kind', [
-    z.object({ kind: z.literal('home') }),
-    z.object({ kind: z.literal('bill-upload'), month: monthKey }),
-  ]),
 });
 
-/** `POST /api/setup/finish`: the month that opened and where to go. */
+/** `POST /api/setup/finish`: the month that opened. */
 export type SetupFinishResponse = z.infer<typeof setupFinishResponseSchema>;
 
 /**

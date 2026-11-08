@@ -6,11 +6,12 @@ import type { OpenSetupTarget } from './types';
 /**
  * Opens a Welcome target. Start month, People and Custom messages open their pages; Rent & rooms and Household splits
  * open their Household editors, which answer in first-setup mode. Each goes back to Welcome on save or Back.
- * Finishing does nothing until 11.9.
+ * The finish target calls `onFinish`, which finishes First run; the session gate then swaps Welcome for Home.
  *
+ * @param onFinish - Called for `Not now` and `Finish setup`.
  * @returns The handler rows and footer buttons call with their target.
  */
-export function useOpenSetupTarget(): OpenSetupTarget {
+export function useOpenSetupTarget(onFinish: () => void): OpenSetupTarget {
   const router = useRouter();
   return useCallback(
     (target) => {
@@ -31,9 +32,10 @@ export function useOpenSetupTarget(): OpenSetupTarget {
           router.push('/setup/messages');
           return;
         case 'finish':
+          onFinish();
           return;
       }
     },
-    [router],
+    [router, onFinish],
   );
 }
