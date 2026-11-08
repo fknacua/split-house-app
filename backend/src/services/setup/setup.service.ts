@@ -1,7 +1,6 @@
 import {
   parseHouseholdConfig,
   todayKey,
-  type SetupFinishRequest,
   type SetupFinishResponse,
   type SetupMarkableStep,
   type SetupResponse,
@@ -140,11 +139,10 @@ export async function markSetupStep(db: SetupMarkDb, step: SetupMarkableStep): P
  * future, as Start next month does.
  *
  * @param db - The Prisma client, or a fake in tests.
- * @param request - Where to go next.
- * @returns The opened month and the target: Home, or that month's bill upload.
+ * @returns The opened month. The app goes to Home, which asks for the month's bill.
  * @throws {ApiError} 409 `setup_done` once a month is open; 409 `steps_incomplete` until every required step is done.
  */
-export async function finishSetup(db: SetupFinishDb, { then }: SetupFinishRequest): Promise<SetupFinishResponse> {
+export async function finishSetup(db: SetupFinishDb): Promise<SetupFinishResponse> {
   const { startMonth, doneSteps } = await readFirstRun(db);
   if (!requiredStepsDone(doneSteps)) {
     throw new ApiError(409, "steps_incomplete", "Finish the required steps first.");
@@ -153,5 +151,5 @@ export async function finishSetup(db: SetupFinishDb, { then }: SetupFinishReques
   await moveFirstVersion(db, month);
   const opened = await openMonthIfNeeded(db, month);
   if (!opened) throw new Error(`No household version starts on or before ${month}`);
-  return { month, target: then === "home" ? { kind: "home" } : { kind: "bill-upload", month } };
+  return { month };
 }

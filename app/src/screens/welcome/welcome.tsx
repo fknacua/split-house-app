@@ -1,7 +1,8 @@
+import { useCallback } from 'react';
 import { RefreshControl, ScrollView } from 'react-native';
 
 import { Alert, Card, Screen } from '@/components';
-import { usePullToRefresh, useSetup } from '@/hooks';
+import { useFinishSetup, usePullToRefresh, useSetup } from '@/hooks';
 import { WelcomeFooter } from './components/welcome-footer';
 import { WelcomeHeader } from './components/welcome-header';
 import { WelcomeRow } from './components/welcome-row';
@@ -10,13 +11,17 @@ import { useOpenSetupTarget } from './use-open-setup-target';
 
 /**
  * First run's step page (`Welcome.dc.html`: `empty`, `started`, `progress`, `optional`, `allDone`).
- * Everything shown comes from `GET /api/setup`; the app only renders it and opens the targets.
+ * Everything shown comes from `GET /api/setup`; the app only renders it and opens the targets. `Not now` and
+ * `Finish setup` finish First run, and the session gate then opens Home.
  * The session gate shows this screen, with no tabs, until a month is open.
  */
 export function Welcome() {
   const { data, error, isPending, refetch } = useSetup();
   const { refreshing, onRefresh } = usePullToRefresh(refetch);
-  const open = useOpenSetupTarget();
+  const finish = useFinishSetup();
+  const { mutate: finishSetup } = finish;
+  const onFinish = useCallback(() => finishSetup(), [finishSetup]);
+  const open = useOpenSetupTarget(onFinish);
 
   return (
     <Screen>
@@ -40,7 +45,15 @@ export function Welcome() {
               </>
             ) : null}
           </ScrollView>
-          {data ? <WelcomeFooter primary={data.primary} secondary={data.secondary} onOpen={open} /> : null}
+          {data ? (
+            <WelcomeFooter
+              primary={data.primary}
+              secondary={data.secondary}
+              onOpen={open}
+              finishing={finish.isPending}
+              error={finish.error?.message ?? null}
+            />
+          ) : null}
         </>
       )}
     </Screen>

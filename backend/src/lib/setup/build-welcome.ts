@@ -67,15 +67,11 @@ export function buildWelcome(done: readonly SetupStepId[]): SetupResponse {
   const doneCount = SETUP_STEP_IDS.filter((id) => done.includes(id)).length;
 
   const primary = current === null
-    ? { label: "Upload your first utilities bill", target: { kind: "finish", then: "bill-upload" } as const }
+    ? { label: "Finish setup", target: { kind: "finish" } as const }
     : doneCount === 0
       ? { label: "Start with the start month", target: STEPS.startMonth.target }
       : { label: `Continue: ${STEPS[current].title}`, target: STEPS[current].target };
-  const secondary = allDone
-    ? { label: "I don’t have a bill yet", target: { kind: "finish", then: "home" } as const }
-    : required
-      ? { label: "Not now", target: { kind: "finish", then: "home" } as const }
-      : null;
+  const secondary = required && !allDone ? { label: "Not now", target: { kind: "finish" } as const } : null;
 
   return {
     heading: allDone ? "You’re all set" : required ? "Your household is set up" : "Set up your household",
