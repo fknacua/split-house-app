@@ -60,8 +60,8 @@ export interface TabHeadingProps {
   title: string;
   /** A line under the heading. */
   note?: string | null;
-  /** The button at its right, e.g. `Add subtenant`. */
-  actionLabel: string;
+  /** The button at its right, e.g. `Add subtenant`. Null for none, e.g. People in First run before anyone is added. */
+  actionLabel: string | null;
   /** The button's icon. */
   actionIcon: LucideIcon;
   /** Called by the button. */

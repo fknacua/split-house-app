@@ -11,12 +11,6 @@ import {
 /** What WhatsApp holds until a number is typed after it: the field's starting country code. */
 const BARE_COUNTRY_CODE = '+65';
 
-const requiredAmount = z
-  .number()
-  .nullable()
-  // The `boolean` return keeps TypeScript from narrowing the form's value type to `number`.
-  .refine((value): boolean => value !== null, 'Enter an amount.');
-
 /** The person form's fields. Every rule on them is the server's, through the preview. */
 export const personFormSchema = z.object({
   name: z.string(),
@@ -34,13 +28,34 @@ export const personFormSchema = z.object({
 });
 
 /**
- * Add subtenant's checks: the room and shares it cannot send empty. Every other rule is the server's, through the
- * preview.
+ * Add subtenant's checks: the room, and the shares unless the room makes them the primary tenant, whose shares come
+ * from the split. Every other rule is the server's, through the preview.
+ *
+ * @param rooms The rooms the form offers.
+ * @returns The schema for the form's resolver.
  */
-export const addPersonFormSchema = personFormSchema.extend({
-  utilityShares: requiredAmount,
-  roomId: z.string().min(1, 'Choose a room.'),
-});
+export function addPersonFormSchemaFor(rooms: HouseholdAddFormResponse['rooms']) {
+  return personFormSchema
+    .extend({ roomId: z.string().min(1, 'Choose a room.') })
+    .superRefine((values, ctx) => {
+      if (isPrimaryRoom(rooms, values.roomId) || values.utilityShares !== null) return;
+      ctx.addIssue({ code: 'custom', path: ['utilityShares'], message: 'Enter an amount.' });
+    });
+}
+
+/** Add subtenant's checks with only tenant rooms on offer, as outside First run. */
+export const addPersonFormSchema = addPersonFormSchemaFor([]);
+
+/**
+ * Whether the picked room makes the new person the primary tenant: the master room, offered in First run.
+ *
+ * @param rooms The rooms the form offers.
+ * @param roomId The picked room, or `''` for none.
+ * @returns True for the master room.
+ */
+export function isPrimaryRoom(rooms: HouseholdAddFormResponse['rooms'], roomId: string): boolean {
+  return rooms.some((room) => room.id === roomId && room.role === 'PRIMARY');
+}
 
 /**
  * The person form's values. Empty number fields are `null`. A route is `null` when paid directly, `''` when
@@ -125,13 +140,24 @@ export function toHouseholdEdit(values: PersonFormValues, form: HouseholdFormRes
 }
 
 /**
- * Builds the new tenant from the form. An empty deposit is 0, and a route with nobody picked counts as direct,
- * since {@link hasUnpickedRoute} stops Save for it.
+ * Builds the new person from the form. An empty deposit is 0, and a route with nobody picked counts as direct,
+ * since {@link hasUnpickedRoute} stops Save for it. A primary tenant sends no shares, no deposit and no routes,
+ * whatever the hidden fields still hold.
  *
  * @param values The form's values.
+ * @param primary Whether the picked room makes them the primary tenant.
  * @returns The edit for the preview and the save.
  */
-export function toAddPersonEdit(values: PersonFormValues): HouseholdAddPersonEdit {
+export function toAddPersonEdit(values: PersonFormValues, primary = false): HouseholdAddPersonEdit {
+  if (primary) {
+    return {
+      ...toAddPersonEdit(values),
+      utilityShares: null,
+      depositCents: 0,
+      rentViaPersonId: null,
+      utilitiesViaPersonId: null,
+    };
+  }
   return {
     kind: 'addPerson',
     name: values.name,
@@ -165,10 +191,11 @@ export function hasAddPersonInput(values: PersonFormValues, form: HouseholdAddFo
  * Whether a route says Via someone with nobody picked yet, which keeps Save disabled.
  *
  * @param values The form's values.
+ * @param primary Whether the picked room makes them the primary tenant, who has no routes to pick.
  * @returns True when either route still needs a person.
  */
-export function hasUnpickedRoute(values: PersonFormValues): boolean {
-  return values.rentVia === '' || values.utilitiesVia === '';
+export function hasUnpickedRoute(values: PersonFormValues, primary = false): boolean {
+  return !primary && (values.rentVia === '' || values.utilitiesVia === '');
 }
 
 /**
