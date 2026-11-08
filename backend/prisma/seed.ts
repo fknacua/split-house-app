@@ -2,7 +2,8 @@ import "dotenv/config";
 import { parseArgs } from "node:util";
 import { prisma } from "@/lib/prisma";
 import { openMonthIfNeeded } from "@/lib/month-open";
-import { HOUSEHOLD_SCHEMA_VERSION, type PersonColor } from "@splithouse/shared";
+import { HOUSEHOLD_SCHEMA_VERSION, type MessageTemplates, type PersonColor } from "@splithouse/shared";
+import { DEFAULT_MESSAGE_TEMPLATES } from "@/lib/messages/default-templates";
 import { JAN_2027_CONFIG, NOV_2026_CONFIG, PERSON_IDS, ROOM_IDS, VERSION_A_CONFIG } from "@/lib/fixtures/household";
 import { buildMonthCharges, buildUtilitiesCharges, type EngineCharge } from "@/lib/split/engine";
 import { BILL_FIXTURE } from "@/lib/fixtures/bill";
@@ -53,8 +54,12 @@ const SCENARIOS = {
   firstRunStarted: { devNow: "2026-11-08T09:00:00+08:00" },
   firstRunProgress: { devNow: "2026-11-08T09:00:00+08:00" },
   firstRunRequired: { devNow: "2026-11-08T09:00:00+08:00" },
+  // As firstRunRequired, plus Jordan’s custom Monthly breakdown template (Custom messages `custom`, 11.7).
+  firstRunCustom: { devNow: "2026-11-08T09:00:00+08:00" },
   firstRunAllDone: { devNow: "2026-11-08T09:00:00+08:00" },
 } as const;
+
+type ScenarioName = keyof typeof SCENARIOS;
 
 /**
  * The First run scenarios and the Welcome steps each has done. `firstRunEmpty` is a wiped database
@@ -66,13 +71,16 @@ const FIRST_RUN_STEPS: Partial<Record<keyof typeof SCENARIOS, string[]>> = {
   firstRunStarted: ["startMonth"],
   firstRunProgress: ["startMonth", "rentAndRooms", "people"],
   firstRunRequired: ["startMonth", "rentAndRooms", "people", "householdSplits"],
+  firstRunCustom: ["startMonth", "rentAndRooms", "people", "householdSplits"],
   firstRunAllDone: ["startMonth", "rentAndRooms", "people", "householdSplits", "messages"],
 };
+
+/** The First run scenarios with Jordan’s custom Monthly breakdown template. Custom messages is only saved with one. */
+const FIRST_RUN_CUSTOM: readonly ScenarioName[] = ["firstRunCustom", "firstRunAllDone"];
 
 /** The start month saved in every First run scenario past `firstRunEmpty`: this month. */
 const FIRST_RUN_START_MONTH = "2026-11";
 
-type ScenarioName = keyof typeof SCENARIOS;
 
 function parseScenario(): ScenarioName {
   const { values } = parseArgs({ options: { scenario: { type: "string", default: "upload" } } });
@@ -337,6 +345,19 @@ async function seedFirstRun(doneSteps: string[]) {
     await prisma.householdVersion.create({
       data: { startsFromMonth: FIRST_RUN_START_MONTH, schemaVersion: HOUSEHOLD_SCHEMA_VERSION, config: NOV_2026_CONFIG },
     });
+  }
+  if (FIRST_RUN_CUSTOM.includes(scenario)) {
+    const templates: MessageTemplates = {
+      ...DEFAULT_MESSAGE_TEMPLATES,
+      overrides: [
+        {
+          personId: PERSON_IDS.jordan,
+          kind: "MONTHLY",
+          text: "Hi {name}! Here’s your breakdown for {month}.\n\n{lines}\n\nTotal: {total}\nPlease send by {dueDate}. Thanks!",
+        },
+      ],
+    };
+    await prisma.messageTemplates.create({ data: { templates } });
   }
   if (doneSteps.length > 0) {
     await prisma.setup.create({ data: { startMonth: FIRST_RUN_START_MONTH, doneSteps } });
