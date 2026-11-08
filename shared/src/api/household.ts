@@ -248,8 +248,11 @@ export const householdFormResponseSchema = z.object({
   title: z.string(),
   /** The View screen's title, e.g. `Jordan`. */
   viewTitle: z.string(),
-  /** The dated group's title on Edit, e.g. `From December 2026`. */
-  datedTitle: z.string(),
+  /**
+   * The dated group's title on Edit, e.g. `From December 2026`. Null in First run, where every edit saves into the
+   * first version, so the group has no title.
+   */
+  datedTitle: z.string().nullable(),
   /** e.g. `These take effect from December 2026.` while saved values differ from the active month's; otherwise null. */
   pendingNote: z.string().nullable(),
   /** The form's values. A route's person is null when it is paid directly. */
@@ -289,15 +292,15 @@ export const householdFormResponseSchema = z.object({
     label: z.string(),
     kind: z.enum(['remove-person', 'cancel']),
   }),
-  /** The remove dialog's text. Null for anyone but a tenant. */
+  /** The remove dialog's text. Null for anyone but a tenant; in First run, null only for the owner. */
   removeDialog: z
     .object({
       /** e.g. `Remove Jordan from household?`. */
       title: z.string(),
       body: z.string(),
-      /** What happens to their room, worded by whether its rent is part of the landlord rent. */
-      roomLine: z.string(),
-      /** The check lines: what stays and what goes with them. */
+      /** What happens to their room, worded by whether its rent is part of the landlord rent. Null in First run. */
+      roomLine: z.string().nullable(),
+      /** The check lines: what stays and what goes with them. Empty in First run. */
       keeps: z.array(z.string()),
     })
     .nullable(),
@@ -306,21 +309,36 @@ export const householdFormResponseSchema = z.object({
 /** `GET /api/household/form`: one person's Edit and View screens, with their latest saved values, ready to render. */
 export type HouseholdFormResponse = z.infer<typeof householdFormResponseSchema>;
 
-/** `GET /api/household/add-form`: the Add subtenant screen, ready to render. Its fields start empty. */
+/**
+ * `GET /api/household/add-form`: the Add subtenant screen, ready to render, or Add person in First run. Its fields
+ * start empty.
+ */
 export const householdAddFormResponseSchema = householdFormResponseSchema
   .pick({ title: true, datedTitle: true, colorName: true, swatches: true, sentViaOptions: true })
   .extend({
     /** `New person in the household`. */
     sub: z.string(),
+    /** The Save button: `Save changes`, or `Add person` in First run. */
+    saveLabel: z.string(),
     /** The default: the first color nobody in the household uses. */
     color: personColor,
-    /** The empty tenant rooms a new tenant can pick, in saved order. Empty when every room is taken or none exists. */
+    /**
+     * The rooms a new person can pick, in saved order: in First run the master room first while there is no primary
+     * tenant, then the empty tenant rooms. Empty when every room is taken or none exists.
+     */
     rooms: z.array(
       z.object({
         id: z.string(),
         name: z.string(),
-        /** What the form shows once the room is picked: its rent and aircon units. */
+        /**
+         * What picking the room makes them. `PRIMARY` (the master room): the form keeps only name, WhatsApp, color
+         * and the two due days, since their rent and shares come from the split and they pay directly.
+         */
+        role: z.enum(['PRIMARY', 'TENANT']),
+        /** What the form shows once the room is picked: a tenant room's rent and aircon units. Empty for the master room. */
         facts: z.array(householdFormTextRowSchema),
+        /** The note under the room once it is picked: the master room's, on the split. Null for a tenant room. */
+        note: z.string().nullable(),
       }),
     ),
   });

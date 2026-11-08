@@ -150,6 +150,7 @@ describe('Add subtenant', () => {
   const form: HouseholdAddFormResponse = {
     title: 'Add subtenant',
     sub: 'New person in the household',
+    saveLabel: 'Save changes',
     datedTitle: 'From December 2026',
     color: 'PURPLE',
     colorName: 'Purple',

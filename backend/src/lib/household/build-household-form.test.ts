@@ -1,7 +1,7 @@
-import { householdFormResponseSchema, type HouseholdConfig, type PersonColor } from "@splithouse/shared";
+import { householdAddFormResponseSchema, householdFormResponseSchema, type HouseholdConfig, type PersonColor } from "@splithouse/shared";
 import { describe, expect, it } from "vitest";
-import { JAN_2027_CONFIG, NOV_2026_CONFIG, PERSON_IDS } from "@/lib/fixtures/household";
-import { buildHouseholdForm } from "./build-household-form";
+import { JAN_2027_CONFIG, NOV_2026_CONFIG, PERSON_IDS, ROOM_IDS } from "@/lib/fixtures/household";
+import { buildAddPersonForm, buildHouseholdForm, FIRST_SETUP_REMOVE_BODY, PRIMARY_ROOM_NOTE } from "./build-household-form";
 
 const PEOPLE: { id: string; name: string; whatsappE164: string | null; color: PersonColor; isOwner: boolean }[] = [
   { id: PERSON_IDS.alex, name: "Alex", whatsappE164: null, color: "TEAL", isOwner: true },
@@ -149,5 +149,76 @@ describe("buildHouseholdForm", () => {
   it("adds a note only while the saved values differ from the active month's", () => {
     expect(form(PERSON_IDS.jordan).pendingNote).toBeNull();
     expect(form(PERSON_IDS.jordan, JAN_2027_CONFIG).pendingNote).toBe("These take effect from December 2026.");
+  });
+});
+
+describe("buildHouseholdForm in First run", () => {
+  const firstRunForm = (personId: string) =>
+    buildHouseholdForm({ month: "2026-12", config: NOV_2026_CONFIG, activeConfig: NOV_2026_CONFIG, personId, people: PEOPLE, firstSetup: true });
+
+  it("leaves the dated group untitled", () => {
+    expect(householdFormResponseSchema.parse(firstRunForm(PERSON_IDS.jordan)).datedTitle).toBeNull();
+  });
+
+  it("lets the primary tenant be removed too, with the First run dialog", () => {
+    const body = householdFormResponseSchema.parse(firstRunForm(PERSON_IDS.priya));
+    expect(body.secondaryAction).toEqual({ label: "Remove from household", kind: "remove-person" });
+    expect(body.removeDialog).toEqual({ title: "Remove Priya from household?", body: FIRST_SETUP_REMOVE_BODY, roomLine: null, keeps: [] });
+  });
+
+  it("gives a tenant the same dialog, with no room line and nothing kept", () => {
+    expect(firstRunForm(PERSON_IDS.jordan).removeDialog).toEqual({
+      title: "Remove Jordan from household?",
+      body: "You need to create a new entry again if you wish to include them again.",
+      roomLine: null,
+      keeps: [],
+    });
+  });
+
+  it("still gives the owner Cancel and no dialog", () => {
+    const body = firstRunForm(PERSON_IDS.alex);
+    expect(body.secondaryAction.kind).toBe("cancel");
+    expect(body.removeDialog).toBeNull();
+  });
+});
+
+describe("buildAddPersonForm", () => {
+  /** November's household without its primary tenant, and Room 3 empty: Sam pays directly. */
+  const NO_PRIMARY: HouseholdConfig = {
+    ...NOV_2026_CONFIG,
+    people: NOV_2026_CONFIG.people
+      .filter((p) => p.personId !== PERSON_IDS.priya && p.personId !== PERSON_IDS.jordan)
+      .map((p) => ({ ...p, routes: {} })),
+  };
+  const add = (config: HouseholdConfig, firstSetup?: boolean) =>
+    householdAddFormResponseSchema.parse(buildAddPersonForm({ month: "2026-12", config, people: PEOPLE, firstSetup }));
+  const room3 = {
+    id: ROOM_IDS.room3,
+    name: "Room 3",
+    role: "TENANT",
+    facts: [
+      { label: "Rent (SGD)", value: "$950.00" },
+      { label: "Aircon units", value: "1" },
+    ],
+    note: null,
+  };
+
+  it("reads Add subtenant, dated, with only empty tenant rooms once a month is open", () => {
+    const body = add(NO_PRIMARY);
+    expect(body).toMatchObject({ title: "Add subtenant", saveLabel: "Save changes", datedTitle: "From December 2026" });
+    expect(body.rooms).toEqual([room3]);
+  });
+
+  it("reads Add person in First run, undated, with the master room first while there is no primary tenant", () => {
+    const body = add(NO_PRIMARY, true);
+    expect(body).toMatchObject({ title: "Add person", saveLabel: "Add person", datedTitle: null });
+    expect(body.rooms).toEqual([
+      { id: ROOM_IDS.master, name: "Master room", role: "PRIMARY", facts: [], note: PRIMARY_ROOM_NOTE },
+      room3,
+    ]);
+  });
+
+  it("drops the master room once there is a primary tenant", () => {
+    expect(add(NOV_2026_CONFIG, true).rooms).toEqual([]);
   });
 });
