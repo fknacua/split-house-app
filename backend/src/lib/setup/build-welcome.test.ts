@@ -10,7 +10,7 @@ describe("buildWelcome", () => {
     const welcome = setupResponseSchema.parse(buildWelcome([]));
     expect(welcome.heading).toBe("Set up your household");
     expect(welcome.intro).toBe(
-      "Tell the app who lives here and what everyone pays. You only do this once — after that it’s one bill a month.",
+      "Tell the app who lives here and what everyone pays. You only do this once.",
     );
     expect(welcome.progress).toBeNull();
     expect(welcome.rows.map((r) => [r.number, r.title, r.optional])).toEqual([
@@ -20,7 +20,13 @@ describe("buildWelcome", () => {
       ["4", "Household splits", false],
       ["5", "Custom messages", true],
     ]);
-    expect(welcome.rows[0].detail).toBe("Choose the first month you want to track");
+    expect(welcome.rows.map((r) => r.detail)).toEqual([
+      "Choose the first month you want to track",
+      "Rent, due dates and rooms",
+      "Add your fellow tenants and their information",
+      "How you split household charges",
+      "Personalize your messages for each tenant if you wish",
+    ]);
     expect(states([])).toEqual(["current", "disabled", "disabled", "disabled", "disabled"]);
     expect(welcome.primary).toEqual({ label: "Start with the start month", target: { kind: "start-month" } });
     expect(welcome.secondary).toBeNull();

@@ -56,6 +56,7 @@ const ICON_ONLY_SIZE = { default: 'w-12 px-0', small: 'w-11 px-0' } as const;
  * @param variant - Which look to use. Defaults to `primary`.
  * @param size - `default` (48px) or `small` (44px). Defaults to `default`.
  * @param icon - Optional Lucide icon shown before the label.
+ * @param iconAfter - Draws `icon` after the label instead, such as the arrow on Welcome's `Continue: Rent & rooms`.
  * @param iconOnly - Draws only `icon`, as a round button as wide as it is tall (44px or 48px), such as
  * the ✕ that removes a line. `label` is then only read out by screen readers.
  * @param loading - Show the Spinner, fade the button and ignore taps.
@@ -69,6 +70,7 @@ export function Button({
   size = 'default',
   icon,
   iconOnly = false,
+  iconAfter = false,
   loading = false,
   disabled = false,
   className,
@@ -79,6 +81,7 @@ export function Button({
   size?: ButtonSize;
   icon?: LucideIcon;
   iconOnly?: boolean;
+  iconAfter?: boolean;
   loading?: boolean;
   disabled?: boolean;
   className?: string;
@@ -97,8 +100,9 @@ export function Button({
       accessibilityState={{ disabled: disabled || loading, busy: loading }}
       className={[fadeForLoading ? 'opacity-60' : '', iconOnly ? ICON_ONLY_SIZE[size] : '', className].join(' ')}
     >
-      {loading ? <ButtonSpinner /> : icon ? <ButtonIcon as={icon} /> : null}
+      {loading ? <ButtonSpinner /> : icon && !iconAfter ? <ButtonIcon as={icon} /> : null}
       {iconOnly ? null : <ButtonText>{label}</ButtonText>}
+      {!loading && icon && iconAfter ? <ButtonIcon as={icon} /> : null}
     </NativeButton>
   );
 }

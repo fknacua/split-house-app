@@ -41,21 +41,38 @@ export function Progress({
 }
 
 /**
- * Setup steps bar (custom Progress, screen mapping doc): one 4px segment per step, `primary` for
- * done steps and `track` for the rest, such as "2 of 4 steps done" on Welcome.
+ * One segment of {@link SegmentedProgress}: a step that is done or not, and whether it is optional.
+ */
+export interface ProgressSegment {
+  /** Drawn hollow (a 1.5px outline) instead of filled, like "Not in total" on Splits. */
+  optional: boolean;
+  /** Green when done, `track` when not. */
+  done: boolean;
+}
+
+/** A segment's look: required steps fill, optional ones are outlined. Green when done either way. */
+function segmentClass({ optional, done }: ProgressSegment): string {
+  if (optional) return `border-[1.5px] ${done ? 'border-success' : 'border-track'}`;
+  return done ? 'bg-success' : 'bg-track';
+}
+
+/**
+ * Setup steps bar (custom Progress, screen mapping doc): one 4px segment per step, such as
+ * "2 of 5 steps done" on Welcome. Required steps fill `success` when done; optional steps are
+ * hollow, with a `success` outline when done and a `track` one when not.
  *
- * @param total - Number of steps (segments).
- * @param done - How many steps are done, from the first.
+ * @param segments - One per step, in order.
+ * @param done - How many steps are done, read out as the bar's value.
  * @param accessibilityLabel - What the bar measures, read out by screen readers.
  * @param className - Extra classes for the row of segments.
  */
 export function SegmentedProgress({
-  total,
+  segments,
   done,
   accessibilityLabel,
   className,
 }: {
-  total: number;
+  segments: ProgressSegment[];
   done: number;
   accessibilityLabel: string;
   className?: string;
@@ -64,14 +81,11 @@ export function SegmentedProgress({
     <View
       accessibilityRole="progressbar"
       accessibilityLabel={accessibilityLabel}
-      accessibilityValue={{ min: 0, max: total, now: done }}
+      accessibilityValue={{ min: 0, max: segments.length, now: done }}
       className={`flex-row gap-1 ${className ?? ''}`}
     >
-      {Array.from({ length: total }, (_, i) => (
-        <View
-          key={i}
-          className={`h-1 min-w-0 flex-1 rounded-sm ${i < done ? 'bg-primary' : 'bg-track'}`}
-        />
+      {segments.map((segment, i) => (
+        <View key={i} className={`h-1 min-w-0 flex-1 rounded-sm ${segmentClass(segment)}`} />
       ))}
     </View>
   );

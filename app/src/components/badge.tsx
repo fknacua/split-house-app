@@ -4,9 +4,10 @@ import { Badge as NativeBadge, BadgeIcon, BadgeText } from '@/components/ui/badg
 
 /**
  * The badge looks, named by tone: `neutral` (default), `primary` ("to do"), `success` (Paid),
- * `warning` (Unpaid), `danger` (Overdue, errors), `info` (Due, Due today, Corrected).
+ * `warning` (Unpaid), `danger` (Overdue, errors), `info` (Due, Due today, Corrected), `disabled`
+ * (on a row that can't be tapped yet, such as a later step on Welcome).
  */
-export type BadgeVariant = 'neutral' | 'primary' | 'success' | 'warning' | 'danger' | 'info';
+export type BadgeVariant = 'neutral' | 'primary' | 'success' | 'warning' | 'danger' | 'info' | 'disabled';
 
 /**
  * App status badge (screen mapping doc: Badge). A thin wrapper over the native gluestack badge in

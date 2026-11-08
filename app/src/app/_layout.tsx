@@ -7,7 +7,7 @@ import { BottomSheetModalProvider } from '@gorhom/bottom-sheet';
 import { QueryClientProvider } from '@tanstack/react-query';
 
 import { AppProvider, ServerUnreachableProvider, SuccessToastProvider } from '@/components';
-import { useAppFonts } from '@/hooks';
+import { useAppFonts, useBootstrap } from '@/hooks';
 import { useAppStateFocus } from '@/lib/focus-manager';
 import { queryClient } from '@/lib/query-client';
 import { useSession } from '@/lib/session';
@@ -25,22 +25,35 @@ export default function RootLayout() {
   );
 }
 
-/** The session gate: Sign in without a session, the app with one. */
+/**
+ * The session gate: Sign in without a session; with one, Welcome (no tabs) until First run is
+ * finished (`setupComplete`, a month is open), then the app. The Household and template editors
+ * sit outside both, since Welcome opens them too. Waits for the bootstrap before choosing.
+ */
 function SessionStack() {
   const { pending, signedIn } = useSession();
+  const bootstrap = useBootstrap({ enabled: signedIn });
   if (pending) return null;
+  if (signedIn && !bootstrap.data) return null;
+  const setupComplete = bootstrap.data?.setupComplete ?? false;
 
+  // Order matters: the first screen whose guard passes is the one shown.
   return (
     <Stack screenOptions={{ headerShown: false }}>
       <Stack.Protected guard={!signedIn}>
         <Stack.Screen name="sign-in" />
       </Stack.Protected>
-      <Stack.Protected guard={signedIn}>
+      <Stack.Protected guard={signedIn && setupComplete}>
         <Stack.Screen name="(tabs)" />
         <Stack.Screen name="history/[month]" />
         <Stack.Screen name="bill/[month]/index" />
-        <Stack.Screen name="bill/[month]/upload" />
         <Stack.Screen name="recipient/[month]/[personId]" />
+      </Stack.Protected>
+      <Stack.Protected guard={signedIn && !setupComplete}>
+        <Stack.Screen name="welcome" />
+      </Stack.Protected>
+      <Stack.Protected guard={signedIn}>
+        <Stack.Screen name="bill/[month]/upload" />
         <Stack.Screen name="household/person/[personId]/index" />
         <Stack.Screen name="household/person/[personId]/edit" />
         <Stack.Screen name="household/add-person" />

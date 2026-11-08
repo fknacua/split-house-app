@@ -9,6 +9,8 @@
 export const queryKeys = {
   me: ['me'] as const,
   bootstrap: ['bootstrap'] as const,
+  /** Welcome (`GET /api/setup`). Every first-setup save invalidates it (11.4). */
+  setup: ['setup'] as const,
   /** Home: the newest opened month. The server picks the month, so there is no month in the key. */
   home: ['home'] as const,
   /** The History list. Also the prefix of every `historyMonth` key, so invalidating it refreshes both. */

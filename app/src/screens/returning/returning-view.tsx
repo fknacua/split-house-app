@@ -1,11 +1,7 @@
-import { Image } from 'expo-image';
 import { Check } from 'lucide-react-native';
 import { Text, View } from 'react-native';
 
-import { Card, Icon, Screen, Spinner } from '@/components';
-
-// Same animated app icon as Sign in, in place of the design's house glyph tile.
-const APP_ICON = require('../../../assets/images/app-icon/splithouse-squircle-loop.webp');
+import { AppLogo, Card, Icon, Screen, Spinner } from '@/components';
 
 /**
  * The two states of the returning-user loading screen. `Returning.dc.html` draws only
@@ -69,11 +65,7 @@ export function ReturningView({ state = 'loading' }: { state?: ReturningState })
     <Screen>
       <View className="flex-1 justify-center gap-8 px-6 pb-7">
         <View className="items-start gap-4">
-          <Image
-            source={APP_ICON}
-            style={{ width: 64, height: 64 }}
-            accessibilityElementsHidden
-          />
+          <AppLogo />
           <Text className="font-manrope-extrabold text-title text-on-surface">
             Getting things ready
           </Text>

@@ -48,7 +48,29 @@ const SCENARIOS = {
   householdUpcoming: { devNow: "2026-11-03T09:00:00+08:00" },
   // As upload, but Room 3 is part of the landlord rent, so everyone is in the Rent row's total.
   householdRoom3InTotal: { devNow: "2026-11-03T09:00:00+08:00" },
+  // First run (Welcome, 11.3): no month is open. See FIRST_RUN_STEPS for the steps each one has done.
+  firstRunEmpty: { devNow: "2026-11-08T09:00:00+08:00" },
+  firstRunStarted: { devNow: "2026-11-08T09:00:00+08:00" },
+  firstRunProgress: { devNow: "2026-11-08T09:00:00+08:00" },
+  firstRunRequired: { devNow: "2026-11-08T09:00:00+08:00" },
+  firstRunAllDone: { devNow: "2026-11-08T09:00:00+08:00" },
 } as const;
+
+/**
+ * The First run scenarios and the Welcome steps each has done. `firstRunEmpty` is a wiped database
+ * with no household; once Rent & rooms is done the household is the fixture's, as one first
+ * version starting in the start month, with no month opened from it.
+ */
+const FIRST_RUN_STEPS: Partial<Record<keyof typeof SCENARIOS, string[]>> = {
+  firstRunEmpty: [],
+  firstRunStarted: ["startMonth"],
+  firstRunProgress: ["startMonth", "rentAndRooms", "people"],
+  firstRunRequired: ["startMonth", "rentAndRooms", "people", "householdSplits"],
+  firstRunAllDone: ["startMonth", "rentAndRooms", "people", "householdSplits", "messages"],
+};
+
+/** The start month saved in every First run scenario past `firstRunEmpty`: this month. */
+const FIRST_RUN_START_MONTH = "2026-11";
 
 type ScenarioName = keyof typeof SCENARIOS;
 
@@ -303,7 +325,30 @@ async function seedOctober(versionAId: string) {
   await markPaid(samCredit.id, PERSON_IDS.alex, "2026-10-12");
 }
 
+/**
+ * A First run scenario: the household so far and the `Setup` row, with no month, charge or bill.
+ *
+ * @param doneSteps - The Welcome steps done, in order.
+ */
+async function seedFirstRun(doneSteps: string[]) {
+  await wipeDomainTables();
+  if (doneSteps.includes("rentAndRooms")) {
+    await seedPeople();
+    await prisma.householdVersion.create({
+      data: { startsFromMonth: FIRST_RUN_START_MONTH, schemaVersion: HOUSEHOLD_SCHEMA_VERSION, config: NOV_2026_CONFIG },
+    });
+  }
+  if (doneSteps.length > 0) {
+    await prisma.setup.create({ data: { startMonth: FIRST_RUN_START_MONTH, doneSteps } });
+  }
+  console.log(`Seeded First run, scenario "${scenario}": ${doneSteps.length} steps done, no month open.`);
+  console.log(`Run the backend with DEV_NOW=${SCENARIOS[scenario].devNow}`);
+}
+
 async function main() {
+  const firstRunSteps = FIRST_RUN_STEPS[scenario];
+  if (firstRunSteps) return seedFirstRun(firstRunSteps);
+
   await wipeDomainTables();
   await seedPeople();
 
