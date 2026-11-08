@@ -33,8 +33,11 @@ export interface WelcomeFooterProps {
   /** `Not now` in `optional`; null for none. */
   secondary: SetupAction | null;
   onOpen: OpenSetupTarget;
-  /** True while finishing runs: the finish button shows the spinner and the other is disabled. */
-  finishing: boolean;
-  /** A failed finish's message, shown above the buttons; null for none. */
+  /**
+   * The target running on the server, `skip-step` or `finish`: its button shows the spinner and the other is
+   * disabled. Null when none is.
+   */
+  pending: Extract<SetupTarget['kind'], 'skip-step' | 'finish'> | null;
+  /** A failed skip's or finish's message, shown above the buttons; null for none. */
   error: string | null;
 }

@@ -5,6 +5,7 @@ import {
   type SetupMarkableStep,
   type SetupResponse,
   type SetupSaveResponse,
+  type SetupSkippableStep,
   type SetupStartMonthRequest,
   type SetupStartMonthResponse,
 } from "@splithouse/shared";
@@ -131,6 +132,23 @@ export async function markSetupStep(db: SetupMarkDb, step: SetupMarkableStep): P
   if (step === "messages" && !(config && hasCustomTemplate(config, await readMessageTemplates(db)))) {
     throw new ApiError(409, "no_templates", "Add a custom template first.");
   }
+  return { doneSteps: (await markStepsDone(db, [step])).doneSteps };
+}
+
+/**
+ * Skips an optional step with `Not now`, on Welcome or on the step's page. A skipped step counts as done, so Welcome
+ * moves to the next step, and to `allDone` after the last; only `Finish setup` finishes First run. Skipping a step
+ * already done changes nothing.
+ *
+ * @param db - The Prisma client, or a fake in tests.
+ * @param step - The optional step.
+ * @returns The steps now done.
+ * @throws {ApiError} 409 `setup_done` once a month is open; 409 for the first earlier step not done (see
+ * `requireStepsBefore`).
+ */
+export async function skipSetupStep(db: SetupDb & SetupWriteDb, step: SetupSkippableStep): Promise<SetupSaveResponse> {
+  const { doneSteps } = await readFirstRun(db);
+  requireStepsBefore(step, doneSteps);
   return { doneSteps: (await markStepsDone(db, [step])).doneSteps };
 }
 

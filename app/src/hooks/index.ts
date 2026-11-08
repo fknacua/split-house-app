@@ -21,6 +21,7 @@ export * from './use-mark-bill-paid';
 export * from './use-discard-setup-messages';
 export * from './use-finish-setup';
 export * from './use-mark-setup-step';
+export * from './use-skip-setup-step';
 export * from './use-keep-focused-input-visible';
 export * from './use-me';
 export * from './use-payment-options';

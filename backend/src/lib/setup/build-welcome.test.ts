@@ -58,14 +58,14 @@ describe("buildWelcome", () => {
     expect(welcome.primary).toEqual({ label: "Continue: Household splits", target: { kind: "edit-splits" } });
   });
 
-  it("draws `optional`: the required steps done, Continue to Custom messages or finish with Not now", () => {
+  it("draws `optional`: the required steps done, Continue to Custom messages or skip it with Not now", () => {
     const welcome = setupResponseSchema.parse(buildWelcome(REQUIRED));
     expect(welcome.heading).toBe("Your household is set up");
     expect(welcome.intro).toBe("Custom messages are optional. You can change them any time in Settings.");
     expect(welcome.progress?.text).toBe("4 of 5 steps done");
     expect(states(REQUIRED)).toEqual(["done", "done", "done", "done", "current"]);
     expect(welcome.primary).toEqual({ label: "Continue: Custom messages", target: { kind: "setup-messages" } });
-    expect(welcome.secondary).toEqual({ label: "Not now", target: { kind: "finish" } });
+    expect(welcome.secondary).toEqual({ label: "Not now", target: { kind: "skip-step", step: "messages" } });
   });
 
   it("draws `allDone`: Finish setup, with no link under it", () => {

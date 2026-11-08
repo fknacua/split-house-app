@@ -1,4 +1,11 @@
-import { SETUP_STEP_IDS, type SetupResponse, type SetupRow, type SetupStepId, type SetupTarget } from "@splithouse/shared";
+import {
+  SETUP_STEP_IDS,
+  setupSkippableStepSchema,
+  type SetupResponse,
+  type SetupRow,
+  type SetupStepId,
+  type SetupTarget,
+} from "@splithouse/shared";
 import { requiredStepsDone } from "./steps";
 
 /** Each row's wording, as drawn in `Welcome.dc.html`, and where it leads. */
@@ -44,8 +51,8 @@ const INTRO_ALL_DONE = "Everything is set up. Next, upload your utilities bill i
 /**
  * Builds Welcome from the steps done. Rows go in order: done rows reopen, the first not done is current and later
  * rows are disabled. The heading, intro and footer follow the board's states: `empty` (nothing done), `started` and
- * `progress` (some required steps done), `optional` (every required step done) and `allDone` (Custom messages done
- * too), whose buttons finish First run.
+ * `progress` (some required steps done), `optional` (every required step done), whose `Not now` skips the optional step,
+ * and `allDone` (Custom messages done or skipped), whose `Finish setup` is the only way to finish First run.
  *
  * @param done - The done steps.
  * @returns Welcome, ready to render.
@@ -71,7 +78,11 @@ export function buildWelcome(done: readonly SetupStepId[]): SetupResponse {
     : doneCount === 0
       ? { label: "Start with the start month", target: STEPS.startMonth.target }
       : { label: `Continue: ${STEPS[current].title}`, target: STEPS[current].target };
-  const secondary = required && !allDone ? { label: "Not now", target: { kind: "finish" } as const } : null;
+  // An optional current step is skippable: `Not now` counts it done and Welcome moves to the next step.
+  const skippable = required && current !== null ? setupSkippableStepSchema.safeParse(current) : null;
+  const secondary = skippable?.success
+    ? { label: "Not now", target: { kind: "skip-step", step: skippable.data } as const }
+    : null;
 
   return {
     heading: allDone ? "You’re all set" : required ? "Your household is set up" : "Set up your household",

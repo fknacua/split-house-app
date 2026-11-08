@@ -15,6 +15,12 @@ export const setupMarkableStepSchema = z.enum(['people', 'messages']);
 /** One of the steps `POST /api/setup/steps/:id` marks. */
 export type SetupMarkableStep = z.infer<typeof setupMarkableStepSchema>;
 
+/** The optional steps `POST /api/setup/steps/:id/skip` skips with `Not now`. A skipped step counts as done. */
+export const setupSkippableStepSchema = z.enum(['messages']);
+
+/** One of the steps `POST /api/setup/steps/:id/skip` skips. */
+export type SetupSkippableStep = z.infer<typeof setupSkippableStepSchema>;
+
 /** Where a Welcome row or button leads. The app navigates; it decides nothing. */
 export const setupTargetSchema = z.discriminatedUnion('kind', [
   z.object({ kind: z.literal('start-month') }),
@@ -22,6 +28,8 @@ export const setupTargetSchema = z.discriminatedUnion('kind', [
   z.object({ kind: z.literal('setup-people') }),
   z.object({ kind: z.literal('edit-splits') }),
   z.object({ kind: z.literal('setup-messages') }),
+  /** Calls `POST /api/setup/steps/:id/skip`, which counts the optional step done; Welcome moves to the next step. */
+  z.object({ kind: z.literal('skip-step'), step: setupSkippableStepSchema }),
   /** Calls `POST /api/setup/finish`, which opens the start month; the app then goes to Home. */
   z.object({ kind: z.literal('finish') }),
 ]);
@@ -87,7 +95,7 @@ export const setupResponseSchema = z.object({
   rows: z.array(setupRowSchema),
   /** The main footer button, e.g. `Continue: Rent & rooms`. */
   primary: setupActionSchema,
-  /** The link under it, `Not now` while Custom messages is not done; null when there is none. */
+  /** The link under it, `Not now` on an optional step, which skips it; null when there is none. */
   secondary: setupActionSchema.nullable(),
 });
 
@@ -145,8 +153,8 @@ export const setupFinishResponseSchema = z.object({
 export type SetupFinishResponse = z.infer<typeof setupFinishResponseSchema>;
 
 /**
- * `POST /api/setup/start-month`, `POST /api/setup/steps/:id` and `POST /api/setup/messages/discard`: the steps now
- * done.
+ * `POST /api/setup/start-month`, `POST /api/setup/steps/:id`, `POST /api/setup/steps/:id/skip` and
+ * `POST /api/setup/messages/discard`: the steps now done.
  */
 export const setupSaveResponseSchema = z.object({
   doneSteps: z.array(z.enum(SETUP_STEP_IDS)),
@@ -219,8 +227,8 @@ export const setupMessagesResponseSchema = z.object({
     /** `Not now`. */
     label: z.string(),
     /**
-     * The `skipMessages` dialog while a custom template exists; its confirm calls `POST /api/setup/messages/discard`.
-     * Null when there is none, and `Not now` goes straight back to Welcome.
+     * The `skipMessages` dialog while a custom template exists; its confirm calls `POST /api/setup/messages/discard`,
+     * which also skips the step. Null when there is none, and `Not now` skips it (`POST /api/setup/steps/messages/skip`).
      */
     confirm: setupConfirmSchema.nullable(),
   }),
