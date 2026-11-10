@@ -50,11 +50,11 @@ export type HistoryListResponse = z.infer<typeof historyListResponseSchema>;
 
 /** One payment row on the month detail: a charge and whether it was paid. */
 export const historyPaymentSchema = z.object({
-  /** e.g. `Rent - Tenant 1`. */
+  /** e.g. `Rent · Tenant 1`. */
   title: z.string(),
   /** e.g. `$X,XXX.XX`. */
   amount: z.string(),
-  /** Small lines under the title, e.g. `Sep Utils - Added 2 Oct` on a correction. Often empty. */
+  /** Small lines under the title, e.g. `Sep Utils · Added 2 Oct` on a correction. Often empty. */
   details: z.array(z.string()),
   /** e.g. `Paid 3 Nov`. */
   badge: badgeSchema,

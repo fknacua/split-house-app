@@ -316,7 +316,7 @@ describe("buildHome, unsent on 1 Nov", () => {
     expect(afterPriya.rows.find((r) => r.title === "Utilities · Jordan")!.badge.label).toBe("Not sent");
     for (const title of ["Utilities · Priya", "Utilities · Sam"]) {
       const row = afterPriya.rows.find((r) => r.title === title)!;
-      expect(row.badge.label).toBe("Sent, unpaid");
+      expect(row.badge.label).toBe("Sent · unpaid");
       expect(row.expanded).toBe(false);
       expect(row.actions).toHaveLength(1);
     }
@@ -410,11 +410,11 @@ describe("buildHome, collecting on 3 Nov", () => {
     expect(row("Utilities · Jordan").actions).toHaveLength(1);
   });
 
-  it("shows charges further out as Sent, unpaid when the payer's message is out, else Upcoming", () => {
-    expect(row("Rent · Priya").badge).toEqual({ label: "Sent, unpaid", tone: "neutral" });
+  it("shows charges further out as Sent · unpaid when the payer's message is out, else Upcoming", () => {
+    expect(row("Rent · Priya").badge).toEqual({ label: "Sent · unpaid", tone: "neutral" });
     expect(row("Starhub · Priya").detail).toBe("Sent 2 Nov");
     expect(row("Utilities · Sam")).toMatchObject({
-      badge: { label: "Sent, unpaid", tone: "neutral" },
+      badge: { label: "Sent · unpaid", tone: "neutral" },
       detail: "Pays via Priya · Sent 2 Nov",
     });
     expect(row("Rent · Sam").badge.label).toBe("Paid");

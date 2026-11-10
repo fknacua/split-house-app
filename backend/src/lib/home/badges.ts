@@ -10,7 +10,8 @@ export const HOME_BADGES = {
   paid: { label: "Paid", tone: "success" },
   dueToday: { label: "Due today", tone: "info" },
   dueTomorrow: { label: "Due tomorrow", tone: "info" },
-  sentUnpaid: { label: "Sent, unpaid", tone: "neutral" },
+  /** Home rows and Recipient's chip: the monthly message is out and nothing is paid. */
+  sentUnpaid: { label: "Sent · unpaid", tone: "neutral" },
   upcoming: { label: "Upcoming", tone: "neutral" },
   needsBill: { label: "Needs bill", tone: "neutral" },
   billNotUploaded: { label: "Not uploaded", tone: "neutral" },
@@ -19,8 +20,6 @@ export const HOME_BADGES = {
   covered: { label: "Covered", tone: "success" },
   /** View bill: a share whose message is out and is not paid or overdue. */
   waiting: { label: "Waiting", tone: "neutral" },
-  /** Recipient: the monthly message is out and nothing is paid. Its board writes it with a dot, unlike Home's. */
-  recipientSentUnpaid: { label: "Sent · unpaid", tone: "neutral" },
   /** Recipient: a charge is past its due date; the rows below say which and by how long. */
   recipientOverdue: { label: "Overdue", tone: "danger" },
   /** Recipient: every charge has a payment, but less came in than was asked. */
@@ -31,7 +30,7 @@ export const HOME_BADGES = {
   roomEmpty: { label: "Empty", tone: "neutral" },
 } as const satisfies Record<string, BadgeContent>;
 
-/** A charge due within this many days shows `Due in N days`. Further out it is `Sent, unpaid` or `Upcoming`. */
+/** A charge due within this many days shows `Due in N days`. Further out it is `Sent · unpaid` or `Upcoming`. */
 const DUE_SOON_DAYS = 3;
 
 /**
@@ -49,7 +48,7 @@ export function overdueBadge(daysLate: number): BadgeContent {
  *
  * @param days - Whole days from today to the due date. Negative once it is past.
  * @returns `Overdue N days`, `Due today`, `Due tomorrow` or `Due in N days` (up to `DUE_SOON_DAYS`),
- * or null when the due date is further out and the caller picks `Sent, unpaid` or `Upcoming`.
+ * or null when the due date is further out and the caller picks `Sent · unpaid` or `Upcoming`.
  */
 function chargeDueBadge(days: number): BadgeContent | null {
   if (days < 0) return overdueBadge(-days);

@@ -42,23 +42,23 @@ function paidBadge(paidOn: Date | null): BadgeContent {
   return { label: `Paid ${formatDateShort(dateKeyOf(paidOn))}`, tone: "success" };
 }
 
-/** The row title: `<label> - <person>`, or `Correction - <person>` whatever label a correction has. */
+/** The row title: `<label> · <person>`, or `Correction · <person>` whatever label a correction has. */
 function buildTitleByCategory(charge: HistoryMonthChargeRow): string {
   switch (charge.category) {
     case "CORRECTION":
-      return `Correction - ${charge.person.name}`;
+      return `Correction · ${charge.person.name}`;
     default:
-      return `${charge.label} - ${charge.person.name}`;
+      return `${charge.label} · ${charge.person.name}`;
   }
 }
 
-/** The small lines under the title: what a correction fixes, e.g. `Sep Utils - Added 2 Oct`. */
+/** The small lines under the title: what a correction fixes, e.g. `Sep Utils · Added 2 Oct`. */
 function buildDetailsByCategory(charge: HistoryMonthChargeRow): string[] {
   switch (charge.category) {
     case "CORRECTION": {
       if (!charge.correctsMonth || !charge.correctsCategory) return [];
       const fixed = `${formatMonthShort(charge.correctsMonth)} ${CATEGORY_WORDS[charge.correctsCategory] ?? "Other"}`;
-      return [`${fixed} - Added ${formatDateShort(dateKeyOf(charge.createdAt))}`];
+      return [`${fixed} · Added ${formatDateShort(dateKeyOf(charge.createdAt))}`];
     }
     default:
       return [];
@@ -94,7 +94,7 @@ function buildCorrectionBanner(correction: HistoryMonthChargeRow): HistoryBanner
 /**
  * Turns a month's bill and charges into the month detail response. Pure: no database, no clock.
  *
- * Every charge the month holds is one row, titled `<label> - <person>` (`Correction - <person>`
+ * Every charge the month holds is one row, titled `<label> · <person>` (`Correction · <person>`
  * for a correction). Unpaid rows come first, then paid rows with the most recent payment first;
  * rows tied on the date sort by label, then person. The row amount is what was owed, so a short
  * payment is not shown differently yet. A correction is a row in the month that holds it, not in
