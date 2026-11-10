@@ -128,7 +128,7 @@ function sentAmountCard(input: RecipientInput, message: MonthlyMessage, sentOn: 
   return {
     label: `${formatMonthShortLabel(input.month)} total`,
     amount: formatCents(message.breakdown.totalCents),
-    chip: HOME_BADGES.recipientSentUnpaid,
+    chip: HOME_BADGES.sentUnpaid,
     statusLine: { text: parts.join(" · "), tone: "default" },
   };
 }

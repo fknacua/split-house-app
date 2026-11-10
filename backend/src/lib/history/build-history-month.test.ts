@@ -65,10 +65,10 @@ describe("buildHistoryMonth", () => {
   it("makes one row per charge, label first, newest payment first, ties by label then person", () => {
     const { payments, banners } = buildHistoryMonth("2026-11", BILL, CHARGES, []);
     expect(payments).toEqual([
-      { title: "Rent - Tenant 1", amount: "$950.00", details: [], badge: { label: "Paid 7 Nov", tone: "success" } },
-      { title: "Utilities - Tenant 1", amount: "$82.46", details: [], badge: { label: "Paid 7 Nov", tone: "success" } },
-      { title: "Utilities - Tenant 2", amount: "$82.46", details: [], badge: { label: "Paid 4 Nov", tone: "success" } },
-      { title: "Rent - Tenant 2", amount: "$950.00", details: [], badge: { label: "Paid 3 Nov", tone: "success" } },
+      { title: "Rent · Tenant 1", amount: "$950.00", details: [], badge: { label: "Paid 7 Nov", tone: "success" } },
+      { title: "Utilities · Tenant 1", amount: "$82.46", details: [], badge: { label: "Paid 7 Nov", tone: "success" } },
+      { title: "Utilities · Tenant 2", amount: "$82.46", details: [], badge: { label: "Paid 4 Nov", tone: "success" } },
+      { title: "Rent · Tenant 2", amount: "$950.00", details: [], badge: { label: "Paid 3 Nov", tone: "success" } },
     ]);
     expect(banners).toEqual([]);
   });
@@ -81,8 +81,8 @@ describe("buildHistoryMonth", () => {
       [],
     );
     expect(payments.map((p) => [p.title, p.badge])).toEqual([
-      ["Rent - Tenant 1", { label: "Unpaid", tone: "warning" }],
-      ["Rent - Tenant 2", { label: "Paid 3 Nov", tone: "success" }],
+      ["Rent · Tenant 1", { label: "Unpaid", tone: "warning" }],
+      ["Rent · Tenant 2", { label: "Paid 3 Nov", tone: "success" }],
     ]);
   });
 
@@ -122,15 +122,15 @@ describe("buildHistoryMonth", () => {
       const unpaid = buildHistoryMonth("2026-10", BILL, [correction("Jordan", 1500)], []).payments;
       expect(unpaid).toEqual([
         {
-          title: "Correction - Jordan",
+          title: "Correction · Jordan",
           amount: "$15.00",
-          details: ["Sep Utils - Added 5 Oct"],
+          details: ["Sep Utils · Added 5 Oct"],
           badge: { label: "Unpaid", tone: "warning" },
         },
       ]);
       const paid = buildHistoryMonth("2026-10", BILL, [correction("Sam", -500, "2026-10-12")], []);
       expect(paid.payments[0]).toMatchObject({
-        title: "Correction - Sam",
+        title: "Correction · Sam",
         amount: "-$5.00",
         badge: { label: "Paid 12 Oct", tone: "success" },
       });
@@ -139,7 +139,7 @@ describe("buildHistoryMonth", () => {
     it("says Other when a correction fixes a category with no short word", () => {
       const other = { ...correction("Jordan", 1500), correctsCategory: "ONE_OFF" as const };
       expect(buildHistoryMonth("2026-10", BILL, [other], []).payments[0].details).toEqual([
-        "Sep Other - Added 5 Oct",
+        "Sep Other · Added 5 Oct",
       ]);
     });
   });
