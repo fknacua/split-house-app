@@ -40,7 +40,7 @@ body{margin:0}
 <div style="height: 40px; flex-shrink: 0"></div>
 <header style="flex-shrink: 0; padding: 4px 20px 12px; display: flex; flex-direction: column; gap: 2px">
 <span style="font-size: 34px; line-height: 40px; font-weight: 700; letter-spacing: -0.8px">9:00</span>
-<span style="font-size: 13.5px; color: {{c.onSurfaceVariant}}">Wed 4 Nov</span>
+<span style="font-size: 13.5px; color: {{c.onSurfaceVariant}}">4 Nov</span>
 </header>
 
 <main style="flex-grow: 1; min-height: 0; overflow-y: auto; overscroll-behavior: contain; scrollbar-width: none; padding: 0 8px 12px; display: flex; flex-direction: column; gap: 14px">
@@ -93,7 +93,7 @@ class Component extends DCLogic {
       background: '#111214', surface: '#1A1C1E', container: '#222427', sheet: '#222427',
       onSurface: '#E3E3E6', onSurfaceVariant: '#C4C6CB', outline: '#8E9196', outlineVariant: '#2E3134',
       primary: '#E2E2E6', onPrimary: '#1A1C1E', selected: '#2C2F33', onSelected: '#E3E3E6',
-      disabledBg: '#222427', disabledFg: '#5C5F64', track: '#3A3E43', scrim: 'rgba(0,0,0,0.6)',
+      disabledBg: '#222427', disabledFg: '#5C5F64', track: '#3A3E43', scrim: 'rgba(0,0,0,0.5)',
       success: '#66BB6A', successContainer: '#1B5E20', onSuccessContainer: '#CBE4CB',
       warning: '#FFA726', warningContainer: '#66430F', onWarningContainer: '#FFE2B7', warningTint: '#332108', warningLine: '#F57C00',
       danger: '#F44336', dangerTint: '#3B1511', dangerLine: '#D32F2F', onDangerTint: '#FFD9D6',
@@ -127,8 +127,7 @@ class Component extends DCLogic {
         item({ time: '9:00', title: 'Upload this month’s utilities bill', body: 'It usually lands around the 2nd. Tap to upload it.', href: upload }),
         item({ time: 'Fri', title: 'Collect Tenant 1’s rent', body: 'Their October rent of $950.00 is still unpaid. Weekend transfers can be slow.', href: homeCollect,
           actions: [A('Paid', paidSheet), A('Nudge', home)] }),
-        item({ time: 'Yesterday', title: 'Transfer $950.00 to savings', body: 'Tenant 2’s rent was marked received. Move it to your second account.', href: home }),
-        item({ time: 'Yesterday', title: 'Pay utilities bill: collected $123.69 of $412.30', body: 'Due Mon 16 Nov.', href: home })
+        item({ time: 'Yesterday', title: 'Pay utilities bill: collected $123.69 of $412.30', body: 'Due 16 Nov.', href: home })
       ] },
       { title: 'Payment checks', silent: false, items: [
         item({ time: '9:00', title: 'Did Tenant 2 pay Nov utilities ($100.79)?', body: 'Due today.', href: home,

@@ -22,11 +22,14 @@ body{margin:0}
 <sc-if value="{{isView}}" hint-placeholder-val="{{true}}">
 <header style="display: flex; align-items: center; justify-content: space-between; padding: 4px 8px 4px 16px; height: 56px; flex-shrink: 0">
 <h1 style="margin: 0; font-size: 24px; line-height: 32px; font-weight: 800">Household</h1>
+<sc-if value="{{isLoaded}}" hint-placeholder-val="{{true}}">
 <!-- gluestack Button, link; opens month list (bottom sheet) -->
 <button aria-label="Showing November 2026 setup. Change month" style="height: 44px; padding: 0 8px; border-radius: 999px; border: 0; background: transparent; color: {{c.onSurface}}; display: flex; align-items: center; gap: 6px; font-family: inherit; font-size: 14px; line-height: 20px; font-weight: 700">
 <span style="font-weight: 600; color: {{c.onSurfaceVariant}}">Showing:</span> Nov 2026
 <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m6 9 6 6 6-6"></path></svg>
 </button>
+</sc-if>
+<sc-if value="{{isLoading}}" hint-placeholder-val="{{false}}"><span style="display: flex; align-items: center; gap: 6px; padding: 0 8px; font-size: 14px; line-height: 20px; font-weight: 600; color: {{c.onSurfaceVariant}}">Showing: <span aria-hidden="true" style="width: 64px; height: 16px; border-radius: 8px; background: {{c.skeleton}}"></span></span></sc-if>
 </header>
 
 <div style="flex-grow: 1; min-height: 0; overflow-y: auto; overscroll-behavior: contain; scrollbar-width: none">
@@ -57,14 +60,25 @@ Edit
 </a>
 </sc-if>
 <sc-if value="{{isLoading}}" hint-placeholder-val="{{false}}">
-<!-- gluestack Skeleton: landlord rent card -->
-<div aria-hidden="true" style="height: 160px; border-radius: 24px; background: {{c.skeleton}}"></div>
+<!-- Skeleton: rent card in its own shape -->
+<div aria-hidden="true" style="background: {{c.surface}}; border-radius: 24px; padding: 16px 18px; display: flex; flex-direction: column; gap: 12px">
+<span style="font-size: 12px; line-height: 16px; font-weight: 600; color: {{c.onSurfaceVariant}}">Landlord rent</span>
+<div style="width: 170px; height: 36px; border-radius: 10px; background: {{c.skeleton}}"></div>
+<div style="display: flex; gap: 8px"><div style="flex: 1 1 0; height: 52px; border-radius: 14px; background: {{c.skeleton}}"></div><div style="flex: 1 1 0; height: 52px; border-radius: 14px; background: {{c.skeleton}}"></div><div style="flex: 1 1 0; height: 52px; border-radius: 14px; background: {{c.skeleton}}"></div></div>
+</div>
 </sc-if>
 
+<!-- Underlined Tabs: Split first. The tab row pins under the header; the rent card scrolls away -->
+<div role="tablist" style="position: sticky; top: 0; z-index: 2; margin: -4px -16px 0; padding: 0 16px; background: {{c.background}}; display: flex; border-bottom: 1px solid {{c.outlineVariant}}">
+<sc-for list="{{tabs}}" as="t" hint-placeholder-count="3">
+<a href="{{t.href}}" role="tab" aria-selected="{{t.sel}}" style="flex: 1 1 0; height: 48px; display: flex; align-items: center; justify-content: center; font-size: 14px; line-height: 20px; font-weight: {{t.weight}}; color: {{t.fg}}; text-decoration: none; box-shadow: inset 0 -3px 0 {{t.line}}">{{t.label}}</a>
+</sc-for>
+</div>
+
+<sc-if value="{{tabSplit}}" hint-placeholder-val="{{true}}">
 <div style="display: flex; flex-direction: column; gap: 8px">
-<div style="display: flex; align-items: center; justify-content: space-between; gap: 8px; padding: 0 4px">
+<div style="display: flex; align-items: center; justify-content: space-between; gap: 8px; padding: 0 4px; min-height: 20px">
 <h2 style="margin: 0; font-size: 14px; line-height: 20px; font-weight: 700">Household split</h2>
-<!-- gluestack Button, link -->
 <a href="{{splitHref}}" style="margin: -14px -4px; min-height: 48px; padding: 0 4px; display: flex; align-items: center; gap: 6px; font-size: 14px; line-height: 20px; font-weight: 700; color: {{c.primary}}; text-decoration: none"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21.174 6.812a1 1 0 0 0-3.986-3.987L3.842 16.174a2 2 0 0 0-.5.83l-1.321 4.352a.5.5 0 0 0 .623.622l4.353-1.32a2 2 0 0 0 .83-.497z"></path><path d="m15 5 4 4"></path></svg>Edit splits</a>
 </div>
 <sc-if value="{{isLoaded}}" hint-placeholder-val="{{true}}">
@@ -114,12 +128,14 @@ Edit
 </div>
 </sc-if>
 </div>
+</sc-if>
 
+<sc-if value="{{tabPeople}}" hint-placeholder-val="{{false}}">
 <div style="display: flex; flex-direction: column; gap: 8px">
-<div style="display: flex; justify-content: space-between; align-items: baseline; padding: 0 4px">
+<div style="display: flex; align-items: center; justify-content: space-between; gap: 8px; padding: 0 4px; min-height: 20px">
 <h2 style="margin: 0; font-size: 14px; line-height: 20px; font-weight: 700">People</h2>
+<a href="{{addHref}}" style="min-height: 48px; padding: 0 4px; margin: -14px -4px; display: flex; align-items: center; gap: 6px; font-size: 14px; line-height: 20px; font-weight: 700; color: {{c.primary}}; text-decoration: none"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"></path><circle cx="9" cy="7" r="4"></circle><line x1="19" x2="19" y1="8" y2="14"></line><line x1="22" x2="16" y1="11" y2="11"></line></svg>Add subtenant</a>
 </div>
-<sc-if value="{{isLoaded}}" hint-placeholder-val="{{true}}">
 <sc-for list="{{people}}" as="p" hint-placeholder-count="4">
 <!-- gluestack Card -->
 <div style="background: {{c.surface}}; border-radius: 20px; padding: 12px 12px 12px 14px; display: flex; flex-direction: column; gap: 10px">
@@ -127,7 +143,7 @@ Edit
 <span style="width: 40px; height: 40px; border-radius: 20px; background: {{p.color}}; color: {{p.onColor}}; display: flex; align-items: center; justify-content: center; font-size: 14px; line-height: 20px; font-weight: 800; flex-shrink: 0">{{p.initial}}</span>
 <div style="flex-grow: 1; min-width: 0; display: flex; flex-direction: column">
 <span style="font-size: 14px; line-height: 20px; font-weight: 700">{{p.name}}</span>
-<span style="font-size: 12px; line-height: 16px; font-weight: 600; color: {{c.onSurfaceVariant}}">{{p.role}}</span>
+
 </div>
 </div>
 <div style="display: flex; flex-wrap: wrap; gap: 8px 12px; padding-right: 4px">
@@ -150,63 +166,113 @@ Edit
 </div></sc-if>
 </div>
 </sc-for>
+</div>
 </sc-if>
-<sc-if value="{{isLoading}}" hint-placeholder-val="{{false}}">
-<sc-for list="{{skelPeople}}" as="sp" hint-placeholder-count="4">
-<!-- gluestack Card with gluestack Skeleton blocks -->
-<div aria-hidden="true" style="background: {{c.surface}}; border-radius: 20px; padding: 12px 12px 12px 14px; display: flex; flex-direction: column; gap: 10px">
+
+<sc-if value="{{tabRecurring}}" hint-placeholder-val="{{false}}">
+<div style="display: flex; flex-direction: column; gap: 8px">
+<div style="display: flex; align-items: center; justify-content: space-between; gap: 8px; padding: 0 4px; min-height: 20px">
+<h2 style="margin: 0; font-size: 14px; line-height: 20px; font-weight: 700">Recurring charges</h2>
+<a href="{{addRecurringHref}}" style="min-height: 48px; padding: 0 4px; margin: -14px -4px; display: flex; align-items: center; gap: 6px; font-size: 14px; line-height: 20px; font-weight: 700; color: {{c.primary}}; text-decoration: none"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12h14"></path><path d="M12 5v14"></path></svg>Add charge</a>
+</div>
+<sc-if value="{{hasRecurring}}" hint-placeholder-val="{{true}}">
+<sc-for list="{{recurring}}" as="r" hint-placeholder-count="2">
+<!-- gluestack Card, styled like a People card -->
+<div style="background: {{c.surface}}; border-radius: 20px; padding: 12px 12px 12px 14px; display: flex; flex-direction: column; gap: 10px">
 <div style="display: flex; align-items: center; gap: 12px">
-<span style="width: 40px; height: 40px; border-radius: 20px; background: {{c.skeleton}}; flex-shrink: 0"></span>
-<div style="flex-grow: 1; min-width: 0; display: flex; flex-direction: column; gap: 6px">
-<span style="width: 96px; height: 14px; border-radius: 7px; background: {{c.skeleton}}"></span>
-<span style="width: 168px; height: 12px; border-radius: 6px; background: {{c.skeleton}}"></span>
+<span style="width: 40px; height: 40px; border-radius: 20px; background: {{r.color}}; color: {{r.onColor}}; display: flex; align-items: center; justify-content: center; font-size: 14px; line-height: 20px; font-weight: 800; flex-shrink: 0">{{r.initial}}</span>
+<span style="flex-grow: 1; font-size: 14px; line-height: 20px; font-weight: 700">{{r.name}}</span>
 </div>
+<div style="display: flex; flex-direction: column; gap: 6px">
+<div style="display: flex; justify-content: space-between; gap: 8px; font-size: 14px; line-height: 20px"><span style="font-weight: 600; color: {{c.onSurfaceVariant}}">{{r.label}}</span><span style="font-weight: 700; font-variant-numeric: tabular-nums">{{r.amount}}</span></div>
+<sc-if value="{{r.hasUntil}}" hint-placeholder-val="{{false}}"><div style="display: flex; justify-content: space-between; gap: 8px; font-size: 14px; line-height: 20px"><span style="font-weight: 600; color: {{c.onSurfaceVariant}}">Until</span><span style="font-weight: 700">{{r.until}}</span></div></sc-if>
 </div>
-<div style="display: flex; flex-wrap: wrap; gap: 8px 12px; padding-right: 4px">
-<sc-for list="{{skelFacts}}" as="sf" hint-placeholder-count="4">
-<div style="width: calc(50% - 6px); display: flex; flex-direction: column; gap: 6px">
-<span style="width: 72px; height: 12px; border-radius: 6px; background: {{c.skeleton}}"></span>
-<span style="width: 104px; height: 14px; border-radius: 7px; background: {{c.skeleton}}"></span>
-</div>
-</sc-for>
-</div>
-<div style="display: flex; justify-content: flex-end; border-top: 1px solid {{c.outlineVariant}}; margin: 0 -2px; padding: 8px 0 0">
-<span style="width: 96px; height: 44px; border-radius: 999px; background: {{c.skeleton}}"></span>
-</div>
+<sc-if value="{{r.canEdit}}" hint-placeholder-val="{{true}}"><div style="display: flex; justify-content: flex-end; border-top: 1px solid {{c.outlineVariant}}; margin: 0 -2px; padding: 8px 0 0">
+<a href="{{r.href}}" style="height: 44px; padding: 0 16px 0 14px; border-radius: 999px; border: 1px solid {{c.outline}}; color: {{c.onSurface}}; display: flex; align-items: center; gap: 6px; font-size: 14px; line-height: 20px; font-weight: 700; text-decoration: none"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21.174 6.812a1 1 0 0 0-3.986-3.987L3.842 16.174a2 2 0 0 0-.5.83l-1.321 4.352a.5.5 0 0 0 .623.622l4.353-1.32a2 2 0 0 0 .83-.497z"></path><path d="m15 5 4 4"></path></svg>Edit</a>
+</div></sc-if>
 </div>
 </sc-for>
 </sc-if>
+<sc-if value="{{noRecurring}}" hint-placeholder-val="{{false}}">
+<div style="background: {{c.surface}}; border-radius: 20px; padding: 24px 16px; text-align: center; font-size: 14px; line-height: 20px; font-weight: 600; color: {{c.onSurfaceVariant}}">No recurring charges</div>
+</sc-if>
+<sc-if value="{{hasPendingNote}}" hint-placeholder-val="{{true}}"><span style="padding: 0 4px; font-size: 12px; line-height: 16px; font-weight: 600; color: {{c.onSurfaceVariant}}">Saved changes take effect from December 2026.</span></sc-if>
 </div>
+</sc-if>
 
-<sc-if value="{{isLoaded}}" hint-placeholder-val="{{true}}">
-<!-- gluestack Button, outline -->
-<a href="{{addHref}}" style="height: 48px; border-radius: 999px; border: 1px solid {{c.outline}}; color: {{c.onSurface}}; font-size: 15px; line-height: 20px; font-weight: 700; display: flex; align-items: center; justify-content: center; gap: 8px; text-decoration: none">
-<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"></path><circle cx="9" cy="7" r="4"></circle><path d="M19 8v6"></path><path d="M22 11h-6"></path></svg>
-Add subtenant
-</a>
-</sc-if>
-<sc-if value="{{isLoading}}" hint-placeholder-val="{{false}}">
-<div aria-hidden="true" style="height: 48px; border-radius: 999px; background: {{c.skeleton}}"></div>
-</sc-if>
 </div>
 </div>
 
+<sc-if value="{{isMonthList}}" hint-placeholder-val="{{false}}">
+<!-- Showing: month list. The app's Select: each version's start month and the active month, newest first; later months carry Upcoming -->
+<div style="position: absolute; inset: 0; z-index: 5; background: {{c.scrim}}"></div>
+<section role="listbox" aria-label="Showing" style="position: absolute; z-index: 6; left: 0; right: 0; bottom: 0; background: {{c.sheet}}; border-radius: 28px 28px 0 0; padding: 10px 16px 24px; display: flex; flex-direction: column; gap: 4px">
+<span style="width: 32px; height: 4px; border-radius: 2px; background: {{c.track}}; align-self: center; margin-bottom: 8px"></span>
+<span style="padding: 0 4px 6px; font-size: 16px; line-height: 24px; font-weight: 800">Showing</span>
+<sc-for list="{{monthRows}}" as="o" hint-placeholder-count="3">
+<div role="option" style="min-height: 48px; display: flex; align-items: center; gap: 12px; padding: 0 12px; border-radius: 12px; background: {{o.bg}}; font-size: 15px; line-height: 22px; font-weight: {{o.weight}}"><span style="flex-grow: 1">{{o.label}}</span><sc-if value="{{o.badge}}" hint-placeholder-val="{{false}}"><span style="padding: 2px 10px; border-radius: 999px; background: {{c.container}}; color: {{c.onSurfaceVariant}}; font-size: 12px; line-height: 16px; font-weight: 700">Upcoming</span></sc-if></div>
+</sc-for>
+<a href="{{backHref}}" style="margin-top: 4px; height: 48px; border-radius: 24px; color: {{c.onSurface}}; display: flex; align-items: center; justify-content: center; font-size: 15px; line-height: 20px; font-weight: 700; text-decoration: none">Cancel</a>
+</section>
+</sc-if>
+<sc-if value="{{isRecSheet}}" hint-placeholder-val="{{false}}">
+<!-- AppSheet: Add / Edit recurring charge. Short sheet: sizes to content, title pinned, buttons side by side -->
+<div style="position: absolute; inset: 0; z-index: 5; background: {{c.scrim}}"></div>
+<section role="dialog" aria-label="{{recTitle}}" style="position: absolute; z-index: 6; left: 0; right: 0; bottom: 0; max-height: 90%; background: {{c.sheet}}; border-radius: 28px 28px 0 0; display: flex; flex-direction: column">
+<div style="display: flex; justify-content: center; padding: 10px 0 4px"><span style="width: 32px; height: 4px; border-radius: 2px; background: {{c.track}}"></span></div>
+<div style="padding: 4px 16px 8px; display: flex; flex-direction: column; gap: 2px">
+<span style="font-size: 20px; line-height: 28px; font-weight: 800">{{recTitle}}</span>
+<span style="font-size: 12px; line-height: 16px; font-weight: 600; color: {{c.onSurfaceVariant}}">From December 2026</span>
+</div>
+<div style="overflow-y: auto; scrollbar-width: none; padding: 4px 16px 8px; display: flex; flex-direction: column; gap: 14px">
+<sc-if value="{{recHasAlert}}" hint-placeholder-val="{{false}}">
+<div role="alert" style="display: flex; align-items: flex-start; gap: 10px; padding: 10px 12px; border-radius: 12px; background: {{c.dangerTint}}; border: 1px solid {{c.dangerLine}}">
+<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="flex-shrink: 0; color: {{c.danger}}"><circle cx="12" cy="12" r="10"></circle><path d="M12 8v4"></path><path d="M12 16h.01"></path></svg>
+<span style="font-size: 13px; line-height: 18px; font-weight: 700; color: {{c.onDangerTint}}">Tenant 2 already has a charge called Starhub.</span>
+</div>
+</sc-if>
+<sc-for list="{{recFields}}" as="f" hint-placeholder-count="4">
+<div style="display: flex; flex-direction: column; gap: 6px">
+<label style="font-size: 14px; line-height: 20px; font-weight: 700">{{f.label}}<sc-if value="{{f.req}}" hint-placeholder-val="{{true}}"><span aria-hidden="true" style="color: {{c.danger}}"> *</span></sc-if></label>
+<div style="height: 48px; box-sizing: border-box; border: 1px solid {{f.border}}; box-shadow: {{f.ring}}; border-radius: 12px; background: {{c.surface}}; display: flex; align-items: center; gap: 8px; padding: 0 12px 0 14px">
+<span style="flex-grow: 1; font-size: 16px; line-height: 24px; font-weight: 500; color: {{f.fg}}">{{f.value}}</span>
+<sc-if value="{{f.chev}}" hint-placeholder-val="{{false}}"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="color: {{c.onSurfaceVariant}}"><path d="m6 9 6 6 6-6"></path></svg></sc-if>
+<sc-if value="{{f.cal}}" hint-placeholder-val="{{false}}"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="color: {{c.onSurface}}"><path d="M8 2v4"></path><path d="M16 2v4"></path><rect width="18" height="18" x="3" y="4" rx="2"></rect><path d="M3 10h18"></path><path d="M8 14h.01"></path><path d="M12 14h.01"></path><path d="M16 14h.01"></path><path d="M8 18h.01"></path><path d="M12 18h.01"></path><path d="M16 18h.01"></path></svg></sc-if>
+</div>
+<sc-if value="{{f.hasErr}}" hint-placeholder-val="{{false}}"><span style="display: flex; align-items: center; gap: 4px; font-size: 12px; line-height: 16px; font-weight: 600; color: {{c.danger}}"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="10"></circle><path d="M12 8v4"></path><path d="M12 16h.01"></path></svg>{{f.err}}</span></sc-if>
+</div>
+</sc-for>
+<sc-if value="{{recHasSummary}}" hint-placeholder-val="{{false}}">
+<!-- Summary card: only what changed -->
+<div style="background: {{c.container}}; border-radius: 16px; padding: 10px 14px; display: flex; flex-direction: column; gap: 6px">
+<span style="font-size: 12px; line-height: 16px; font-weight: 700; color: {{c.onSurfaceVariant}}">Saves from Dec 2026</span>
+<sc-for list="{{recSummary}}" as="r" hint-placeholder-count="2"><div style="display: flex; justify-content: space-between; gap: 8px; font-size: 14px; line-height: 20px"><span style="font-weight: 600">{{r.k}}</span><span style="font-weight: 700"><span style="color: {{c.onSurfaceVariant}}; text-decoration: line-through; font-weight: 500">{{r.from}}</span> → {{r.to}}</span></div></sc-for>
+</div>
+</sc-if>
+</div>
+<footer style="padding: 12px 16px 24px; display: flex; gap: 8px">
+<sc-if value="{{recIsAdd}}" hint-placeholder-val="{{true}}"><a href="{{recCancelHref}}" style="flex: 1 1 0; height: 48px; border-radius: 24px; color: {{c.onSurface}}; display: flex; align-items: center; justify-content: center; font-size: 15px; font-weight: 700; text-decoration: none">Cancel</a></sc-if>
+<sc-if value="{{recIsEdit}}" hint-placeholder-val="{{false}}"><a href="{{recRemoveHref}}" style="flex: 1 1 0; height: 48px; box-sizing: border-box; border-radius: 24px; border: 1px solid {{c.danger}}; color: {{c.danger}}; display: flex; align-items: center; justify-content: center; font-size: 15px; font-weight: 700; text-decoration: none">Remove charge</a></sc-if>
+<span aria-disabled="{{recSaveDisabled}}" style="flex: 1 1 0; height: 48px; border-radius: 24px; background: {{recSaveBg}}; color: {{recSaveFg}}; display: flex; align-items: center; justify-content: center; font-size: 15px; font-weight: 700">Save</span>
+</footer>
+</section>
+</sc-if>
 <!-- CUSTOM: Bottom navigation bar (4 items, built on restyled Tabs) -->
 <nav aria-label="Main" style="flex-shrink: 0; height: 94px; box-sizing: border-box; padding: 12px 8px 22px; background: {{c.container}}; box-shadow: {{c.footShadow}}; display: flex">
 <a href="{{homeHref}}" style="flex: 1 1 0; min-width: 0; display: flex; flex-direction: column; align-items: center; gap: 4px; text-decoration: none; color: {{c.onSurfaceVariant}}">
-<span style="width: 64px; height: 32px; display: flex; align-items: center; justify-content: center"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M15 21v-8a1 1 0 0 0-1-1h-4a1 1 0 0 0-1 1v8"></path><path d="M3 10a2 2 0 0 1 .709-1.528l7-5.999a2 2 0 0 1 2.582 0l7 5.999A2 2 0 0 1 21 10v9a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"></path></svg></span>
+<span style="width: 64px; height: 32px; display: flex; align-items: center; justify-content: center"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M15 21v-8a1 1 0 0 0-1-1h-4a1 1 0 0 0-1 1v8"></path><path d="M3 10a2 2 0 0 1 .709-1.528l7-5.999a2 2 0 0 1 2.582 0l7 5.999A2 2 0 0 1 21 10v9a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"></path></svg></span>
 <span style="font-size: 12px; line-height: 16px; font-weight: 600">This month</span>
 </a>
 <a href="{{historyHref}}" style="flex: 1 1 0; min-width: 0; display: flex; flex-direction: column; align-items: center; gap: 4px; text-decoration: none; color: {{c.onSurfaceVariant}}">
-<span style="width: 64px; height: 32px; display: flex; align-items: center; justify-content: center"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"></path><path d="M3 3v5h5"></path><path d="M12 7v5l4 2"></path></svg></span>
+<span style="width: 64px; height: 32px; display: flex; align-items: center; justify-content: center"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"></path><path d="M3 3v5h5"></path><path d="M12 7v5l4 2"></path></svg></span>
 <span style="font-size: 12px; line-height: 16px; font-weight: 600">History</span>
 </a>
 <a href="#" aria-current="page" style="flex: 1 1 0; min-width: 0; display: flex; flex-direction: column; align-items: center; gap: 4px; text-decoration: none; color: {{c.onSurface}}">
-<span style="width: 64px; height: 32px; border-radius: 16px; background: {{c.track}}; color: {{c.onSelected}}; display: flex; align-items: center; justify-content: center"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"></path><circle cx="9" cy="7" r="4"></circle><path d="M22 21v-2a4 4 0 0 0-3-3.87"></path><path d="M16 3.13a4 4 0 0 1 0 7.75"></path></svg></span>
+<span style="width: 64px; height: 32px; border-radius: 16px; background: {{c.track}}; color: {{c.onSelected}}; display: flex; align-items: center; justify-content: center"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"></path><circle cx="9" cy="7" r="4"></circle><path d="M22 21v-2a4 4 0 0 0-3-3.87"></path><path d="M16 3.13a4 4 0 0 1 0 7.75"></path></svg></span>
 <span style="font-size: 12px; line-height: 16px; font-weight: 700">Household</span>
 </a>
 <a href="{{settingsHref}}" style="flex: 1 1 0; min-width: 0; display: flex; flex-direction: column; align-items: center; gap: 4px; text-decoration: none; color: {{c.onSurfaceVariant}}">
-<span style="width: 64px; height: 32px; display: flex; align-items: center; justify-content: center"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.39a2 2 0 0 0-.73-2.73l-.15-.08a2 2 0 0 1-1-1.74v-.5a2 2 0 0 1 1-1.74l.15-.09a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z"></path><circle cx="12" cy="12" r="3"></circle></svg></span>
+<span style="width: 64px; height: 32px; display: flex; align-items: center; justify-content: center"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.39a2 2 0 0 0-.73-2.73l-.15-.08a2 2 0 0 1-1-1.74v-.5a2 2 0 0 1 1-1.74l.15-.09a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z"></path><circle cx="12" cy="12" r="3"></circle></svg></span>
 <span style="font-size: 12px; line-height: 16px; font-weight: 600">Settings</span>
 </a>
 </nav>
@@ -219,7 +285,7 @@ Add subtenant
 </a>
 <div style="display: flex; flex-direction: column">
 <span style="font-size: 20px; line-height: 28px; font-weight: 800">{{editTitle}}</span>
-<span style="font-size: 12px; line-height: 16px; font-weight: 600; color: {{c.onSurfaceVariant}}">{{editSub}}</span>
+<sc-if value="{{hasEditSub}}" hint-placeholder-val="{{false}}"><span style="font-size: 12px; line-height: 16px; font-weight: 600; color: {{c.onSurfaceVariant}}">{{editSub}}</span></sc-if>
 </div>
 </header>
 
@@ -230,6 +296,7 @@ Add subtenant
 <section style="display: flex; flex-direction: column; gap: 16px; margin-top: {{g.mt}}; padding-top: {{g.padTop}}; border-top: 1px solid {{g.divider}}">
 <div style="display: flex; flex-direction: column; gap: 2px; padding: 0 4px">
 <h2 style="margin: 0; font-size: 14px; line-height: 20px; font-weight: 700">{{g.title}}</h2>
+<sc-if value="{{g.hasNote}}" hint-placeholder-val="{{false}}"><span style="margin-top: -4px; padding: 0 4px; font-size: 12px; line-height: 16px; font-weight: 600; color: {{c.onSurfaceVariant}}">{{g.note}}</span></sc-if>
 </div>
 <sc-if value="{{g.hasRoomSel}}" hint-placeholder-val="{{false}}">
 <!-- gluestack FormControl + Select: Room (empty tenant rooms only) -->
@@ -239,6 +306,7 @@ Add subtenant
 <span style="flex-grow: 1; min-width: 0; font-size: 16px; line-height: 24px; font-weight: 500">{{g.roomValue}}</span>
 <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="flex-shrink: 0; color: {{c.onSurfaceVariant}}"><path d="m6 9 6 6 6-6"></path></svg>
 </button>
+<sc-if value="{{g.roomHasErr}}" hint-placeholder-val="{{false}}"><span style="display: flex; align-items: center; gap: 4px; font-size: 12px; line-height: 16px; font-weight: 600; color: {{c.danger}}"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="10"></circle><path d="M12 8v4"></path><path d="M12 16h.01"></path></svg>Choose an empty room.</span></sc-if>
 </div>
 </sc-if>
 <sc-if value="{{g.hasNoRoom}}" hint-placeholder-val="{{false}}">
@@ -246,6 +314,13 @@ Add subtenant
 <div role="status" style="background: {{c.infoTint}}; border: 1px solid {{c.infoLine}}; border-radius: 12px; padding: 10px 14px; display: flex; align-items: center; gap: 10px; font-size: 14px; line-height: 20px; font-weight: 700; color: {{c.onInfoContainer}}">
 <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="{{c.info}}" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="flex-shrink: 0"><circle cx="12" cy="12" r="10"></circle><path d="M12 16v-4"></path><path d="M12 8h.01"></path></svg>
 No empty rooms
+</div>
+</sc-if>
+<sc-if value="{{g.hasMasterNote}}" hint-placeholder-val="{{false}}">
+<!-- gluestack Alert, info -->
+<div role="status" style="background: {{c.infoTint}}; border: 1px solid {{c.infoLine}}; border-radius: 12px; padding: 10px 14px; display: flex; align-items: flex-start; gap: 10px; font-size: 14px; line-height: 20px; font-weight: 600; color: {{c.onInfoContainer}}">
+<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="{{c.info}}" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="flex-shrink: 0"><circle cx="12" cy="12" r="10"></circle><path d="M12 16v-4"></path><path d="M12 8h.01"></path></svg>
+Their rent, utilities and aircon come from Household splits, where they start at 50/50 with you.
 </div>
 </sc-if>
 <sc-if value="{{g.hasRoomFacts}}" hint-placeholder-val="{{false}}">
@@ -274,22 +349,19 @@ No empty rooms
 <div style="height: 48px; box-sizing: border-box; border: 1px solid {{f.border}}; box-shadow: {{f.ring}}; border-radius: 12px; background: {{c.surface}}; display: flex; align-items: center; gap: 8px; padding: 0 14px">
 <input id="{{f.id}}" value="{{f.value}}" placeholder="{{f.placeholder}}" readonly="{{isRO}}" style="flex-grow: 1; min-width: 0; border: 0; outline: 0; background: transparent; font-family: Manrope, sans-serif; font-size: 16px; font-weight: 500; color: {{c.onSurface}}; font-variant-numeric: tabular-nums">
 </div>
+<sc-if value="{{f.hasErr}}" hint-placeholder-val="{{false}}"><span style="display: flex; align-items: center; gap: 4px; font-size: 12px; line-height: 16px; font-weight: 600; color: {{c.danger}}"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="10"></circle><path d="M12 8v4"></path><path d="M12 16h.01"></path></svg>{{f.err}}</span></sc-if>
 </sc-if>
 </div>
 </sc-if>
 <sc-if value="{{f.isPhone}}" hint-placeholder-val="{{false}}">
-<!-- gluestack FormControl + Input, with CUSTOM country-code Select prefix -->
+<!-- Shared phone field: plain field with an editable +65 (no flag or country picker) -->
 <div style="width: {{f.width}}; min-width: 0; display: flex; flex-direction: column; gap: 6px">
 <label for="{{f.id}}" style="font-size: 14px; line-height: 20px; font-weight: 700; color: {{c.onSurface}}">{{f.label}}</label>
 <sc-if value="{{isRO}}" hint-placeholder-val="{{false}}"><span style="font-size: 16px; line-height: 24px; font-weight: 500; font-variant-numeric: tabular-nums; color: {{c.onSurface}}">{{f.roValue}}</span></sc-if>
 <sc-if value="{{isEditMode}}" hint-placeholder-val="{{true}}">
 <div style="display: flex; align-items: stretch; height: 48px; box-sizing: border-box; border: 1px solid {{f.border}}; box-shadow: {{f.ring}}; border-radius: 12px; background: {{c.surface}}; overflow: hidden">
-<button aria-label="Country code: Singapore +65" aria-haspopup="listbox" aria-disabled="{{isRO}}" style="flex-shrink: 0; display: flex; align-items: center; gap: 6px; padding: 0 10px 0 14px; border: 0; border-right: 1px solid {{c.outline}}; background: transparent; font-family: inherit; color: {{c.onSurface}}">
-<svg width="22" height="15" viewBox="0 0 30 20" aria-hidden="true" style="flex-shrink: 0; border-radius: 2px; box-shadow: 0 0 0 1px rgba(0,0,0,0.15)"><rect width="30" height="10" fill="#EF3340"></rect><rect y="10" width="30" height="10" fill="#FFFFFF"></rect><circle cx="6.6" cy="5" r="3.4" fill="#FFFFFF"></circle><circle cx="7.9" cy="5" r="3.2" fill="#EF3340"></circle><g fill="#FFFFFF"><circle cx="10.6" cy="2.6" r="0.55"></circle><circle cx="12.4" cy="3.9" r="0.55"></circle><circle cx="11.7" cy="6" r="0.55"></circle><circle cx="9.5" cy="6" r="0.55"></circle><circle cx="8.8" cy="3.9" r="0.55"></circle></g></svg>
-<span style="font-size: 16px; line-height: 24px; font-weight: 500; font-variant-numeric: tabular-nums">+65</span>
-<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="color: {{c.onSurfaceVariant}}"><path d="m6 9 6 6 6-6"></path></svg>
-</button>
-<input id="{{f.id}}" type="tel" inputmode="tel" autocomplete="tel-national" value="{{f.value}}" placeholder="{{f.placeholder}}" readonly="{{isRO}}" style="flex-grow: 1; min-width: 0; border: 0; outline: 0; padding: 0 14px; background: transparent; font-family: Manrope, sans-serif; font-size: 16px; font-weight: 500; color: {{c.onSurface}}; font-variant-numeric: tabular-nums">
+
+<input id="{{f.id}}" type="tel" inputmode="tel" value="{{f.phoneValue}}" placeholder="{{f.placeholder}}" readonly="{{isRO}}" style="flex-grow: 1; min-width: 0; border: 0; outline: 0; padding: 0 14px; background: transparent; font-family: Manrope, sans-serif; font-size: 16px; font-weight: 500; color: {{c.onSurface}}; font-variant-numeric: tabular-nums">
 </div>
 </sc-if>
 </div>
@@ -334,9 +406,9 @@ No empty rooms
 <sc-if value="{{pg.showVia}}" hint-placeholder-val="{{false}}">
 <!-- gluestack FormControl + Select: Sent via -->
 <div style="display: flex; flex-direction: column; gap: 6px; margin-top: 10px">
-<span id="{{pg.viaId}}" style="font-size: 14px; line-height: 20px; font-weight: 700; color: {{c.onSurface}}">Sent via</span>
+<span id="{{pg.viaId}}" style="font-size: 14px; line-height: 20px; font-weight: 700; color: {{c.onSurface}}">Sent via<sc-if value="{{pg.viaEmpty}}" hint-placeholder-val="{{false}}"><span aria-hidden="true" style="color: {{c.danger}}"> *</span></sc-if></span>
 <button aria-haspopup="listbox" aria-labelledby="{{pg.viaId}}" style="width: 100%; height: 48px; box-sizing: border-box; padding: 0 14px; border: 1px solid {{c.outline}}; border-radius: 12px; background: {{c.surface}}; display: flex; align-items: center; gap: 8px; font-family: inherit; color: {{c.onSurface}}; text-align: left">
-<span style="flex-grow: 1; min-width: 0; font-size: 16px; line-height: 24px; font-weight: 500">{{pg.via}}</span>
+<span style="flex-grow: 1; min-width: 0; font-size: 16px; line-height: 24px; font-weight: 500; color: {{pg.viaFg}}">{{pg.viaText}}</span>
 <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="flex-shrink: 0; color: {{c.onSurfaceVariant}}"><path d="m6 9 6 6 6-6"></path></svg>
 </button>
 </div>
@@ -374,16 +446,34 @@ No empty rooms
 </sc-if>
 <sc-if value="{{isEditMode}}" hint-placeholder-val="{{true}}">
 <!-- gluestack Button, solid / disabled -->
+<sc-if value="{{hasSaveAlert}}" hint-placeholder-val="{{false}}">
+<div role="alert" style="display: flex; align-items: flex-start; gap: 10px; padding: 10px 12px; border-radius: 12px; background: {{c.dangerTint}}; border: 1px solid {{c.dangerLine}}">
+<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="flex-shrink: 0; color: {{c.danger}}"><circle cx="12" cy="12" r="10"></circle><path d="M12 8v4"></path><path d="M12 16h.01"></path></svg>
+<span style="font-size: 13px; line-height: 18px; font-weight: 700; color: {{c.onDangerTint}}">{{saveAlert}}</span>
+</div>
+</sc-if>
 <a href="{{saveHref}}" aria-disabled="{{saveDisabled}}" style="height: 48px; border-radius: 999px; border: 0; background: {{saveBg}}; color: {{saveFg}}; display: flex; align-items: center; justify-content: center; text-decoration: none; font-size: 15px; line-height: 20px; font-weight: 700">{{saveLabel}}</a>
 <!-- gluestack Button, link -->
 <a href="{{secondaryHref}}" style="height: 48px; border-radius: 999px; color: {{secondaryFg}}; font-size: 15px; line-height: 20px; font-weight: 700; display: flex; align-items: center; justify-content: center; text-decoration: none">{{secondaryLabel}}</a>
 </sc-if>
 </footer>
 </sc-if>
+<sc-if value="{{roomSheetOpen}}" hint-placeholder-val="{{false}}">
+<a href="{{roomSheetClose}}" aria-label="Close" style="position: absolute; inset: 0; background: {{c.scrim}}; z-index: 6"></a>
+<!-- gluestack Select / BottomSheet: Room list -->
+<section role="dialog" aria-labelledby="roomSheetTitle" style="position: absolute; left: 0; right: 0; bottom: 0; z-index: 7; background: {{c.sheet}}; border-radius: 28px 28px 0 0; padding: 12px 16px 16px; display: flex; flex-direction: column; gap: 4px">
+<span aria-hidden="true" style="width: 32px; height: 4px; border-radius: 2px; background: {{c.track}}; align-self: center; margin-bottom: 8px"></span>
+<h2 id="roomSheetTitle" style="margin: 0 0 4px; padding: 0 12px; font-size: 16px; line-height: 24px; font-weight: 800">Room</h2>
+<sc-for list="{{roomList}}" as="o" hint-placeholder-count="3">
+<a href="{{roomSheetPick}}" style="min-height: 56px; display: flex; flex-direction: column; justify-content: center; padding: 6px 12px; border-radius: 12px; color: {{c.onSurface}}; text-decoration: none"><span style="font-size: 15px; line-height: 22px; font-weight: 600">{{o.label}}</span><span style="font-size: 12px; line-height: 16px; font-weight: 600; color: {{c.onSurfaceVariant}}">{{o.detail}}</span></a>
+</sc-for>
+<a href="{{roomSheetClose}}" style="height: 48px; margin-top: 4px; border-radius: 999px; color: {{c.primary}}; font-size: 15px; line-height: 20px; font-weight: 700; display: flex; align-items: center; justify-content: center; text-decoration: none">Cancel</a>
+</section>
+</sc-if>
 </div>
 </div>
 </x-dc>
-<script type="text/x-dc" data-dc-script data-props='{"state":{"editor":"enum","options":["view","loading","addPerson","addPersonRoom","addPersonNoRoom","addPersonFR","addPersonFilledFR","addPersonFilled2FR","addPersonFilledFRE","addPersonFilled2FRE","editPerson","editPersonBoth","editPrimary","editTenant1","viewPerson","viewPrimary","viewTenant1"],"default":"view"},"theme":{"editor":"enum","options":["light","dark"],"default":"light"},"$preview":{"width":400,"height":848}}'>
+<script type="text/x-dc" data-dc-script data-props='{"state":{"editor":"enum","options":["addPersonRoomOpen","addPersonMaster","editViaEmpty","addPersonErrors","addPersonFailed","view","viewPeople","viewRecurring","viewRecurringEmpty","viewRemoved","monthList","recurringAdd","recurringEdit","recurringErrors","loading","addPerson","addPersonRoom","addPersonNoRoom","addPersonFR","addPersonFilledFR","addPersonFilled2FR","addPersonFilledFRE","addPersonFilled2FRE","editPerson","editPersonBoth","editPrimary","editTenant1","viewPerson","viewPrimary","viewTenant1"],"default":"view"},"theme":{"editor":"enum","options":["light","dark"],"default":"light"},"$preview":{"width":400,"height":848}}'>
 class Component extends DCLogic {
   renderVals() {
     var dark = this.props.theme === 'dark';
@@ -393,7 +483,8 @@ class Component extends DCLogic {
     var fr = /FR$/.test(st); if (fr) st = st.slice(0, -2);
     var addVariant = st;
     if (/^addPerson/.test(st)) st = 'addPerson';
-    var ro = /^view[A-Z]/.test(st);
+    var viaEmpty = st === 'editViaEmpty'; if (viaEmpty) st = 'editTenant1';
+    var ro = ['viewPerson', 'viewPrimary', 'viewTenant1'].indexOf(st) >= 0;
     var viewOf = ro ? ('edit' + st.slice(4)) : '';
     if (ro) st = viewOf;
     var both = st === 'editPersonBoth';
@@ -402,7 +493,7 @@ class Component extends DCLogic {
       background: '#111214', surface: '#1A1C1E', container: '#222427', sheet: '#222427',
       onSurface: '#E3E3E6', onSurfaceVariant: '#C4C6CB', outline: '#8E9196', outlineVariant: '#2E3134',
       primary: '#E2E2E6', onPrimary: '#1A1C1E', selected: '#2C2F33', onSelected: '#E3E3E6',
-      disabledBg: '#222427', disabledFg: '#5C5F64', track: '#3A3E43', scrim: 'rgba(0,0,0,0.6)',
+      disabledBg: '#222427', disabledFg: '#5C5F64', track: '#3A3E43', scrim: 'rgba(0,0,0,0.5)',
       success: '#66BB6A', successContainer: '#1B5E20', onSuccessContainer: '#CBE4CB',
       warning: '#FFA726', warningContainer: '#66430F', onWarningContainer: '#FFE2B7', warningTint: '#332108', warningLine: '#F57C00',
       danger: '#F44336', dangerTint: '#3B1511', dangerLine: '#D32F2F', onDangerTint: '#FFD9D6',
@@ -420,14 +511,26 @@ class Component extends DCLogic {
       footShadow: '0 -6px 14px rgba(0,0,0,0.14)'
     };
     // Local derived values (hero tile overlay, Skeleton with a faint lighter band)
-    c.heroTile = dark ? 'rgba(0,0,0,0.25)' : 'rgba(255,255,255,0.75)';
-    c.skeleton = 'linear-gradient(100deg, ' + c.container + ' 0%, ' + (dark ? '#2C2F33' : '#F2F3F5') + ' 50%, ' + c.container + ' 100%)';
+    c.heroTile = c.background;
+    c.skeleton = c.container;
     var editPersonHref = dark ? 'Household-EditPerson-Dark.dc.html' : 'Household-EditPerson-Light.dc.html';
     var splitHref = dark ? 'Splits-Dark.dc.html' : 'Splits-Light.dc.html';
     var viewHref = dark ? 'Household-View-Dark.dc.html' : 'Household.dc.html';
-    var viewing = st === 'view' || st === 'loading';
+    var recSheet = ['recurringAdd', 'recurringEdit', 'recurringErrors'].indexOf(st) >= 0;
+    var viewing = recSheet || ['view', 'loading', 'viewPeople', 'viewRecurring', 'viewRecurringEmpty', 'viewRemoved', 'monthList'].indexOf(st) >= 0;
+    var tab = (st === 'viewPeople' || st === 'viewRemoved') ? 'people' : ((st === 'viewRecurring' || st === 'viewRecurringEmpty' || recSheet) ? 'recurring' : 'split');
+    var TT = dark ? 'Dark' : 'Light';
     var v = {
-      c: c, isView: viewing, isLoading: st === 'loading', isLoaded: st !== 'loading',
+      c: c, isView: viewing, isLoading: st === 'loading', isLoaded: st !== 'loading', isMonthList: st === 'monthList',
+      tabSplit: tab === 'split', tabPeople: tab === 'people', tabRecurring: tab === 'recurring',
+      tabs: [['Split', 'split', 'Household'], ['People', 'people', 'Household-ViewPeople'], ['Recurring', 'recurring', 'Household-ViewRecurring']].map(function (t) {
+        var on = t[1] === tab;
+        return { label: t[0], sel: on ? 'true' : 'false', weight: on ? '800' : '600', fg: on ? c.onSurface : c.onSurfaceVariant, line: on ? c.primary : 'transparent',
+          href: t[2] === 'Household' ? (dark ? 'Household-View-Dark.dc.html' : 'Household.dc.html') : t[2] + '-' + TT + '.dc.html' };
+      }),
+      monthRows: [{ label: 'December 2026', badge: true }, { label: 'November 2026', on: true }, { label: 'August 2026' }].map(function (o) { return { label: o.label, badge: !!o.badge, bg: o.on ? c.selected : 'transparent', weight: o.on ? '800' : '500' }; }),
+      addRecurringHref: 'Household-RecurringAdd-' + TT + '.dc.html',
+      hasPendingNote: true,
       isEdit: !viewing, isEditPerson: st === 'editPerson' || st === 'editPrimary' || st === 'editTenant1' || st === 'addPerson',
       addHref: dark ? 'Household-AddPerson-Dark.dc.html' : 'Household-AddPerson-Light.dc.html',
       saveLabel: 'Save changes', saveHref: '#', hasPays: true,
@@ -444,17 +547,17 @@ class Component extends DCLogic {
         { value: '5', label: 'utility shares' }
       ],
       people: [
-        { initial: 'PT', name: 'Primary Tenant', role: 'Master room · pays you directly', href: dark ? 'Household-EditPrimary-Dark.dc.html' : 'Household-EditPrimary-Light.dc.html', facts: [
-          { label: 'Rent · due 7th', value: '$1,675.00' }, { label: 'Utilities · due 7th', value: '1.5 shares' } ] },
-        { initial: 'T1', name: 'Tenant 1', role: 'Room 2 · pays via Primary Tenant', href: dark ? 'Household-EditTenant1-Dark.dc.html' : 'Household-EditTenant1-Light.dc.html', facts: [
-          { label: 'Rent · due 28th', value: '$950.00' }, { label: 'Utilities · due 7th', value: '1 share' } ] },
-        { initial: 'T2', name: 'Tenant 2', role: 'Room 3 · pays you directly', href: editPersonHref, facts: [
-          { label: 'Rent · due 1st', value: '$950.00' }, { label: 'Utilities · due 4th', value: '1 share' } ] },
-        { initial: 'Y', name: 'You', role: 'Master room · pays landlord & utilities', href: '#', facts: [
-          { label: 'Rent share', value: '$1,675.00' }, { label: 'Utilities', value: '1.5 shares' } ] }
+        { initial: 'PT', name: 'Primary Tenant', role: '', href: dark ? 'Household-EditPrimary-Dark.dc.html' : 'Household-EditPrimary-Light.dc.html', facts: [
+          { label: 'Rent', value: '$1,675.00' }, { label: 'Utilities', value: '1.5 shares' } ] },
+        { initial: 'T1', name: 'Tenant 1', role: '', href: dark ? 'Household-EditTenant1-Dark.dc.html' : 'Household-EditTenant1-Light.dc.html', facts: [
+          { label: 'Rent', value: '$950.00' }, { label: 'Utilities', value: '1 share' } ] },
+        { initial: 'T2', name: 'Tenant 2', role: '', href: editPersonHref, facts: [
+          { label: 'Rent', value: '$950.00' }, { label: 'Utilities', value: '1 share' } ] },
+        { initial: 'Y', name: 'You', role: '', href: '#', facts: [
+          { label: 'Rent', value: '$1,675.00' }, { label: 'Utilities', value: '1.5 shares' } ] }
       ],
       splits: [
-        { label: 'Rent', detail: '$5,250.00 across the home', divider: 'transparent', segs: [['You', '$1,675', 1675], ['Primary Tenant', '$1,675', 1675], ['Tenant 1', '$950', 950], ['Tenant 2', '$950', 950]] },
+        { label: 'Rent', detail: '$4,300.00', divider: 'transparent', segs: [['You', '$1,675.00', 1675], ['Primary Tenant', '$1,675.00', 1675], ['Tenant 1', '$950.00', 950], ['Tenant 2', '$950.00', 950]] },
         { label: 'Utilities', detail: '5 shares', divider: c.outlineVariant, segs: [['You', '1.5', 1.5], ['Primary Tenant', '1.5', 1.5], ['Tenant 1', '1', 1], ['Tenant 2', '1', 1]] },
         { label: 'Aircon', detail: '6 units', divider: c.outlineVariant, segs: [['You', '2', 2], ['Primary Tenant', '2', 2], ['Tenant 1', '1', 1], ['Tenant 2', '1', 1]] }
       ]
@@ -475,7 +578,7 @@ class Component extends DCLogic {
       var ex = r.label === 'Rent' ? exclRent : [];
       var isEx = function (x) { return ex.indexOf(x[0]) >= 0; };
       var tot = r.segs.filter(function (x) { return !isEx(x); }).reduce(function (n, x) { return n + x[2]; }, 0);
-      if (ex.length) r.detail = '$' + tot.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) + ' across the home';
+      if (ex.length) r.detail = '$' + tot.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
       var all = r.segs.map(function (x) {
         var out = isEx(x), col = palHex(personColor[x[0]]);
         return { name: x[0], value: x[1], out: out, pct: out ? 0 : Math.round(x[2] / tot * 1000) / 10, color: col,
@@ -488,9 +591,42 @@ class Component extends DCLogic {
     v.people.forEach(function (p) {
       p.color = palHex(personColor[p.name]); p.onColor = onPal;
       var vh = { 'Primary Tenant': 'Household-ViewPrimary-', 'Tenant 1': 'Household-ViewTenant1-', 'Tenant 2': 'Household-ViewPerson-' }[p.name];
-      p.actions = p.name === 'You' ? [] : [{ label: 'View', href: vh + (dark ? 'Dark' : 'Light') + '.dc.html', isView: true, isEdit: false }, { label: 'Edit', href: p.href, isView: false, isEdit: true }];
+      var leaving = st === 'viewRemoved' && p.name === 'Tenant 2';
+      if (leaving) p.facts = p.facts.concat([]);
+      p.actions = (p.name === 'You' || leaving) ? [] : [{ label: 'View', href: vh + (dark ? 'Dark' : 'Light') + '.dc.html', isView: true, isEdit: false }, { label: 'Edit', href: p.href, isView: false, isEdit: true }];
       p.hasActions = p.actions.length > 0;
     });
+    // Recurring tab: one card per recurring charge running in the month shown
+    var recur = st === 'viewRecurringEmpty' ? [] : [
+      { name: 'Primary Tenant', label: 'Starhub', amount: '$27.50 · due 7th', until: '', canEdit: true },
+      { name: 'Tenant 2', label: 'Parking', amount: '$80.00 · due 4th', until: 'November 2026', canEdit: false }
+    ];
+    v.recurring = recur.map(function (r) {
+      return { name: r.name, initial: { 'Primary Tenant': 'PT', 'Tenant 1': 'T1', 'Tenant 2': 'T2' }[r.name], color: palHex(personColor[r.name]), onColor: onPal,
+        label: r.label, amount: r.amount, until: r.until, hasUntil: !!r.until, canEdit: r.canEdit, href: 'Household-RecurringEdit-' + (dark ? 'Dark' : 'Light') + '.dc.html' };
+    });
+    v.hasRecurring = v.recurring.length > 0; v.noRecurring = !v.hasRecurring;
+    // Recurring charge sheet. A charge follows the person's utilities route and due day (no due day or route fields)
+    var rErr = st === 'recurringErrors', rEdit = st === 'recurringEdit';
+    var RF = function (label, value, req, o) {
+      o = o || {};
+      return { label: label, value: value || o.ph || '', fg: value ? c.onSurface : c.onSurfaceVariant, req: req, chev: !!o.chev, cal: !!o.cal,
+        border: o.err ? c.danger : c.outline, ring: o.err ? '0 0 0 1px ' + c.danger : 'none', hasErr: !!o.err, err: o.err || '' };
+    };
+    v.isRecSheet = recSheet; v.recIsEdit = rEdit; v.recIsAdd = !rEdit; v.recHasAlert = false;
+    v.recTitle = rEdit ? 'Edit recurring charge' : 'Add recurring charge';
+    v.recFields = rErr ? [
+      RF('Label', '', true, { err: 'Enter a label.' }), RF('Amount (SGD)', '', true, { err: 'Enter an amount.' }),
+      RF('Who', '', true, { chev: true, ph: 'Choose someone', err: 'Choose someone.' }), RF('End month (optional)', 'November 2026', false, { cal: true, err: 'Choose next month or later.' })
+    ] : rEdit ? [
+      RF('Label', 'Starhub', true), RF('Amount (SGD)', '$29.90', true), RF('Who', 'Primary Tenant', true, { chev: true }), RF('End month (optional)', 'June 2027', false, { cal: true })
+    ] : [
+      RF('Label', 'Starhub', true), RF('Amount (SGD)', '$27.50', true), RF('Who', 'Primary Tenant', true, { chev: true }), RF('End month (optional)', '', false, { cal: true, ph: 'None' })
+    ];
+    v.recHasSummary = rEdit; v.recSummary = [{ k: 'Amount', from: '$27.50', to: '$29.90' }, { k: 'End month', from: 'None', to: 'June 2027' }];
+    v.recSaveDisabled = rErr ? 'true' : 'false'; v.recSaveBg = rErr ? c.disabledBg : c.primary; v.recSaveFg = rErr ? c.disabledFg : c.onPrimary;
+    v.recCancelHref = 'Household-ViewRecurring-' + (dark ? 'Dark' : 'Light') + '.dc.html';
+    v.recRemoveHref = 'Confirm-RemoveRecurring-' + (dark ? 'Dark' : 'Light') + '.dc.html';
     // Name and WhatsApp apply immediately (not from a month); they're grouped under "Saved right away"
     var field = function (id, label, value, focus, wide, placeholder, optional) {
       var immediate = id === 'name' || id === 'wa';
@@ -499,7 +635,7 @@ class Component extends DCLogic {
         border: focus ? c.primary : c.outline, ring: focus ? ('0 0 0 1px ' + c.primary) : 'none',
         required: !(optional || id === 'deposit' || id === 'wa'),
         immediate: immediate, isPhone: id === 'wa', notPhone: id !== 'wa',
-        helper: 'Used to open their WhatsApp chat'
+        helper: 'Used to open their WhatsApp chat', phoneValue: value ? '+65 ' + value : '+65 ', hasErr: false, err: ''
       };
     };
     var payOpts = function (labels, sel) {
@@ -518,8 +654,8 @@ class Component extends DCLogic {
     // Rent and utilities each have their own route: paid directly, or sent via another person
     var payGroups = function (rentVia, utilVia) {
       return [
-        { label: 'Rent paid', opts: payOpts(['Directly', 'Via someone'], rentVia ? 1 : 0), hasVia: !!rentVia, via: rentVia || '', viaId: 'viaRent' },
-        { label: 'Utilities paid', opts: payOpts(['Directly', 'Via someone'], utilVia ? 1 : 0), hasVia: !!utilVia, via: utilVia || '', viaId: 'viaUtil' }
+        { label: 'Rent paid', opts: payOpts(['Directly', 'Via someone'], rentVia ? 1 : 0), hasVia: !!rentVia, via: rentVia || '', viaId: 'viaRent', viaEmpty: rentVia === '-', viaText: rentVia === '-' ? 'Choose someone' : (rentVia || ''), viaFg: rentVia === '-' ? c.onSurfaceVariant : c.onSurface },
+        { label: 'Utilities paid', opts: payOpts(['Directly', 'Via someone'], utilVia ? 1 : 0), hasVia: !!utilVia, via: utilVia || '', viaId: 'viaUtil', viaEmpty: utilVia === '-', viaText: utilVia === '-' ? 'Choose someone' : (utilVia || ''), viaFg: utilVia === '-' ? c.onSurfaceVariant : c.onSurface }
       ];
     };
     v.payGroups = [];
@@ -527,22 +663,31 @@ class Component extends DCLogic {
     v.previewTitle = '';
     var room = null;
     if (st === 'addPerson') {
-      v.editTitle = fr ? 'Add person' : 'Add subtenant'; v.editSub = 'New person in the household';
+      v.editTitle = fr ? 'Add person' : 'Add subtenant'; v.editSub = '';
       var filled = addVariant === 'addPersonFilled' ? 1 : (addVariant === 'addPersonFilled2' ? 2 : 0);
-      var picked = addVariant === 'addPersonRoom' || filled > 0, noRoom = addVariant === 'addPersonNoRoom';
+      var errs = addVariant === 'addPersonErrors', failedAdd = addVariant === 'addPersonFailed';
+      if (failedAdd) filled = 2;
+      var roomOpen = addVariant === 'addPersonRoomOpen', masterPick = addVariant === 'addPersonMaster';
+      var picked = addVariant === 'addPersonRoom' || filled > 0 || masterPick, noRoom = addVariant === 'addPersonNoRoom';
       var FV = filled === 1 ? { name: 'Tenant 1', shares: '1', rentDue: '28th', utilDue: '7th', wa: '8123 4567', room: 'Room 2' }
         : (filled === 2 ? { name: 'Tenant 2', shares: '1', rentDue: '1st', utilDue: '4th', wa: '9123 4567', room: 'Room 3' } : { name: '', shares: '', rentDue: '', utilDue: '', wa: '', room: 'Room 3' });
+      if (masterPick) FV = { name: 'Primary Tenant', shares: '', rentDue: '7th', utilDue: '7th', wa: '8123 4567', room: 'Master room' };
       v.fields = [
         field('name', 'Name (used in messages)', FV.name, false, true, 'e.g. first name'),
-        field('shares', 'Utility shares', FV.shares, false, false, 'e.g. 1'), field('rentDue', 'Rent due', FV.rentDue, false, false, 'Day, e.g. 1st'),
-        field('utilDue', 'Utilities due', FV.utilDue, false, false, 'Day, e.g. 4th'), field('deposit', 'Deposit held (SGD)', '', false, false, 'Optional'),
-        field('wa', 'WhatsApp', FV.wa, false, true, '8123 4567')
+        field('rentDue', 'Rent due', FV.rentDue, false, false, 'Day, e.g. 1'), field('utilDue', 'Utilities due', FV.utilDue, false, false, 'Day, e.g. 4'),
+        field('shares', 'Utility shares', FV.shares, false, false, 'e.g. 1'), field('deposit', 'Deposit held (SGD)', '', false, false, 'Optional'),
+        field('wa', 'WhatsApp (optional)', FV.wa, false, true, '8123 4567')
       ];
-      v.payGroups = payGroups(null, null);
+      if (errs) v.fields.forEach(function (f) { if (f.id === 'shares') { f.hasErr = true; f.err = 'Enter an amount.'; f.border = c.danger; f.ring = '0 0 0 1px ' + c.danger; } });
+      if (masterPick) v.fields = v.fields.filter(function (f) { return f.id !== 'shares' && f.id !== 'deposit'; });
+      v.payGroups = masterPick ? [] : payGroups(null, null);
+      v.roomSheetOpen = roomOpen; v.roomSheetClose = 'Household-AddPersonFR-' + (dark ? 'Dark' : 'Light') + '.dc.html'; v.roomSheetPick = 'Household-AddPersonMasterFR-' + (dark ? 'Dark' : 'Light') + '.dc.html'; v.masterNote = masterPick;
+      v.roomList = [{ label: 'Master room', detail: 'Rent and aircon from Household split', on: false }, { label: 'Room 2', detail: '$950.00 · 1 aircon unit', on: false }, { label: 'Room 3', detail: '$950.00 · 1 aircon unit', on: false }];
       v.preview = []; v.noChanges = true; // Add has no summary: the form is the summary
+      v.roomErr = errs; v.hasSaveAlert = failedAdd; v.saveAlert = 'Save Rent & rooms first.';
       room = { sel: true, value: picked ? FV.room : 'Choose a room', empty: !picked, disabled: noRoom, noRoom: noRoom,
-        facts: picked ? [ { label: 'Rent (SGD)', value: '$950.00' }, { label: 'Aircon units', value: '1' } ] : [], link: noRoom, linkLabel: 'Open Landlord & rooms' };
-      v.saveLabel = fr ? 'Add person' : 'Save changes'; v.saveDisabled = filled ? 'false' : 'true'; v.saveBg = filled ? c.primary : c.disabledBg; v.saveFg = filled ? c.onPrimary : c.disabledFg;
+        facts: (picked && !masterPick) ? [ { label: 'Rent (SGD)', value: '$950.00' }, { label: 'Aircon units', value: '1' } ] : [], link: noRoom, linkLabel: 'Open Rent & rooms' };
+      v.saveLabel = failedAdd ? 'Retry' : (fr ? 'Add person' : 'Save changes'); v.saveDisabled = filled ? 'false' : 'true'; v.saveBg = filled ? c.primary : c.disabledBg; v.saveFg = filled ? c.onPrimary : c.disabledFg;
       v.secondaryLabel = 'Cancel'; v.secondaryFg = c.primary;
       if (fr) {
         var TT = dark ? 'Dark' : 'Light';
@@ -550,60 +695,61 @@ class Component extends DCLogic {
         v.frBack = filled === 2 ? 'FirstRunPeople-One-' + TT + '.dc.html' : 'FirstRunPeople-Empty-' + TT + '.dc.html';
         if (fre) {
           var back = filled === 2 ? 'FirstRunPeople-List-' + TT + '.dc.html' : 'FirstRunPeople-One-' + TT + '.dc.html';
-          v.editTitle = 'Edit ' + FV.name; v.editSub = FV.room + ' · subtenant';
+          v.editTitle = 'Edit ' + FV.name; v.editSub = '';
           v.saveLabel = 'Save changes'; v.saveHref = back; v.frBack = back;
           v.secondaryLabel = 'Remove from household'; v.secondaryFg = c.danger;
           v.frRemove = filled === 2 ? 'FirstRunPeople-One-' + TT + '.dc.html' : 'FirstRunPeople-Empty-' + TT + '.dc.html';
         }
       }
     } else if (st === 'editPerson') {
-      v.editTitle = 'Edit Tenant 2'; v.editSub = 'Room 3 · subtenant';
+      v.editTitle = 'Edit Tenant 2'; v.editSub = '';
       v.fields = [
         field('name', 'Name (used in messages)', 'Jordan', false, true),
-        field('rentDue', 'Rent due', ro ? '1st' : '3rd', true), field('utilDue', 'Utilities due', '4th'),
+        field('rentDue', 'Rent due', ro ? '1st' : '3', true), field('utilDue', 'Utilities due', '4th'),
         field('deposit', 'Deposit held (SGD)', '950.00'),
-        field('wa', 'WhatsApp', '[number]', false, true)
+        field('wa', 'WhatsApp (optional)', '9123 4567', false, true)
       ];
       v.payGroups = payGroups(null, null);
-      room = { facts: [ { label: 'Room', value: 'Room 3' }, { label: 'Rent (SGD)', value: '$950.00' }, { label: 'Utility shares', value: '1', roOnly: true }, { label: 'Aircon units', value: '1' } ], link: true, linkLabel: 'Change on Landlord & rooms' };
+      room = { facts: [ { label: 'Room', value: 'Room 3' }, { label: 'Rent (SGD)', value: '$950.00' }, { label: 'Utility shares', value: '1', roOnly: true }, { label: 'Aircon units', value: '1', roOnly: true } ], link: true, linkLabel: 'Change on Rent & rooms' };
       v.preview = (both ? [ head(NOW), row('Name', 'Tenant 2', 'Jordan'), row('Color', 'Green', 'Purple') ] : []).concat([ head(JAN), row('Rent due', '1st', '3rd') ]);
       v.saveLabel = 'Save changes';
       v.saveDisabled = 'false'; v.saveBg = c.primary; v.saveFg = c.onPrimary;
       v.secondaryLabel = 'Remove from household'; v.secondaryFg = c.danger;
     } else if (st === 'editPrimary') {
-      v.editTitle = 'Edit Primary Tenant'; v.editSub = 'Master room · pays you directly';
+      v.editTitle = 'Edit Primary Tenant'; v.editSub = '';
       v.fields = [
         field('name', 'Name (used in messages)', 'Alex', true, true),
         field('rentDue', 'Rent due', '7th'), field('utilDue', 'Utilities due', '7th'),
-        field('wa', 'WhatsApp', '[number]', false, true)
+        field('wa', 'WhatsApp (optional)', '9123 4567', false, true)
       ];
       v.payGroups = payGroups(null, null);
-      v.hasPayNote = true; v.payNote = 'Their rent, utility shares and aircon units come from Your split with them. Tenant 1’s utilities are added to their message.';
+      v.hasPayNote = true; v.payNote = 'Their rent, utility shares and aircon units come from Household split. Tenant 1’s utilities are added to their message.';
       v.preview = [ head(NOW), row('Name', 'Primary Tenant', 'Alex') ];
       v.saveLabel = 'Save changes'; v.saveDisabled = 'false'; v.saveBg = c.primary; v.saveFg = c.onPrimary;
       v.secondaryLabel = 'Cancel'; v.secondaryFg = c.primary;
     } else if (st === 'editTenant1') {
-      v.editTitle = 'Edit Tenant 1'; v.editSub = 'Room 2 · subtenant';
+      v.editTitle = 'Edit Tenant 1'; v.editSub = '';
       v.fields = [
         field('name', 'Name (used in messages)', 'Sam', false, true),
         field('rentDue', 'Rent due', '28th'), field('utilDue', 'Utilities due', '7th'),
         field('deposit', 'Deposit held (SGD)', '', false, false, 'None'),
         field('wa', 'WhatsApp (optional)', '', false, true, '8123 4567')
       ];
-      v.payGroups = payGroups(null, 'Primary Tenant');
-      room = { facts: [ { label: 'Room', value: 'Room 2' }, { label: 'Rent (SGD)', value: '$950.00' }, { label: 'Utility shares', value: '1', roOnly: true }, { label: 'Aircon units', value: '1' } ], link: true, linkLabel: 'Change on Landlord & rooms' };
-      v.hasPayNote = true; v.payNote = 'Anything sent via Primary Tenant shows as a separate section in their message, so they don’t get one of their own.';
+      v.payGroups = payGroups(null, viaEmpty ? '-' : 'Primary Tenant');
+      if (viaEmpty) { v.preview = []; }
+      room = { facts: [ { label: 'Room', value: 'Room 2' }, { label: 'Rent (SGD)', value: '$950.00' }, { label: 'Utility shares', value: '1', roOnly: true }, { label: 'Aircon units', value: '1', roOnly: true } ], link: true, linkLabel: 'Change on Rent & rooms' };
       v.preview = []; v.noChanges = true;
       v.saveLabel = 'Save changes'; v.saveDisabled = 'true'; v.saveBg = c.disabledBg; v.saveFg = c.disabledFg;
       v.secondaryLabel = 'Remove from household'; v.secondaryFg = c.danger;
     }
+    v.hasEditSub = !!v.editSub;
     // Group the form: immediate fields, then the room, then the dated fields (titled with the month they apply from)
     if (v.fields) {
       var imm = v.fields.filter(function (f) { return f.immediate; });
       var dated = v.fields.filter(function (f) { return !f.immediate; });
       var mk = function (o) {
-        var g = { title: '', hasColor: false, fields: [], hasRoomSel: false, roomValue: '', roomFg: c.onSurface, roomBg: c.surface, roomBorder: c.outline, roomDisabled: 'false',
-          hasNoRoom: false, hasRoomFacts: false, roomFacts: [], hasRoomLink: false, roomLinkLabel: '' };
+        var g = { title: '', hasNote: false, note: '', hasColor: false, fields: [], hasRoomSel: false, roomValue: '', roomFg: c.onSurface, roomBg: c.surface, roomBorder: c.outline, roomDisabled: 'false',
+          hasMasterNote: false, hasNoRoom: false, hasRoomFacts: false, roomFacts: [], hasRoomLink: false, roomLinkLabel: '' };
         Object.keys(o).forEach(function (k) { g[k] = o[k]; });
         g.hasFields = g.fields.length > 0;
         return g;
@@ -614,9 +760,9 @@ class Component extends DCLogic {
         var rf = room.facts.filter(function (f) { return ro || !f.roOnly; });
         v.groups.push(mk({ title: 'Room', hasRoomSel: !!room.sel, roomValue: room.value || '', roomFg: room.empty ? c.onSurfaceVariant : c.onSurface,
           roomBg: room.disabled ? c.disabledBg : c.surface, roomBorder: room.disabled ? c.outlineVariant : c.outline, roomDisabled: room.disabled ? 'true' : 'false',
-          hasNoRoom: !!room.noRoom, hasRoomFacts: rf.length > 0, roomFacts: rf, hasRoomLink: !!room.link && !ro || (!!room.link && room.noRoom), roomLinkLabel: room.linkLabel || '' }));
+          hasMasterNote: !!v.masterNote, hasNoRoom: !!room.noRoom, roomHasErr: !!v.roomErr, hasRoomFacts: rf.length > 0, roomFacts: rf, hasRoomLink: !!room.link && !ro || (!!room.link && room.noRoom), roomLinkLabel: room.linkLabel || '' }));
       }
-      v.groups.push(mk({ title: ro ? 'Amounts' : 'From December 2026', fields: dated }));
+      v.groups.push(mk({ title: ro ? 'Amounts' : 'From December 2026', fields: dated, hasNote: both && !ro, note: 'These take effect from December 2026.' }));
       v.groups.forEach(function (g, i) { g.divider = i === 0 ? 'transparent' : c.outlineVariant; g.padTop = i === 0 ? '4px' : '18px'; g.mt = '0px'; });
     }
     // Colour: default per person, then whatever was tapped
@@ -641,7 +787,7 @@ class Component extends DCLogic {
     if (ro) {
       v.editTitle = v.editTitle.replace(/^Edit /, '');
       v.payGroups.forEach(function (g) { g.isRO = true; g.isEditable = false; g.showVia = false; g.roText = g.hasVia ? 'Via ' + g.via : 'Directly'; });
-      v.fields.forEach(function (f) { f.showStar = false; f.roValue = f.isPhone ? (f.value ? '+65 ' + f.value : '—') : (f.value || (f.id === 'deposit' ? 'None' : '—')); });
+      v.fields.forEach(function (f) { f.showStar = false; f.label = f.label.replace(' (optional)', ''); f.roValue = f.isPhone ? (f.value ? '+65 ' + f.value : 'Not set') : (f.value || (f.id === 'deposit' ? 'None' : '—')); });
     } else {
       v.payGroups.forEach(function (g) { g.isRO = false; g.isEditable = true; g.showVia = g.hasVia; });
       if (v.fields) v.fields.forEach(function (f) { f.showStar = f.required; });
@@ -649,6 +795,7 @@ class Component extends DCLogic {
     var T = dark ? 'Dark' : 'Light';
     v.secondaryHref = /^Remove/.test(v.secondaryLabel || '') ? (st === 'editTenant1' ? 'Confirm-RemovePersonIncluded-' + T + '.dc.html' : (dark ? 'Confirm-RemovePerson-Dark.dc.html' : 'Confirm.dc.html')) : viewHref;
     if (st === 'editPerson') v.backHref = 'Confirm-Discard-' + T + '.dc.html';
+    if (!fr && /^addPerson/.test(st)) v.backHref = 'Confirm-DiscardAddPerson-' + T + '.dc.html';
     if (fr && st === 'addPerson') { v.backHref = v.frBack; v.secondaryHref = fre ? v.frRemove : v.frBack; }
     return v;
   }

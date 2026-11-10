@@ -33,12 +33,19 @@ body{margin:0}
 </li>
 </sc-for>
 </ul>
+<sc-if value="{{isFailed}}" hint-placeholder-val="{{false}}">
+<!-- Alert (danger): the server's message; Confirm can be tapped again -->
+<div role="alert" style="display: flex; align-items: flex-start; gap: 10px; padding: 10px 12px; border-radius: 12px; background: {{c.dangerTint}}; border: 1px solid {{c.dangerLine}}">
+<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="flex-shrink: 0; color: {{c.danger}}"><circle cx="12" cy="12" r="10"></circle><path d="M12 8v4"></path><path d="M12 16h.01"></path></svg>
+<span style="font-size: 13px; line-height: 18px; font-weight: 600; color: {{c.onDangerTint}}">The next month is already open.</span>
+</div>
+</sc-if>
 <div style="display: flex; flex-direction: column; gap: 8px; padding-top: 4px">
 <!-- Button (solid): Cancel, disabled while closing -->
 <a href="{{cancelHref}}" aria-disabled="{{busyAttr}}" style="height: 48px; border-radius: 24px; background: {{cancelBg}}; color: {{cancelFg}}; pointer-events: {{evts}}; font-size: 15px; line-height: 20px; font-weight: 700; display: flex; align-items: center; justify-content: center; text-decoration: none">Cancel</a>
 <!-- Button (destructive outline): Confirm, spinner while closing -->
 <a href="{{confirmHref}}" aria-disabled="{{busyAttr}}" style="display: flex; align-items: center; justify-content: center; gap: 8px; text-decoration: none; height: 48px; box-sizing: border-box; border-radius: 24px; border: 1px solid {{confirmBorder}}; background: none; color: {{confirmFg}}; pointer-events: {{evts}}; font-family: inherit; font-size: 15px; line-height: 20px; font-weight: 700">
-<sc-if value="{{isSaving}}" hint-placeholder-val="{{false}}"><!-- gluestack Spinner --><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" aria-hidden="true"><circle cx="12" cy="12" r="9" opacity="0.25"></circle><path d="M21 12a9 9 0 0 0-9-9"></path></svg></sc-if>
+<sc-if value="{{isSaving}}" hint-placeholder-val="{{false}}"><!-- gluestack Spinner --><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" aria-hidden="true"><path d="M21 12a9 9 0 1 1-6.22-8.56"></path></svg></sc-if>
 Confirm
 </a>
 </div>
@@ -46,7 +53,7 @@ Confirm
 </div>
 </div>
 </x-dc>
-<script type="text/x-dc" data-dc-script data-props='{"state":{"editor":"enum","options":["idle","saving"],"default":"idle"},"theme":{"editor":"enum","options":["light","dark"],"default":"light"},"$preview":{"width":400,"height":848}}'>
+<script type="text/x-dc" data-dc-script data-props='{"state":{"editor":"enum","options":["idle","saving","failed"],"default":"idle"},"theme":{"editor":"enum","options":["light","dark"],"default":"light"},"$preview":{"width":400,"height":848}}'>
 class Component extends DCLogic {
   renderVals() {
     var theme = this.props.theme === 'dark' ? 'dark' : 'light';
@@ -55,15 +62,15 @@ class Component extends DCLogic {
     var c = dark ? {
       sheet: '#222427', onSurface: '#E3E3E6', onSurfaceVariant: '#C4C6CB', primary: '#E2E2E6', onPrimary: '#1A1C1E',
       disabledBg: '#2C2F33', disabledFg: '#5C5F64', outlineVariant: '#2E3134',
-      danger: '#F44336', dangerLine: '#D32F2F', onDangerTint: '#FFD9D6', scrim: 'rgba(0,0,0,0.6)'
+      danger: '#F44336', dangerLine: '#D32F2F', dangerTint: '#3B1511', onDangerTint: '#FFD9D6', scrim: 'rgba(0,0,0,0.5)'
     } : {
       sheet: '#FFFFFF', onSurface: '#1A1C1E', onSurfaceVariant: '#45484C', primary: '#2B2F33', onPrimary: '#FFFFFF',
       disabledBg: '#E9EAED', disabledFg: '#9A9DA2', outlineVariant: '#E6E7EA',
-      danger: '#D32F2F', dangerLine: '#F6D5D5', onDangerTint: '#5F2120', scrim: 'rgba(0,0,0,0.5)'
+      danger: '#D32F2F', dangerLine: '#F6D5D5', dangerTint: '#FDEDED', onDangerTint: '#5F2120', scrim: 'rgba(0,0,0,0.5)'
     };
     var T = dark ? 'Dark' : 'Light';
     return {
-      c: c, theme: theme, isSaving: saving,
+      c: c, theme: theme, isSaving: saving, isFailed: this.props.state === 'failed',
       busyAttr: saving ? 'true' : 'false', evts: saving ? 'none' : 'auto',
       keeps: ['November moves to History and becomes read-only', 'Changes to any household configuration will take effect after December'],
       cancelBg: saving ? c.disabledBg : c.primary, cancelFg: saving ? c.disabledFg : c.onPrimary,

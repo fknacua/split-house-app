@@ -21,7 +21,12 @@ button{cursor:pointer}
 <div aria-hidden="true" style="padding: 48px 16px 0; display: flex; flex-direction: column; gap: 16px">
 <span style="font-size: 20px; line-height: 28px; font-weight: 800">{{bgTitle}}</span>
 <span style="font-size: 14px; line-height: 20px; font-weight: 700">{{title}}</span>
-<div style="height: 48px; border-radius: 12px; border: 1px solid {{c.outline}}"></div>
+<!-- The month field that opened the picker: value, optional × (off by default), calendar icon -->
+<div style="height: 48px; box-sizing: border-box; border-radius: 12px; border: 1px solid {{c.outline}}; background: {{c.surface}}; display: flex; align-items: center; gap: 8px; padding: 0 14px">
+<span style="flex-grow: 1; font-size: 16px; line-height: 24px; font-weight: 500">{{fieldValue}}</span>
+<sc-if value="{{clearable}}" hint-placeholder-val="{{false}}"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="color: {{c.onSurfaceVariant}}"><path d="M18 6 6 18"></path><path d="m6 6 12 12"></path></svg></sc-if>
+<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="color: {{c.onSurface}}"><path d="M8 2v4"></path><path d="M16 2v4"></path><rect width="18" height="18" x="3" y="4" rx="2"></rect><path d="M3 10h18"></path><path d="M8 14h.01"></path><path d="M12 14h.01"></path><path d="M16 14h.01"></path><path d="M8 18h.01"></path><path d="M12 18h.01"></path><path d="M16 18h.01"></path></svg>
+</div>
 <div style="height: 180px; border-radius: 20px; background: {{c.surface}}"></div>
 <div style="height: 220px; border-radius: 20px; background: {{c.surface}}"></div>
 </div>
@@ -30,7 +35,7 @@ button{cursor:pointer}
 
 <!-- Month picker: bottom sheet, year header, 3 x 4 month grid. Picking a month selects it and closes the sheet. -->
 <section role="dialog" aria-label="{{title}}" style="position: absolute; left: 0; right: 0; bottom: 0; background: {{c.sheet}}; border-radius: 24px 24px 0 0; padding: 12px 16px 28px; display: flex; flex-direction: column; gap: 8px">
-<span aria-hidden="true" style="align-self: center; width: 36px; height: 4px; border-radius: 2px; background: {{c.track}}"></span>
+<span aria-hidden="true" style="align-self: center; width: 32px; height: 4px; border-radius: 2px; background: {{c.track}}"></span>
 <h1 style="margin: 8px 0 0; text-align: center; font-size: 16px; line-height: 24px; font-weight: 800">{{title}}</h1>
 
 <div style="display: flex; align-items: center; justify-content: space-between; padding: 4px 0">
@@ -45,11 +50,13 @@ button{cursor:pointer}
 <sc-if value="{{m.disabled}}" hint-placeholder-val="{{false}}"><span role="option" aria-disabled="true" aria-selected="false" style="font-family: inherit; font-size: 15px; line-height: 20px; font-weight: {{m.weight}}; display: flex; align-items: center; justify-content: center; text-decoration: none; border: 0; border-radius: 24px; height: 48px; background: {{m.bg}}; color: {{m.fg}}">{{m.name}}</span></sc-if>
 </sc-for>
 </div>
+<!-- Shared sheet footer: Cancel text button -->
+<a href="{{cancelHref}}" style="height: 48px; margin-top: 4px; border-radius: 24px; color: {{c.onSurface}}; display: flex; align-items: center; justify-content: center; font-size: 15px; line-height: 20px; font-weight: 700; text-decoration: none">Cancel</a>
 </section>
 </div>
 </div>
 </x-dc>
-<script type="text/x-dc" data-dc-script data-props='{"theme":{"editor":"enum","options":["light","dark"],"default":"light"},"title":{"editor":"string","default":"Starts from"},"bgTitle":{"editor":"string","default":"Edit Tenant 2"},"returnHref":{"editor":"string","default":""},"hrefMap":{"editor":"string","default":""},"selectedYear":{"editor":"number","default":2027},"selectedMonth":{"editor":"number","default":0},"minYear":{"editor":"number","default":2027},"minMonth":{"editor":"number","default":0},"maxYear":{"editor":"number","default":2030},"maxMonth":{"editor":"number","default":11},"$preview":{"width":400,"height":848}}'>
+<script type="text/x-dc" data-dc-script data-props='{"theme":{"editor":"enum","options":["light","dark"],"default":"light"},"title":{"editor":"string","default":"End month"},"bgTitle":{"editor":"string","default":"Edit Tenant 2"},"returnHref":{"editor":"string","default":""},"hrefMap":{"editor":"string","default":""},"allowed":{"editor":"string","default":""},"clearable":{"editor":"boolean","default":false},"selectedYear":{"editor":"number","default":2027},"selectedMonth":{"editor":"number","default":0},"minYear":{"editor":"number","default":2027},"minMonth":{"editor":"number","default":0},"maxYear":{"editor":"number","default":2030},"maxMonth":{"editor":"number","default":11},"$preview":{"width":400,"height":848}}'>
 class Component extends DCLogic {
   renderVals() {
     var dark = this.props.theme === 'dark';
@@ -57,7 +64,7 @@ class Component extends DCLogic {
       background: '#111214', surface: '#1A1C1E', container: '#222427', sheet: '#222427',
       onSurface: '#E3E3E6', onSurfaceVariant: '#C4C6CB', outline: '#8E9196', outlineVariant: '#2E3134',
       primary: '#E2E2E6', onPrimary: '#1A1C1E', selected: '#2C2F33', onSelected: '#E3E3E6',
-      disabledBg: '#222427', disabledFg: '#5C5F64', track: '#3A3E43', scrim: 'rgba(0,0,0,0.6)',
+      disabledBg: '#222427', disabledFg: '#5C5F64', track: '#3A3E43', scrim: 'rgba(0,0,0,0.5)',
       success: '#66BB6A', successContainer: '#1B5E20', onSuccessContainer: '#CBE4CB',
       warning: '#FFA726', warningContainer: '#66430F', onWarningContainer: '#FFE2B7', warningTint: '#332108', warningLine: '#F57C00',
       danger: '#F44336', dangerTint: '#3B1511', dangerLine: '#D32F2F', onDangerTint: '#FFD9D6',
@@ -76,26 +83,32 @@ class Component extends DCLogic {
     };
     var self = this;
     var NAMES = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
-    // Allowed range: minYear/minMonth to maxYear/maxMonth (inclusive). All 12 months always show; months outside the range use the disabled style.
-    // A year arrow is disabled when the year it leads to has no allowed month.
+    // Allowed months: a list ("allowed" prop, JSON array of "year-monthIndex", month 0-11), not a range.
+    // A month not in the list is disabled. The year arrows skip years that have no allowed month.
+    // Without "allowed", the list is built from minYear/minMonth..maxYear/maxMonth (older boards).
     var num = function (v, d) { return v != null && v !== '' ? Number(v) : d; };
-    var minY = num(this.props.minYear, 2027);
-    var minM = num(this.props.minMonth, 0);
-    var maxY = num(this.props.maxYear, 2030);
-    var maxM = num(this.props.maxMonth, 11);
+    var allowed = null;
+    try { allowed = this.props.allowed ? JSON.parse(this.props.allowed) : null; } catch (e) { allowed = null; }
+    if (!allowed) {
+      allowed = [];
+      var y0 = num(this.props.minYear, 2027), m0 = num(this.props.minMonth, 0), y1 = num(this.props.maxYear, 2030), m1 = num(this.props.maxMonth, 11);
+      for (var yy = y0; yy <= y1; yy++) for (var mm = 0; mm < 12; mm++) { if ((yy > y0 || mm >= m0) && (yy < y1 || mm <= m1)) allowed.push(yy + '-' + mm); }
+    }
+    var ok = {}, years = {};
+    allowed.forEach(function (k) { ok[k] = true; years[Number(k.split('-')[0])] = true; });
+    var yearList = Object.keys(years).map(Number).sort(function (a, b) { return a - b; });
     var st = this.state || {};
     var selY = st.selY != null ? st.selY : num(this.props.selectedYear, 2027);
     var selM = st.selM != null ? st.selM : num(this.props.selectedMonth, 0);
     var year = st.year != null ? st.year : selY;
     var ret = this.props.returnHref || (dark ? 'Household-EditPerson-Dark.dc.html' : 'Household-EditPerson-Light.dc.html');
-    // Optional hrefMap: JSON object keyed "year-monthIndex" (month 0-11) giving a different destination per month. Months not listed use returnHref.
+    // Optional hrefMap: JSON object keyed "year-monthIndex" giving a different destination per month. Months not listed use returnHref.
     var map = {};
     try { map = this.props.hrefMap ? JSON.parse(this.props.hrefMap) : {}; } catch (e) { map = {}; }
     var months = NAMES.map(function (n, i) {
-      var disabled = year < minY || (year === minY && i < minM) || year > maxY || (year === maxY && i > maxM);
+      var disabled = !ok[year + '-' + i];
       var selected = year === selY && i === selM;
       return {
-        // selected month in parentheses is the wireframe's notation; here it is filled primary
         name: n, selected: selected, disabled: disabled,
         bg: selected ? c.primary : 'transparent',
         fg: selected ? c.onPrimary : (disabled ? c.disabledFg : c.onSurface),
@@ -103,13 +116,18 @@ class Component extends DCLogic {
         enabled: !disabled, href: map[year + '-' + i] || ret
       };
     });
-    var prevDisabled = year <= minY;
-    var nextDisabled = year >= maxY;
+    var prevY = yearList.filter(function (y) { return y < year; }).pop();
+    var nextY = yearList.filter(function (y) { return y > year; })[0];
+    var prevDisabled = prevY == null;
+    var nextDisabled = nextY == null;
+    var FULL = ['January','February','March','April','May','June','July','August','September','October','November','December'];
     return {
-      c: c, title: this.props.title || 'Starts from', bgTitle: this.props.bgTitle || 'Edit Tenant 2', year: String(year), months: months,
+      c: c, title: this.props.title || 'End month', bgTitle: this.props.bgTitle || 'Edit Tenant 2', year: String(year), months: months,
       prevDisabled: String(prevDisabled), prevFg: prevDisabled ? c.disabledFg : c.onSurface, nextDisabled: String(nextDisabled), nextFg: nextDisabled ? c.disabledFg : c.onSurface,
-      prevYear: function () { if (!prevDisabled) self.setState({ year: year - 1 }); },
-      nextYear: function () { if (!nextDisabled) self.setState({ year: year + 1 }); }
+      prevYear: function () { if (!prevDisabled) self.setState({ year: prevY }); },
+      nextYear: function () { if (!nextDisabled) self.setState({ year: nextY }); },
+      fieldValue: FULL[num(this.props.selectedMonth, 0)] + ' ' + num(this.props.selectedYear, 2027), clearable: this.props.clearable === true || this.props.clearable === 'true',
+      cancelHref: this.props.cancelHref || ret
     };
   }
 }

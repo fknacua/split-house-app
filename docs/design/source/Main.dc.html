@@ -19,16 +19,10 @@ body{margin:0}
 
 <div style="height: 36px; flex-shrink: 0"></div>
 
-<!-- Header: Pressable (month picker) + Button outline small (Add charge) -->
-<header style="display: flex; align-items: center; justify-content: space-between; padding: 4px 8px 4px 16px; height: 56px; flex-shrink: 0">
-<button aria-label="Change month" style="display: flex; align-items: center; gap: 6px; background: none; border: 0; padding: 0; min-height: 48px; font-family: inherit; color: {{c.onSurface}}; cursor: pointer">
-<span style="font-size: 24px; line-height: 32px; font-weight: 800; letter-spacing: -0.3px">{{monthLabel}}</span>
-<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m6 9 6 6 6-6"></path></svg>
-</button>
-<button style="height: 44px; padding: 0 16px 0 12px; border-radius: 22px; border: 1px solid {{c.outline}}; background: none; color: {{c.onSurface}}; display: flex; align-items: center; gap: 6px; font-family: inherit; font-size: 14px; line-height: 20px; font-weight: 700; cursor: pointer">
-<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12h14"></path><path d="M12 5v14"></path></svg>
-Add charge
-</button>
+<!-- Header: month name only (Home always shows the month the server picks) -->
+<header style="display: flex; align-items: center; padding: 4px 16px; height: 56px; flex-shrink: 0">
+<sc-if value="{{isLoaded}}" hint-placeholder-val="{{true}}"><h1 style="margin: 0; font-size: 24px; line-height: 32px; font-weight: 800; letter-spacing: -0.3px">{{monthLabel}}</h1></sc-if>
+<sc-if value="{{isLoading}}" hint-placeholder-val="{{false}}"><div aria-hidden="true" style="width: 190px; height: 28px; border-radius: 8px; background: {{c.skel}}"></div></sc-if>
 </header>
 
 <sc-if value="{{compact}}" hint-placeholder-val="{{false}}">
@@ -56,7 +50,17 @@ Add charge
 
 <sc-if value="{{isLoading}}" hint-placeholder-val="{{false}}">
 <!-- Loading: Skeleton blocks stand in for the hero Card and the Charges rows -->
-<div aria-hidden="true" style="height: 258px; border-radius: 20px; background: {{c.skel}}"></div>
+<!-- Hero skeleton: same card, step labels are fixed text; server values are blocks -->
+<section aria-hidden="true" style="background: {{c.surface}}; border-radius: 20px; padding: 18px 18px 16px; display: flex; flex-direction: column; gap: 14px">
+<div style="display: flex; flex-direction: column; gap: 10px">
+<div style="width: 120px; height: 16px; border-radius: 8px; background: {{c.skel}}"></div>
+<div style="display: flex; gap: 6px">
+<sc-for list="{{stepLabels}}" as="l" hint-placeholder-count="3"><div style="flex: 1 1 0; display: flex; flex-direction: column; gap: 5px"><div style="height: 4px; border-radius: 2px; background: {{c.skel}}"></div><span style="font-size: 12px; line-height: 16px; font-weight: 600; color: {{c.onSurfaceVariant}}">{{l}}</span></div></sc-for>
+</div>
+</div>
+<div style="display: flex; flex-direction: column; gap: 8px"><div style="width: 78%; height: 28px; border-radius: 8px; background: {{c.skel}}"></div><div style="width: 100%; height: 16px; border-radius: 8px; background: {{c.skel}}"></div><div style="width: 64%; height: 16px; border-radius: 8px; background: {{c.skel}}"></div></div>
+<div style="display: flex; gap: 10px"><div style="flex: 1 1 0; height: 70px; border-radius: 16px; background: {{c.skel}}"></div><div style="flex: 1 1 0; height: 70px; border-radius: 16px; background: {{c.skel}}"></div></div>
+</section>
 <div style="display: flex; flex-direction: column">
 <div style="display: flex; align-items: baseline; padding: 0 4px 6px">
 <h2 style="margin: 0; font-size: 15px; line-height: 22px; font-weight: 700">Charges</h2>
@@ -89,7 +93,7 @@ Add charge
 <li style="flex: 1 1 0; min-width: 0; display: flex; flex-direction: column; gap: 5px">
 <div style="height: 4px; border-radius: 2px; background: {{s.bar}}"></div>
 <span style="display: flex; align-items: center; gap: 3px; font-size: 12px; line-height: 16px; font-weight: {{s.weight}}; color: {{s.fg}}; opacity: {{s.opacity}}">
-<sc-if value="{{s.done}}" hint-placeholder-val="{{false}}"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 6 9 17l-5-5"></path></svg></sc-if>
+
 {{s.label}}
 </span>
 </li>
@@ -112,6 +116,22 @@ Add charge
 <span style="font-size: 20px; line-height: 28px; font-weight: 800">No bill yet</span>
 </div>
 </div>
+<sc-if value="{{isDraft}}" hint-placeholder-val="{{false}}">
+<!-- Alert (info) with Buttons: unfinished bill draft, at the bottom of the hero -->
+<div role="status" style="display: flex; flex-direction: column; gap: 12px; padding: 12px 14px 14px; border-radius: 16px; border: 1px solid {{c.infoLine}}; background: {{c.infoTint}}; color: {{c.onSurface}}">
+<div style="display: flex; align-items: flex-start; gap: 10px">
+<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="{{c.info}}" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="flex-shrink: 0"><circle cx="12" cy="12" r="10"></circle><path d="M12 16v-4"></path><path d="M12 8h.01"></path></svg>
+<div style="display: flex; flex-direction: column; gap: 2px; min-width: 0">
+<span style="font-size: 14px; line-height: 20px; font-weight: 700">Unfinished bill draft</span>
+<span style="font-size: 14px; line-height: 20px; font-weight: 500; color: {{c.onSurfaceVariant}}">You started uploading a bill for November and didn’t save it.</span>
+</div>
+</div>
+<div style="display: flex; gap: 8px">
+<a href="{{continueHref}}" style="flex: 1 1 0; height: 44px; box-sizing: border-box; border-radius: 22px; background: {{c.primary}}; color: {{c.onPrimary}}; font-size: 14px; line-height: 20px; font-weight: 700; display: flex; align-items: center; justify-content: center; text-decoration: none">Continue</a>
+<a href="{{discardHref}}" style="flex: 1 1 0; height: 44px; box-sizing: border-box; border-radius: 22px; border: 1px solid {{c.outline}}; background: transparent; color: {{c.onSurface}}; font-size: 14px; line-height: 20px; font-weight: 700; display: flex; align-items: center; justify-content: center; text-decoration: none">Discard</a>
+</div>
+</div>
+</sc-if>
 </sc-if>
 
 <sc-if value="{{isUnsent}}" hint-placeholder-val="{{false}}">
@@ -122,7 +142,7 @@ Add charge
 <div style="display: flex; gap: 10px">
 <div style="flex: 1 1 0; min-width: 0; background: {{c.heroTile}}; border-radius: 16px; padding: 12px; display: flex; flex-direction: column; gap: 2px">
 <span style="font-size: 12px; line-height: 16px; font-weight: 600; opacity: 0.85">You’re fronting</span>
-<span style="font-size: 20px; line-height: 28px; font-weight: 800; font-variant-numeric: tabular-nums">$2,725.83</span>
+<span style="font-size: 20px; line-height: 28px; font-weight: 800; font-variant-numeric: tabular-nums">{{frontAmt}}</span>
 </div>
 <div style="flex: 1 1 0; min-width: 0; background: {{c.heroTile}}; border-radius: 16px; padding: 12px; display: flex; flex-direction: column; gap: 2px">
 <span style="font-size: 12px; line-height: 16px; font-weight: 600; opacity: 0.85">Utilities bill · due 16 Nov</span>
@@ -133,9 +153,9 @@ Add charge
 
 <sc-if value="{{isCollecting}}" hint-placeholder-val="{{false}}">
 <div style="display: flex; flex-direction: column; gap: 2px">
-<span style="font-size: 12px; line-height: 16px; font-weight: 600; color: {{c.onSurfaceVariant}}">You’re fronting</span>
-<span style="font-size: 34px; line-height: 40px; font-weight: 800; letter-spacing: -0.8px; font-variant-numeric: tabular-nums">$2,725.83</span>
-<span style="font-size: 12px; line-height: 16px; font-weight: 600; color: {{c.onSurfaceVariant}}">{{frontNote}}</span>
+<span style="font-size: 12px; line-height: 16px; font-weight: 600; color: {{c.onSelected}}; opacity: 0.85">You’re fronting</span>
+<span style="font-size: 34px; line-height: 40px; font-weight: 800; letter-spacing: -0.8px; font-variant-numeric: tabular-nums">{{frontAmt}}</span>
+<span style="font-size: 12px; line-height: 16px; font-weight: 600; color: {{c.onSelected}}; opacity: 0.85">{{frontNote}}</span>
 </div>
 <div style="display: flex; flex-direction: column; gap: 8px">
 <div style="display: flex; justify-content: space-between; font-size: 14px; line-height: 20px; font-weight: 700">
@@ -144,14 +164,14 @@ Add charge
 </div>
 <!-- Progress (bill coverage) -->
 <div role="progressbar" aria-valuemin="0" aria-valuemax="100" style="height: 8px; border-radius: 4px; background: {{c.track}}; overflow: hidden"><div style="width: {{coverPct}}; height: 8px; border-radius: 4px; background: {{c.primary}}"></div></div>
-<span style="font-size: 12px; line-height: 16px; font-weight: 600; color: {{c.onSurfaceVariant}}">{{coverNote}}</span>
+<span style="font-size: 12px; line-height: 16px; font-weight: 600; color: {{c.onSelected}}; opacity: 0.85">{{coverNote}}</span>
 </div>
 <sc-if value="{{hasDueToday}}" hint-placeholder-val="{{false}}">
 <!-- Alert (info) -->
 <div role="status" style="display: flex; align-items: center; gap: 10px; padding: 10px 12px; border-radius: 12px; border: 1px solid {{c.infoLine}}; background: {{c.infoTint}}; color: {{c.onSurface}}">
 <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="{{c.info}}" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="flex-shrink: 0"><circle cx="12" cy="12" r="10"></circle><path d="M12 6v6l4 2"></path></svg>
-<span style="flex-grow: 1; font-size: 14px; line-height: 20px; font-weight: 700">Tenant 2’s utilities are due today</span>
-<span style="font-size: 14px; line-height: 20px; font-weight: 800; font-variant-numeric: tabular-nums">$100.79</span>
+<span style="flex-grow: 1; font-size: 14px; line-height: 20px; font-weight: 600">{{dueText}}</span>
+<span style="font-size: 14px; line-height: 20px; font-weight: 600; font-variant-numeric: tabular-nums">{{dueAmt}}</span>
 </div>
 </sc-if>
 </sc-if>
@@ -174,7 +194,6 @@ Add charge
 <span style="font-size: 20px; line-height: 28px; font-weight: 800; font-variant-numeric: tabular-nums">$412.30</span>
 </div>
 </div>
-<span style="font-size: 12px; line-height: 16px; font-weight: 600; opacity: 0.9">Tenant 2’s $950.00 moved to savings 3 Nov. December’s bill usually lands around the 2nd.</span>
 </sc-if>
 </section>
 
@@ -186,24 +205,6 @@ Add charge
 <!-- Card containing an Accordion; each row is an AccordionItem with an AccordionTrigger (Pressable) and AccordionContent -->
 <div style="background: {{c.surface}}; border-radius: 20px; overflow: hidden; display: flex; flex-direction: column">
 <sc-for list="{{rows}}" as="r" hint-placeholder-count="5">
-<sc-if value="{{r.alertBefore}}" hint-placeholder-val="{{false}}">
-<!-- Alert (info) with Buttons: unfinished bill draft -->
-<div style="padding: 12px 12px 12px; border-top: 1px solid {{r.divider}}">
-<div role="status" style="display: flex; flex-direction: column; gap: 12px; padding: 12px 14px 14px; border-radius: 16px; border: 1px solid {{c.infoLine}}; background: {{c.infoTint}}; color: {{c.onSurface}}">
-<div style="display: flex; align-items: flex-start; gap: 10px">
-<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="{{c.info}}" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="flex-shrink: 0; margin-top: 0"><circle cx="12" cy="12" r="10"></circle><path d="M12 16v-4"></path><path d="M12 8h.01"></path></svg>
-<div style="display: flex; flex-direction: column; gap: 2px; min-width: 0">
-<span style="font-size: 14px; line-height: 20px; font-weight: 700">Unfinished bill draft</span>
-<span style="font-size: 14px; line-height: 20px; font-weight: 500; color: {{c.onSurfaceVariant}}">You started uploading a bill for November and didn’t save it.</span>
-</div>
-</div>
-<div style="display: flex; gap: 8px">
-<a href="{{continueHref}}" style="flex: 1 1 0; height: 44px; box-sizing: border-box; border-radius: 22px; background: {{c.primary}}; color: {{c.onPrimary}}; font-size: 14px; line-height: 20px; font-weight: 700; display: flex; align-items: center; justify-content: center; text-decoration: none">Continue</a>
-<a href="{{discardHref}}" style="flex: 1 1 0; height: 44px; box-sizing: border-box; border-radius: 22px; border: 1px solid {{c.outline}}; background: transparent; color: {{c.onSurface}}; font-size: 14px; line-height: 20px; font-weight: 700; display: flex; align-items: center; justify-content: center; text-decoration: none; white-space: nowrap">Discard draft</a>
-</div>
-</div>
-</div>
-</sc-if>
 <div style="background: {{r.rowBg}}; border-top: 1px solid {{r.divider}}">
 <button aria-expanded="{{r.expandedAttr}}" onClick="{{r.toggle}}" style="width: 100%; display: flex; align-items: center; gap: 12px; min-height: 64px; padding: 12px 10px 12px 14px; box-sizing: border-box; border: 0; background: none; color: inherit; font-family: inherit; text-align: left; cursor: pointer">
 <div style="width: 38px; flex-shrink: 0; display: flex; flex-direction: column; align-items: center; padding-top: 1px">
@@ -258,7 +259,14 @@ Add charge
 
 <sc-if value="{{hasAction}}" hint-placeholder-val="{{true}}">
 <div style="position: relative; z-index: 3; flex-shrink: 0; padding: 10px 16px; background: {{c.background}}; border-top: 1px solid {{c.outlineVariant}}; box-shadow: {{c.footShadow}}">
-<sc-if value="{{isUpload}}" hint-placeholder-val="{{true}}">
+<sc-if value="{{isDraft}}" hint-placeholder-val="{{false}}">
+<!-- Button (solid, 48px): reachable once the hero scrolls away -->
+<a href="{{continueHref}}" style="height: 48px; border-radius: 24px; background: {{c.primary}}; color: {{c.onPrimary}}; display: flex; align-items: center; justify-content: center; gap: 10px; font-size: 15px; line-height: 20px; font-weight: 700; text-decoration: none">
+<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12.659 22H18a2 2 0 0 0 2-2V8a2.4 2.4 0 0 0-.706-1.706l-3.588-3.588A2.4 2.4 0 0 0 14 2H6a2 2 0 0 0-2 2v9.34"></path><path d="M14 2v5a1 1 0 0 0 1 1h5"></path><path d="M10.378 12.622a1 1 0 0 1 3 3.003L8.36 20.637a2 2 0 0 1-.854.506l-2.867.837a.5.5 0 0 1-.62-.62l.836-2.869a2 2 0 0 1 .506-.853z"></path></svg>
+Continue bill upload
+</a>
+</sc-if>
+<sc-if value="{{isUploadOnly}}" hint-placeholder-val="{{true}}">
 <!-- Button (solid, 48px) -->
 <a href="{{uploadHref}}" style="height: 48px; border-radius: 24px; background: {{c.primary}}; color: {{c.onPrimary}}; display: flex; align-items: center; justify-content: center; gap: 10px; font-size: 15px; line-height: 20px; font-weight: 700; text-decoration: none">
 <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><path d="m17 8-5-5-5 5"></path><path d="M12 3v12"></path></svg>
@@ -284,19 +292,19 @@ Record payment
 <!-- CUSTOM: Bottom navigation bar (4 items, built on restyled Tabs). Structure unchanged. -->
 <nav aria-label="Main" style="position: relative; z-index: 3; box-shadow: {{navShadow}}; flex-shrink: 0; height: 94px; box-sizing: border-box; padding: 12px 8px 22px; background: {{c.container}}; display: flex">
 <a href="#" aria-current="page" style="flex: 1 1 0; min-width: 0; display: flex; flex-direction: column; align-items: center; gap: 4px; text-decoration: none; color: {{c.onSurface}}">
-<span style="width: 64px; height: 32px; border-radius: 16px; background: {{c.track}}; color: {{c.onSelected}}; display: flex; align-items: center; justify-content: center"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M15 21v-8a1 1 0 0 0-1-1h-4a1 1 0 0 0-1 1v8"></path><path d="M3 10a2 2 0 0 1 .709-1.528l7-5.999a2 2 0 0 1 2.582 0l7 5.999A2 2 0 0 1 21 10v9a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"></path></svg></span>
+<span style="width: 64px; height: 32px; border-radius: 16px; background: {{c.track}}; color: {{c.onSelected}}; display: flex; align-items: center; justify-content: center"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M15 21v-8a1 1 0 0 0-1-1h-4a1 1 0 0 0-1 1v8"></path><path d="M3 10a2 2 0 0 1 .709-1.528l7-5.999a2 2 0 0 1 2.582 0l7 5.999A2 2 0 0 1 21 10v9a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"></path></svg></span>
 <span style="font-size: 12px; line-height: 16px; font-weight: 700">This month</span>
 </a>
 <a href="{{historyHref}}" style="flex: 1 1 0; min-width: 0; display: flex; flex-direction: column; align-items: center; gap: 4px; text-decoration: none; color: {{c.onSurfaceVariant}}">
-<span style="width: 64px; height: 32px; display: flex; align-items: center; justify-content: center"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"></path><path d="M3 3v5h5"></path><path d="M12 7v5l4 2"></path></svg></span>
+<span style="width: 64px; height: 32px; display: flex; align-items: center; justify-content: center"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"></path><path d="M3 3v5h5"></path><path d="M12 7v5l4 2"></path></svg></span>
 <span style="font-size: 12px; line-height: 16px; font-weight: 600">History</span>
 </a>
 <a href="{{householdHref}}" style="flex: 1 1 0; min-width: 0; display: flex; flex-direction: column; align-items: center; gap: 4px; text-decoration: none; color: {{c.onSurfaceVariant}}">
-<span style="width: 64px; height: 32px; display: flex; align-items: center; justify-content: center"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"></path><circle cx="9" cy="7" r="4"></circle><path d="M22 21v-2a4 4 0 0 0-3-3.87"></path><path d="M16 3.13a4 4 0 0 1 0 7.75"></path></svg></span>
+<span style="width: 64px; height: 32px; display: flex; align-items: center; justify-content: center"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"></path><circle cx="9" cy="7" r="4"></circle><path d="M22 21v-2a4 4 0 0 0-3-3.87"></path><path d="M16 3.13a4 4 0 0 1 0 7.75"></path></svg></span>
 <span style="font-size: 12px; line-height: 16px; font-weight: 600">Household</span>
 </a>
 <a href="{{settingsHref}}" style="flex: 1 1 0; min-width: 0; display: flex; flex-direction: column; align-items: center; gap: 4px; text-decoration: none; color: {{c.onSurfaceVariant}}">
-<span style="width: 64px; height: 32px; display: flex; align-items: center; justify-content: center"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.39a2 2 0 0 0-.73-2.73l-.15-.08a2 2 0 0 1-1-1.74v-.5a2 2 0 0 1 1-1.74l.15-.09a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z"></path><circle cx="12" cy="12" r="3"></circle></svg></span>
+<span style="width: 64px; height: 32px; display: flex; align-items: center; justify-content: center"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.39a2 2 0 0 0-.73-2.73l-.15-.08a2 2 0 0 1-1-1.74v-.5a2 2 0 0 1 1-1.74l.15-.09a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z"></path><circle cx="12" cy="12" r="3"></circle></svg></span>
 <span style="font-size: 12px; line-height: 16px; font-weight: 600">Settings</span>
 </a>
 </nav>
@@ -316,14 +324,14 @@ class Component extends DCLogic {
       background: '#111214', surface: '#1A1C1E', container: '#222427', sheet: '#222427',
       onSurface: '#E3E3E6', onSurfaceVariant: '#C4C6CB', outline: '#8E9196', outlineVariant: '#2E3134',
       primary: '#E2E2E6', onPrimary: '#1A1C1E', selected: '#2C2F33', onSelected: '#E3E3E6',
-      disabledBg: '#222427', disabledFg: '#5C5F64', track: '#3A3E43', scrim: 'rgba(0,0,0,0.6)',
+      disabledBg: '#222427', disabledFg: '#5C5F64', track: '#3A3E43', scrim: 'rgba(0,0,0,0.5)',
       success: '#66BB6A', successContainer: '#1B5E20', onSuccessContainer: '#CBE4CB',
       warning: '#FFA726', warningContainer: '#66430F', onWarningContainer: '#FFE2B7', warningTint: '#332108', warningLine: '#F57C00',
       danger: '#F44336', dangerContainer: '#7A1F18', onDangerContainer: '#FFD9D6', dangerTint: '#3B1511', dangerLine: '#D32F2F', onDangerTint: '#FFD9D6',
       info: '#29B6F6', infoTint: '#082431', infoLine: '#1B76A0', infoContainer: '#104962', onInfoContainer: '#B8E7FB',
       footShadow: '0 -8px 16px rgba(0,0,0,0.45)',
-      heroTile: 'rgba(0,0,0,0.25)',
-      skel: 'linear-gradient(100deg, #222427 0%, #222427 35%, rgba(255,255,255,0.07) 50%, #222427 65%, #222427 100%)'
+      heroTile: '#111214',
+      skel: '#222427'
     } : {
       background: '#F5F5F7', surface: '#FFFFFF', container: '#E9EAED', sheet: '#FFFFFF',
       onSurface: '#1A1C1E', onSurfaceVariant: '#45484C', outline: '#74777C', outlineVariant: '#E6E7EA',
@@ -334,13 +342,14 @@ class Component extends DCLogic {
       danger: '#D32F2F', dangerContainer: '#F9D4D1', onDangerContainer: '#5F2120', dangerTint: '#FDEDED', dangerLine: '#F6D5D5', onDangerTint: '#5F2120',
       info: '#0288D1', infoTint: '#E5F6FD', infoLine: '#CCE7F6', infoContainer: '#CCE7F6', onInfoContainer: '#014361',
       footShadow: '0 -6px 14px rgba(0,0,0,0.14)',
-      heroTile: 'rgba(255,255,255,0.75)',
-      skel: 'linear-gradient(100deg, #E9EAED 0%, #E9EAED 35%, rgba(255,255,255,0.65) 50%, #E9EAED 65%, #E9EAED 100%)'
+      heroTile: '#F5F5F7',
+      skel: '#E9EAED'
     };
     var T = dark ? 'Dark' : 'Light';
     var chip = function (k) {
       if (k === 'overdue') return { bg: c.dangerContainer, fg: c.onDangerContainer };
       if (k === 'due' || k === 'today') return { bg: c.infoContainer, fg: c.onInfoContainer };
+      // Due in N days (3 or fewer): neutral
       if (k === 'todo') return { bg: c.primary, fg: c.onPrimary };
       if (k === 'paid') return { bg: c.successContainer, fg: c.onSuccessContainer };
       return { bg: c.container, fg: c.onSurfaceVariant };
@@ -358,89 +367,108 @@ class Component extends DCLogic {
     var PAID = function (l, href) { var a = act(l || 'Mark paid', 'outline', 'check', href || (dark ? 'MarkPaid-Record-Dark.dc.html' : 'MarkPaid-Record-Light.dc.html')); return a; };
     var SEND = function (href) { return act('Send on WhatsApp', 'outline', 'send', href); };
     var idx0 = 0;
-    var mk = function (day, title, amount, detail, label, kind, href, linkLabel, actions, note) {
-      var k = chip(kind);
+    // One row per charge. o: { day, title, amount, detail, chip, kind, href, link, actions, note, open }
+    var mk = function (o) {
+      var k = chip(o.kind);
       var id = 'r' + (idx0++);
-      // Rows that need you now (overdue, due today, not sent) start expanded
-      var open = openState ? !!openState[id] : (kind === 'overdue' || kind === 'today' || !!(actions && actions.length && actions[0].label === 'Mark bill paid'));
+      var open = openState ? !!openState[id] : !!o.open;
       return {
-        day: day, title: title, amount: amount, detail: detail, chip: label,
+        day: o.day, title: o.title, amount: o.amount, detail: o.detail || '', chip: o.chip,
         chipBg: k.bg, chipFg: k.fg,
-        rowBg: kind === 'overdue' ? c.warningTint : (kind === 'today' ? c.infoTint : 'transparent'),
+        rowBg: o.kind === 'overdue' ? c.warningTint : (o.kind === 'today' ? c.infoTint : 'transparent'),
         dayFg: c.onSurface,
         divider: id === 'r0' ? 'transparent' : c.outlineVariant,
-        href: href || '#', linkLabel: linkLabel,
-        actions: actions || [], hasActions: !!(actions && actions.length),
-        note: note || '', hasNote: !!note,
+        href: o.href || '#', linkLabel: o.link || 'View details',
+        actions: o.actions || [], hasActions: !!(o.actions && o.actions.length),
+        note: o.note || '', hasNote: !!o.note,
         open: open, expandedAttr: open ? 'true' : 'false', rot: open ? '180deg' : '0deg',
-        id: id, kind: kind, alertBefore: false
+        id: id, kind: o.kind
       };
     };
     // Prototype links: each row opens that person's Recipient screen (or the bill)
     var L = dark ? {
       tenant2: 'Recipient-Nudged-Dark.dc.html', primaryNotSent: 'Recipient-NotSent-Dark.dc.html', primarySent: 'Recipient-Sent-Dark.dc.html',
-      primaryPaid: 'Recipient-Paid-Dark.dc.html', billPick: 'Upload-Pick-Dark.dc.html', bill: 'Bill-Collecting-Dark.dc.html', billPaid: 'Bill-Paid-Dark.dc.html',
-      markPaid: 'MarkPaid-Full-Dark.dc.html', record: 'MarkPaid-Record-Dark.dc.html'
+      primaryPaid: 'Recipient-Paid-Dark.dc.html', billPick: 'Upload-Pick-Dark.dc.html', bill: 'Bill-Collecting-Dark.dc.html', billPaid: 'Bill-Paid-Dark.dc.html', billUnsent: 'Bill-Unsent-Dark.dc.html',
+      markPaid: 'MarkPaid-Full-Dark.dc.html', record: 'MarkPaid-Record-Dark.dc.html', tenant1: 'Recipient-RentOnly-Dark.dc.html', tenant2Sent: 'Recipient-Sent-Dark.dc.html'
     } : {
       tenant2: 'Recipient-Nudged-Light.dc.html', primaryNotSent: 'Recipient.dc.html', primarySent: 'Recipient-Sent-Light.dc.html',
-      primaryPaid: 'Recipient-Paid-Light.dc.html', billPick: 'BillUpload.dc.html', bill: 'Bill-Collecting-Light.dc.html', billPaid: 'Bill-Paid-Light.dc.html',
-      markPaid: 'MarkPaid.dc.html', record: 'MarkPaid-Record-Light.dc.html'
+      primaryPaid: 'Recipient-Paid-Light.dc.html', billPick: 'BillUpload.dc.html', bill: 'Bill-Collecting-Light.dc.html', billPaid: 'Bill-Paid-Light.dc.html', billUnsent: 'Bill-Unsent-Light.dc.html',
+      markPaid: 'MarkPaid.dc.html', record: 'MarkPaid-Record-Light.dc.html', tenant1: 'Recipient-RentOnly-Light.dc.html', tenant2Sent: 'Recipient-Sent-Light.dc.html'
     };
+    var payBill = dark ? 'PayBill-Partial-Dark.dc.html' : 'PayBill-Partial-Light.dc.html';
     var rows;
     var needsBill = 'Worked out once the utilities bill is uploaded.';
+    var VIA = 'Pays via Primary Tenant';
     var dec = this.props.month === 'dec';
-    if (st === 'upload' && dec) {
-      // Next month, started early: nothing is due yet and no bill is in
+    var REVIEW = function (href) { return act('Review message', 'outline', 'send', href); };
+    if (st === 'upload') {
+      // Before the bill: utilities amounts are unknown. December (started early on 29 Nov): nothing overdue yet
+      var t2rent = dec ? { chip: 'Due in 2 days', kind: 'due3', actions: [PAID()] } : { chip: 'Overdue 1 day', kind: 'overdue', actions: [NUDGE('Nudge'), PAID()], open: true };
       rows = [
-        mk('1', 'Tenant 2 · Rent', '$950.00', 'Goes to savings once paid', 'Due in 2 days', 'due', L.tenant2, 'View details', [PAID()]),
-        mk('4', 'Tenant 2 · Utilities', '—', 'Utilities share + aircon', 'Needs bill', 'wait', L.tenant2, 'View details', null, needsBill),
-        mk('7', 'Primary Tenant + Tenant 1’s share', '—', 'Rent, utilities, aircon, Starhub', 'Needs bill', 'wait', L.primaryNotSent, 'View details', null, needsBill),
-        mk('16', 'Utilities bill', '—', 'You pay utilities', 'Not uploaded', 'wait', L.billPick, 'Upload bill'),
-        mk('28', 'Tenant 1 · Rent', '$950.00', 'Pays you directly', 'Upcoming', 'wait', null, 'View details', [PAID()])
+        mk({ day: '1', title: 'Rent · Tenant 2', amount: '$950.00', chip: t2rent.chip, kind: t2rent.kind, href: L.tenant2, actions: t2rent.actions, open: t2rent.open }),
+        mk({ day: '4', title: 'Utilities · Tenant 2', amount: '—', chip: dec ? 'Upcoming' : 'Due in 2 days', kind: dec ? 'wait' : 'due3', href: L.tenant2, note: needsBill }),
+        mk({ day: '4', title: 'Aircon · Tenant 2', amount: '$18.33', chip: dec ? 'Upcoming' : 'Due in 2 days', kind: dec ? 'wait' : 'due3', href: L.tenant2 }),
+        mk({ day: '7', title: 'Rent · Primary Tenant', amount: '$1,675.00', chip: 'Upcoming', kind: 'wait', href: L.primaryNotSent, actions: [PAID()] }),
+        mk({ day: '7', title: 'Starhub · Primary Tenant', amount: '$27.50', chip: 'Upcoming', kind: 'wait', href: L.primaryNotSent, actions: [PAID()] }),
+        mk({ day: '7', title: 'Utilities · Primary Tenant', amount: '—', chip: 'Upcoming', kind: 'wait', href: L.primaryNotSent, note: needsBill }),
+        mk({ day: '7', title: 'Aircon · Primary Tenant', amount: '$36.67', chip: 'Upcoming', kind: 'wait', href: L.primaryNotSent }),
+        mk({ day: '7', title: 'Utilities · Tenant 1', amount: '—', detail: VIA, chip: 'Upcoming', kind: 'wait', href: L.primaryNotSent, note: needsBill }),
+        mk({ day: '7', title: 'Aircon · Tenant 1', amount: '$18.33', detail: VIA, chip: 'Upcoming', kind: 'wait', href: L.primaryNotSent }),
+        mk({ day: '16', title: 'Utilities bill', amount: '—', detail: 'You pay utilities', chip: 'Not uploaded', kind: 'wait', href: L.billPick, link: 'Upload bill' }),
+        mk({ day: '28', title: 'Rent · Tenant 1', amount: '$950.00', chip: 'Upcoming', kind: 'wait', href: L.tenant1, actions: [PAID()] })
       ];
-    } else if (st === 'upload') {
-      rows = [
-        mk('1', 'Tenant 2 · Rent', '$950.00', 'Goes to savings once paid', 'Overdue 1 day', 'overdue', L.tenant2, 'View details', [NUDGE('Nudge'), PAID()]),
-        mk('4', 'Tenant 2 · Utilities', '—', 'Utilities share + aircon', 'Needs bill', 'wait', L.tenant2, 'View details', null, needsBill),
-        mk('7', 'Primary Tenant + Tenant 1’s share', '—', 'Rent, utilities, aircon, Starhub', 'Needs bill', 'wait', L.primaryNotSent, 'View details', null, needsBill),
-        mk('16', 'Utilities bill', '—', 'You pay utilities', 'Not uploaded', 'wait', L.billPick, 'Upload bill'),
-        mk('28', 'Tenant 1 · Rent', '$950.00', 'Pays you directly', 'Upcoming', 'wait', null, 'View details', [PAID()])
-      ];
-      // Draft: an info Alert sits directly above the bill row
-      if (isDraft) rows[3].alertBefore = true;
     } else if (st === 'unsent') {
       rows = [
-        mk('1', 'Tenant 2 · Rent', '$950.00', 'Goes to savings once paid', 'Overdue 1 day', 'overdue', L.tenant2, 'View details', [NUDGE('Nudge'), PAID()]),
-        mk('4', 'Tenant 2 · Utilities', '$100.79', 'Utilities share + aircon', 'Not sent', 'todo', L.tenant2, 'Review message'),
-        mk('7', 'Primary Tenant + Tenant 1’s share', '$1,963.65', 'Rent, utilities, aircon, Starhub · incl. Tenant 1’s $100.79', 'Not sent', 'todo', L.primaryNotSent, 'Review message'),
-        mk('16', 'Utilities bill', '$412.30', 'You pay utilities', 'In 14 days', 'wait', L.bill, 'View bill', null, 'Nothing collected yet. Shares go out with the messages.'),
-        mk('28', 'Tenant 1 · Rent', '$950.00', 'Pays you directly', 'Upcoming', 'wait', null, 'View details', [PAID()])
+        mk({ day: '1', title: 'Rent · Tenant 2', amount: '$950.00', chip: 'Overdue 1 day', kind: 'overdue', href: L.tenant2, actions: [NUDGE('Nudge'), PAID()], open: true }),
+        mk({ day: '4', title: 'Utilities · Tenant 2', amount: '$82.46', chip: 'Not sent', kind: 'todo', href: L.tenant2, link: 'Review message', open: true }),
+        mk({ day: '4', title: 'Aircon · Tenant 2', amount: '$18.33', chip: 'Due in 2 days', kind: 'due3', href: L.tenant2 }),
+        mk({ day: '7', title: 'Rent · Primary Tenant', amount: '$1,675.00', chip: 'Upcoming', kind: 'wait', href: L.primaryNotSent, actions: [PAID()] }),
+        mk({ day: '7', title: 'Starhub · Primary Tenant', amount: '$27.50', chip: 'Upcoming', kind: 'wait', href: L.primaryNotSent, actions: [PAID()] }),
+        mk({ day: '7', title: 'Utilities · Primary Tenant', amount: '$123.69', chip: 'Not sent', kind: 'todo', href: L.primaryNotSent, link: 'Review message', open: true }),
+        mk({ day: '7', title: 'Aircon · Primary Tenant', amount: '$36.67', chip: 'Upcoming', kind: 'wait', href: L.primaryNotSent }),
+        mk({ day: '7', title: 'Utilities · Tenant 1', amount: '$82.46', detail: VIA, chip: 'Not sent', kind: 'todo', href: L.primaryNotSent }),
+        mk({ day: '7', title: 'Aircon · Tenant 1', amount: '$18.33', detail: VIA, chip: 'Upcoming', kind: 'wait', href: L.primaryNotSent }),
+        mk({ day: '16', title: 'Utilities bill', amount: '$412.30', detail: 'You pay utilities', chip: 'In 14 days', kind: 'wait', href: L.billUnsent, link: 'View bill', note: 'Nothing collected yet. Shares go out with the messages.' }),
+        mk({ day: '28', title: 'Rent · Tenant 1', amount: '$950.00', chip: 'Upcoming', kind: 'wait', href: L.tenant1, actions: [PAID()] })
       ];
-    } else if (st === 'dueToday') {
+    } else if (st === 'collecting' || st === 'dueToday') {
+      var today = st === 'dueToday';
+      var ptChip = today ? { chip: 'Due in 3 days', kind: 'due3' } : { chip: 'Sent · unpaid', kind: 'wait' };
       rows = [
-        mk('1', 'Tenant 2 · Rent', '$950.00', 'Paid 3 Nov · moved to savings', 'Paid', 'paid', L.tenant2, 'View details'),
-        mk('4', 'Tenant 2 · Utilities', '$100.79', 'Sent Mon 2 Nov', 'Due today', 'today', L.tenant2, 'View message', [PAID()], 'You’ll get a payment check tonight if it’s still unpaid.'),
-        mk('7', 'Primary Tenant + Tenant 1’s share', '$1,963.65', 'Sent Mon 2 Nov · incl. Tenant 1’s $100.79', 'Due in 3 days', 'wait', L.primarySent, 'View message', [PAID(null, L.markPaid)]),
-        mk('16', 'Utilities bill', '$412.30', 'You pay utilities', 'In 12 days', 'wait', L.bill, 'View bill', [PAID('Mark bill paid', dark ? 'PayBill-Partial-Dark.dc.html' : 'PayBill-Partial-Light.dc.html')], '$123.69 of $412.30 covered so far.'),
-        mk('28', 'Tenant 1 · Rent', '$950.00', 'Pays you directly', 'Upcoming', 'wait', null, 'View details', [PAID()])
-      ];
-    } else if (st === 'collecting') {
-      rows = [
-        mk('1', 'Tenant 2 · Rent', '$950.00', 'Nudged Mon 2 Nov', 'Overdue 2 days', 'overdue', L.tenant2, 'View details', [NUDGE('Nudge again'), PAID()]),
-        mk('4', 'Tenant 2 · Utilities', '$100.79', 'Sent Mon 2 Nov', 'Due tomorrow', 'due', L.tenant2, 'View details', [PAID()]),
-        mk('7', 'Primary Tenant + Tenant 1’s share', '$1,963.65', 'Sent Mon 2 Nov · incl. Tenant 1’s $100.79', 'Sent, unpaid', 'wait', L.primarySent, 'View message', [PAID(null, L.markPaid)]),
-        mk('16', 'Utilities bill', '$412.30', 'You pay utilities', 'In 13 days', 'wait', L.bill, 'View bill', [PAID('Mark bill paid', dark ? 'PayBill-Partial-Dark.dc.html' : 'PayBill-Partial-Light.dc.html')], '$123.69 of $412.30 covered so far.'),
-        mk('28', 'Tenant 1 · Rent', '$950.00', 'Pays you directly', 'Upcoming', 'wait', null, 'View details', [PAID()])
+        today
+          ? mk({ day: '1', title: 'Rent · Tenant 2', amount: '$950.00', detail: 'Paid 3 Nov', chip: 'Paid', kind: 'paid', href: L.tenant2 })
+          : mk({ day: '1', title: 'Rent · Tenant 2', amount: '$950.00', detail: 'Nudged 2 Nov', chip: 'Overdue 2 days', kind: 'overdue', href: L.tenant2, actions: [NUDGE('Nudge again'), PAID()], open: true }),
+        today
+          ? mk({ day: '4', title: 'Utilities · Tenant 2', amount: '$82.46', detail: 'Sent 2 Nov', chip: 'Due today', kind: 'today', href: L.tenant2Sent, actions: [PAID()], note: 'You’ll get a payment check tonight if it’s still unpaid.', open: true })
+          : mk({ day: '4', title: 'Utilities · Tenant 2', amount: '$82.46', detail: 'Sent 2 Nov', chip: 'Due tomorrow', kind: 'due', href: L.tenant2Sent, actions: [PAID()] }),
+        today
+          ? mk({ day: '4', title: 'Aircon · Tenant 2', amount: '$18.33', detail: 'Sent 2 Nov', chip: 'Due today', kind: 'today', href: L.tenant2Sent, actions: [PAID()] })
+          : mk({ day: '4', title: 'Aircon · Tenant 2', amount: '$18.33', detail: 'Sent 2 Nov', chip: 'Due tomorrow', kind: 'due', href: L.tenant2Sent, actions: [PAID()] }),
+        mk({ day: '7', title: 'Rent · Primary Tenant', amount: '$1,675.00', detail: 'Sent 2 Nov', chip: ptChip.chip, kind: ptChip.kind, href: L.primarySent, actions: [PAID(null, L.markPaid)] }),
+        mk({ day: '7', title: 'Starhub · Primary Tenant', amount: '$27.50', detail: 'Sent 2 Nov', chip: ptChip.chip, kind: ptChip.kind, href: L.primarySent, actions: [PAID(null, L.markPaid)] }),
+        mk({ day: '7', title: 'Utilities · Primary Tenant', amount: '$123.69', detail: 'Paid 3 Nov', chip: 'Paid', kind: 'paid', href: L.primarySent }),
+        mk({ day: '7', title: 'Aircon · Primary Tenant', amount: '$36.67', detail: 'Sent 2 Nov', chip: ptChip.chip, kind: ptChip.kind, href: L.primarySent }),
+        mk({ day: '7', title: 'Utilities · Tenant 1', amount: '$82.46', detail: VIA + ' · Sent 2 Nov', chip: ptChip.chip, kind: ptChip.kind, href: L.primarySent }),
+        mk({ day: '7', title: 'Aircon · Tenant 1', amount: '$18.33', detail: VIA + ' · Sent 2 Nov', chip: ptChip.chip, kind: ptChip.kind, href: L.primarySent }),
+        mk({ day: '16', title: 'Utilities bill', amount: '$412.30', detail: 'You pay utilities', chip: today ? 'In 12 days' : 'In 13 days', kind: 'wait', href: L.bill, link: 'View bill', actions: [PAID('Mark bill paid', payBill)], note: '$247.38 of $412.30 covered so far.', open: true }),
+        mk({ day: '28', title: 'Rent · Tenant 1', amount: '$950.00', detail: 'Paid 3 Nov', chip: 'Paid', kind: 'paid', href: L.tenant1 })
       ];
     } else {
       rows = [
-        mk('1', 'Tenant 2 · Rent', '$950.00', 'Paid 3 Nov · moved to savings', 'Paid', 'paid', null, 'View details'),
-        mk('4', 'Tenant 2 · Utilities', '$100.79', 'Paid 4 Nov', 'Paid', 'paid', null, 'View details'),
-        mk('7', 'Primary Tenant + Tenant 1’s share', '$1,963.65', 'Paid 7 Nov', 'Paid', 'paid', L.primaryPaid, 'View message'),
-        mk('16', 'Utilities bill', '$412.30', 'You paid 16 Nov', 'Paid', 'paid', L.billPaid, 'View bill'),
-        mk('28', 'Tenant 1 · Rent', '$950.00', 'Paid 27 Nov', 'Paid', 'paid', null, 'View details')
+        mk({ day: '1', title: 'Rent · Tenant 2', amount: '$950.00', detail: 'Paid 3 Nov', chip: 'Paid', kind: 'paid', href: L.tenant2 }),
+        mk({ day: '4', title: 'Utilities · Tenant 2', amount: '$82.46', detail: 'Paid 4 Nov', chip: 'Paid', kind: 'paid', href: L.tenant2 }),
+        mk({ day: '4', title: 'Aircon · Tenant 2', amount: '$18.33', detail: 'Paid 4 Nov', chip: 'Paid', kind: 'paid', href: L.tenant2 }),
+        mk({ day: '7', title: 'Rent · Primary Tenant', amount: '$1,675.00', detail: 'Paid 7 Nov', chip: 'Paid', kind: 'paid', href: L.primaryPaid }),
+        mk({ day: '7', title: 'Starhub · Primary Tenant', amount: '$27.50', detail: 'Paid 7 Nov', chip: 'Paid', kind: 'paid', href: L.primaryPaid }),
+        mk({ day: '7', title: 'Utilities · Primary Tenant', amount: '$123.69', detail: 'Paid 3 Nov', chip: 'Paid', kind: 'paid', href: L.primaryPaid }),
+        mk({ day: '7', title: 'Aircon · Primary Tenant', amount: '$36.67', detail: 'Paid 3 Nov', chip: 'Paid', kind: 'paid', href: L.primaryPaid }),
+        mk({ day: '7', title: 'Utilities · Tenant 1', amount: '$82.46', detail: VIA + ' · Paid 7 Nov', chip: 'Paid', kind: 'paid', href: L.primaryPaid }),
+        mk({ day: '7', title: 'Aircon · Tenant 1', amount: '$18.33', detail: VIA + ' · Paid 7 Nov', chip: 'Paid', kind: 'paid', href: L.primaryPaid }),
+        mk({ day: '16', title: 'Utilities bill', amount: '$412.30', detail: 'You paid 16 Nov', chip: 'Paid', kind: 'paid', href: L.billPaid, link: 'View bill' }),
+        mk({ day: '28', title: 'Rent · Tenant 1', amount: '$950.00', detail: 'Paid 27 Nov', chip: 'Paid', kind: 'paid', href: L.tenant1 })
       ];
     }
+    rows.sort(function (a, b) { var d = parseInt(a.day, 10) - parseInt(b.day, 10); return d || (a.title < b.title ? -1 : (a.title > b.title ? 1 : 0)); });
     rows.forEach(function (r) {
       r.toggle = function () {
         var cur = {};
@@ -467,39 +495,39 @@ class Component extends DCLogic {
         opacity: reached ? '1' : '0.75'
       };
     });
-    var dateLine = { upload: dec ? 'Sun 29 Nov · Step 1 of 3' : 'Mon 2 Nov · Step 1 of 3', unsent: 'Mon 2 Nov · Step 2 of 3', collecting: 'Tue 3 Nov · Collecting', dueToday: 'Wed 4 Nov · Collecting', settled: 'Sun 29 Nov · Done' }[st];
+    var dateLine = { upload: dec ? '29 Nov · Step 1 of 3' : '2 Nov · Step 1 of 3', unsent: '2 Nov · Step 2 of 3', collecting: '3 Nov · Collecting', dueToday: '4 Nov · Collecting', settled: '29 Nov · Done' }[st];
     var skelW = [['58%', '44%'], ['50%', '62%'], ['66%', '70%'], ['44%', '38%'], ['52%', '48%']];
     var skelRows = skelW.map(function (w, i) { return { w1: w[0], w2: w[1], divider: i === 0 ? 'transparent' : c.outlineVariant }; });
     var showAction = st !== 'unsent' && !isLoading;
     return {
       uploadHref: L.billPick,
-      continueHref: 'Upload-Review-' + T + '.dc.html',
+      continueHref: 'Upload-Continue-' + T + '.dc.html',
       discardHref: 'Upload-Discard-' + T + '.dc.html',
       navShadow: showAction ? 'none' : c.footShadow,
       c: c, rows: rows, steps: steps, dateLine: dateLine, heroBg: heroBg, heroFg: heroFg,
       hasAction: showAction,
-      isLoading: isLoading, isLoaded: !isLoading, skelRows: skelRows,
+      isLoading: isLoading, isLoaded: !isLoading, skelRows: skelRows, stepLabels: labels,
       historyHref: dark ? 'History-List-Dark.dc.html' : 'History.dc.html',
       householdHref: dark ? 'Household-View-Dark.dc.html' : 'Household.dc.html',
       settingsHref: dark ? 'Settings-View-Dark.dc.html' : 'Settings.dc.html',
       // Sticky summary: once the full card scrolls away, a compact card (date, progress, key status) pins under the header
       compact: !!(this.state && this.state.compact) && !isLoading,
-      compactStatus: { upload: 'Waiting on the utilities bill', unsent: '2 messages to send', collecting: 'Collecting · $2,725.83 fronted', dueToday: 'Tenant 2’s utilities due today', settled: 'November is settled' }[st],
-      frontNote: 'Rent, aircon and Starhub paid for others · $0.00 back so far',
-      coverText: '$123.69 of $412.30', coverPct: '30%',
-      coverNote: 'Your share only so far · due Mon 16 Nov',
-      hasDueToday: st === 'dueToday',
+      compactStatus: { upload: 'Waiting on the utilities bill', unsent: '2 messages to send', collecting: 'Collecting · $2,725.83 fronted', dueToday: '2 payments due today', settled: 'November is settled' }[st],
+      frontNote: 'Rent, aircon and other charges paid for others · ' + (st === 'dueToday' ? '$1,900.00' : '$950.00') + ' back so far',
+      coverText: '$247.38 of $412.30', coverPct: '60%',
+      coverNote: 'Your share and 1 of 3 others paid · due 16 Nov',
+      hasDueToday: st === 'dueToday', dueText: '2 payments are due today', dueAmt: '$100.79',
       recordHref: L.record,
       monthLabel: dec ? 'December 2026' : 'November 2026',
       monAbbr: dec ? 'DEC' : 'NOV',
-      frontAmt: dec ? '$0.00' : '$2,725.83',
+      frontAmt: dec ? '$0.00' : ({ upload: '$3,675.83', unsent: '$3,675.83', collecting: '$2,725.83', dueToday: '$1,775.83', settled: '$0.00' }[st]),
       nextMonthHref: dark ? 'CloseMonth-Idle-Dark.dc.html' : 'CloseMonth-Idle-Light.dc.html',
       onScroll: function (e) {
         var y = e && e.currentTarget ? e.currentTarget.scrollTop : 0;
         var next = y > 140;
         if (next !== !!(self.state && self.state.compact)) self.setState({ compact: next });
       },
-      isUpload: st === 'upload', isUnsent: st === 'unsent', isCollecting: collecting, isSettled: st === 'settled'
+      isUpload: st === 'upload', isDraft: isDraft && !isLoading, isUploadOnly: st === 'upload' && !isDraft, isUnsent: st === 'unsent', isCollecting: collecting, isSettled: st === 'settled'
     };
   }
 }

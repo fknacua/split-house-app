@@ -32,45 +32,52 @@ body{margin:0}
 <div style="overflow-y: auto; scrollbar-width: none; padding: 8px 16px 4px; display: flex; flex-direction: column; gap: 16px">
 <div style="display: flex; flex-direction: column; gap: 2px">
 <h1 id="sheetTitle" style="margin: 0; font-size: 20px; line-height: 28px; font-weight: 800">Mark bill paid</h1>
-<span style="font-size: 14px; line-height: 20px; font-weight: 500; color: {{c.onSurfaceVariant}}">Utilities bill · November</span>
+<span style="font-size: 12px; line-height: 16px; font-weight: 600; color: {{c.onSurfaceVariant}}">Utilities bill · November</span>
 </div>
 
 <div style="background: {{c.container}}; border: 1px solid {{c.outlineVariant}}; border-radius: 16px; padding: 10px 14px; display: flex; justify-content: space-between; align-items: center; gap: 12px">
 <div style="display: flex; flex-direction: column; gap: 2px">
 <span style="font-size: 12px; line-height: 16px; font-weight: 600; color: {{c.onSurfaceVariant}}">Current Charges</span>
-<span style="font-size: 20px; line-height: 28px; font-weight: 800; font-variant-numeric: tabular-nums">$412.30</span>
+<sc-if value="{{loaded}}" hint-placeholder-val="{{true}}"><span style="font-size: 20px; line-height: 28px; font-weight: 800; font-variant-numeric: tabular-nums">$412.30</span></sc-if>
+<sc-if value="{{loading}}" hint-placeholder-val="{{false}}"><div aria-hidden="true" style="width: 96px; height: 24px; margin: 2px 0; border-radius: 8px; background: {{c.surface}}"></div></sc-if>
 </div>
 <div style="display: flex; flex-direction: column; gap: 2px; align-items: flex-end">
 <span style="font-size: 12px; line-height: 16px; font-weight: 600; color: {{c.onSurfaceVariant}}">Due</span>
-<span style="font-size: 14px; line-height: 20px; font-weight: 700">Mon 16 Nov</span>
+<sc-if value="{{loaded}}" hint-placeholder-val="{{true}}"><span style="font-size: 14px; line-height: 20px; font-weight: 700">16 Nov</span></sc-if>
+<sc-if value="{{loading}}" hint-placeholder-val="{{false}}"><div aria-hidden="true" style="width: 48px; height: 16px; margin: 2px 0; border-radius: 8px; background: {{c.surface}}"></div></sc-if>
 </div>
 </div>
 
 <!-- FormControl: Amount paid -->
 <div style="display: flex; flex-direction: column; gap: 6px">
 <label for="amt" style="font-size: 14px; line-height: 20px; font-weight: 700; color: {{c.onSurface}}">Amount paid<span aria-hidden="true" style="color: {{c.danger}}"> *</span></label>
-<div data-field="" style="height: 48px; box-sizing: border-box; border-radius: 12px; background: {{fieldBg}}; display: flex; align-items: center; gap: 8px; padding: 0 14px; color: {{c.primary}}; border: 1px solid {{fieldBorder}}">
-<span style="font-size: 16px; line-height: 24px; font-weight: 500; color: {{c.onSurfaceVariant}}">$</span>
-<input id="amt" inputmode="decimal" value="412.30" placeholder="0.00" aria-readonly="{{busyAttr}}" style="flex-grow: 1; min-width: 0; border: 0; outline: 0; background: transparent; font-family: Manrope, sans-serif; font-size: 16px; line-height: 24px; font-weight: 500; color: {{fieldFg}}; font-variant-numeric: tabular-nums">
+<div data-field="" style="height: 48px; box-sizing: border-box; border-radius: 12px; background: {{fieldBg}}; display: flex; align-items: center; gap: 8px; padding: 0 12px 0 14px; color: {{c.primary}}; border: 1px solid {{amtBorder}}; box-shadow: {{amtRing}}">
+<span id="amt" style="flex-grow: 1; min-width: 0; font-size: 16px; line-height: 24px; font-weight: 500; font-variant-numeric: tabular-nums; color: {{fieldFg}}">{{amtValue}}</span>
+<sc-if value="{{amtClear}}" hint-placeholder-val="{{true}}"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="flex-shrink: 0; color: {{c.onSurfaceVariant}}"><path d="M18 6 6 18"></path><path d="m6 6 12 12"></path></svg></sc-if>
 </div>
-<span style="font-size: 12px; line-height: 16px; font-weight: 500; color: {{c.onSurfaceVariant}}">Change it if the amount you paid was different</span>
+<sc-if value="{{amtHasErr}}" hint-placeholder-val="{{false}}"><span style="display: flex; align-items: center; gap: 4px; font-size: 12px; line-height: 16px; font-weight: 600; color: {{c.danger}}"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="10"></circle><path d="M12 8v4"></path><path d="M12 16h.01"></path></svg>{{amtErr}}</span></sc-if>
+<sc-if value="{{amtHelp}}" hint-placeholder-val="{{true}}"><span style="font-size: 12px; line-height: 16px; font-weight: 500; color: {{c.onSurfaceVariant}}">Change it if the amount you paid was different</span></sc-if>
 </div>
 
 <!-- FormControl: Paid on (date field) -->
 <div style="display: flex; flex-direction: column; gap: 6px">
 <label id="whenLabel" style="font-size: 14px; line-height: 20px; font-weight: 700; color: {{c.onSurface}}">Paid on<span aria-hidden="true" style="color: {{c.danger}}"> *</span></label>
-<button data-field="" aria-labelledby="whenLabel whenValue" style="height: 48px; box-sizing: border-box; border-radius: 12px; background: {{fieldBg}}; display: flex; align-items: center; gap: 8px; padding: 0 14px; color: {{c.primary}}; width: 100%; border: 1px solid {{fieldBorder}}; font-family: inherit; text-align: left">
-<span id="whenValue" style="flex-grow: 1; font-size: 16px; line-height: 24px; font-weight: 500; color: {{fieldFg}}">Today, Wed 4 Nov</span>
-<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="flex-shrink: 0; color: {{c.onSurfaceVariant}}"><path d="M8 2v4"></path><path d="M16 2v4"></path><rect width="18" height="18" x="3" y="4" rx="2"></rect><path d="M3 10h18"></path></svg>
+<button data-field="" aria-labelledby="whenLabel whenValue" style="height: 48px; box-sizing: border-box; border-radius: 12px; background: {{fieldBg}}; display: flex; align-items: center; gap: 8px; padding: 0 14px; color: {{c.primary}}; width: 100%; border: 1px solid {{whenBorder}}; box-shadow: {{whenRing}}; font-family: inherit; text-align: left">
+<span id="whenValue" style="flex-grow: 1; text-align: left; font-size: 16px; line-height: 24px; font-weight: 500; color: {{fieldFg}}">{{whenValue}}</span>
+<sc-if value="{{whenClear}}" hint-placeholder-val="{{true}}"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="flex-shrink: 0; color: {{c.onSurfaceVariant}}"><path d="M18 6 6 18"></path><path d="m6 6 12 12"></path></svg></sc-if>
+<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="flex-shrink: 0; color: {{iconFg}}"><path d="M8 2v4"></path><path d="M16 2v4"></path><rect width="18" height="18" x="3" y="4" rx="2"></rect><path d="M3 10h18"></path><path d="M8 14h.01"></path><path d="M12 14h.01"></path><path d="M16 14h.01"></path><path d="M8 18h.01"></path><path d="M12 18h.01"></path><path d="M16 18h.01"></path></svg>
 </button>
+<sc-if value="{{whenHasErr}}" hint-placeholder-val="{{false}}"><span style="display: flex; align-items: center; gap: 4px; font-size: 12px; line-height: 16px; font-weight: 600; color: {{c.danger}}"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="10"></circle><path d="M12 8v4"></path><path d="M12 16h.01"></path></svg>Enter the day you paid</span></sc-if>
 </div>
 
 <!-- Alert -->
+<sc-if value="{{hasNote}}" hint-placeholder-val="{{true}}">
 <div role="note" style="display: flex; gap: 10px; align-items: flex-start; padding: 12px 14px; border-radius: 14px; background: {{noteBg}}; border: 1px solid {{noteLine}}">
 <sc-if value="{{noteFull}}" hint-placeholder-val="{{false}}"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="flex-shrink: 0; margin-top: 1px; color: {{noteIcon}}"><circle cx="12" cy="12" r="10"></circle><path d="m9 12 2 2 4-4"></path></svg></sc-if>
 <sc-if value="{{notePartial}}" hint-placeholder-val="{{true}}"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="flex-shrink: 0; margin-top: 1px; color: {{noteIcon}}"><path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3"></path><path d="M12 9v4"></path><path d="M12 17h.01"></path></svg></sc-if>
 <span style="font-size: 14px; line-height: 20px; font-weight: 500; color: {{c.onSurfaceVariant}}">{{noteText}}</span>
 </div>
+</sc-if>
 </div>
 
 <footer style="padding: 12px 16px 24px; display: flex; flex-direction: column; gap: 8px">
@@ -94,7 +101,7 @@ body{margin:0}
 </div>
 </div>
 </x-dc>
-<script type="text/x-dc" data-dc-script data-props='{"collected":{"editor":"enum","options":["partial","full"],"default":"partial"},"save":{"editor":"enum","options":["idle","saving","failed"],"default":"idle"},"theme":{"editor":"enum","options":["light","dark"],"default":"light"},"$preview":{"width":400,"height":848}}'>
+<script type="text/x-dc" data-dc-script data-props='{"collected":{"editor":"enum","options":["partial","full"],"default":"partial"},"save":{"editor":"enum","options":["idle","saving","failed"],"default":"idle"},"form":{"editor":"enum","options":["filled","errors","loading"],"default":"filled"},"theme":{"editor":"enum","options":["light","dark"],"default":"light"},"$preview":{"width":400,"height":848}}'>
 class Component extends DCLogic {
   renderVals() {
     var dark = this.props.theme === 'dark';
@@ -106,7 +113,7 @@ class Component extends DCLogic {
       background: '#111214', surface: '#1A1C1E', container: '#222427', sheet: '#222427',
       onSurface: '#E3E3E6', onSurfaceVariant: '#C4C6CB', outline: '#8E9196', outlineVariant: '#2E3134',
       primary: '#E2E2E6', onPrimary: '#1A1C1E', selected: '#2C2F33',
-      disabledBg: '#222427', disabledFg: '#5C5F64', track: '#3A3E43', scrim: 'rgba(0,0,0,0.6)',
+      disabledBg: '#222427', disabledFg: '#5C5F64', track: '#3A3E43', scrim: 'rgba(0,0,0,0.5)',
       success: '#66BB6A', successTint: '#0F2A12', successLine: '#2E7D32', warning: '#FFA726', warningTint: '#332108', warningLine: '#F57C00',
       danger: '#F44336', dangerTint: '#3B1511', dangerLine: '#D32F2F', onDangerTint: '#FFD9D6'
     } : {
@@ -118,16 +125,27 @@ class Component extends DCLogic {
       danger: '#D32F2F', dangerTint: '#FDEDED', dangerLine: '#F6D5D5', onDangerTint: '#5F2120'
     };
     var T = dark ? 'Dark' : 'Light';
+    var form = this.props.form || 'filled';
+    var errs = form === 'errors', loading = form === 'loading';
+    var off = saving || loading || errs;
+    var bad = c.danger;
     return {
-      c: c, fieldBg: saving ? c.disabledBg : c.surface, fieldBorder: saving ? c.outlineVariant : c.outline, fieldFg: saving ? c.disabledFg : c.onSurface,
-      busyAttr: saving ? 'true' : 'false', isSaving: saving, isFailed: failed, isIdle: !saving && !failed, btnEvents: saving ? 'none' : 'auto',
-      btnBg: saving ? c.disabledBg : c.primary, btnFg: saving ? c.disabledFg : c.onPrimary, cancelFg: saving ? c.disabledFg : c.primary,
+      loading: loading, loaded: !loading,
+      amtValue: loading ? '' : (errs ? '$0.00' : '$412.30'), amtClear: !loading && !errs ? true : errs,
+      amtBorder: errs ? bad : (saving || loading ? c.outlineVariant : c.outline), amtRing: errs ? '0 0 0 1px ' + bad : 'none',
+      amtHasErr: errs, amtErr: 'Enter an amount above $0.00', amtHelp: !errs,
+      whenValue: (loading || errs) ? '' : '30 Oct 2026', whenClear: !loading && !errs,
+      whenBorder: errs ? bad : (saving || loading ? c.outlineVariant : c.outline), whenRing: errs ? '0 0 0 1px ' + bad : 'none', whenHasErr: errs,
+      iconFg: (saving || loading) ? c.disabledFg : c.onSurfaceVariant,
+      c: c, fieldBg: (saving || loading) ? c.disabledBg : c.surface, fieldBorder: saving ? c.outlineVariant : c.outline, fieldFg: (saving || loading) ? c.disabledFg : c.onSurface,
+      busyAttr: saving ? 'true' : 'false', isSaving: saving, isFailed: failed, isIdle: !saving && !failed, btnEvents: off ? 'none' : 'auto',
+      btnBg: off ? c.disabledBg : c.primary, btnFg: off ? c.disabledFg : c.onPrimary, cancelFg: saving ? c.disabledFg : c.primary,
       btnLabel: failed ? 'Retry' : 'Mark as paid', bgTitle: 'November 2026',
       backHref: 'Home-DueToday-' + T + '.dc.html',
       doneHref: 'Bill-Paid-' + T + '.dc.html',
       noteBg: full ? c.successTint : c.warningTint, noteLine: full ? c.successLine : c.warningLine, noteIcon: full ? c.success : c.warning,
       noteFull: full, notePartial: !full,
-      noteText: full ? 'All $412.30 is collected. You’re not covering anything.' : 'You’ve collected $123.69 so far. You’re covering $288.61 until the others pay.'
+      noteText: full ? 'All $412.30 is collected. You’re not covering anything.' : 'You’ve collected $247.38 so far. You’re covering $164.92 until the others pay.', hasNote: !loading
     };
   }
 }
