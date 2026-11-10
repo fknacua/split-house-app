@@ -23,8 +23,8 @@ body{margin:0}
 <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m12 19-7-7 7-7"></path><path d="M19 12H5"></path></svg>
 </a>
 <div style="display: flex; flex-direction: column">
-<span style="font-size: 20px; line-height: 28px; font-weight: 800">Landlord &amp; rooms</span>
-<span style="font-size: 12px; line-height: 16px; font-weight: 600; color: {{c.onSurfaceVariant}}">Rent you pay the landlord</span>
+<span style="font-size: 20px; line-height: 28px; font-weight: 800">Rent &amp; rooms</span>
+<span style="font-size: 12px; line-height: 16px; font-weight: 600; color: {{c.onSurfaceVariant}}">Rent, due dates and rooms</span>
 </div>
 </header>
 
@@ -46,7 +46,7 @@ body{margin:0}
 
 <sc-if value="{{isLoaded}}" hint-placeholder-val="{{true}}">
 <div style="display: flex; flex-direction: column; gap: 4px; padding: 0 4px; margin-top: {{scrollMargin}}">
-<h2 style="margin: 0; font-size: 14px; line-height: 20px; font-weight: 700">From December 2026</h2>
+<sc-if value="{{showFrom}}" hint-placeholder-val="{{true}}"><h2 style="margin: 0; font-size: 14px; line-height: 20px; font-weight: 700">From December 2026</h2></sc-if>
 <sc-if value="{{hasPending}}" hint-placeholder-val="{{false}}">
 <span style="display: flex; align-items: center; gap: 6px; font-size: 12px; line-height: 16px; font-weight: 600; color: {{c.onSurfaceVariant}}"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="flex-shrink: 0"><circle cx="12" cy="12" r="10"></circle><path d="M12 6v6l4 2"></path></svg>These take effect from December 2026.</span>
 </sc-if>
@@ -59,7 +59,7 @@ body{margin:0}
 <h3 style="margin: 0; min-width: 0; font-size: 14px; line-height: 20px; font-weight: 700">{{k.title}}</h3>
 <sc-if value="{{k.isEmpty}}" hint-placeholder-val="{{false}}">
 <!-- gluestack Badge -->
-<span style="padding: 4px 10px; border-radius: 999px; background: {{c.selected}}; color: {{c.onSelected}}; font-size: 12px; line-height: 16px; font-weight: 700; flex-shrink: 0">Empty</span>
+<span style="padding: 4px 10px; border-radius: 999px; background: {{c.container}}; color: {{c.onSurfaceVariant}}; font-size: 12px; line-height: 16px; font-weight: 700; flex-shrink: 0">Empty</span>
 </sc-if>
 </div>
 <sc-if value="{{k.isRemoved}}" hint-placeholder-val="{{false}}">
@@ -173,7 +173,8 @@ Some errors in the form
 </button>
 </sc-if>
 <div style="display: flex; flex-direction: column; gap: 4px">
-<a href="{{backToRooms}}" style="height: 48px; border-radius: 999px; background: {{c.primary}}; color: {{c.onPrimary}}; font-size: 15px; line-height: 20px; font-weight: 700; display: flex; align-items: center; justify-content: center; text-decoration: none">Add room</a>
+<!-- disabled until the fields are filled -->
+<button aria-disabled="true" style="height: 48px; border-radius: 999px; border: 0; background: {{c.disabledBg}}; color: {{c.disabledFg}}; font-family: inherit; font-size: 15px; line-height: 20px; font-weight: 700">Add room</button>
 <a href="{{backToRooms}}" style="height: 48px; border-radius: 999px; color: {{c.primary}}; font-size: 15px; line-height: 20px; font-weight: 700; display: flex; align-items: center; justify-content: center; text-decoration: none">Cancel</a>
 </div>
 </section>
@@ -181,7 +182,7 @@ Some errors in the form
 </div>
 </div>
 </x-dc>
-<script type="text/x-dc" data-dc-script data-props='{"state":{"editor":"enum","options":["unchanged","changed","error","warning","emptyRoom","removed","pending","loading","firstRun","addRoom","addRoomCommon"],"default":"unchanged"},"theme":{"editor":"enum","options":["light","dark"],"default":"light"},"$preview":{"width":400,"height":848}}'>
+<script type="text/x-dc" data-dc-script data-props='{"state":{"editor":"enum","options":["unchanged","changed","error","warning","emptyRoom","removed","pending","loading","firstRun","errorEmpty","addRoom","addRoomCommon"],"default":"unchanged"},"theme":{"editor":"enum","options":["light","dark"],"default":"light"},"$preview":{"width":400,"height":848}}'>
 class Component extends DCLogic {
   renderVals() {
     var dark = this.props.theme === 'dark';
@@ -190,7 +191,7 @@ class Component extends DCLogic {
       background: '#111214', surface: '#1A1C1E', container: '#222427', sheet: '#222427',
       onSurface: '#E3E3E6', onSurfaceVariant: '#C4C6CB', outline: '#8E9196', outlineVariant: '#2E3134',
       primary: '#E2E2E6', onPrimary: '#1A1C1E', selected: '#2C2F33', onSelected: '#E3E3E6',
-      disabledBg: '#222427', disabledFg: '#5C5F64', track: '#3A3E43', scrim: 'rgba(0,0,0,0.6)',
+      disabledBg: '#222427', disabledFg: '#5C5F64', track: '#3A3E43', scrim: 'rgba(0,0,0,0.5)',
       success: '#66BB6A', successContainer: '#1B5E20', onSuccessContainer: '#CBE4CB',
       warning: '#FFA726', warningContainer: '#66430F', onWarningContainer: '#FFE2B7', warningTint: '#332108', warningLine: '#F57C00',
       danger: '#F44336', dangerTint: '#3B1511', dangerLine: '#D32F2F', onDangerTint: '#FFD9D6',
@@ -207,7 +208,7 @@ class Component extends DCLogic {
       info: '#0288D1', infoTint: '#E5F6FD', infoLine: '#CCE7F6', infoContainer: '#CCE7F6', onInfoContainer: '#014361',
       footShadow: '0 -6px 14px rgba(0,0,0,0.14)'
     };
-    c.skeleton = 'linear-gradient(100deg, ' + c.container + ' 0%, ' + (dark ? '#2C2F33' : '#F2F3F5') + ' 50%, ' + c.container + ' 100%)';
+    c.skeleton = c.container;
     var T = dark ? 'Dark' : 'Light';
     var pre = 'LandlordRooms-';
     var href = function (n) { return n === 'Unchanged' ? (dark ? pre + 'Unchanged-Dark.dc.html' : 'LandlordRooms.dc.html') : pre + n + '-' + T + '.dc.html'; };
@@ -222,29 +223,31 @@ class Component extends DCLogic {
       { id: 'lv', kind: 'COMMON', type: 'Common room', name: 'Living room', units: '2' },
       { id: 'ut', kind: 'COMMON', type: 'Common room', name: 'Utility room', units: '1' }
     ];
-    var dirty = false, summary = [], errLand = '', errMaster = '', warnR2 = false, pending = false, firstRun = false;
+    var E = {}, dirty = false, summary = [], errLand = '', errMaster = '', warnR2 = false, pending = false, firstRun = false;
     if (st === 'changed') { L.rent = '4,400.00'; dirty = true; summary = [
-      { label: 'Landlord rent', from: '$4,300.00', to: '$4,400.00' },
-      { label: 'Your rent share', from: '$1,675.00', to: '$1,725.00' },
+      { label: 'Rent amount', from: '$4,300.00', to: '$4,400.00' },
+      { label: 'Your rent', from: '$1,675.00', to: '$1,725.00' },
       { label: 'Primary Tenant’s rent', from: '$1,675.00', to: '$1,725.00' } ]; }
     if (st === 'error') { L.rent = '900.00'; dirty = true; errLand = 'Less than Room 2’s rent of $950.00'; errMaster = 'Nothing left for the Master room'; }
     if (st === 'warning') { rooms[1].rent = '0.00'; warnR2 = true; dirty = true; summary = [
       { label: 'Room 2 rent', from: '$950.00', to: '$0.00' },
       { label: 'Master room rent', from: '$3,350.00', to: '$4,300.00' },
-      { label: 'Your rent share', from: '$1,675.00', to: '$2,150.00' },
+      { label: 'Your rent', from: '$1,675.00', to: '$2,150.00' },
       { label: 'Primary Tenant’s rent', from: '$1,675.00', to: '$2,150.00' } ]; }
     if (st === 'emptyRoom' || st === 'removed') { rooms[2].empty = true; delete rooms[2].tenant; }
     if (st === 'removed') { rooms[2].removed = true; dirty = true; summary = [
       { label: 'Room 3', from: 'Empty', to: 'Removed' },
       { label: 'Aircon units', from: '6', to: '5' } ]; }
+    if (st === 'errorEmpty') { dirty = true; L.rent = ''; L.day = ''; errLand = 'Enter the rent amount.'; E.day = 'Enter a day from 1 to 31.';
+      rooms[2].rent = ''; E.rent = { r3: 'Enter the rent.' }; rooms[3].name = 'Room 2'; E.name = { lv: 'Duplicate room name', ut: 'Enter a room name.' }; rooms[4].name = ''; }
     if (st === 'pending') { L.rent = '4,400.00'; pending = true; }
-    if (st === 'firstRun') { firstRun = true; L = { rent: '', day: '', bill: '' }; rooms = [ { id: 'm', kind: 'MASTER', type: 'Master room', name: 'Master room', units: '', who: 'You + Primary Tenant' } ]; }
+    if (st === 'firstRun') { firstRun = true; L = { rent: '', day: '', bill: '' }; rooms = [ { id: 'm', kind: 'MASTER', type: 'Master room', name: 'Master room', units: '', who: 'You' } ]; }
 
     // Master room rent = landlord rent minus occupied tenant rooms that are included in the total
     var landlord = num(L.rent), taken = 0;
     rooms.forEach(function (r) { if (r.kind === 'TENANT' && !r.empty && r.inc) taken += num(r.rent); });
     var master = landlord - taken;
-    var masterText = (firstRun || errMaster) ? '—' : money(master);
+    var masterText = (firstRun || errMaster || !L.rent) ? '—' : money(master);
 
     var inp = function (id, label, value, o) {
       o = o || {};
@@ -255,13 +258,13 @@ class Component extends DCLogic {
         isErr: bad && !!o.msg, isWarn: warn && !!o.msg, msg: o.msg || '' };
     };
     var cards = [];
-    cards.push({ title: 'Landlord', isLive: true, isRemoved: false, isEmpty: false, hasInclude: false, hasRemove: false, fields: [
-      inp('landRent', 'Landlord rent (SGD)', L.rent, { full: true, ph: '0.00', err: !!errLand, msg: errLand }),
-      inp('landDay', 'Pay landlord on day', L.day, { ph: 'e.g. 1st' }),
-      inp('billDay', 'Utilities bill due day', L.bill, { ph: 'Optional' }) ] });
+    cards.push({ title: 'Rent', isLive: true, isRemoved: false, isEmpty: false, hasInclude: false, hasRemove: false, fields: [
+      inp('landRent', 'Rent amount (SGD)', L.rent, { full: true, ph: '0.00', err: !!errLand, msg: errLand }),
+      inp('landDay', 'Rent due date', L.day, { ph: 'e.g. 1st', err: !!E.day, msg: E.day || '' }),
+      inp('billDay', 'Utilities due date', L.bill, { ph: 'Optional' }) ] });
     var removeFor = function (r) { return r.kind === 'MASTER' ? '' : href('Removed'); };
     rooms.forEach(function (r) {
-      var f = [ inp(r.id + 'n', 'Room name', r.name, { full: true }) ];
+      var f = [ inp(r.id + 'n', 'Room name', r.name, { full: true, ph: r.kind === 'COMMON' ? 'e.g. Study' : 'e.g. Room 4', err: !!(E.name && E.name[r.id]), msg: E.name ? (E.name[r.id] || '') : '' }) ];
       if (r.kind === 'MASTER') {
         f.push(inp(r.id + 'r', 'Rent (calculated)', masterText, { ro: true, err: !!errMaster, msg: errMaster }));
         f.push(inp(r.id + 'u', 'Aircon units', r.units, { ph: '0' }));
@@ -269,7 +272,7 @@ class Component extends DCLogic {
         if (errMaster) f[1].roFg = c.danger;
       } else if (r.kind === 'TENANT') {
         var zero = r.id === 'r2' && warnR2;
-        f.push(inp(r.id + 'r', 'Rent (SGD)', r.rent, { ph: '0.00', warn: zero, msg: zero ? 'Room 2 rent is 0' : '' }));
+        f.push(inp(r.id + 'r', 'Rent (SGD)', r.rent, { ph: '0.00', warn: zero, msg: zero ? 'Room 2 rent is 0' : (E.rent && E.rent[r.id]) || '', err: !!(E.rent && E.rent[r.id]) }));
         f.push(inp(r.id + 'u', 'Aircon units', r.units, { ph: '0' }));
         if (!r.empty) f.push(inp(r.id + 't', 'Tenant', r.tenant, { full: true, ro: true }));
       } else {
@@ -291,14 +294,14 @@ class Component extends DCLogic {
     if (tenantSheet) sheetFields.push({ id: 'newRent', label: 'Rent (SGD)', value: '', placeholder: '0.00', width: 'calc(50% - 6px)' });
     sheetFields.push({ id: 'newUnits', label: 'Aircon units', value: '', placeholder: '0', width: tenantSheet ? 'calc(50% - 6px)' : '100%' });
 
-    var canSave = dirty && st !== 'error';
+    var canSave = dirty && st !== 'error' && st !== 'errorEmpty';
     var viewHref = dark ? 'Household-View-Dark.dc.html' : 'Household.dc.html';
     return {
       scrollMargin: '0px',
       c: c, cards: cards, isLoading: st === 'loading', isLoaded: st !== 'loading', skel: [1, 2, 3],
-      hasPending: pending, summary: summary, showSummary: dirty && summary.length > 0, hasErrors: st === 'error',
+      hasPending: pending, summary: summary, showSummary: dirty && summary.length > 0, hasErrors: st === 'error' || st === 'errorEmpty', showFrom: !firstRun,
       saveDisabled: canSave ? 'false' : 'true', saveBg: canSave ? c.primary : c.disabledBg, saveFg: canSave ? c.onPrimary : c.disabledFg,
-      backHref: firstRun ? (T === 'Dark' ? 'Welcome-Empty-Dark.dc.html' : 'Welcome.dc.html') : (dirty ? ('Confirm-DiscardRooms-' + T + '.dc.html') : viewHref),
+      backHref: (dirty || firstRun ? ('Confirm-DiscardRooms-' + T + '.dc.html') : viewHref),
       addRoomHref: href('AddRoom'), undoHref: href('EmptyRoom'), backToRooms: href('Unchanged'),
       hasSheet: isSheet, sheetTenant: tenantSheet, typeOpts: typeOpts, sheetFields: sheetFields
     };

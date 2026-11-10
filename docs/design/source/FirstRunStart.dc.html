@@ -30,6 +30,14 @@ body{margin:0}
 
 <main style="flex-grow: 1; min-height: 0; overflow-y: auto; overscroll-behavior: contain; scrollbar-width: none; padding: 8px 16px 16px; display: flex; flex-direction: column; gap: 16px">
 <!-- gluestack Radio group as selectable cards -->
+<sc-if value="{{isLoading}}" hint-placeholder-val="{{false}}">
+<!-- gluestack Skeleton cards -->
+<div aria-hidden="true" style="flex-shrink: 0; display: flex; flex-direction: column; gap: 12px">
+<sc-for list="{{skel}}" as="k" hint-placeholder-count="3">
+<div style="background: {{c.surface}}; border-radius: 20px; padding: 16px; min-height: 96px; box-sizing: border-box; display: flex; align-items: center; gap: 12px"><div style="flex-grow: 1; display: flex; flex-direction: column; gap: 8px"><span style="width: 80px; height: 12px; border-radius: 6px; background: {{c.skeleton}}"></span><span style="width: 160px; height: 18px; border-radius: 9px; background: {{c.skeleton}}"></span></div><span style="width: 24px; height: 24px; border-radius: 12px; background: {{c.skeleton}}"></span></div>
+</sc-for>
+</div>
+</sc-if>
 <div role="radiogroup" aria-label="Household starts" style="flex-shrink: 0; display: flex; flex-direction: column; gap: 12px">
 <sc-for list="{{options}}" as="q" hint-placeholder-count="3">
 <a href="{{q.href}}" role="radio" aria-checked="{{q.checked}}" style="background: {{c.surface}}; border: {{q.border}}; border-radius: 20px; padding: 16px; min-height: 96px; display: flex; align-items: center; gap: 12px; box-sizing: border-box; color: inherit; text-decoration: none">
@@ -43,6 +51,10 @@ body{margin:0}
 </a>
 </sc-for>
 </div>
+<sc-if value="{{hasFailed}}" hint-placeholder-val="{{false}}">
+<!-- gluestack Alert, danger -->
+<div role="alert" style="flex-shrink: 0; background: {{c.dangerTint}}; border: 1px solid {{c.dangerLine}}; border-radius: 12px; padding: 10px 14px; display: flex; align-items: center; gap: 10px; font-size: 14px; line-height: 20px; font-weight: 600; color: {{c.onDangerTint}}"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="{{c.danger}}" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="flex-shrink: 0"><circle cx="12" cy="12" r="10"></circle><path d="M12 8v4"></path><path d="M12 16h.01"></path></svg>Couldn’t save the start month. Try again.</div>
+</sc-if>
 <sc-if value="{{hasInfo}}" hint-placeholder-val="{{false}}">
 <!-- gluestack Alert, info -->
 <div role="status" style="flex-shrink: 0; background: {{c.infoTint}}; border: 1px solid {{c.infoLine}}; border-radius: 16px; padding: 12px 14px; display: flex; gap: 10px; align-items: flex-start; color: {{c.onInfoContainer}}">
@@ -54,13 +66,13 @@ body{margin:0}
 
 <footer style="flex-shrink: 0; padding: 10px 16px 28px; display: flex; flex-direction: column; gap: 4px; background: {{c.background}}; box-shadow: {{c.footShadow}}">
 <!-- gluestack Button, solid -->
-<a href="{{ctaHref}}" style="height: 48px; border-radius: 999px; background: {{c.primary}}; color: {{c.onPrimary}}; display: flex; align-items: center; justify-content: center; text-decoration: none; font-size: 15px; line-height: 20px; font-weight: 700">Save</a>
+<a href="{{ctaHref}}" aria-disabled="{{ctaOff}}" style="height: 48px; border-radius: 999px; background: {{ctaBg}}; color: {{ctaFg}}; display: flex; align-items: center; justify-content: center; text-decoration: none; font-size: 15px; line-height: 20px; font-weight: 700">{{ctaLabel}}</a>
 </footer>
 
 </div>
 </div>
 </x-dc>
-<script type="text/x-dc" data-dc-script data-props='{"state":{"editor":"enum","options":["default","next","far"],"default":"default"},"theme":{"editor":"enum","options":["light","dark"],"default":"light"},"$preview":{"width":400,"height":848}}'>
+<script type="text/x-dc" data-dc-script data-props='{"state":{"editor":"enum","options":["default","next","far","loading","failed"],"default":"default"},"theme":{"editor":"enum","options":["light","dark"],"default":"light"},"$preview":{"width":400,"height":848}}'>
 class Component extends DCLogic {
   renderVals() {
     var dark = this.props.theme === 'dark';
@@ -69,10 +81,10 @@ class Component extends DCLogic {
       background: '#111214', surface: '#1A1C1E', container: '#222427', sheet: '#222427',
       onSurface: '#E3E3E6', onSurfaceVariant: '#C4C6CB', outline: '#8E9196', outlineVariant: '#2E3134',
       primary: '#E2E2E6', onPrimary: '#1A1C1E', selected: '#2C2F33', onSelected: '#E3E3E6',
-      disabledBg: '#222427', disabledFg: '#5C5F64', track: '#3A3E43', scrim: 'rgba(0,0,0,0.6)',
+      disabledBg: '#222427', disabledFg: '#5C5F64', track: '#3A3E43', scrim: 'rgba(0,0,0,0.5)',
       success: '#66BB6A', successContainer: '#1B5E20', onSuccessContainer: '#CBE4CB',
       warning: '#FFA726', warningContainer: '#66430F', onWarningContainer: '#FFE2B7', warningTint: '#332108', warningLine: '#F57C00',
-      danger: '#F44336', dangerTint: '#3B1511', dangerLine: '#D32F2F', onDangerTint: '#FFD9D6',
+      skeleton: '#222427', danger: '#F44336', dangerTint: '#3B1511', dangerLine: '#D32F2F', onDangerTint: '#FFD9D6',
       info: '#29B6F6', infoTint: '#082431', infoLine: '#1B76A0', infoContainer: '#104962', onInfoContainer: '#B8E7FB',
       footShadow: '0 -8px 16px rgba(0,0,0,0.45)'
     } : {
@@ -82,13 +94,14 @@ class Component extends DCLogic {
       disabledBg: '#E9EAED', disabledFg: '#9A9DA2', track: '#D3D5D9', scrim: 'rgba(0,0,0,0.5)',
       success: '#2E7D32', successContainer: '#C8E6C9', onSuccessContainer: '#1E4620',
       warning: '#E65100', warningContainer: '#FBE2CC', onWarningContainer: '#663C00', warningTint: '#FFF4E5', warningLine: '#FBE2CC',
-      danger: '#D32F2F', dangerTint: '#FDEDED', dangerLine: '#F6D5D5', onDangerTint: '#5F2120',
+      skeleton: '#E9EAED', danger: '#D32F2F', dangerTint: '#FDEDED', dangerLine: '#F6D5D5', onDangerTint: '#5F2120',
       info: '#0288D1', infoTint: '#E5F6FD', infoLine: '#CCE7F6', infoContainer: '#CCE7F6', onInfoContainer: '#014361',
       footShadow: '0 -6px 14px rgba(0,0,0,0.14)'
     };
     var T = dark ? 'Dark' : 'Light';
     var P = 'FirstRunStart-';
-    var cur = { default: 0, next: 1, far: 2 }[st];
+    var cur = { default: 0, next: 1, far: 2, failed: 0 }[st];
+    if (st === 'loading') cur = -1;
     var far = cur === 2;
     var cards = [
       { kicker: 'This month', title: 'November 2026', note: 'Due dates before today start as overdue', noteFg: c.onWarningContainer, href: P + 'Default-' + T + '.dc.html' },
@@ -104,7 +117,7 @@ class Component extends DCLogic {
       return q;
     });
     return {
-      c: c, options: cards, hasInfo: far, info: 'That’s a long wait. Are you sure you want to start in January 2027?',
+      ctaOff: st === 'loading' ? 'true' : 'false', ctaBg: st === 'loading' ? c.disabledBg : c.primary, ctaFg: st === 'loading' ? c.disabledFg : c.onPrimary, ctaLabel: st === 'failed' ? 'Retry' : 'Save', c: c, isLoading: st === 'loading', skel: [1, 2, 3], hasFailed: st === 'failed', options: st === 'loading' ? [] : cards, hasInfo: far, info: 'That’s a long wait. Are you sure you want to start in January 2027?',
       backHref: dark ? 'Welcome-Empty-Dark.dc.html' : 'Welcome.dc.html',
       ctaHref: 'Welcome-Started-' + T + '.dc.html'
     };

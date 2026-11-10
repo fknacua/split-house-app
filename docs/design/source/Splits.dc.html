@@ -27,7 +27,7 @@ body{margin:0}
 
 <main style="flex-grow: 1; min-height: 0; overflow-y: auto; overscroll-behavior: contain; scrollbar-width: none; padding: 8px 16px 16px; display: flex; flex-direction: column; gap: 16px">
 <div style="display: flex; flex-direction: column; gap: 4px; padding: 0 4px; margin-top: {{scrollMargin}}">
-<h2 style="margin: 0; font-size: 14px; line-height: 20px; font-weight: 700">From December 2026</h2>
+<sc-if value="{{showFrom}}" hint-placeholder-val="{{true}}"><h2 style="margin: 0; font-size: 14px; line-height: 20px; font-weight: 700">From December 2026</h2></sc-if>
 <sc-if value="{{hasPending}}" hint-placeholder-val="{{false}}">
 <span style="display: flex; align-items: center; gap: 6px; font-size: 12px; line-height: 16px; font-weight: 600; color: {{c.onSurfaceVariant}}"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="flex-shrink: 0"><circle cx="12" cy="12" r="10"></circle><path d="M12 6v6l4 2"></path></svg>These take effect from December 2026.</span>
 </sc-if>
@@ -68,7 +68,8 @@ body{margin:0}
 </div>
 </sc-if>
 
-<!-- CUSTOM: split control. Slider in 1% steps, track in the two people's colors, a percent field for each person -->
+<!-- CUSTOM: split control. Rent: percent fields, slider in 10% steps. Utilities / Aircon: count fields, slider in half steps -->
+<sc-if value="{{s.hasSplit}}" hint-placeholder-val="{{true}}">
 <div style="display: flex; flex-direction: column; gap: 6px; padding-top: 6px; opacity: {{s.splitOpacity}}">
 <span style="font-size: 14px; line-height: 20px; font-weight: 700">Split between you and Primary Tenant</span>
 <div role="slider" aria-label="{{s.title}} split, You share" aria-valuemin="1" aria-valuemax="99" aria-valuenow="{{s.pctYou}}" style="position: relative; height: 44px; margin: 0 14px; display: flex; align-items: center">
@@ -82,14 +83,18 @@ body{margin:0}
 <sc-for list="{{s.people}}" as="p" hint-placeholder-count="2">
 <div style="flex: 1 1 0; min-width: 0; display: flex; flex-direction: column; gap: 6px">
 <label for="{{p.id}}" style="display: flex; align-items: center; gap: 8px; font-size: 14px; line-height: 20px; font-weight: 700"><span aria-hidden="true" style="width: 10px; height: 10px; border-radius: 5px; flex-shrink: 0; background: {{p.color}}"></span>{{p.name}}</label>
-<div style="height: 44px; box-sizing: border-box; border: 1px solid {{c.outline}}; border-radius: 12px; background: {{c.surface}}; display: flex; align-items: center; gap: 4px; padding: 0 12px">
-<input id="{{p.id}}" inputmode="numeric" value="{{p.pct}}" style="width: 100%; min-width: 0; border: 0; outline: 0; background: transparent; text-align: right; font-family: Manrope, sans-serif; font-size: 16px; font-weight: 500; color: {{c.onSurface}}; font-variant-numeric: tabular-nums">
-<span aria-hidden="true" style="font-size: 16px; font-weight: 500; color: {{c.onSurfaceVariant}}">%</span>
+<div style="height: 44px; box-sizing: border-box; border: 1px solid {{p.border}}; box-shadow: {{p.ring}}; border-radius: 12px; background: {{c.surface}}; display: flex; align-items: center; gap: 4px; padding: 0 12px">
+<input id="{{p.id}}" inputmode="numeric" value="{{p.val}}" style="width: 100%; min-width: 0; border: 0; outline: 0; background: transparent; text-align: right; font-family: Manrope, sans-serif; font-size: 16px; font-weight: 500; color: {{c.onSurface}}; font-variant-numeric: tabular-nums">
+<span aria-hidden="true" style="font-size: 16px; font-weight: 500; color: {{c.onSurfaceVariant}}; white-space: nowrap">{{p.unit}}</span>
 </div>
-<span style="font-size: 14px; line-height: 20px; font-weight: 700; font-variant-numeric: tabular-nums">{{p.amount}}</span>
+<sc-if value="{{p.hasAmount}}" hint-placeholder-val="{{true}}"><span style="font-size: 14px; line-height: 20px; font-weight: 700; font-variant-numeric: tabular-nums">{{p.amount}}</span></sc-if>
 </div>
 </sc-for>
 </div>
+<sc-if value="{{s.hasPctErr}}" hint-placeholder-val="{{false}}"><span style="display: flex; align-items: center; gap: 4px; font-size: 12px; line-height: 16px; font-weight: 600; color: {{c.danger}}"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="10"></circle><path d="M12 8v4"></path><path d="M12 16h.01"></path></svg>Enter a percentage</span></sc-if>
+</div>
+</sc-if>
+<sc-if value="{{s.noSplit}}" hint-placeholder-val="{{false}}"><span style="padding-top: 6px; font-size: 14px; line-height: 20px; font-weight: 700; color: {{c.onSurfaceVariant}}">Nothing left for you</span></sc-if>
 </div>
 </section>
 </sc-for>
@@ -127,7 +132,7 @@ Some errors in the form
 </div>
 </div>
 </x-dc>
-<script type="text/x-dc" data-dc-script data-props='{"state":{"editor":"enum","options":["unchanged","changed","warning","error","errorAllShares","pending"],"default":"unchanged"},"theme":{"editor":"enum","options":["light","dark"],"default":"light"},"$preview":{"width":400,"height":848}}'>
+<script type="text/x-dc" data-dc-script data-props='{"state":{"editor":"enum","options":["unchanged","changed","warning","error","errorAllShares","pending","errorRent","errorOver","noPrimary","firstRun"],"default":"unchanged"},"theme":{"editor":"enum","options":["light","dark"],"default":"light"},"$preview":{"width":400,"height":848}}'>
 class Component extends DCLogic {
   renderVals() {
     var dark = this.props.theme === 'dark';
@@ -136,7 +141,7 @@ class Component extends DCLogic {
       background: '#111214', surface: '#1A1C1E', container: '#222427', sheet: '#222427',
       onSurface: '#E3E3E6', onSurfaceVariant: '#C4C6CB', outline: '#8E9196', outlineVariant: '#2E3134',
       primary: '#E2E2E6', onPrimary: '#1A1C1E', selected: '#2C2F33', onSelected: '#E3E3E6',
-      disabledBg: '#222427', disabledFg: '#5C5F64', track: '#3A3E43', scrim: 'rgba(0,0,0,0.6)',
+      disabledBg: '#222427', disabledFg: '#5C5F64', track: '#3A3E43', scrim: 'rgba(0,0,0,0.5)',
       success: '#66BB6A', successContainer: '#1B5E20', onSuccessContainer: '#CBE4CB',
       warning: '#FFA726', warningContainer: '#66430F', onWarningContainer: '#FFE2B7', warningTint: '#332108', warningLine: '#F57C00',
       danger: '#F44336', dangerTint: '#3B1511', dangerLine: '#D32F2F', onDangerTint: '#FFD9D6',
@@ -171,8 +176,14 @@ class Component extends DCLogic {
     if (st === 'error') { M.t2 = ''; bad.t2 = true; dirty = true; }
     if (st === 'errorAllShares') { M.t1 = '3'; M.t2 = '2'; allShares = true; dirty = true; }
     var n = function (s) { return s === '' ? 0 : parseFloat(s); };
-    var pplFor = function (id, pct, fn, unit) {
-      return [ { id: id + 'y', name: 'You', color: YOU, pct: String(pct), amount: fn(pct) }, { id: id + 'p', name: 'Primary Tenant', color: PT, pct: String(100 - pct), amount: fn(100 - pct) } ];
+    var okB = { border: c.outline, ring: 'none' };
+    // Rent: percent fields with the amount under them. Utilities / Aircon: count fields (shares / units), no amount line
+    var pplFor = function (id, pct, fn, unit, left) {
+      var mk = function (suffix, name, color, p) {
+        var count = left !== undefined;
+        return { id: id + suffix, name: name, color: color, val: count ? fmtN(left * p / 100) : String(p), unit: count ? unit : '%', hasAmount: !count, amount: count ? '' : fn(p), border: okB.border, ring: okB.ring };
+      };
+      return [ mk('y', 'You', YOU, pct), mk('p', 'Primary Tenant', PT, 100 - pct) ];
     };
     var ro = function (id, name, color, value, o) {
       o = o || {};
@@ -186,11 +197,13 @@ class Component extends DCLogic {
         border: b ? c.danger : (w ? c.warning : c.outline), ring: b ? ('0 0 0 1px ' + c.danger) : (w ? ('0 0 0 1px ' + c.warning) : 'none'),
         isErr: b && !!o.msg, isWarn: w && !!o.msg, msg: o.msg || '' };
     };
+    var noPrimary = st === 'noPrimary';
+    if (st === 'errorRent' || st === 'errorOver') dirty = true;
     var shared = 3350;
     var sections = [];
     // Rent: read-only rooms, calculated Shared rent, editable split
     sections.push({ title: 'Rent (SGD)', rows: [
-        ro('rentT1', 'Tenant 1 · Room 2', T1, '$950.00'), ro('rentT2', 'Tenant 2 · Room 3', T2, '$950.00', { out: true })
+        ro('rentT1', 'Tenant 1', T1, '$950.00'), ro('rentT2', 'Tenant 2', T2, '$950.00', { out: true })
       ], calcLabel: 'Shared rent', calcValue: money(shared), hasTotal: false, hasError: false, pctYou: M.pctRent, splitOpacity: '1',
       people: pplFor('rs', M.pctRent, function (p) { return money(shared * p / 100); }) });
     // Utilities: editable tenant shares and total shares
@@ -204,19 +217,33 @@ class Component extends DCLogic {
     u[2].dotBg = 'transparent'; u[2].dotBorder = '0';
     sections.push({ title: 'Utilities (shares)', rows: u, calcLabel: 'Left to split', calcValue: fmtN(Math.max(left, 0)), hasTotal: false,
       hasError: !!utilErr, error: utilErr, pctYou: M.pctUtil, splitOpacity: allShares ? '0.4' : '1',
-      people: pplFor('us', M.pctUtil, function (p) { return allShares ? '—' : fmtN(left * p / 100) + ' shares'; }) });
+      people: pplFor('us', M.pctUtil, null, 'shares', allShares ? 0 : left) });
     // Aircon: read-only room units and the units You and Primary Tenant cover
     sections.push({ title: 'Aircon (units)', rows: [
-        ro('airT1', 'Tenant 1 · Room 2', T1, '1'), ro('airT2', 'Tenant 2 · Room 3', T2, '1')
-      ], calcLabel: 'Left to split', calcValue: '4', hasTotal: true, totalLabel: 'Total units', totalValue: '6', hasError: false, pctYou: M.pctAir, splitOpacity: '1',
-      people: pplFor('as', M.pctAir, function (p) { return fmtN(4 * p / 100) + ' units'; }) });
-    sections.forEach(function (s) { s.colYou = YOU; s.colPt = PT; });
-    var hasErr = st === 'error' || st === 'errorAllShares';
+        ro('airT1', 'Tenant 1', T1, '1'), ro('airT2', 'Tenant 2', T2, '1'), inp('aTot', 'Total units', col(3), '6', {})
+      ], calcLabel: 'Left to split', calcValue: '4', hasTotal: false, hasError: false, pctYou: M.pctAir, splitOpacity: '1',
+      people: pplFor('as', M.pctAir, null, 'units', 4) });
+    // aircon total row: no dot
+    sections[2].rows[2].dotBg = 'transparent';
+    sections.forEach(function (s) { s.colYou = YOU; s.colPt = PT; s.hasSplit = !noPrimary; s.noSplit = noPrimary; s.hasPctErr = false; });
+    if (st === 'errorRent') {
+      sections[0].hasPctErr = true;
+      sections[0].people.forEach(function (p) { p.val = ''; p.border = c.danger; p.ring = '0 0 0 1px ' + c.danger; p.amount = '—'; });
+      sections[1].rows[2] = inp('uTot', 'Total shares', col(3), '', { bad: true, msg: 'Enter the total shares' }); sections[1].rows[2].dotBg = 'transparent';
+    }
+    if (st === 'errorOver') {
+      var us = sections[1];
+      us.people[0].val = '2'; us.people[1].val = '2';
+      us.people.forEach(function (p) { p.border = c.danger; p.ring = '0 0 0 1px ' + c.danger; });
+      us.hasError = true; us.error = 'Only 3 left to split';
+    }
+    if (noPrimary) { sections.forEach(function (s) { s.calcLabel = s.calcLabel === 'Shared rent' ? 'Your rent' : 'Yours'; }); }
+    var hasErr = st === 'error' || st === 'errorAllShares' || st === 'errorRent' || st === 'errorOver';
     var canSave = dirty && !hasErr;
     return {
-      scrollMargin: ({ changed: '-410px', warning: '-410px', error: '-410px', errorAllShares: '-410px' }[st] || '0px'),
-      c: c, sections: sections, summary: summary, showSummary: dirty && !hasErr && summary.length > 0, hasErrors: hasErr, hasPending: pending,
-      backHref: dark ? 'Household-View-Dark.dc.html' : 'Household.dc.html',
+      scrollMargin: '0px',
+      showFrom: st !== 'firstRun', c: c, sections: sections, summary: summary, showSummary: dirty && !hasErr && summary.length > 0, hasErrors: hasErr, hasPending: pending,
+      backHref: (dirty && st !== 'firstRun') ? ('Confirm-DiscardSplit-' + (dark ? 'Dark' : 'Light') + '.dc.html') : (st === 'firstRun' ? 'Welcome-Started-' + (dark ? 'Dark' : 'Light') + '.dc.html' : (dark ? 'Household-View-Dark.dc.html' : 'Household.dc.html')),
       saveDisabled: canSave ? 'false' : 'true', saveBg: canSave ? c.primary : c.disabledBg, saveFg: canSave ? c.onPrimary : c.disabledFg
     };
   }

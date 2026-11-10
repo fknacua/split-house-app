@@ -35,6 +35,13 @@ body{margin:0}
 <h1 id="dlgTitle" style="margin: 0; text-align: center; font-size: 20px; line-height: 28px; font-weight: 800; letter-spacing: -0.3px">{{title}}</h1>
 <p id="dlgBody" style="margin: 0; font-size: 14px; line-height: 20px; color: {{c.onSurfaceVariant}}">{{body}}</p>
 <sc-if value="{{hasRoomLine}}" hint-placeholder-val="{{false}}"><p style="margin: 0; font-size: 14px; line-height: 20px; color: {{c.onSurfaceVariant}}">{{roomLine}}</p></sc-if>
+<sc-if value="{{hasRefused}}" hint-placeholder-val="{{false}}">
+<!-- gluestack Alert, danger -->
+<div role="alert" style="background: {{c.dangerTint}}; border: 1px solid {{c.dangerLine}}; border-radius: 12px; padding: 10px 14px; display: flex; align-items: flex-start; gap: 10px; font-size: 14px; line-height: 20px; font-weight: 600; color: {{c.onDangerTint}}">
+<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="{{c.danger}}" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="flex-shrink: 0"><circle cx="12" cy="12" r="10"></circle><path d="M12 8v4"></path><path d="M12 16h.01"></path></svg>
+{{refusedText}}
+</div>
+</sc-if>
 <sc-if value="{{hasKeeps}}" hint-placeholder-val="{{false}}">
 <ul style="margin: 0; padding: 0; list-style: none; display: flex; flex-direction: column; gap: 6px">
 <sc-for list="{{keeps}}" as="k" hint-placeholder-count="3">
@@ -55,7 +62,7 @@ body{margin:0}
 </div>
 </div>
 </x-dc>
-<script type="text/x-dc" data-dc-script data-props='{"kind":{"editor":"enum","options":["removePerson","removePersonIncluded","removeVersion","removeNudge","skipMessages","restoreBreakdown","restoreNudge","discard","discardRooms"],"default":"removePerson"},"theme":{"editor":"enum","options":["light","dark"],"default":"light"},"$preview":{"width":400,"height":848}}'>
+<script type="text/x-dc" data-dc-script data-props='{"kind":{"editor":"enum","options":["removePerson","removePersonNoPrimary","removePersonIncluded","removeVersion","removeNudge","skipMessages","restoreBreakdown","restoreNudge","discard","discardRooms","discardAddPerson","discardSplit","removePrimary","removePersonRefused","removePersonFirstRun","removeRecurring"],"default":"removePerson"},"theme":{"editor":"enum","options":["light","dark"],"default":"light"},"$preview":{"width":400,"height":848}}'>
 class Component extends DCLogic {
   renderVals() {
     var dark = this.props.theme === 'dark';
@@ -64,7 +71,7 @@ class Component extends DCLogic {
       background: '#111214', surface: '#1A1C1E', container: '#222427', sheet: '#222427',
       onSurface: '#E3E3E6', onSurfaceVariant: '#C4C6CB', outline: '#8E9196', outlineVariant: '#2E3134',
       primary: '#E2E2E6', onPrimary: '#1A1C1E', selected: '#2C2F33', onSelected: '#E3E3E6',
-      disabledBg: '#222427', disabledFg: '#5C5F64', track: '#3A3E43', scrim: 'rgba(0,0,0,0.6)',
+      disabledBg: '#222427', disabledFg: '#5C5F64', track: '#3A3E43', scrim: 'rgba(0,0,0,0.5)',
       success: '#66BB6A', successContainer: '#1B5E20', onSuccessContainer: '#CBE4CB',
       warning: '#FFA726', warningContainer: '#66430F', onWarningContainer: '#FFE2B7', warningTint: '#332108', warningLine: '#F57C00',
       danger: '#F44336', dangerTint: '#3B1511', dangerLine: '#D32F2F', onDangerTint: '#FFD9D6',
@@ -81,14 +88,22 @@ class Component extends DCLogic {
       info: '#0288D1', infoTint: '#E5F6FD', infoLine: '#CCE7F6', infoContainer: '#CCE7F6', onInfoContainer: '#014361',
       footShadow: '0 -6px 14px rgba(0,0,0,0.14)'
     };
-    var v = { c: c, hasRoomLine: false, roomLine: '', iconTrash: false, iconUser: false, iconUndo: false, hasKeeps: false, keeps: [] };
+    var v = { c: c, hasRefused: false, refusedText: '', hasRoomLine: false, roomLine: '', iconTrash: false, iconUser: false, iconUndo: false, hasKeeps: false, keeps: [] };
     if (k === 'removePerson') {
       v.bgTitle = 'Edit Tenant 2'; v.iconUser = true;
       v.title = 'Remove Tenant 2 from household?';
       v.body = 'From December 2026 they won’t get any charges or messages, and their utility shares leave the total.';
       v.hasRoomLine = true; v.roomLine = 'Room 3 becomes empty and its aircon moves to You and Primary Tenant. Their rent was never part of the landlord rent, so your rent doesn’t change. You simply stop receiving it.';
       v.hasKeeps = true;
-      v.keeps = ['Past months and History stay as they are', 'Their $950.00 deposit stays recorded until you return it', 'Their recurring charges stop from December 2026'];
+      v.keeps = ['Past months and History stay as they are', 'Their $950.00 deposit stays recorded until you return it'];
+      v.confirmLabel = 'Remove from household'; v.cancelLabel = 'Cancel';
+    } else if (k === 'removePersonNoPrimary') {
+      v.bgTitle = 'Edit Tenant 2'; v.iconUser = true;
+      v.title = 'Remove Tenant 2 from household?';
+      v.body = 'From December 2026 they won’t get any charges or messages, and their utility shares leave the total.';
+      v.hasRoomLine = true; v.roomLine = 'Room 3 becomes empty and its aircon moves to you. Their rent was never part of the landlord rent, so your rent doesn’t change. You simply stop receiving it.';
+      v.hasKeeps = true;
+      v.keeps = ['Past months and History stay as they are', 'Their $950.00 deposit stays recorded until you return it'];
       v.confirmLabel = 'Remove from household'; v.cancelLabel = 'Cancel';
     } else if (k === 'removePersonIncluded') {
       v.bgTitle = 'Edit Tenant 1'; v.iconUser = true;
@@ -96,12 +111,46 @@ class Component extends DCLogic {
       v.body = 'From December 2026 they won’t get any charges or messages, and their utility shares leave the total.';
       v.hasRoomLine = true; v.roomLine = 'Room 2 becomes empty. Its $950.00 rent and its aircon move to You and Primary Tenant.';
       v.hasKeeps = true;
-      v.keeps = ['Past months and History stay as they are', 'Their recurring charges stop from December 2026'];
+      v.keeps = ['Past months and History stay as they are'];
       v.confirmLabel = 'Remove from household'; v.cancelLabel = 'Cancel';
-    } else if (k === 'discardRooms') {
-      v.bgTitle = 'Landlord & rooms'; v.iconUndo = true;
+    } else if (k === 'removePrimary') {
+      v.bgTitle = 'Edit Primary Tenant'; v.iconUser = true;
+      v.title = 'Remove Primary Tenant from household?';
+      v.body = 'From December 2026 they won’t get any charges or messages, and their utility shares leave the total.';
+      v.hasRoomLine = true; v.roomLine = 'The Master room becomes yours alone, so the household split no longer applies and you pay the whole Master room rent.';
+      v.hasKeeps = true;
+      v.keeps = ['Past months and History stay as they are', 'Their recurring charges go with them', 'The household split is removed'];
+      v.confirmLabel = 'Remove from household'; v.cancelLabel = 'Cancel';
+    } else if (k === 'removePersonRefused') {
+      v.bgTitle = 'Edit Tenant 2'; v.iconUser = true;
+      v.title = 'Remove Tenant 2 from household?';
+      v.body = 'From December 2026 they won’t get any charges or messages, and their utility shares leave the total.';
+      v.hasRefused = true; v.refusedText = 'This person has payment routed to them. Please redirect the payment before removing.';
+      v.confirmLabel = 'Remove from household'; v.cancelLabel = 'Cancel';
+    } else if (k === 'removePersonFirstRun') {
+      v.bgTitle = 'Edit Tenant 2'; v.iconUser = true;
+      v.title = 'Remove Tenant 2 from household?';
+      v.body = 'You need to create a new entry again if you wish to include them again.';
+      v.confirmLabel = 'Remove from household'; v.cancelLabel = 'Cancel';
+    } else if (k === 'removeRecurring') {
+      v.bgTitle = 'Recurring'; v.iconTrash = true;
+      v.title = 'Remove Starhub?';
+      v.body = 'Starhub stops from December 2026. Past months stay as they are.';
+      v.confirmLabel = 'Remove charge'; v.cancelLabel = 'Cancel';
+    } else if (k === 'discardAddPerson') {
+      v.bgTitle = 'Add person'; v.iconUndo = true;
       v.title = 'Discard changes?';
-      v.body = 'Your edits to the landlord rent and rooms haven’t been saved. If you leave now, they’ll be lost.';
+      v.body = 'This person hasn’t been added yet. If you leave now, what you entered will be lost.';
+      v.confirmLabel = 'Discard'; v.cancelLabel = 'Keep editing';
+    } else if (k === 'discardSplit') {
+      v.bgTitle = 'Household split'; v.iconUndo = true;
+      v.title = 'Discard changes?';
+      v.body = 'Your edits to the household split haven’t been saved. If you leave now, they’ll be lost.';
+      v.confirmLabel = 'Discard'; v.cancelLabel = 'Keep editing';
+    } else if (k === 'discardRooms') {
+      v.bgTitle = 'Rent & rooms'; v.iconUndo = true;
+      v.title = 'Discard changes?';
+      v.body = 'Your edits to the rent and rooms haven’t been saved. If you leave now, they’ll be lost.';
       v.confirmLabel = 'Discard'; v.cancelLabel = 'Keep editing';
     } else if (k === 'restoreBreakdown' || k === 'restoreNudge') {
       v.bgTitle = 'Default'; v.iconUndo = true;
@@ -135,8 +184,14 @@ class Component extends DCLogic {
     if (k === 'removeVersion') { v.cancelHref = 'Settings-Override-' + T + '.dc.html'; v.confirmHref = 'Settings-MessagesFirst-' + T + '.dc.html'; }
     else if (k === 'restoreBreakdown') { v.cancelHref = 'Settings-Template-' + T + '.dc.html'; v.confirmHref = 'Settings-TemplateOriginal-' + T + '.dc.html'; }
     else if (k === 'restoreNudge') { v.cancelHref = 'Settings-Nudge-' + T + '.dc.html'; v.confirmHref = 'Settings-NudgeOriginal-' + T + '.dc.html'; }
-    else if (k === 'skipMessages') { v.cancelHref = 'FirstRunMessages-Custom-' + T + '.dc.html'; v.confirmHref = 'Welcome-Notifications-' + T + '.dc.html'; }
+    else if (k === 'skipMessages') { v.cancelHref = 'FirstRunMessages-Custom-' + T + '.dc.html'; v.confirmHref = 'Welcome-AllDone-' + T + '.dc.html'; }
     else if (k === 'removeNudge') { v.cancelHref = 'Settings-NudgeOverride-' + T + '.dc.html'; v.confirmHref = 'Settings-NudgeList-' + T + '.dc.html'; }
+    else if (k === 'removePrimary') { v.cancelHref = 'Household-EditPrimary-' + T + '.dc.html'; v.confirmHref = viewH; }
+    else if (k === 'removePersonRefused') { v.cancelHref = 'Household-EditPerson-' + T + '.dc.html'; v.confirmHref = 'Confirm-RemovePersonRefused-' + T + '.dc.html'; }
+    else if (k === 'removePersonFirstRun') { v.cancelHref = 'Household-AddPerson-' + T + '.dc.html'; v.confirmHref = 'FirstRunPeople-Empty-' + T + '.dc.html'; }
+    else if (k === 'removeRecurring') { v.cancelHref = 'Household-RecurringEdit-' + T + '.dc.html'; v.confirmHref = 'Household-ViewRecurring-' + T + '.dc.html'; }
+    else if (k === 'discardAddPerson') { v.cancelHref = 'Household-AddPerson-' + T + '.dc.html'; v.confirmHref = viewH; }
+    else if (k === 'discardSplit') { v.cancelHref = 'Splits-Changed-' + T + '.dc.html'; v.confirmHref = viewH; }
     else if (k === 'discardRooms') { v.cancelHref = 'LandlordRooms-Changed-' + T + '.dc.html'; v.confirmHref = viewH; }
     else if (k === 'removePersonIncluded') { v.cancelHref = 'Household-EditTenant1-' + T + '.dc.html'; v.confirmHref = viewH; }
     else { v.cancelHref = 'Household-EditPerson-' + T + '.dc.html'; v.confirmHref = viewH; }

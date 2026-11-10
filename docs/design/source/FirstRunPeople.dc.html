@@ -41,6 +41,12 @@ body{margin:0}
 <a href="{{addHref}}" style="height: 48px; box-sizing: border-box; padding: 0 20px; border-radius: 999px; border: 1px solid {{c.outline}}; background: transparent; color: {{c.onSurface}}; display: flex; align-items: center; gap: 8px; font-size: 15px; line-height: 20px; font-weight: 700; text-decoration: none"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"></path><circle cx="9" cy="7" r="4"></circle><path d="M19 8v6"></path><path d="M22 11h-6"></path></svg>Add person</a>
 </div>
 </sc-if>
+<sc-if value="{{isLoading}}" hint-placeholder-val="{{false}}">
+<!-- gluestack Skeleton cards -->
+<sc-for list="{{skel}}" as="k" hint-placeholder-count="2">
+<div aria-hidden="true" style="background: {{c.surface}}; border-radius: 20px; padding: 12px 14px; display: flex; flex-direction: column; gap: 10px"><div style="display: flex; align-items: center; gap: 12px"><span style="width: 40px; height: 40px; border-radius: 20px; background: {{c.skeleton}}"></span><span style="width: 120px; height: 14px; border-radius: 7px; background: {{c.skeleton}}"></span></div><div style="border-top: 1px solid {{c.outlineVariant}}; padding-top: 8px; display: flex; justify-content: flex-end"><span style="width: 72px; height: 44px; border-radius: 22px; background: {{c.skeleton}}"></span></div></div>
+</sc-for>
+</sc-if>
 <sc-for list="{{people}}" as="p" hint-placeholder-count="2">
 <!-- gluestack Card -->
 <div style="background: {{c.surface}}; border-radius: 20px; padding: 12px 12px 12px 14px; display: flex; flex-direction: column; gap: 10px">
@@ -48,20 +54,10 @@ body{margin:0}
 <span style="width: 40px; height: 40px; border-radius: 20px; background: {{p.color}}; color: {{p.onColor}}; display: flex; align-items: center; justify-content: center; font-size: 14px; line-height: 20px; font-weight: 800; flex-shrink: 0">{{p.initial}}</span>
 <div style="flex-grow: 1; min-width: 0; display: flex; flex-direction: column">
 <span style="font-size: 14px; line-height: 20px; font-weight: 700">{{p.name}}</span>
-<span style="font-size: 12px; line-height: 16px; font-weight: 600; color: {{c.onSurfaceVariant}}">{{p.role}}</span>
 </div>
-</div>
-<div style="display: flex; flex-wrap: wrap; gap: 8px 12px; padding-right: 4px">
-<sc-for list="{{p.facts}}" as="f" hint-placeholder-count="2">
-<div style="width: calc(50% - 6px); min-width: 0; display: flex; flex-direction: column">
-<span style="font-size: 12px; line-height: 16px; font-weight: 600; color: {{c.onSurfaceVariant}}">{{f.label}}</span>
-<span style="font-size: 14px; line-height: 20px; font-weight: 700; font-variant-numeric: tabular-nums">{{f.value}}</span>
-</div>
-</sc-for>
 </div>
 <div style="display: flex; justify-content: flex-end; gap: 8px; border-top: 1px solid {{c.outlineVariant}}; margin: 0 -2px; padding: 8px 0 0">
 <!-- gluestack Button, outline, small -->
-<a href="{{p.viewHref}}" style="height: 44px; padding: 0 16px 0 14px; border-radius: 999px; border: 1px solid {{c.outline}}; color: {{c.onSurface}}; display: flex; align-items: center; gap: 6px; font-size: 14px; line-height: 20px; font-weight: 700; text-decoration: none"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M2.062 12.348a1 1 0 0 1 0-.696 10.75 10.75 0 0 1 19.876 0 1 1 0 0 1 0 .696 10.75 10.75 0 0 1-19.876 0"></path><circle cx="12" cy="12" r="3"></circle></svg>View</a>
 <a href="{{p.editHref}}" style="height: 44px; padding: 0 16px 0 14px; border-radius: 999px; border: 1px solid {{c.outline}}; color: {{c.onSurface}}; display: flex; align-items: center; gap: 6px; font-size: 14px; line-height: 20px; font-weight: 700; text-decoration: none"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21.174 6.812a1 1 0 0 0-3.986-3.987L3.842 16.174a2 2 0 0 0-.5.83l-1.321 4.352a.5.5 0 0 0 .623.622l4.353-1.32a2 2 0 0 0 .83-.497z"></path><path d="m15 5 4 4"></path></svg>Edit</a>
 </div>
 </div>
@@ -74,7 +70,7 @@ body{margin:0}
 <!-- gluestack Alert, danger: failed save -->
 <div style="padding-bottom: 6px"><div role="alert" style="display: flex; align-items: center; gap: 10px; padding: 10px 12px; border-radius: 12px; background: {{c.dangerTint}}; border: 1px solid {{c.dangerLine}}">
 <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="flex-shrink: 0; color: {{c.danger}}"><circle cx="12" cy="12" r="10"></circle><path d="M12 8v4"></path><path d="M12 16h.01"></path></svg>
-<span style="font-size: 13px; line-height: 18px; font-weight: 700; color: {{c.onDangerTint}}">Couldn’t save people. Check your connection and try again.</span>
+<span style="font-size: 13px; line-height: 18px; font-weight: 700; color: {{c.onDangerTint}}">Couldn’t save people. Try again.</span>
 </div></div>
 </sc-if>
 <!-- gluestack Button, solid / disabled -->
@@ -83,7 +79,7 @@ body{margin:0}
 </div>
 </div>
 </x-dc>
-<script type="text/x-dc" data-dc-script data-props='{"state":{"editor":"enum","options":["empty","one","list","failed"],"default":"empty"},"theme":{"editor":"enum","options":["light","dark"],"default":"light"},"$preview":{"width":400,"height":848}}'>
+<script type="text/x-dc" data-dc-script data-props='{"state":{"editor":"enum","options":["empty","one","list","failed","loading"],"default":"empty"},"theme":{"editor":"enum","options":["light","dark"],"default":"light"},"$preview":{"width":400,"height":848}}'>
 class Component extends DCLogic {
   renderVals() {
     var dark = this.props.theme === 'dark';
@@ -92,10 +88,10 @@ class Component extends DCLogic {
       background: '#111214', surface: '#1A1C1E', container: '#222427', sheet: '#222427',
       onSurface: '#E3E3E6', onSurfaceVariant: '#C4C6CB', outline: '#8E9196', outlineVariant: '#2E3134',
       primary: '#E2E2E6', onPrimary: '#1A1C1E', selected: '#2C2F33', onSelected: '#E3E3E6',
-      disabledBg: '#222427', disabledFg: '#5C5F64', track: '#3A3E43', scrim: 'rgba(0,0,0,0.6)',
+      disabledBg: '#222427', disabledFg: '#5C5F64', track: '#3A3E43', scrim: 'rgba(0,0,0,0.5)',
       success: '#66BB6A', successContainer: '#1B5E20', onSuccessContainer: '#CBE4CB',
       warning: '#FFA726', warningContainer: '#66430F', onWarningContainer: '#FFE2B7', warningTint: '#332108', warningLine: '#F57C00',
-      danger: '#F44336', dangerTint: '#3B1511', dangerLine: '#D32F2F', onDangerTint: '#FFD9D6',
+      skeleton: '#222427', danger: '#F44336', dangerTint: '#3B1511', dangerLine: '#D32F2F', onDangerTint: '#FFD9D6',
       info: '#29B6F6', infoTint: '#082431', infoLine: '#1B76A0', infoContainer: '#104962', onInfoContainer: '#B8E7FB',
       footShadow: '0 -8px 16px rgba(0,0,0,0.45)'
     } : {
@@ -105,7 +101,7 @@ class Component extends DCLogic {
       disabledBg: '#E9EAED', disabledFg: '#9A9DA2', track: '#D3D5D9', scrim: 'rgba(0,0,0,0.5)',
       success: '#2E7D32', successContainer: '#C8E6C9', onSuccessContainer: '#1E4620',
       warning: '#E65100', warningContainer: '#FBE2CC', onWarningContainer: '#663C00', warningTint: '#FFF4E5', warningLine: '#FBE2CC',
-      danger: '#D32F2F', dangerTint: '#FDEDED', dangerLine: '#F6D5D5', onDangerTint: '#5F2120',
+      skeleton: '#E9EAED', danger: '#D32F2F', dangerTint: '#FDEDED', dangerLine: '#F6D5D5', onDangerTint: '#5F2120',
       info: '#0288D1', infoTint: '#E5F6FD', infoLine: '#CCE7F6', infoContainer: '#CCE7F6', onInfoContainer: '#014361',
       footShadow: '0 -6px 14px rgba(0,0,0,0.14)'
     };
@@ -117,18 +113,18 @@ class Component extends DCLogic {
       { initial: 'T1', name: 'Tenant 1', role: 'Room 2 · pays via Primary Tenant', col: PAL.t1, facts: [{ label: 'Rent · due 28th', value: '$950.00' }, { label: 'Utilities · due 7th', value: '1 share' }], edit: 'Household-AddPersonFilledFRE-', view: 'Household-ViewTenant1-' },
       { initial: 'T2', name: 'Tenant 2', role: 'Room 3 · pays you directly', col: PAL.t2, facts: [{ label: 'Rent · due 1st', value: '$950.00' }, { label: 'Utilities · due 4th', value: '1 share' }], edit: 'Household-AddPersonFilled2FRE-', view: 'Household-ViewPerson-' }
     ];
-    var n = st === 'empty' ? 0 : (st === 'one' ? 1 : 2);
+    var n = (st === 'empty' || st === 'loading') ? 0 : (st === 'one' ? 1 : 2);
     var people = (n === 2 ? [PT].concat(ALL) : ALL.slice(0, n)).map(function (p, i) {
       return { initial: p.initial, name: p.name, role: p.role, facts: p.facts, color: dark ? p.col.d : p.col.l, onColor: onPal,
         editHref: p.edit + T + '.dc.html', viewHref: p.view + T + '.dc.html' };
     });
     var has = n > 0;
     return {
-      c: c, people: people, hasPeople: has, noPeople: !has, isFailed: st === 'failed',
-      backHref: dark ? 'Welcome-Empty-Dark.dc.html' : 'Welcome.dc.html',
+      c: c, isLoading: st === 'loading', skel: [1, 2], people: st === 'loading' ? [] : people, hasPeople: has && st !== 'loading', noPeople: !has && st !== 'loading', isFailed: st === 'failed',
+      backHref: dark ? 'Welcome-Started-Dark.dc.html' : 'Welcome-Started-Light.dc.html',
       addHref: (n === 0 ? 'Household-AddPersonFilledFR-' : 'Household-AddPersonFilled2FR-') + T + '.dc.html',
       saveLabel: st === 'failed' ? 'Retry' : 'Save people', saveDisabled: has ? 'false' : 'true',
-      saveBg: has ? c.primary : c.disabledBg, saveFg: has ? c.onPrimary : c.disabledFg,
+      saveBg: (has && st !== 'loading') ? c.primary : c.disabledBg, saveFg: (has && st !== 'loading') ? c.onPrimary : c.disabledFg,
       saveHref: has ? 'Welcome-Progress-' + T + '.dc.html' : '#'
     };
   }

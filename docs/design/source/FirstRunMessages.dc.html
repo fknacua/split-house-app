@@ -29,6 +29,14 @@ body{margin:0}
 </header>
 
 <main style="flex-grow: 1; min-height: 0; overflow-y: auto; overscroll-behavior: contain; scrollbar-width: none; padding: 8px 16px 16px; display: flex; flex-direction: column; gap: 16px">
+<sc-if value="{{isLoading}}" hint-placeholder-val="{{false}}">
+<!-- gluestack Skeleton card -->
+<div aria-hidden="true" style="background: {{c.surface}}; border-radius: 20px; overflow: hidden; display: flex; flex-direction: column">
+<sc-for list="{{skel}}" as="k" hint-placeholder-count="2">
+<div style="display: flex; align-items: center; gap: 12px; min-height: 76px; padding: 12px 16px; box-sizing: border-box; border-top: 1px solid {{k.divider}}"><div style="display: flex; flex-direction: column; gap: 8px; flex-grow: 1"><span style="width: 140px; height: 14px; border-radius: 7px; background: {{c.skeleton}}"></span><span style="width: 220px; max-width: 100%; height: 12px; border-radius: 6px; background: {{c.skeleton}}"></span></div></div>
+</sc-for>
+</div>
+</sc-if>
 <!-- gluestack Card -->
 <div style="background: {{c.surface}}; border-radius: 20px; overflow: hidden; display: flex; flex-direction: column">
 <sc-for list="{{types}}" as="t" hint-placeholder-count="2">
@@ -54,7 +62,7 @@ body{margin:0}
 </div>
 </div>
 </x-dc>
-<script type="text/x-dc" data-dc-script data-props='{"state":{"editor":"enum","options":["empty","custom"],"default":"empty"},"theme":{"editor":"enum","options":["light","dark"],"default":"light"},"$preview":{"width":400,"height":848}}'>
+<script type="text/x-dc" data-dc-script data-props='{"state":{"editor":"enum","options":["empty","custom","loading"],"default":"empty"},"theme":{"editor":"enum","options":["light","dark"],"default":"light"},"$preview":{"width":400,"height":848}}'>
 class Component extends DCLogic {
   renderVals() {
     var dark = this.props.theme === 'dark';
@@ -63,10 +71,10 @@ class Component extends DCLogic {
       background: '#111214', surface: '#1A1C1E', container: '#222427', sheet: '#222427',
       onSurface: '#E3E3E6', onSurfaceVariant: '#C4C6CB', outline: '#8E9196', outlineVariant: '#2E3134',
       primary: '#E2E2E6', onPrimary: '#1A1C1E', selected: '#2C2F33', onSelected: '#E3E3E6',
-      disabledBg: '#222427', disabledFg: '#5C5F64', track: '#3A3E43', scrim: 'rgba(0,0,0,0.6)',
+      disabledBg: '#222427', disabledFg: '#5C5F64', track: '#3A3E43', scrim: 'rgba(0,0,0,0.5)',
       success: '#66BB6A', successContainer: '#1B5E20', onSuccessContainer: '#CBE4CB',
       warning: '#FFA726', warningContainer: '#66430F', onWarningContainer: '#FFE2B7', warningTint: '#332108', warningLine: '#F57C00',
-      danger: '#F44336', dangerTint: '#3B1511', dangerLine: '#D32F2F', onDangerTint: '#FFD9D6',
+      skeleton: '#222427', danger: '#F44336', dangerTint: '#3B1511', dangerLine: '#D32F2F', onDangerTint: '#FFD9D6',
       info: '#29B6F6', infoTint: '#082431', infoLine: '#1B76A0', infoContainer: '#104962', onInfoContainer: '#B8E7FB',
       footShadow: '0 -8px 16px rgba(0,0,0,0.45)'
     } : {
@@ -76,21 +84,22 @@ class Component extends DCLogic {
       disabledBg: '#E9EAED', disabledFg: '#9A9DA2', track: '#D3D5D9', scrim: 'rgba(0,0,0,0.5)',
       success: '#2E7D32', successContainer: '#C8E6C9', onSuccessContainer: '#1E4620',
       warning: '#E65100', warningContainer: '#FBE2CC', onWarningContainer: '#663C00', warningTint: '#FFF4E5', warningLine: '#FBE2CC',
-      danger: '#D32F2F', dangerTint: '#FDEDED', dangerLine: '#F6D5D5', onDangerTint: '#5F2120',
+      skeleton: '#E9EAED', danger: '#D32F2F', dangerTint: '#FDEDED', dangerLine: '#F6D5D5', onDangerTint: '#5F2120',
       info: '#0288D1', infoTint: '#E5F6FD', infoLine: '#CCE7F6', infoContainer: '#CCE7F6', onInfoContainer: '#014361',
       footShadow: '0 -6px 14px rgba(0,0,0,0.14)'
     };
     var T = dark ? 'Dark' : 'Light';
     var custom = st === 'custom';
+    var loading = st === 'loading';
     var types = [
       { name: 'Monthly breakdown', desc: 'Sent when the month’s charges are ready', status: custom ? 'Custom templates: 1' : 'Same for everyone', href: custom ? 'Settings-Messages-' + T + '.dc.html' : 'Settings-MessagesFirst-' + T + '.dc.html' },
       { name: 'Nudge', desc: 'Sent when a payment is overdue', status: 'Same for everyone', href: 'Settings-NudgeList-' + T + '.dc.html' }
     ].map(function (t, i) { t.divider = i === 0 ? 'transparent' : c.outlineVariant; t.statusFg = t.status === 'Same for everyone' ? c.onSurfaceVariant : c.success; return t; });
     return {
-      c: c, types: types, backHref: dark ? 'Welcome-Notifications-Dark.dc.html' : 'Welcome-Notifications-Light.dc.html',
-      ctaLabel: 'Save', ctaDisabled: custom ? 'false' : 'true', ctaBg: custom ? c.primary : c.disabledBg, ctaFg: custom ? c.onPrimary : c.disabledFg,
-      ctaHref: custom ? (dark ? 'Welcome-MessagesDone-Dark.dc.html' : 'Welcome-MessagesDone-Light.dc.html') : '#',
-      skipHref: custom ? 'Confirm-SkipMessages-' + T + '.dc.html' : (dark ? 'Welcome-Notifications-Dark.dc.html' : 'Welcome-Notifications-Light.dc.html')
+      c: c, isLoading: loading, skel: [{ divider: 'transparent' }, { divider: c.outlineVariant }], types: loading ? [] : types, backHref: dark ? 'Welcome-Optional-Dark.dc.html' : 'Welcome-Optional-Light.dc.html',
+      ctaLabel: 'Save', ctaDisabled: (custom && !loading) ? 'false' : 'true', ctaBg: custom ? c.primary : c.disabledBg, ctaFg: custom ? c.onPrimary : c.disabledFg,
+      ctaHref: custom ? (dark ? 'Welcome-AllDone-Dark.dc.html' : 'Welcome-AllDone-Light.dc.html') : '#',
+      skipHref: custom ? 'Confirm-SkipMessages-' + T + '.dc.html' : (dark ? 'Welcome-AllDone-Dark.dc.html' : 'Welcome-AllDone-Light.dc.html')
     };
   }
 }
