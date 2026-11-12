@@ -1,0 +1,273 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Send message</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&display=swap">
+<style>
+body{margin:0}
+</style>
+</helmet>
+<div style="width: 400px; height: 848px; box-sizing: border-box; padding: 8px; background: #0B0C0C; border-radius: 26px; font-family: Manrope, 'Segoe UI', system-ui, sans-serif; color: {{c.onSurface}}">
+<div style="position: relative; width: 384px; height: 832px; border-radius: 18px; overflow: hidden; background: {{c.background}}; display: flex; flex-direction: column">
+<div style="position: absolute; top: 12px; left: 186px; width: 12px; height: 12px; border-radius: 6px; background: #050505; box-shadow: 0 0 0 2px #1C1D1E; z-index: 20"></div>
+<div style="height: 36px; flex-shrink: 0"></div>
+<sc-if value="{{isSheet}}" hint-placeholder-val="{{true}}">
+<div aria-hidden="true" style="padding: 8px 16px; display: flex; flex-direction: column; gap: 12px">
+<div style="height: 40px; width: 160px; border-radius: 8px; background: {{c.container}}"></div>
+<div style="height: 110px; border-radius: 20px; background: {{c.surface}}"></div>
+<div style="height: 64px; border-radius: 20px; background: {{c.surface}}"></div>
+<div style="height: 64px; border-radius: 20px; background: {{c.surface}}"></div>
+</div>
+<div style="position: absolute; inset: 0; background: {{c.scrim}}"></div>
+</sc-if>
+
+<section role="{{shellRole}}" aria-labelledby="ttl" style="{{shellStyle}}">
+<sc-if value="{{isSheet}}" hint-placeholder-val="{{true}}">
+<div style="display: flex; justify-content: center; padding: 10px 0 4px; flex-shrink: 0"><span style="width: 32px; height: 4px; border-radius: 2px; background: {{c.track}}"></span></div>
+<div style="padding: 8px 16px 12px; display: flex; flex-direction: column; gap: 2px; flex-shrink: 0">
+<h1 id="ttl" style="margin: 0; font-size: 20px; line-height: 28px; font-weight: 800">{{title}}</h1>
+<span style="font-size: 12px; line-height: 16px; font-weight: 600; color: {{c.onSurfaceVariant}}">Nov 2026</span>
+</div>
+</sc-if>
+<sc-if value="{{isPage}}" hint-placeholder-val="{{false}}">
+<div style="padding: 8px 16px 12px; display: flex; align-items: center; gap: 12px; flex-shrink: 0">
+<a href="#" aria-label="Back" style="width: 40px; height: 40px; margin-left: -8px; border-radius: 20px; display: flex; align-items: center; justify-content: center; color: {{c.onSurface}}"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m12 19-7-7 7-7"></path><path d="M19 12H5"></path></svg></a>
+<div style="display: flex; flex-direction: column"><h1 id="ttl" style="margin: 0; font-size: 20px; line-height: 28px; font-weight: 800">{{title}}</h1><span style="font-size: 12px; line-height: 16px; font-weight: 600; color: {{c.onSurfaceVariant}}">Nov 2026</span></div>
+</div>
+</sc-if>
+
+<main style="flex-grow: 1; min-height: 0; overflow-y: auto; overscroll-behavior: contain; scrollbar-width: none; padding: 0 16px 16px; display: flex; flex-direction: column; gap: 16px">
+<!-- FormControl + Select: To -->
+<div style="display: flex; flex-direction: column; gap: 6px">
+<label id="toL" style="font-size: 14px; line-height: 20px; font-weight: 700; color: {{c.onSurface}}">To<span aria-hidden="true" style="color: {{c.danger}}"> *</span></label>
+<button data-field="" aria-haspopup="listbox" aria-expanded="{{menuAttr}}" aria-labelledby="toL toV" onClick="{{openMenu}}" style="height: 48px; box-sizing: border-box; border-radius: 12px; background: {{c.surface}}; border: 1px solid {{toBorder}}; box-shadow: {{toShadow}}; display: flex; align-items: center; gap: 8px; padding: 0 14px; width: 100%; font-family: inherit; text-align: left; color: {{c.primary}}; cursor: pointer"><span id="toV" style="flex-grow: 1; font-size: 16px; line-height: 24px; font-weight: 500; color: {{c.onSurface}}">{{who}}</span><span style="color: {{c.onSurfaceVariant}}; display: flex"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m6 9 6 6 6-6"></path></svg></span></button>
+</div>
+
+<sc-if value="{{isMonthly}}" hint-placeholder-val="{{false}}">
+<!-- Per-person total, expands to the charges -->
+<div style="display: flex; flex-direction: column; gap: 6px">
+<span style="font-size: 14px; line-height: 20px; font-weight: 700">Total</span>
+<div style="background: {{c.surface}}; border-radius: 12px; padding: 0 14px; display: flex; flex-direction: column">
+<button onClick="{{toggleTotal}}" aria-expanded="{{totalAttr}}" style="width: 100%; box-sizing: border-box; min-height: 64px; padding: 10px 0; border: 0; background: none; color: inherit; font-family: inherit; text-align: left; cursor: pointer; display: flex; align-items: center; gap: 8px">
+<div style="flex-grow: 1; display: flex; flex-direction: column; gap: 2px"><span style="font-size: 20px; line-height: 28px; font-weight: 800; font-variant-numeric: tabular-nums">{{totalAmount}}</span><span style="font-size: 12px; line-height: 16px; font-weight: 600; color: {{c.onSurfaceVariant}}">{{totalSub}}</span><sc-if value="{{hasPays}}" hint-placeholder-val="{{false}}"><span style="font-size: 12px; line-height: 16px; font-weight: 600; color: {{c.onSurfaceVariant}}">{{paysFor}}</span></sc-if></div>
+<span style="flex-shrink: 0; padding: 2px 10px; border-radius: 999px; display: flex; align-items: center; font-size: 12px; line-height: 16px; font-weight: 700; background: {{stBg}}; color: {{stFg}}">{{stChip}}</span><span style="color: {{c.onSurfaceVariant}}; display: flex; transform: rotate({{totalRot}}deg)"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m6 9 6 6 6-6"></path></svg></span>
+</button>
+<sc-if value="{{totalOpen}}" hint-placeholder-val="{{false}}">
+<div style="padding-bottom: 8px; display: flex; flex-direction: column">
+<sc-for list="{{totalRows}}" as="t" hint-placeholder-count="6">
+<div style="min-height: 36px; display: flex; justify-content: space-between; align-items: center; gap: 12px; border-top: 1px solid {{t.line}}; font-size: 14px; line-height: 20px; font-weight: 600"><span style="color: {{c.onSurfaceVariant}}">{{t.title}}</span><span style="font-weight: 700; font-variant-numeric: tabular-nums">{{t.amount}}</span></div>
+</sc-for>
+</div>
+</sc-if>
+</div>
+</div>
+</sc-if>
+
+<sc-if value="{{isNudge}}" hint-placeholder-val="{{true}}">
+<!-- Overdue charges: collapsed total, expands to pick more -->
+<div style="display: flex; flex-direction: column; gap: 6px">
+<span style="font-size: 14px; line-height: 20px; font-weight: 700">{{chLabel}}</span>
+<div style="background: {{c.surface}}; border-radius: 12px; padding: 0 14px; display: flex; flex-direction: column">
+<button onClick="{{toggleCh}}" aria-expanded="{{chAttr}}" aria-disabled="{{chLocked}}" style="width: 100%; box-sizing: border-box; min-height: 64px; padding: 10px 0; border: 0; background: none; color: inherit; font-family: inherit; text-align: left; cursor: {{chCursor}}; display: flex; align-items: center; gap: 8px">
+<div style="flex-grow: 1; display: flex; flex-direction: column; gap: 2px"><span style="font-size: 20px; line-height: 28px; font-weight: 800; font-variant-numeric: tabular-nums">{{chAmount}}</span><span style="font-size: 12px; line-height: 16px; font-weight: 600; color: {{c.onSurfaceVariant}}">{{chSub}}</span><sc-if value="{{chHasSub2}}" hint-placeholder-val="{{false}}"><span style="font-size: 12px; line-height: 16px; font-weight: 600; color: {{c.onSurfaceVariant}}">{{chSub2}}</span></sc-if></div>
+<sc-if value="{{chHasChip}}" hint-placeholder-val="{{true}}"><span style="flex-shrink: 0; padding: 2px 10px; border-radius: 999px; display: flex; align-items: center; font-size: 12px; line-height: 16px; font-weight: 700; background: {{chChipBg}}; color: {{chChipFg}}">{{chChip}}</span></sc-if><sc-if value="{{chCanOpen}}" hint-placeholder-val="{{false}}"><span style="color: {{c.onSurfaceVariant}}; display: flex; transform: rotate({{chRot}}deg)"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m6 9 6 6 6-6"></path></svg></span></sc-if>
+</button>
+<sc-if value="{{chOpen}}" hint-placeholder-val="{{false}}">
+<div style="padding-bottom: 6px; display: flex; flex-direction: column">
+<sc-for list="{{chRows}}" as="r" hint-placeholder-count="2">
+<button role="checkbox" aria-checked="{{r.on}}" onClick="{{r.toggle}}" style="width: 100%; box-sizing: border-box; min-height: 56px; padding: 8px 0; border: 0; border-top: 1px solid {{c.outlineVariant}}; background: none; color: inherit; font-family: inherit; text-align: left; cursor: pointer; display: flex; align-items: center; gap: 12px">
+<span aria-hidden="true" style="width: 22px; height: 22px; box-sizing: border-box; border-radius: 6px; flex-shrink: 0; display: flex; align-items: center; justify-content: center; background: {{r.boxBg}}; border: 2px solid {{r.boxBorder}}; color: {{c.onPrimary}}"><sc-if value="{{r.onB}}" hint-placeholder-val="{{false}}"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 6 9 17l-5-5"></path></svg></sc-if></span>
+<div style="flex-grow: 1; min-width: 0; display: flex; flex-direction: column; gap: 2px">
+<div style="display: flex; justify-content: space-between; font-size: 14px; line-height: 20px; font-weight: 700"><span>{{r.title}}</span><span style="font-variant-numeric: tabular-nums">{{r.amount}}</span></div>
+<div style="display: flex; justify-content: space-between; align-items: center; gap: 8px"><span style="font-size: 12px; line-height: 16px; font-weight: 600; color: {{c.onSurfaceVariant}}">{{r.detail}}</span><span style="flex-shrink: 0; padding: 2px 10px; border-radius: 999px; display: flex; align-items: center; font-size: 12px; line-height: 16px; font-weight: 700; background: {{r.chipBg}}; color: {{r.chipFg}}">{{r.chip}}</span></div>
+</div>
+</button>
+</sc-for>
+</div>
+</sc-if>
+</div>
+</div>
+</sc-if>
+
+<sc-if value="{{hasNudges}}" hint-placeholder-val="{{false}}">
+<!-- Sent history: only the dates -->
+<div style="display: flex; flex-direction: column; gap: 6px">
+<span style="font-size: 14px; line-height: 20px; font-weight: 700">{{histTitle}}</span>
+<div style="background: {{c.surface}}; border-radius: 12px; padding: 0 14px; display: flex; flex-direction: column">
+<sc-for list="{{nudges}}" as="n" hint-placeholder-count="2">
+<div style="min-height: 44px; display: flex; justify-content: space-between; align-items: center; border-top: 1px solid {{n.line}}; font-size: 14px; line-height: 20px; font-weight: 600"><span style="color: {{c.onSurfaceVariant}}">{{n.label}}</span><span style="font-weight: 700">{{n.date}}</span></div>
+</sc-for>
+</div>
+</div>
+</sc-if>
+
+<!-- Preview -->
+<div style="display: flex; flex-direction: column; gap: 6px">
+<div style="display: flex; justify-content: space-between; align-items: center"><div style="display: flex; flex-direction: column"><span style="font-size: 14px; line-height: 20px; font-weight: 700">{{msgTitle}}</span><span style="font-size: 12px; line-height: 16px; font-weight: 600; color: {{c.onSurfaceVariant}}">{{msgSub}}</span></div><a href="#" style="min-height: 32px; display: flex; align-items: center; gap: 6px; font-size: 14px; line-height: 20px; font-weight: 700; color: {{c.onSurface}}; text-decoration: none"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21.174 6.812a1 1 0 0 0-3.986-3.987L3.842 16.174a2 2 0 0 0-.5.83l-1.321 4.352a.5.5 0 0 0 .623.622l4.353-1.32a2 2 0 0 0 .83-.497z"></path><path d="m15 5 4 4"></path></svg> Edit template</a></div>
+<div style="background: {{c.surface}}; border-radius: 16px; padding: 14px; display: flex; flex-direction: column; font-size: 14px; line-height: 20px; font-weight: 500">
+<sc-if value="{{noPreview}}" hint-placeholder-val="{{false}}"><span style="color: {{c.onSurfaceVariant}}; font-weight: 600">Pick at least one charge to see the message.</span></sc-if>
+<sc-for list="{{lines}}" as="l" hint-placeholder-count="6"><div style="min-height: {{l.h}}"><span style="font-weight: 800">{{l.b}}</span>{{l.t}}</div></sc-for>
+<div style="margin-top: 10px; padding-top: 4px; border-top: 1px solid {{c.outlineVariant}}; display: flex; justify-content: flex-end"><a href="#" style="min-height: 40px; display: flex; align-items: center; gap: 6px; font-size: 14px; line-height: 20px; font-weight: 700; color: {{c.onSurface}}; text-decoration: none"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect width="14" height="14" x="8" y="8" rx="2" ry="2"></rect><path d="M4 16c-1.1 0-2-.9-2-2V4c0-1.1.9-2 2-2h10c1.1 0 2 .9 2 2"></path></svg> Copy as plain text</a></div>
+</div>
+</div>
+</main>
+
+<footer style="flex-shrink: 0; padding: 12px 16px 16px; background: {{c.sheet}}; box-shadow: {{c.footShadow}}; display: flex; flex-direction: column; gap: 8px">
+<sc-if value="{{noNum}}" hint-placeholder-val="{{false}}"><span style="font-size: 12px; line-height: 16px; font-weight: 600; color: {{c.onSurfaceVariant}}">{{noNumText}}</span></sc-if>
+<a href="#" aria-disabled="{{btnOff}}" style="height: 48px; border-radius: 24px; background: {{btnBg}}; color: {{btnFg}}; pointer-events: {{btnEvents}}; display: flex; align-items: center; justify-content: center; gap: 8px; font-size: 15px; line-height: 20px; font-weight: 700; text-decoration: none"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M14.536 21.686a.5.5 0 0 0 .937-.024l6.5-19a.496.496 0 0 0-.635-.635l-19 6.5a.5.5 0 0 0-.024.937l7.93 3.18a2 2 0 0 1 1.112 1.11z"></path><path d="m21.854 2.147-10.94 10.939"></path></svg> {{ctaLabel}}</a>
+<a href="#" style="height: 48px; box-sizing: border-box; border-radius: 24px; border: 1px solid {{c.outline}}; color: {{c.onSurface}}; display: flex; align-items: center; justify-content: center; font-size: 15px; line-height: 20px; font-weight: 700; text-decoration: none">Share bill</a>
+</footer>
+</section>
+
+<sc-if value="{{listOpen}}" hint-placeholder-val="{{false}}">
+<div style="position: absolute; inset: 0; z-index: 10; background: {{c.scrim}}"></div>
+<section role="listbox" aria-label="To" style="position: absolute; z-index: 11; left: 0; right: 0; bottom: 0; background: {{c.sheet}}; border-radius: 28px 28px 0 0; padding: 10px 16px 24px; display: flex; flex-direction: column; gap: 4px">
+<span style="width: 32px; height: 4px; border-radius: 2px; background: {{c.track}}; align-self: center; margin-bottom: 8px"></span>
+<span style="padding: 0 4px 6px; font-size: 16px; line-height: 24px; font-weight: 800">To</span>
+<sc-for list="{{listRows}}" as="o" hint-placeholder-count="2">
+<button role="option" aria-selected="{{o.selAttr}}" onClick="{{o.pick}}" style="min-height: 56px; width: 100%; display: flex; align-items: center; gap: 12px; padding: 6px 12px; box-sizing: border-box; border: 0; border-radius: 12px; background: {{o.bg}}; color: inherit; font-family: inherit; text-align: left; cursor: pointer">
+<span style="flex-grow: 1; min-width: 0; display: flex; flex-direction: column"><span style="font-size: 15px; line-height: 22px; font-weight: {{o.weight}}">{{o.name}}</span><span style="font-size: 12px; line-height: 16px; font-weight: 600; color: {{o.detailFg}}">{{o.detail}}</span></span>
+</button>
+</sc-for>
+<button onClick="{{closeMenu}}" style="margin-top: 4px; height: 48px; border: 0; background: none; border-radius: 24px; color: {{c.onSurface}}; display: flex; align-items: center; justify-content: center; font-family: inherit; font-size: 15px; line-height: 20px; font-weight: 700; cursor: pointer">Cancel</button>
+</section>
+</sc-if>
+</div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"layout":{"editor":"enum","options":["sheet","page"],"default":"sheet"},"mode":{"editor":"enum","options":["nudge","monthly"],"default":"nudge"},"sent":{"editor":"enum","options":["no","yes"],"default":"no"},"number":{"editor":"enum","options":["yes","no"],"default":"yes"},"expanded":{"editor":"enum","options":["no","yes"],"default":"no"},"overdue":{"editor":"enum","options":["one","several"],"default":"one"},"selected":{"editor":"enum","options":["tapped","all"],"default":"tapped"},"theme":{"editor":"enum","options":["light","dark"],"default":"dark"},"$preview":{"width":400,"height":848}}'>
+class Component extends DCLogic {
+  renderVals() {
+    var self = this, ss = this.state || {};
+    var dark = this.props.theme !== 'light';
+    var c = dark ? {
+      background: '#111214', surface: '#1A1C1E', container: '#222427', sheet: '#222427',
+      onSurface: '#E3E3E6', onSurfaceVariant: '#C4C6CB', outline: '#8E9196', outlineVariant: '#2E3134',
+      primary: '#E2E2E6', onPrimary: '#1A1C1E', selected: '#2C2F33', onSelected: '#E3E3E6',
+      disabledBg: '#222427', disabledFg: '#5C5F64', track: '#3A3E43',
+      success: '#66BB6A', successContainer: '#1B5E20', onSuccessContainer: '#CBE4CB',
+      warning: '#FFA726', warningContainer: '#66430F', onWarningContainer: '#FFE2B7',
+      danger: '#F44336', dangerContainer: '#7A1F18', onDangerContainer: '#FFD9D6',
+      info: '#29B6F6', infoContainer: '#104962', onInfoContainer: '#B8E7FB',
+      infoTint: '#082431', infoLine: '#1B76A0', warnTint: '#2B1D08', warnLine: '#B26A00', dangerTint: '#3B1511', dangerLine: '#D32F2F', onDangerTint: '#FFD9D6', scrim: 'rgba(0,0,0,0.5)',
+      footShadow: '0 -8px 16px rgba(0,0,0,0.45)'
+    } : {
+      background: '#F5F5F7', surface: '#FFFFFF', container: '#E9EAED', sheet: '#FFFFFF',
+      onSurface: '#1A1C1E', onSurfaceVariant: '#45484C', outline: '#74777C', outlineVariant: '#E6E7EA',
+      primary: '#2B2F33', onPrimary: '#FFFFFF', selected: '#E6E7EA', onSelected: '#1A1C1E',
+      disabledBg: '#E9EAED', disabledFg: '#9A9DA2', track: '#D3D5D9',
+      success: '#2E7D32', successContainer: '#C8E6C9', onSuccessContainer: '#1E4620',
+      warning: '#E65100', warningContainer: '#FBE2CC', onWarningContainer: '#663C00',
+      danger: '#D32F2F', dangerContainer: '#F9D4D1', onDangerContainer: '#5F2120',
+      info: '#0288D1', infoContainer: '#CCE7F6', onInfoContainer: '#014361',
+      infoTint: '#E5F6FD', infoLine: '#CCE7F6', warnTint: '#FFF4E5', warnLine: '#FFD9A8', dangerTint: '#FDEDED', dangerLine: '#F6D5D5', onDangerTint: '#5F2120', scrim: 'rgba(0,0,0,0.5)',
+      footShadow: '0 -6px 14px rgba(0,0,0,0.14)'
+    };
+    var chipOf = function (k) {
+      if (k === 'error') return [c.dangerContainer, c.onDangerContainer];
+      if (k === 'warn') return [c.warningContainer, c.onWarningContainer];
+      if (k === 'info') return [c.infoContainer, c.onInfoContainer];
+      if (k === 'paid') return [c.successContainer, c.onSuccessContainer];
+      return [c.container, c.onSurfaceVariant];
+    };
+    if (!dark && this.props.layout !== 'page') { c.surface = c.background; }
+    var fmt = function (n) { return '$' + n.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 }); };
+    var er = chipOf('error'), un = chipOf('info'), nu = chipOf('neutral');
+    var P = {
+      'Tenant 2': { detail: '3 unpaid · $1,050.79', late: true, due: 'due 1 Nov', charges: [
+        { title: 'Rent · Nov', name: 'Rent', cents: 95000, detail: 'Due 1 Nov', when: 'nung 1 Nov', chip: 'Overdue 2 days', ck: er, od: true },
+        { title: 'Utilities · Nov', name: 'Utilities', cents: 8246, detail: 'Due 4 Nov', when: 'sa 4 Nov', chip: 'Due tomorrow', ck: un },
+        { title: 'Aircon · Nov', name: 'Aircon', cents: 1833, detail: 'Due 4 Nov', when: 'sa 4 Nov', chip: 'Due tomorrow', ck: un } ] },
+      'Primary Tenant': { detail: '6 unpaid · $1,963.65', late: false, due: 'due 7 Nov', pays: 'Tenant 1', charges: [
+        { title: 'Aircon · Nov', name: 'Aircon', cents: 3667, detail: 'Due 7 Nov', when: 'sa 7 Nov', chip: 'Due in 4 days', ck: nu },
+        { title: 'Aircon · Tenant 1 · Nov', name: 'Aircon · Tenant 1', cents: 1833, detail: 'Due 7 Nov', when: 'sa 7 Nov', chip: 'Due in 4 days', ck: nu },
+        { title: 'Rent · Nov', name: 'Rent', cents: 167500, detail: 'Due 7 Nov', when: 'sa 7 Nov', chip: 'Due in 4 days', ck: nu },
+        { title: 'Starhub · Nov', name: 'Starhub', cents: 2750, detail: 'Due 7 Nov', when: 'sa 7 Nov', chip: 'Due in 4 days', ck: nu },
+        { title: 'Utilities · Nov', name: 'Utilities', cents: 12369, detail: 'Due 7 Nov', when: 'sa 7 Nov', chip: 'Due in 4 days', ck: nu },
+        { title: 'Utilities · Tenant 1 · Nov', name: 'Utilities · Tenant 1', cents: 8246, detail: 'Due 7 Nov', when: 'sa 7 Nov', chip: 'Due in 4 days', ck: nu } ] }
+    };
+    var isNudge = this.props.mode !== 'monthly';
+    var propSent = this.props.sent === 'yes';
+    var cands = isNudge ? ['Tenant 2'] : ['Primary Tenant', 'Tenant 2'];
+    var who = ss.who !== undefined ? ss.who : cands[0];
+    var sent = isNudge ? propSent : (who === 'Primary Tenant' ? propSent : true);
+    var noNum = this.props.number === 'no';
+    var all = P[isNudge ? 'Tenant 2' : who].charges;
+    var odAll = [];
+    if (isNudge) {
+      if (this.props.overdue === 'several') odAll.push({ title: 'Utilities · Oct', cents: 7950, detail: 'Due 28 Oct', when: 'nung 28 Oct', chip: 'Overdue 6 days', ck: er });
+      all.forEach(function (x) { if (x.od) odAll.push(x); });
+    }
+    var tickT = ss.tick !== undefined ? ss.tick : (this.props.selected === 'all' ? odAll.map(function (x) { return x.title; }) : ['Rent · Nov']);
+    var ticked = odAll.filter(function (x) { return tickT.indexOf(x.title) >= 0; });
+    var tickSum = ticked.reduce(function (a, x) { return a + x.cents; }, 0);
+    var nmOf = function (x) { return x.title.split(' · ')[0] + ' for ' + x.title.split(' · ').slice(-1)[0] + ' 2026'; };
+    var L = function (b, t, h) { return { b: b, t: t, h: h || '20px' }; };
+    var gap = function () { return L('', '', '10px'); };
+    var lines = [];
+    if (isNudge) {
+      if (ticked.length === 1) lines = [L('', 'Hi ' + who + '! Paalala lang, yung ' + nmOf(ticked[0]) + ' (' + fmt(ticked[0].cents / 100) + ') ay due ' + ticked[0].when + '. Salamat! 🙏', 'auto')];
+      else if (ticked.length > 1) {
+        lines = [L('', 'Hi ' + who + '! Paalala lang, overdue pa yung mga ito:'), gap()];
+        ticked.forEach(function (x) { lines.push(L(nmOf(x) + ': ', fmt(x.cents / 100) + ' (due ' + x.when.replace('nung ', '') + ')')); });
+        lines.push(gap(), L('Total: ', fmt(tickSum / 100)), L('', 'Salamat! 🙏'));
+      }
+    } else if (who === 'Tenant 2') {
+      lines = [L('', 'Hi Tenant 2! Eto na yung breakdown for Nov 2026 😊'), gap(), L('Rent: ', '$950.00'), L('Utilities bill: ', '$82.46 (total bill $412.30)'), L('Aircon servicing: ', '$18.33 (1/6 units)'), gap(), L('Total: ', '$1,050.79'), L('', 'Paki-send by 1 Nov. Salamat!')];
+    } else {
+      lines = [L('', 'Hi Primary Tenant! Eto na yung breakdown for Nov 2026 😊'), gap(), L('', 'Yours:'), L('Rent: ', '$1,675.00'), L('Utilities bill: ', '$123.69 (total bill $412.30)'), L('Aircon servicing: ', '$36.67 (2/6 units)'), L('Starhub: ', '$27.50'), L('Subtotal: ', '$1,862.86'), gap(),
+        L('', 'Tenant 1’s (please collect):'), L('Utilities bill: ', '$82.46 (total bill $412.30)'), L('Aircon servicing: ', '$18.33 (1/6 units)'), L('Subtotal: ', '$100.79'), gap(), L('Total: ', '$1,963.65'), L('', 'Paki-send by 7 Nov. Salamat!')];
+    }
+    var noPreview = isNudge && ticked.length === 0, off = noNum || noPreview;
+    var menu = !!ss.menu;
+    var totalOpen = ss.total !== undefined ? ss.total : this.props.expanded === 'yes';
+    var sheet = this.props.layout !== 'page';
+    var chOpen = isNudge && odAll.length > 1 && (ss.chg !== undefined ? ss.chg : this.props.expanded === 'yes');
+    var oldest = ticked[0];
+    return {
+      c: c, isSheet: sheet, isPage: !sheet, shellRole: sheet ? 'dialog' : 'main',
+      shellStyle: sheet ? 'position: absolute; left: 0; right: 0; bottom: 0; top: 44px; background: ' + c.sheet + '; border-radius: 28px 28px 0 0; display: flex; flex-direction: column; overflow: hidden'
+        : 'flex-grow: 1; min-height: 0; background: ' + c.background + '; display: flex; flex-direction: column; overflow: hidden',
+      who: who, menuAttr: menu ? 'true' : 'false', toBorder: menu ? c.primary : c.outline, toShadow: menu ? '0 0 0 1px ' + c.primary : 'none',
+      openMenu: function () { self.setState({ menu: true }); }, closeMenu: function () { self.setState({ menu: false }); },
+      listOpen: menu,
+      listRows: cands.map(function (nm) {
+        var s2 = nm === who;
+        return { name: nm, detail: isNudge ? (nm === 'Tenant 2' ? '1 overdue · ' + fmt(P[nm].charges[0].cents / 100) : 'Nothing overdue') : (nm === 'Primary Tenant' && !propSent ? 'Monthly message not sent' : 'Sent 2 Nov'), detailFg: isNudge && nm === 'Tenant 2' ? c.danger : c.onSurfaceVariant, bg: s2 ? c.selected : 'transparent', weight: s2 ? '800' : '600', selAttr: s2 ? 'true' : 'false',
+          pick: function () { self.setState({ who: nm, menu: false }); } };
+      }),
+      stChip: sent ? 'Sent · unpaid' : 'Not sent', stBg: nu[0], stFg: nu[1],
+      isMonthly: !isNudge, totalAmount: fmt(P[who].charges.reduce(function (a, x) { return a + x.cents; }, 0) / 100), totalSub: P[who].charges.length + ' charges · ' + P[who].due, hasPays: !!P[who].pays, paysFor: 'Pays for: ' + (P[who].pays || ''),
+      totalOpen: totalOpen, totalAttr: totalOpen ? 'true' : 'false', totalRot: totalOpen ? 180 : 0, toggleTotal: function () { self.setState({ total: !totalOpen }); },
+      totalRows: P[who].charges.slice().sort(function (a, b) { var t1 = /Tenant 1/.test(a.title) ? 1 : 0, u1 = /Tenant 1/.test(b.title) ? 1 : 0; return t1 - u1 || b.cents - a.cents; }).map(function (x, i) { return { title: x.title, amount: fmt(x.cents / 100), line: i === 0 ? c.outlineVariant : c.outlineVariant }; }),
+      isNudge: isNudge, title: isNudge ? 'Send nudge message' : 'Send message',
+      chLabel: odAll.length > 1 ? 'Overdue charges' : 'Charge', chAmount: fmt(tickSum / 100),
+      chSub: ticked.length === 1 ? ticked[0].title : (ticked.length === 0 ? 'No charge selected' : ticked.length + ' charges'),
+      chHasSub2: odAll.length > 1, chSub2: ticked.length + ' of ' + odAll.length + ' overdue selected',
+      chHasChip: ticked.length > 0, chChip: oldest ? oldest.chip : '', chChipBg: oldest ? oldest.ck[0] : '', chChipFg: oldest ? oldest.ck[1] : '',
+      chCanOpen: odAll.length > 1, chLocked: odAll.length > 1 ? 'false' : 'true', chCursor: odAll.length > 1 ? 'pointer' : 'default',
+      chOpen: chOpen, chAttr: chOpen ? 'true' : 'false', chRot: chOpen ? 180 : 0,
+      toggleCh: function () { if (odAll.length > 1) self.setState({ chg: !chOpen }); },
+      chRows: odAll.map(function (x) {
+        var on = tickT.indexOf(x.title) >= 0;
+        return { title: x.title, amount: fmt(x.cents / 100), detail: x.detail, chip: x.chip, chipBg: x.ck[0], chipFg: x.ck[1], on: on ? 'true' : 'false', onB: on, boxBg: on ? c.primary : 'transparent', boxBorder: on ? c.primary : c.outline,
+          toggle: function () { self.setState({ tick: on ? tickT.filter(function (t) { return t !== x.title; }) : tickT.concat([x.title]) }); } };
+      }),
+      msgTitle: 'Message', msgSub: isNudge ? 'Nudge template' : 'Monthly breakdown template',
+      hasNudges: sent, histTitle: isNudge ? 'Nudges' : 'Sent', nudges: (isNudge ? [['Nudged', '2 Nov'], ['Nudged again', '3 Nov']] : (who === 'Primary Tenant' ? [['Sent', '2 Nov'], ['Sent again', '3 Nov']] : [['Sent', '2 Nov']])).map(function (r, i) { return { label: r[0], date: r[1], line: i === 0 ? 'transparent' : c.outlineVariant }; }),
+      noNum: noNum, noNumText: 'No WhatsApp number is set up for ' + who + '.',
+      ctaLabel: sent ? (isNudge ? 'Nudge again' : 'Send again') : 'Send on WhatsApp',
+      lines: lines, noPreview: noPreview,
+      btnOff: off ? 'true' : 'false', btnEvents: off ? 'none' : 'auto', btnBg: off ? c.disabledBg : c.primary, btnFg: off ? c.disabledFg : c.onPrimary
+    };
+  }
+}
+</script>
+</body>
+</html>

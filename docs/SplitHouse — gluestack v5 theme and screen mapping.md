@@ -145,21 +145,24 @@ Checked against gluestack v5's component list. Custom pieces are marked **custom
 
 | Screen | gluestack components | Custom pieces | What changed from the draft |
 | --- | --- | --- | --- |
-| Home | Card, Pressable, Badge, Progress, Button, Accordion, Alert, Skeleton | Bottom navigation bar (**custom**, built on a restyled Tabs) | FAB removed: the canvas has none. Alert added for the leftover draft |
+| Home | Card, Pressable, Badge, Progress, Button, Accordion, Alert, Skeleton | Bottom navigation bar (**custom**, built on a restyled Tabs) | FAB removed: the canvas has none. Alert added for the leftover draft. Redesign (2026-11-13, Phase 12A): footer per month state from `HomeCtas` (Send message and Record payment side by side, solid or outline, with counts), the `billDue` state, View details and Nudge on the charge rows |
+| Charge details (new, Phase 12A) | Card, Badge (status chip, Payment status pill), Divider, Button, Skeleton | None | One page per charge: amount card with its note, Details, Activity (shared `No activity yet` card when empty), footer with Nudge and Mark paid |
+| Send message and Nudge (new, Phase 12B) | BottomSheet, Select (To), Checkbox (Overdue charges), Badge, Button, Alert | Collapsible Overdue charges card (**custom**, or Accordion if it fits); message preview (the shared preview component) | One sheet, `SendMessageV2`, modes monthly and nudge. Footer Send on WhatsApp and Share bill, no Cancel. Replaces Recipient |
 | Bill upload | FormControl, Input, Select (Bill month, as a month list), DateTimePicker (Due date, Billing period), Button, Spinner, Alert, AlertDialog (Discard, Save with warnings) | File picker, number pad (**custom**; the number pad only mocks Android's decimal keyboard and is not built) | "Is this the right bill?" is a screen of Card, Alert and Buttons, not an AlertDialog |
-| Recipient | Card, Divider, Badge, Button | Message preview formatting (**custom**) | None |
+| Recipient | Card, Divider, Badge, Button | Message preview formatting (**custom**) | Retired in Phase 12C (12C.3): replaced by the Send message and Nudge sheet and Charge details |
 | Add charge | BottomSheet, FormControl, Input, Switch, Select (Month being fixed, as a month list), Alert, Button, Spinner | Connected button group: Shared or Personal (**custom**); single-select chips: split method, Who (**custom**) | Alert added for the custom split that doesn't add up. Saving and failed-save states |
-| Mark paid, Record payment, Mark bill paid | BottomSheet, FormControl, Input, Select (From, For), DateTimePicker (Received on, Paid on), Radio (carry or let go), Alert, Button, Spinner | None | Saving and failed-save states |
+| Record payment (redesign, Phase 12C) | BottomSheet, FormControl, Select (From), Checkbox (For, with Select all), Input (Amount received, read-only), DateTimePicker (Received on), AlertDialog (confirm, discard), Alert, Button, Spinner | None | `RecordPayment`: several charges ticked, each paid in full; short and over payments not built. Replaces Mark paid's sheet |
+| Mark bill paid | BottomSheet, FormControl, Input, DateTimePicker (Paid on), Alert, Button, Spinner | None | Saving and failed-save states. (Mark paid and the old Record payment shared this row until Phase 12C.) |
 | Share bill | BottomSheet, Radio, Switch, Button | None. The system share sheet is Android's | None |
 | View bill | Card, Badge, Progress, Button, Skeleton | PDF viewer (**custom**, opened from the Open row) | Loading state |
 | Household | Card, FormControl, Input, Select (Applies to), Switch, Alert, Progress, Skeleton, Tabs (Split, People, Recurring) | Connected button group: Directly or Via someone (**custom**); country-code prefix inside the WhatsApp field (**custom**); the per-person split bar, one segment per person in that person's color (**custom** Progress); the person color swatches (**custom**) | Loading state. Required markers added |
-| History | Card, Badge, Alert (month banner), Skeleton | Bottom navigation bar (**custom**) | Loading state |
+| History | Card, Badge, Alert (month banner), Skeleton, Pressable | Bottom navigation bar (**custom**) | Loading state. Phase 12A: payment rows in a past month are links with a chevron to Charge details |
 | Settings | Card, Switch, FormControl, Textarea (templates), Input (line labels), BottomSheet (For who, Line labels), AlertDialog (Restore, Remove), Badge, Alert, Button | Connected button group: theme (**custom**); message preview card (**custom**); person avatar with the person colour (**custom**) | Account card with Sign out. Message templates: a landing per type (Default and Custom templates), one editor for Default, custom and new. Notifications-blocked state |
 | First-run setup | Card, Progress, Button | Four-segment step indicator (**custom** Progress) | New step: Turn on reminders |
 | Sign in | Alert, Spinner | Sign in with Google button in Google's own styling (**custom**) | New |
 | Can't reach the server | AlertDialog, Button, Spinner | None | New |
 | Returning user loading | Card, Spinner | None | New |
-| Confirmations | AlertDialog, Button (filled Cancel, red outline action) | None | None |
+| Confirmations | AlertDialog, Button (filled Cancel, red outline action) | None | Phase 12: `sentCheck` (after returning from WhatsApp, 12B), `recordPayment`, `recordMulti`, `recordSaving`, `discardPayment` (12C) |
 | Notifications | System UI. Copy, channel, actions and icon only | Not drawn in the app | The boards are a reference for the Android notification text |
 | Form controls (reference) | FormControl, Input, Textarea, Select, DateTimePicker | None | New reference boards |
 

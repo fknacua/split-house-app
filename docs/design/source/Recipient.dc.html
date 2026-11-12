@@ -221,7 +221,7 @@ class Component extends DCLogic {
       ['Total:', '$1,963.65'], 'Paki-send by 7 Nov. Salamat!'
     ]);
     var T = dark ? 'Dark' : 'Light';
-    var H = { share: 'Share-Pdf-' + T + '.dc.html', rec: 'MarkPaid-Record-' + T + '.dc.html', diff: 'MarkPaid-Diff-' + T + '.dc.html',
+    var H = { share: 'Share-Pdf-' + T + '.dc.html', rec: (T === 'Dark' ? 'RecordPayment-Row-Dark.dc.html' : 'RecordPayment.dc.html'), diff: 'RecordPayment-Short-' + T + '.dc.html',
       corr: 'AddCharge-Correction-' + T + '.dc.html', nudged: 'Recipient-Nudged-' + T + '.dc.html', paid: 'Recipient-Paid-' + T + '.dc.html' };
     var v = {
       c: c, loading: st === 'loading', loaded: st !== 'loading',
@@ -306,7 +306,7 @@ class Component extends DCLogic {
       ];
       v.msg = M(['Hi Tenant 2! Paalala lang, yung Rent for Nov 2026 ($950.00) ay due nung 1 Nov. Salamat! 🙏']);
       v.msgLabel = 'Last nudge'; v.msgMeta = 'Sent 2 Nov';
-      v.primaryLabel = 'Mark rent paid'; v.iconCheck = true; v.primaryHref = 'MarkPaid-Full-' + T + '.dc.html';
+      v.primaryLabel = 'Mark rent paid'; v.iconCheck = true; v.primaryHref = (T === 'Dark' ? 'RecordPayment-Row-Dark.dc.html' : 'RecordPayment.dc.html');
       v.secondary = [B('Nudge again', which ? '#' : 'Recipient-NudgeWhich-' + T + '.dc.html')];
       if (which) {
         v.hasSheet = true; v.sheetTitle = 'Nudge about which charge?';

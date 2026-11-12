@@ -137,7 +137,7 @@ body{margin:0}
 <sc-if value="{{isUnsent}}" hint-placeholder-val="{{false}}">
 <div style="display: flex; flex-direction: column; gap: 6px">
 <h1 style="margin: 0; font-size: 24px; line-height: 32px; font-weight: 800; letter-spacing: -0.4px">Bill’s in. Send the breakdowns</h1>
-<p style="margin: 0; font-size: 15px; line-height: 22px; font-weight: 500; opacity: 0.9">2 messages are ready. Open each one to review it, then send it on WhatsApp yourself.</p>
+<p style="margin: 0; font-size: 15px; line-height: 22px; font-weight: 500; opacity: 0.9">2 messages are ready. Tap Send message, then send each one on WhatsApp yourself.</p>
 </div>
 <div style="display: flex; gap: 10px">
 <div style="flex: 1 1 0; min-width: 0; background: {{c.heroTile}}; border-radius: 16px; padding: 12px; display: flex; flex-direction: column; gap: 2px">
@@ -280,11 +280,15 @@ Upload utilities bill
 Start next month
 </a>
 </sc-if>
-<sc-if value="{{isCollecting}}" hint-placeholder-val="{{false}}">
-<a href="{{recordHref}}" style="width: 100%; height: 48px; border-radius: 24px; background: {{c.primary}}; color: {{c.onPrimary}}; display: flex; align-items: center; justify-content: center; gap: 10px; font-size: 15px; line-height: 20px; font-weight: 700; text-decoration: none">
-<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect width="20" height="12" x="2" y="6" rx="2"></rect><circle cx="12" cy="12" r="2"></circle><path d="M6 12h.01M18 12h.01"></path></svg>
-Record payment
-</a>
+<sc-if value="{{isDual}}" hint-placeholder-val="{{false}}">
+<!-- Two buttons side by side: Send message (monthly messages) and Record payment -->
+<div style="display: flex; gap: 8px">
+<a href="{{sendHref}}" style="flex: 1 1 0; min-width: 0; height: 48px; box-sizing: border-box; padding: 0 8px; border-radius: 24px; background: {{sBg}}; color: {{sFg}}; border: {{sBd}}; display: flex; align-items: center; justify-content: center; gap: 6px; font-size: 13px; line-height: 20px; font-weight: 700; text-decoration: none; white-space: nowrap"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M14.536 21.686a.5.5 0 0 0 .937-.024l6.5-19a.496.496 0 0 0-.635-.635l-19 6.5a.5.5 0 0 0-.024.937l7.93 3.18a2 2 0 0 1 1.112 1.11z"></path><path d="m21.854 2.147-10.94 10.939"></path></svg>Send message<sc-if value="{{sCount}}" hint-placeholder-val="{{true}}"><span style="flex-shrink: 0; min-width: 18px; height: 18px; box-sizing: border-box; padding: 0 5px; border-radius: 9px; background: {{c.onPrimary}}; color: {{c.primary}}; display: flex; align-items: center; justify-content: center; font-size: 12px; line-height: 16px; font-weight: 700">{{sN}}</span></sc-if></a>
+<a href="{{recordHref}}" style="flex: 1 1 0; min-width: 0; height: 48px; box-sizing: border-box; padding: 0 8px; border-radius: 24px; background: {{c.primary}}; color: {{c.onPrimary}}; border: 0; display: flex; align-items: center; justify-content: center; gap: 6px; font-size: 13px; line-height: 20px; font-weight: 700; text-decoration: none; white-space: nowrap"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect width="20" height="12" x="2" y="6" rx="2"></rect><circle cx="12" cy="12" r="2"></circle><path d="M6 12h.01M18 12h.01"></path></svg>Record payment<span style="flex-shrink: 0; min-width: 18px; height: 18px; box-sizing: border-box; padding: 0 5px; border-radius: 9px; background: {{c.onPrimary}}; color: {{c.primary}}; display: flex; align-items: center; justify-content: center; font-size: 12px; line-height: 16px; font-weight: 700">{{rN}}</span></a>
+</div>
+</sc-if>
+<sc-if value="{{isBillDue}}" hint-placeholder-val="{{false}}">
+<a href="{{payBillHref}}" style="width: 100%; height: 48px; border-radius: 24px; background: {{c.primary}}; color: {{c.onPrimary}}; display: flex; align-items: center; justify-content: center; gap: 10px; font-size: 15px; line-height: 20px; font-weight: 700; text-decoration: none"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 6 9 17l-5-5"></path></svg>Mark bill paid</a>
 </sc-if>
 </div>
 </sc-if>
@@ -308,10 +312,17 @@ Record payment
 <span style="font-size: 12px; line-height: 16px; font-weight: 600">Settings</span>
 </a>
 </nav>
+<sc-if value="{{hasNotice}}" hint-placeholder-val="{{false}}">
+<!-- Notice: a save failed and its sheet closed; sits above the bottom bar -->
+<div role="alert" style="position: absolute; left: 16px; right: 16px; bottom: 106px; z-index: 4; display: flex; align-items: center; gap: 10px; padding: 10px 12px; border-radius: 12px; background: {{c.dangerTint}}; border: 1px solid {{c.dangerLine}}">
+<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="flex-shrink: 0; color: {{c.danger}}"><circle cx="12" cy="12" r="10"></circle><path d="M12 8v4"></path><path d="M12 16h.01"></path></svg>
+<span style="font-size: 13px; line-height: 18px; font-weight: 700; color: {{c.onDangerTint}}">Couldn't save. Check your connection and try again.</span>
+</div>
+</sc-if>
 </div>
 </div>
 </x-dc>
-<script type="text/x-dc" data-dc-script data-props='{"state":{"editor":"enum","options":["upload","draft","unsent","collecting","dueToday","settled","loading"],"default":"upload"},"month":{"editor":"enum","options":["nov","dec"],"default":"nov"},"theme":{"editor":"enum","options":["light","dark"],"default":"light"},"$preview":{"width":400,"height":848}}'>
+<script type="text/x-dc" data-dc-script data-props='{"state":{"editor":"enum","options":["upload","draft","unsent","collecting","dueToday","billDue","settled","loading"],"default":"upload"},"month":{"editor":"enum","options":["nov","dec"],"default":"nov"},"notice":{"editor":"enum","options":["none","saveFailed"],"default":"none"},"theme":{"editor":"enum","options":["light","dark"],"default":"light"},"$preview":{"width":400,"height":848}}'>
 class Component extends DCLogic {
   renderVals() {
     var dark = this.props.theme === 'dark';
@@ -363,8 +374,8 @@ class Component extends DCLogic {
         : { bg: 'transparent', fg: c.onSurface, border: c.outline };
       return { label: label, bg: s.bg, fg: s.fg, border: s.border, href: href || '#', bell: icon === 'bell', check: icon === 'check', send: icon === 'send' };
     };
-    var NUDGE = function (l) { return act(l, 'warn', 'bell', dark ? 'Recipient-Nudged-Dark.dc.html' : 'Recipient-Nudged-Light.dc.html'); };
-    var PAID = function (l, href) { var a = act(l || 'Mark paid', 'outline', 'check', href || (dark ? 'MarkPaid-Record-Dark.dc.html' : 'MarkPaid-Record-Light.dc.html')); return a; };
+    var NUDGE = function (l) { return act(l, 'warn', 'bell', 'SendV2-Sheet-' + (l === 'Nudge again' ? 'NudgeAgain' : 'Nudge') + '-' + T + '.dc.html'); };
+    var PAID = function (l, href) { var a = act(l || 'Mark paid', 'outline', 'check', href || (dark ? 'RecordPayment-Row-Dark.dc.html' : 'RecordPayment.dc.html')); return a; };
     var SEND = function (href) { return act('Send on WhatsApp', 'outline', 'send', href); };
     var idx0 = 0;
     // One row per charge. o: { day, title, amount, detail, chip, kind, href, link, actions, note, open }
@@ -389,18 +400,17 @@ class Component extends DCLogic {
     var L = dark ? {
       tenant2: 'Recipient-Nudged-Dark.dc.html', primaryNotSent: 'Recipient-NotSent-Dark.dc.html', primarySent: 'Recipient-Sent-Dark.dc.html',
       primaryPaid: 'Recipient-Paid-Dark.dc.html', billPick: 'Upload-Pick-Dark.dc.html', bill: 'Bill-Collecting-Dark.dc.html', billPaid: 'Bill-Paid-Dark.dc.html', billUnsent: 'Bill-Unsent-Dark.dc.html',
-      markPaid: 'MarkPaid-Full-Dark.dc.html', record: 'MarkPaid-Record-Dark.dc.html', tenant1: 'Recipient-RentOnly-Dark.dc.html', tenant2Sent: 'Recipient-Sent-Dark.dc.html'
+      markPaid: 'RecordPayment-Row-Dark.dc.html', record: 'RecordPayment-Empty-Dark.dc.html', tenant1: 'Recipient-RentOnly-Dark.dc.html', tenant2Sent: 'Recipient-Sent-Dark.dc.html'
     } : {
       tenant2: 'Recipient-Nudged-Light.dc.html', primaryNotSent: 'Recipient.dc.html', primarySent: 'Recipient-Sent-Light.dc.html',
       primaryPaid: 'Recipient-Paid-Light.dc.html', billPick: 'BillUpload.dc.html', bill: 'Bill-Collecting-Light.dc.html', billPaid: 'Bill-Paid-Light.dc.html', billUnsent: 'Bill-Unsent-Light.dc.html',
-      markPaid: 'MarkPaid.dc.html', record: 'MarkPaid-Record-Light.dc.html', tenant1: 'Recipient-RentOnly-Light.dc.html', tenant2Sent: 'Recipient-Sent-Light.dc.html'
+      markPaid: 'RecordPayment.dc.html', record: 'RecordPayment-Empty-Light.dc.html', tenant1: 'Recipient-RentOnly-Light.dc.html', tenant2Sent: 'Recipient-Sent-Light.dc.html'
     };
     var payBill = dark ? 'PayBill-Partial-Dark.dc.html' : 'PayBill-Partial-Light.dc.html';
     var rows;
     var needsBill = 'Worked out once the utilities bill is uploaded.';
     var VIA = 'Pays via Primary Tenant';
     var dec = this.props.month === 'dec';
-    var REVIEW = function (href) { return act('Review message', 'outline', 'send', href); };
     if (st === 'upload') {
       // Before the bill: utilities amounts are unknown. December (started early on 29 Nov): nothing overdue yet
       var t2rent = dec ? { chip: 'Due in 2 days', kind: 'due3', actions: [PAID()] } : { chip: 'Overdue 1 day', kind: 'overdue', actions: [NUDGE('Nudge'), PAID()], open: true };
@@ -420,11 +430,11 @@ class Component extends DCLogic {
     } else if (st === 'unsent') {
       rows = [
         mk({ day: '1', title: 'Rent · Tenant 2', amount: '$950.00', chip: 'Overdue 1 day', kind: 'overdue', href: L.tenant2, actions: [NUDGE('Nudge'), PAID()], open: true }),
-        mk({ day: '4', title: 'Utilities · Tenant 2', amount: '$82.46', chip: 'Not sent', kind: 'todo', href: L.tenant2, link: 'Review message', open: true }),
+        mk({ day: '4', title: 'Utilities · Tenant 2', amount: '$82.46', chip: 'Not sent', kind: 'todo', href: L.tenant2, open: true }),
         mk({ day: '4', title: 'Aircon · Tenant 2', amount: '$18.33', chip: 'Due in 2 days', kind: 'due3', href: L.tenant2 }),
         mk({ day: '7', title: 'Rent · Primary Tenant', amount: '$1,675.00', chip: 'Upcoming', kind: 'wait', href: L.primaryNotSent, actions: [PAID()] }),
         mk({ day: '7', title: 'Starhub · Primary Tenant', amount: '$27.50', chip: 'Upcoming', kind: 'wait', href: L.primaryNotSent, actions: [PAID()] }),
-        mk({ day: '7', title: 'Utilities · Primary Tenant', amount: '$123.69', chip: 'Not sent', kind: 'todo', href: L.primaryNotSent, link: 'Review message', open: true }),
+        mk({ day: '7', title: 'Utilities · Primary Tenant', amount: '$123.69', chip: 'Not sent', kind: 'todo', href: L.primaryNotSent, open: true }),
         mk({ day: '7', title: 'Aircon · Primary Tenant', amount: '$36.67', chip: 'Upcoming', kind: 'wait', href: L.primaryNotSent }),
         mk({ day: '7', title: 'Utilities · Tenant 1', amount: '$82.46', detail: VIA, chip: 'Not sent', kind: 'todo', href: L.primaryNotSent }),
         mk({ day: '7', title: 'Aircon · Tenant 1', amount: '$18.33', detail: VIA, chip: 'Upcoming', kind: 'wait', href: L.primaryNotSent }),
@@ -453,6 +463,20 @@ class Component extends DCLogic {
         mk({ day: '16', title: 'Utilities bill', amount: '$412.30', detail: 'You pay utilities', chip: today ? 'In 12 days' : 'In 13 days', kind: 'wait', href: L.bill, link: 'View bill', actions: [PAID('Mark bill paid', payBill)], note: '$247.38 of $412.30 covered so far.', open: true }),
         mk({ day: '28', title: 'Rent · Tenant 1', amount: '$950.00', detail: 'Paid 3 Nov', chip: 'Paid', kind: 'paid', href: L.tenant1 })
       ];
+    } else if (st === 'billDue') {
+      rows = [
+        mk({ day: '1', title: 'Rent · Tenant 2', amount: '$950.00', detail: 'Paid 3 Nov', chip: 'Paid', kind: 'paid', href: L.tenant2 }),
+        mk({ day: '4', title: 'Utilities · Tenant 2', amount: '$82.46', detail: 'Paid 4 Nov', chip: 'Paid', kind: 'paid', href: L.tenant2 }),
+        mk({ day: '4', title: 'Aircon · Tenant 2', amount: '$18.33', detail: 'Paid 4 Nov', chip: 'Paid', kind: 'paid', href: L.tenant2 }),
+        mk({ day: '7', title: 'Rent · Primary Tenant', amount: '$1,675.00', detail: 'Paid 7 Nov', chip: 'Paid', kind: 'paid', href: L.primaryPaid }),
+        mk({ day: '7', title: 'Starhub · Primary Tenant', amount: '$27.50', detail: 'Paid 7 Nov', chip: 'Paid', kind: 'paid', href: L.primaryPaid }),
+        mk({ day: '7', title: 'Utilities · Primary Tenant', amount: '$123.69', detail: 'Paid 3 Nov', chip: 'Paid', kind: 'paid', href: L.primaryPaid }),
+        mk({ day: '7', title: 'Aircon · Primary Tenant', amount: '$36.67', detail: 'Paid 3 Nov', chip: 'Paid', kind: 'paid', href: L.primaryPaid }),
+        mk({ day: '7', title: 'Utilities · Tenant 1', amount: '$82.46', detail: VIA + ' · Paid 7 Nov', chip: 'Paid', kind: 'paid', href: L.primaryPaid }),
+        mk({ day: '7', title: 'Aircon · Tenant 1', amount: '$18.33', detail: VIA + ' · Paid 7 Nov', chip: 'Paid', kind: 'paid', href: L.primaryPaid }),
+        mk({ day: '16', title: 'Utilities bill', amount: '$412.30', detail: 'You pay utilities', chip: 'Due in 4 days', kind: 'due3', href: L.bill, link: 'View bill', actions: [PAID('Mark bill paid', payBill)], note: '$412.30 of $412.30 covered.', open: true }),
+        mk({ day: '28', title: 'Rent · Tenant 1', amount: '$950.00', detail: 'Paid 11 Nov', chip: 'Paid', kind: 'paid', href: L.tenant1 })
+      ];
     } else {
       rows = [
         mk({ day: '1', title: 'Rent · Tenant 2', amount: '$950.00', detail: 'Paid 3 Nov', chip: 'Paid', kind: 'paid', href: L.tenant2 }),
@@ -468,6 +492,20 @@ class Component extends DCLogic {
         mk({ day: '28', title: 'Rent · Tenant 1', amount: '$950.00', detail: 'Paid 27 Nov', chip: 'Paid', kind: 'paid', href: L.tenant1 })
       ];
     }
+    // View details opens a details page for the charge's status (the page shows a sample charge of that status)
+    rows.forEach(function (r) {
+      if (r.linkLabel !== 'View details') return;
+      var nudged = /Nudged/.test(r.detail), sent = /Sent/.test(r.detail), via = /via/i.test(r.detail), noAmt = r.amount === '—';
+      var d;
+      if (r.kind === 'overdue') d = nudged ? 'Overdue' : 'OverdueNew';
+      else if (r.kind === 'paid') d = 'Paid';
+      else if (r.kind === 'today') d = 'DueToday';
+      else if (r.kind === 'todo') d = 'Unsent';
+      else if (r.kind === 'due') d = 'DueSoon';
+      else if (sent) d = via ? 'Routed' : 'SentUnpaid';
+      else d = noAmt ? 'BeforeBill' : 'Upcoming';
+      r.href = 'ChargeDetails-' + d + '-' + T + '.dc.html';
+    });
     rows.sort(function (a, b) { var d = parseInt(a.day, 10) - parseInt(b.day, 10); return d || (a.title < b.title ? -1 : (a.title > b.title ? 1 : 0)); });
     rows.forEach(function (r) {
       r.toggle = function () {
@@ -477,7 +515,7 @@ class Component extends DCLogic {
         self.setState({ open: cur });
       };
     });
-    var collecting = st === 'collecting' || st === 'dueToday';
+    var collecting = st === 'collecting' || st === 'dueToday' || st === 'billDue';
     var idx = st === 'upload' ? 0 : (st === 'unsent' ? 1 : (collecting ? 2 : 3));
     var heroBg = c.selected;
     var heroFg = c.onSelected;
@@ -495,15 +533,16 @@ class Component extends DCLogic {
         opacity: reached ? '1' : '0.75'
       };
     });
-    var dateLine = { upload: dec ? '29 Nov · Step 1 of 3' : '2 Nov · Step 1 of 3', unsent: '2 Nov · Step 2 of 3', collecting: '3 Nov · Collecting', dueToday: '4 Nov · Collecting', settled: '29 Nov · Done' }[st];
+    var dateLine = { upload: dec ? '29 Nov · Step 1 of 3' : '2 Nov · Step 1 of 3', unsent: '2 Nov · Step 2 of 3', collecting: '3 Nov · Collecting', dueToday: '4 Nov · Collecting', billDue: '12 Nov · Bill due 16 Nov', settled: '29 Nov · Done' }[st];
     var skelW = [['58%', '44%'], ['50%', '62%'], ['66%', '70%'], ['44%', '38%'], ['52%', '48%']];
     var skelRows = skelW.map(function (w, i) { return { w1: w[0], w2: w[1], divider: i === 0 ? 'transparent' : c.outlineVariant }; });
-    var showAction = st !== 'unsent' && !isLoading;
+    var showAction = !isLoading;
     return {
       uploadHref: L.billPick,
       continueHref: 'Upload-Continue-' + T + '.dc.html',
       discardHref: 'Upload-Discard-' + T + '.dc.html',
       navShadow: showAction ? 'none' : c.footShadow,
+      hasNotice: this.props.notice === 'saveFailed',
       c: c, rows: rows, steps: steps, dateLine: dateLine, heroBg: heroBg, heroFg: heroFg,
       hasAction: showAction,
       isLoading: isLoading, isLoaded: !isLoading, skelRows: skelRows, stepLabels: labels,
@@ -512,15 +551,18 @@ class Component extends DCLogic {
       settingsHref: dark ? 'Settings-View-Dark.dc.html' : 'Settings.dc.html',
       // Sticky summary: once the full card scrolls away, a compact card (date, progress, key status) pins under the header
       compact: !!(this.state && this.state.compact) && !isLoading,
-      compactStatus: { upload: 'Waiting on the utilities bill', unsent: '2 messages to send', collecting: 'Collecting · $2,725.83 fronted', dueToday: '2 payments due today', settled: 'November is settled' }[st],
-      frontNote: 'Rent, aircon and other charges paid for others · ' + (st === 'dueToday' ? '$1,900.00' : '$950.00') + ' back so far',
-      coverText: '$247.38 of $412.30', coverPct: '60%',
-      coverNote: 'Your share and 1 of 3 others paid · due 16 Nov',
+      compactStatus: { upload: 'Waiting on the utilities bill', unsent: '2 messages to send', collecting: 'Collecting · $2,725.83 fronted', dueToday: '2 payments due today', billDue: 'Everyone paid · bill due 16 Nov', settled: 'November is settled' }[st],
+      frontNote: 'Rent, aircon and other charges paid for others · ' + (st === 'billDue' ? '$3,675.83' : (st === 'dueToday' ? '$1,900.00' : '$950.00')) + ' back so far',
+      coverText: st === 'billDue' ? '$412.30 of $412.30' : '$247.38 of $412.30', coverPct: st === 'billDue' ? '100%' : '60%',
+      coverNote: st === 'billDue' ? 'Everyone has paid · due 16 Nov' : 'Your share and 1 of 3 others paid · due 16 Nov',
       hasDueToday: st === 'dueToday', dueText: '2 payments are due today', dueAmt: '$100.79',
       recordHref: L.record,
+      sendHref: 'SendV2-Sheet-Monthly-' + T + '.dc.html', payBillHref: payBill,
+      isDual: st === 'unsent' || st === 'collecting' || st === 'dueToday', isBillDue: st === 'billDue',
+      sBg: st === 'unsent' ? c.primary : 'transparent', sFg: st === 'unsent' ? c.onPrimary : c.onSurface, sBd: st === 'unsent' ? '0' : '1px solid ' + c.outline, sCount: st === 'unsent', sN: '2', rN: '2',
       monthLabel: dec ? 'December 2026' : 'November 2026',
       monAbbr: dec ? 'DEC' : 'NOV',
-      frontAmt: dec ? '$0.00' : ({ upload: '$3,675.83', unsent: '$3,675.83', collecting: '$2,725.83', dueToday: '$1,775.83', settled: '$0.00' }[st]),
+      frontAmt: dec ? '$0.00' : ({ upload: '$3,675.83', unsent: '$3,675.83', collecting: '$2,725.83', dueToday: '$1,775.83', billDue: '$0.00', settled: '$0.00' }[st]),
       nextMonthHref: dark ? 'CloseMonth-Idle-Dark.dc.html' : 'CloseMonth-Idle-Light.dc.html',
       onScroll: function (e) {
         var y = e && e.currentTarget ? e.currentTarget.scrollTop : 0;
