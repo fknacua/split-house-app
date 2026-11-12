@@ -1,0 +1,154 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Charge details</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&display=swap">
+<style>
+body{margin:0}
+</style>
+</helmet>
+<div style="width: 400px; height: 848px; box-sizing: border-box; padding: 8px; background: #0B0C0C; border-radius: 26px; font-family: Manrope, 'Segoe UI', system-ui, sans-serif; color: {{c.onSurface}}">
+<div style="position: relative; width: 384px; height: 832px; border-radius: 18px; overflow: hidden; background: {{c.background}}; display: flex; flex-direction: column">
+<div style="position: absolute; top: 12px; left: 186px; width: 12px; height: 12px; border-radius: 6px; background: #050505; box-shadow: 0 0 0 2px #1C1D1E"></div>
+<div style="height: 36px; flex-shrink: 0"></div>
+<header style="display: flex; align-items: center; gap: 4px; padding: 4px 8px; height: 56px; flex-shrink: 0">
+<a href="{{backHref}}" aria-label="Back" style="width: 48px; height: 48px; border-radius: 24px; color: {{c.onSurface}}; display: flex; align-items: center; justify-content: center"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m12 19-7-7 7-7"></path><path d="M19 12H5"></path></svg></a>
+<div style="display: flex; flex-direction: column; flex-grow: 1; min-width: 0">
+<span style="font-size: 20px; line-height: 28px; font-weight: 800">{{title}}</span>
+<span style="font-size: 12px; line-height: 16px; font-weight: 600; color: {{c.onSurfaceVariant}}">{{sub}}</span>
+</div>
+</header>
+<main style="flex-grow: 1; min-height: 0; overflow-y: auto; overscroll-behavior: contain; scrollbar-width: none; padding: 4px 16px 16px; display: flex; flex-direction: column; gap: 12px">
+<!-- Charge total: one charge -->
+<div style="display: flex; flex-direction: column; gap: 6px">
+<span style="font-size: 14px; line-height: 20px; font-weight: 700">Amount</span>
+<div style="background: {{c.surface}}; border-radius: 12px; padding: 10px 14px; display: flex; flex-direction: column; gap: 2px; min-height: 64px; box-sizing: border-box; justify-content: center">
+<div style="display: flex; align-items: center; gap: 8px">
+<span style="flex-grow: 1; font-size: 20px; line-height: 28px; font-weight: 800; font-variant-numeric: tabular-nums">{{amount}}</span>
+<span style="flex-shrink: 0; padding: 2px 10px; border-radius: 999px; display: flex; align-items: center; font-size: 12px; line-height: 16px; font-weight: 700; background: {{chipBg}}; color: {{chipFg}}">{{chip}}</span>
+</div>
+<sc-if value="{{hasCardNote}}" hint-placeholder-val="{{false}}"><span style="font-size: 12px; line-height: 16px; font-weight: 600; color: {{c.onSurfaceVariant}}">{{cardNote}}</span></sc-if>
+</div>
+</div>
+
+<!-- Details -->
+<div style="display: flex; flex-direction: column; gap: 6px">
+<span style="font-size: 14px; line-height: 20px; font-weight: 700">Details</span>
+<div style="background: {{c.surface}}; border-radius: 12px; padding: 0 14px; display: flex; flex-direction: column">
+<sc-for list="{{facts}}" as="f" hint-placeholder-count="4">
+<div style="min-height: 44px; display: flex; justify-content: space-between; align-items: center; gap: 12px; border-top: 1px solid {{f.divider}}; font-size: 14px; line-height: 20px">
+<span style="font-weight: 600; color: {{c.onSurfaceVariant}}">{{f.label}}</span>
+<span style="font-weight: 700; text-align: right; padding: {{f.pad}}; border-radius: 999px; background: {{f.bg}}; color: {{f.fg}}; font-size: {{f.size}}; line-height: {{f.lh}}">{{f.value}}</span>
+</div>
+</sc-for>
+</div>
+<sc-if value="{{hasNote}}" hint-placeholder-val="{{false}}"><span style="padding: 2px 4px 0; font-size: 12px; line-height: 16px; font-weight: 600; color: {{c.onSurfaceVariant}}">{{note}}</span></sc-if>
+</div>
+
+<!-- Activity -->
+<div style="display: flex; flex-direction: column; gap: 6px">
+<span style="font-size: 14px; line-height: 20px; font-weight: 700">Activity</span>
+<sc-if value="{{noActivity}}" hint-placeholder-val="{{false}}"><div style="background: {{c.surface}}; border-radius: 12px; padding: 24px 16px; text-align: center; font-size: 14px; line-height: 20px; font-weight: 600; color: {{c.onSurfaceVariant}}">No activity yet</div></sc-if>
+<sc-if value="{{hasActivity}}" hint-placeholder-val="{{true}}">
+<div style="background: {{c.surface}}; border-radius: 12px; padding: 0 14px; display: flex; flex-direction: column">
+<sc-for list="{{activity}}" as="a" hint-placeholder-count="3">
+<div style="min-height: 44px; display: flex; justify-content: space-between; align-items: center; gap: 12px; border-top: 1px solid {{a.divider}}; font-size: 14px; line-height: 20px"><span style="font-weight: 700">{{a.title}}</span><span style="font-weight: 600; color: {{c.onSurfaceVariant}}; white-space: nowrap">{{a.date}}</span></div>
+</sc-for>
+</div>
+</sc-if>
+</div>
+</main>
+
+<sc-if value="{{hasFooter}}" hint-placeholder-val="{{true}}">
+<footer style="position: relative; z-index: 3; flex-shrink: 0; padding: 10px 16px 28px; display: flex; flex-direction: column; gap: 8px; background: {{c.background}}; border-top: 1px solid {{c.outlineVariant}}; box-shadow: {{c.footShadow}}">
+<sc-if value="{{hasNudge}}" hint-placeholder-val="{{false}}"><a href="{{nudgeHref}}" style="height: 48px; box-sizing: border-box; border-radius: 24px; font-size: 15px; line-height: 20px; font-weight: 700; display: flex; align-items: center; justify-content: center; gap: 8px; text-decoration: none; background: {{c.warningContainer}}; color: {{c.onWarningContainer}}; border: 1px solid {{c.warning}}"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M10.268 21a2 2 0 0 0 3.464 0"></path><path d="M3.262 15.326A1 1 0 0 0 4 17h16a1 1 0 0 0 .74-1.673C19.41 13.956 18 12.499 18 8A6 6 0 0 0 6 8c0 4.499-1.411 5.956-2.738 7.326"></path></svg> {{nudgeLabel}}</a></sc-if>
+<a href="{{paidHref}}" style="height: 48px; box-sizing: border-box; border-radius: 24px; font-size: 15px; line-height: 20px; font-weight: 700; display: flex; align-items: center; justify-content: center; gap: 8px; text-decoration: none; border: 1px solid {{c.outline}}; color: {{c.onSurface}}"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 6 9 17l-5-5"></path></svg> Mark paid</a>
+</footer>
+</sc-if>
+</div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"state":{"editor":"enum","options":["overdue","overdueNew","sentUnpaid","dueSoon","upcoming","unsent","dueToday","partlyPaid","paid","routed","beforeBill"],"default":"overdue"},"theme":{"editor":"enum","options":["light","dark"],"default":"dark"},"$preview":{"width":400,"height":848}}'>
+class Component extends DCLogic {
+  renderVals() {
+    var dark = this.props.theme !== 'light';
+    var T = dark ? 'Dark' : 'Light';
+    var c = dark ? {
+      background: '#111214', surface: '#1A1C1E', container: '#222427',
+      onSurface: '#E3E3E6', onSurfaceVariant: '#C4C6CB', outline: '#8E9196', outlineVariant: '#2E3134',
+      primary: '#E2E2E6', onPrimary: '#1A1C1E',
+      success: '#66BB6A', successContainer: '#1B5E20', onSuccessContainer: '#CBE4CB',
+      warning: '#FFA726', warningContainer: '#66430F', onWarningContainer: '#FFE2B7',
+      danger: '#F44336', dangerContainer: '#7A1F18', onDangerContainer: '#FFD9D6',
+      info: '#29B6F6', infoContainer: '#104962', onInfoContainer: '#B8E7FB',
+      footShadow: '0 -8px 16px rgba(0,0,0,0.45)'
+    } : {
+      background: '#F5F5F7', surface: '#FFFFFF', container: '#E9EAED',
+      onSurface: '#1A1C1E', onSurfaceVariant: '#45484C', outline: '#74777C', outlineVariant: '#E6E7EA',
+      primary: '#2B2F33', onPrimary: '#FFFFFF',
+      success: '#2E7D32', successContainer: '#C8E6C9', onSuccessContainer: '#1E4620',
+      warning: '#E65100', warningContainer: '#FBE2CC', onWarningContainer: '#663C00',
+      danger: '#D32F2F', dangerContainer: '#F9D4D1', onDangerContainer: '#5F2120',
+      info: '#0288D1', infoContainer: '#CCE7F6', onInfoContainer: '#014361',
+      footShadow: '0 -6px 14px rgba(0,0,0,0.14)'
+    };
+    var K = {
+      overdue: [c.dangerContainer, c.onDangerContainer], info: [c.infoContainer, c.onInfoContainer], paid: [c.successContainer, c.onSuccessContainer],
+      warn: [c.warningContainer, c.onWarningContainer], neutral: [c.container, c.onSurfaceVariant], solid: [c.primary, c.onPrimary]
+    };
+    var st = this.props.state || 'overdue';
+    var D = {
+      overdue: { title: 'Rent · Tenant 2', amount: '$950.00', chip: ['Overdue 2 days', 'overdue'], payer: 'Tenant 2', route: 'Direct', due: '01 Nov 2026', pay: 'Unpaid',
+        act: [['Nudged', '02 Nov 2026'], ['Monthly message sent', '02 Nov 2026']], nudge: 'Nudge again' },
+      overdueNew: { title: 'Rent · Tenant 2', amount: '$950.00', chip: ['Overdue 1 day', 'overdue'], payer: 'Tenant 2', route: 'Direct', due: '01 Nov 2026', pay: 'Unpaid',
+        act: [], nudge: 'Nudge' },
+      sentUnpaid: { title: 'Rent · Primary Tenant', amount: '$1,675.00', chip: ['Sent · unpaid', 'neutral'], payer: 'Primary Tenant', route: 'Direct', due: '07 Nov 2026', pay: 'Unpaid',
+        act: [['Monthly message sent', '02 Nov 2026']] },
+      dueSoon: { title: 'Utilities · Tenant 2', amount: '$82.46', chip: ['Due tomorrow', 'info'], payer: 'Tenant 2', route: 'Direct', due: '04 Nov 2026', pay: 'Unpaid',
+        act: [['Monthly message sent', '02 Nov 2026']] },
+      upcoming: { title: 'Rent · Primary Tenant', amount: '$1,675.00', chip: ['Upcoming', 'neutral'], payer: 'Primary Tenant', route: 'Direct', due: '07 Nov 2026', pay: 'Unpaid',
+        act: [] },
+      unsent: { title: 'Utilities · Tenant 2', amount: '$82.46', chip: ['Not sent', 'solid'], payer: 'Tenant 2', route: 'Direct', due: '04 Nov 2026', pay: 'Unpaid',
+        act: [] },
+      dueToday: { title: 'Utilities · Tenant 2', amount: '$82.46', chip: ['Due today', 'info'], payer: 'Tenant 2', route: 'Direct', due: '04 Nov 2026', pay: 'Unpaid',
+        act: [['Monthly message sent', '02 Nov 2026']], cardNote: 'You’ll get a payment check tonight if it’s still unpaid.' },
+      partlyPaid: { title: 'Rent · Tenant 2', amount: '$950.00', chip: ['Overdue 2 days', 'overdue'], payer: 'Tenant 2', route: 'Direct', due: '01 Nov 2026', pay: 'Partially paid',
+        act: [['Payment $500.00', '03 Nov 2026'], ['Nudged', '02 Nov 2026'], ['Monthly message sent', '02 Nov 2026']], nudge: 'Nudge again' },
+      paid: { title: 'Rent · Tenant 2', amount: '$950.00', chip: ['Paid', 'paid'], payer: 'Tenant 2', route: 'Direct', due: '01 Nov 2026', pay: 'Paid',
+        act: [['Payment $950.00', '03 Nov 2026'], ['Nudged', '02 Nov 2026'], ['Monthly message sent', '02 Nov 2026']], noFooter: true },
+      routed: { title: 'Utilities · Tenant 1', amount: '$82.46', chip: ['Sent · unpaid', 'neutral'], payer: 'Tenant 1', route: 'Via Primary Tenant', due: '07 Nov 2026', pay: 'Unpaid',
+        act: [['Monthly message sent', '02 Nov 2026']] },
+      beforeBill: { title: 'Utilities · Tenant 2', amount: '—', chip: ['Due in 2 days', 'neutral'], payer: 'Tenant 2', route: 'Direct', due: '04 Nov 2026', pay: 'Unpaid',
+        act: [], cardNote: 'Worked out once the utilities bill is uploaded.', noFooter: true }
+    }[st];
+    var ck = K[D.chip[1]];
+    var pk = { 'Unpaid': K.neutral, 'Partially paid': K.warn, 'Paid': K.paid }[D.pay];
+    var line = function (i) { return i === 0 ? 'transparent' : c.outlineVariant; };
+    var facts = [
+      { label: 'Payer', value: D.payer },
+      { label: 'Payment routing', value: D.route },
+      { label: 'Due', value: D.due },
+      { label: 'Payment status', value: D.pay, pill: true }
+    ].map(function (f, i) { return { label: f.label, value: f.value, divider: line(i), pad: f.pill ? '2px 10px' : '0', bg: f.pill ? pk[0] : 'transparent', fg: f.pill ? pk[1] : c.onSurface, size: f.pill ? '12px' : '14px', lh: f.pill ? '16px' : '20px' }; });
+    var hasNudge = !!D.nudge;
+    return {
+      c: c, backHref: '#', title: D.title, sub: 'November 2026',
+      amount: D.amount, chip: D.chip[0], chipBg: ck[0], chipFg: ck[1],
+      facts: facts, hasNote: !!D.note, note: D.note || '', hasCardNote: !!D.cardNote, cardNote: D.cardNote || '',
+      noActivity: D.act.length === 0, hasActivity: D.act.length > 0,
+      activity: D.act.map(function (a, i) { return { title: a[0], date: a[1], divider: line(i) }; }),
+      hasFooter: !D.noFooter, hasNudge: hasNudge, nudgeLabel: D.nudge || '',
+      nudgeHref: 'SendV2-Sheet-' + (D.nudge === 'Nudge again' ? 'NudgeAgain' : 'Nudge') + '-' + T + '.dc.html',
+      paidHref: dark ? 'RecordPayment-Row-Dark.dc.html' : 'RecordPayment.dc.html'
+    };
+  }
+}
+</script>
+</body>
+</html>
