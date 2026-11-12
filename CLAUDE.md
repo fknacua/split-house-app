@@ -49,7 +49,7 @@ Developer is on Windows using bash as the terminal, on a personal device.
 Scaffolding the backend and app and the gluestack v5 spike are finished (findings in docs/SplitHouse — gluestack v5 spike findings.md). Ignore the old "first tasks" list.
 
 ## Build order
-Follow docs/plans/implementation-plan.md, phase by phase (Phase 0 to Phase 15), and the working rules (the loop) at the top of that file. Stop for Francis's review after each screen.
+Follow docs/plans/implementation-plan.md, phase by phase (Phase 0 to Phase 16), and the working rules (the loop) at the top of that file. Stop for Francis's review after each screen.
 
 ## Working agreements
 Don't commit or push unless asked. Never stage, commit or push anything in docs/plans/ (local only, and not in .gitignore): when staging, add files by explicit path and skip that folder, and never use `git add -A`, `git add .` or `git commit -a`. Flag any conflict between docs or any decision you want to change before acting on it.

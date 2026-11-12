@@ -44,7 +44,7 @@ const STEPS: Record<SetupStepId, { title: string; detail: string; optional: bool
 
 const INTRO_SETUP =
   "Tell the app who lives here and what everyone pays. You only do this once.";
-// Reminders joins this text with its step in Phase 13 (13.7).
+// Reminders joins this text with its step in Phase 14 (14.7).
 const INTRO_OPTIONAL = "Custom messages are optional. You can change them any time in Settings.";
 const INTRO_ALL_DONE = "Everything is set up. Next, upload your utilities bill if you have one already.";
 

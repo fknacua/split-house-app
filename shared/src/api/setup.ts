@@ -3,7 +3,7 @@ import { monthKey } from '../schemas/primitives';
 import { householdActionSchema, householdPersonSchema } from './household';
 import { settingsMessageRowSchema } from './settings';
 
-/** First run's steps, in the order of `Welcome.dc.html`. Reminders joins in Phase 13. */
+/** First run's steps, in the order of `Welcome.dc.html`. Reminders joins in Phase 14. */
 export const SETUP_STEP_IDS = ['startMonth', 'rentAndRooms', 'people', 'householdSplits', 'messages'] as const;
 
 /** One of {@link SETUP_STEP_IDS}. */
