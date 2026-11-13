@@ -7,7 +7,6 @@ import {
   formatDateShort,
   formatMonthLabel,
   formatMonthName,
-  type HomeAction,
   type HomeFooterButton,
   type HomeHero,
   type HomeNextMonthAction,
@@ -20,6 +19,7 @@ import {
 import type { ChargeCategory, MessageKind } from "@/generated/prisma/enums";
 import { billCoverage, coveragePercent } from "@/lib/bill/bill-coverage";
 import { billDueBadge, chargeBadge, HOME_BADGES } from "./badges";
+import { chargeActions } from "./charge-actions";
 import { billDueDateKey, chargeDueDate } from "./due-dates";
 import { messageRecipientIds, monthlyMessagedIds, unsentRecipientIds } from "./message-recipients";
 
@@ -143,11 +143,10 @@ function routeDetail(viaPersonId: string | null | undefined, names: Map<string, 
 
 /**
  * One row per real charge, each with a View details link to its Charge details. A utilities charge
- * whose payer has no monthly message yet is `Not sent` and has no Mark paid, since the message
- * comes before any payment. When the person pays for themselves that row starts open; a charge
- * paid via someone else has no message of its own, so it stays closed. An unpaid charge past its
- * due date is shaded and starts open; once the payer's monthly message is out it offers Nudge (or
- * Nudge again) beside Mark paid, which opens Recipient with that charge until the Nudge sheet exists.
+ * whose payer has no monthly message yet is `Not sent`. When the person pays for themselves that
+ * row starts open; a charge paid via someone else has no message of its own, so it stays closed.
+ * An unpaid charge past its due date is shaded and starts open. The buttons come from
+ * `chargeActions`, the same as Charge details' footer.
  */
 function chargeRow(
   input: HomeInput,
@@ -171,20 +170,6 @@ function chargeRow(
   });
   const dueToday = unpaid && badge === HOME_BADGES.dueToday;
   const overdue = unpaid && badge.tone === "danger";
-  const markPaid: HomeAction = {
-    label: "Mark paid",
-    tone: "outline",
-    icon: "check",
-    target: { kind: "mark-paid", chargeId: charge.id },
-  };
-  const nudge: HomeAction = {
-    label: dates.nudgedOn.has(charge.id) ? "Nudge again" : "Nudge",
-    tone: "warning",
-    icon: "bell",
-    target: { kind: "recipient", month: input.month, personId: payerId, chargeId: charge.id },
-  };
-  // A nudge follows the monthly message, so it waits until the payer's message is out.
-  const nudgeable = overdue && dates.sentOn.has(payerId);
   return {
     rank: CATEGORY_RANK[charge.category] ?? 0,
     row: {
@@ -197,7 +182,16 @@ function chargeRow(
       tint: dueToday ? "info" : overdue ? "warning" : "none",
       expanded: dueToday || overdue || ownMessage,
       note: dueToday && input.status === "collecting" ? "You’ll get a payment check tonight if it’s still unpaid." : null,
-      actions: unpaid && !messageUnsent ? (nudgeable ? [nudge, markPaid] : [markPaid]) : [],
+      actions: chargeActions({
+        chargeId: charge.id,
+        month: input.month,
+        payerId,
+        routed: charge.payViaPersonId !== null,
+        paid: !unpaid,
+        overdue,
+        sent: dates.sentOn.has(payerId),
+        nudged: dates.nudgedOn.has(charge.id),
+      }),
       link: { label: "View details", target: { kind: "view-details", chargeId: charge.id } },
     },
   };

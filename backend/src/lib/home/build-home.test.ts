@@ -239,12 +239,12 @@ describe("buildHome, unsent on 1 Nov", () => {
     expect(home.rows.find((r) => r.title === "Utilities · Jordan")!.amount).toBe("$82.46");
   });
 
-  it("marks Jordan's and Priya's utilities rows Not sent, open, with only a View details link", () => {
+  it("marks Jordan's and Priya's utilities rows Not sent, open, with Mark paid and a View details link", () => {
     for (const title of ["Utilities · Jordan", "Utilities · Priya"]) {
       const row = home.rows.find((r) => r.title === title)!;
       expect(row.badge).toEqual({ label: "Not sent", tone: "primary" });
       expect(row.expanded).toBe(true);
-      expect(row.actions).toEqual([]);
+      expect(row.actions.map((a) => a.label)).toEqual(["Mark paid"]);
       expect(row.link).toEqual({ label: "View details", target: { kind: "view-details", chargeId: row.id } });
     }
   });
@@ -254,7 +254,7 @@ describe("buildHome, unsent on 1 Nov", () => {
     expect(sam.badge).toEqual({ label: "Not sent", tone: "primary" });
     expect(sam.detail).toBe("Pays via Priya");
     expect(sam.expanded).toBe(false);
-    expect(sam.actions).toEqual([]);
+    expect(sam.actions.map((a) => a.label)).toEqual(["Mark paid"]);
     expect(sam.link).toEqual({ label: "View details", target: { kind: "view-details", chargeId: sam.id } });
   });
 
@@ -423,6 +423,13 @@ describe("buildHome, collecting on 3 Nov", () => {
     const rent = unsentJordan.rows.find((r) => r.title === "Rent · Jordan")!;
     expect(rent.badge).toEqual({ label: "Overdue 2 days", tone: "danger" });
     expect(rent.actions.map((a) => a.label)).toEqual(["Mark paid"]);
+  });
+
+  it("never offers Nudge on a charge paid via someone else, even overdue", () => {
+    const late = collecting({ today: "2026-11-20" });
+    const sam = late.rows.find((r) => r.title === "Utilities · Sam")!;
+    expect(sam.badge.tone).toBe("danger");
+    expect(sam.actions.map((a) => a.label)).toEqual(["Mark paid"]);
   });
 
   it("shows tomorrow's utilities as Due tomorrow, sent, closed", () => {

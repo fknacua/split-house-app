@@ -13,6 +13,8 @@ export const HOME_BADGES = {
   /** Home rows and Recipient's chip: the monthly message is out and nothing is paid. */
   sentUnpaid: { label: "Sent · unpaid", tone: "neutral" },
   upcoming: { label: "Upcoming", tone: "neutral" },
+  /** Charge details: the Payment status pill on a charge with no payment yet. */
+  unpaid: { label: "Unpaid", tone: "neutral" },
   needsBill: { label: "Needs bill", tone: "neutral" },
   billNotUploaded: { label: "Not uploaded", tone: "neutral" },
   notSent: { label: "Not sent", tone: "primary" },
