@@ -64,7 +64,7 @@ function input(overrides: Partial<HomeInput> = {}): HomeInput {
     charges: novemberCharges(),
     bill: null,
     messages: [],
-    earlierUnpaid: false,
+    earlierUnpaidPayerIds: [],
     ...overrides,
   };
 }
@@ -111,17 +111,22 @@ describe("buildHome, bill_missing on 1 Nov", () => {
     expect(sam.actions).toHaveLength(1);
   });
 
-  it("projects utilities rows from the config, with no amount yet and no actions", () => {
+  it("projects utilities rows from the config, with no amount yet, no actions and no details to open", () => {
     const jordan = home.rows.find((r) => r.title === "Utilities · Jordan")!;
     expect(jordan).toMatchObject({ amount: "—", badge: { label: "Needs bill", tone: "neutral" }, actions: [] });
     expect(jordan.note).toBe("Worked out once the utilities bill is uploaded.");
+    expect(jordan.link.target).toBeNull();
+  });
+
+  it("links every stored charge to its Charge details", () => {
+    const rent = home.rows.find((r) => r.title === "Rent · Sam")!;
+    expect(rent.link).toEqual({ label: "View details", target: { kind: "view-details", chargeId: rent.id } });
   });
 
   it("routes Sam's utilities via Priya, on Priya's due day", () => {
     const sam = home.rows.find((r) => r.title === "Utilities · Sam")!;
     expect(sam.dueDate).toBe("2026-11-07");
     expect(sam.detail).toBe("Pays via Priya");
-    expect(sam.link.target).toEqual({ kind: "recipient", month: "2026-11", personId: PERSON_IDS.priya });
   });
 
   it("dates the bill row from the config and links to the upload", () => {
@@ -144,11 +149,15 @@ describe("buildHome, bill_missing on 1 Nov", () => {
       { label: "You’re fronting", value: "$3,602.50" },
       { label: "Utilities bill coverage", value: "No bill yet" },
     ]);
-    expect(home.primaryAction).toEqual({
-      label: "Upload utilities bill",
-      icon: "upload",
-      target: { kind: "bill-upload", month: "2026-11" },
-    });
+    expect(home.footer).toEqual([
+      {
+        label: "Upload utilities bill",
+        icon: "upload",
+        variant: "solid",
+        count: null,
+        target: { kind: "bill-upload", month: "2026-11" },
+      },
+    ]);
   });
 });
 
@@ -174,11 +183,15 @@ describe("buildHome, draft on 1 Nov", () => {
   });
 
   it("turns the footer into Continue bill upload, which opens the draft", () => {
-    expect(draft.primaryAction).toEqual({
-      label: "Continue bill upload",
-      icon: "file-pen",
-      target: { kind: "bill-draft-continue", month: "2026-11" },
-    });
+    expect(draft.footer).toEqual([
+      {
+        label: "Continue bill upload",
+        icon: "file-pen",
+        variant: "solid",
+        count: null,
+        target: { kind: "bill-draft-continue", month: "2026-11" },
+      },
+    ]);
   });
 
   it("has no hero notice when there is no draft", () => {
@@ -226,32 +239,23 @@ describe("buildHome, unsent on 1 Nov", () => {
     expect(home.rows.find((r) => r.title === "Utilities · Jordan")!.amount).toBe("$82.46");
   });
 
-  it("marks Jordan's and Priya's utilities rows Not sent, open, with only a Review message link", () => {
+  it("marks Jordan's and Priya's utilities rows Not sent, open, with only a View details link", () => {
     for (const title of ["Utilities · Jordan", "Utilities · Priya"]) {
       const row = home.rows.find((r) => r.title === title)!;
       expect(row.badge).toEqual({ label: "Not sent", tone: "primary" });
       expect(row.expanded).toBe(true);
       expect(row.actions).toEqual([]);
-      expect(row.link.label).toBe("Review message");
+      expect(row.link).toEqual({ label: "View details", target: { kind: "view-details", chargeId: row.id } });
     }
   });
 
-  it("gives Sam's row no message of its own: Not sent, closed, View details to Priya's page", () => {
+  it("gives Sam's row no message of its own: Not sent, closed, View details to its own charge", () => {
     const sam = home.rows.find((r) => r.title === "Utilities · Sam")!;
     expect(sam.badge).toEqual({ label: "Not sent", tone: "primary" });
     expect(sam.detail).toBe("Pays via Priya");
     expect(sam.expanded).toBe(false);
     expect(sam.actions).toEqual([]);
-    expect(sam.link).toEqual({
-      label: "View details",
-      target: { kind: "recipient", month: "2026-11", personId: PERSON_IDS.priya },
-    });
-  });
-
-  it("opens each Review message with the person themselves", () => {
-    const target = (title: string) => home.rows.find((r) => r.title === title)!.link.target;
-    expect(target("Utilities · Jordan")).toEqual({ kind: "recipient", month: "2026-11", personId: PERSON_IDS.jordan });
-    expect(target("Utilities · Priya")).toEqual({ kind: "recipient", month: "2026-11", personId: PERSON_IDS.priya });
+    expect(sam.link).toEqual({ label: "View details", target: { kind: "view-details", chargeId: sam.id } });
   });
 
   it("leaves rent and recurring rows as they were", () => {
@@ -284,7 +288,7 @@ describe("buildHome, unsent on 1 Nov", () => {
     expect(home.hero.body).toEqual({
       kind: "unsent",
       title: "Bill’s in. Send the breakdowns",
-      text: "2 messages are ready. Open each one to review it, then send it on WhatsApp yourself.",
+      text: "Messages ready: 2. Tap Send message to proceed.",
       tiles: [
         { label: "You’re fronting", value: "$3,602.50" },
         { label: "Utilities bill · due 16 Nov", value: "$412.30" },
@@ -292,8 +296,29 @@ describe("buildHome, unsent on 1 Nov", () => {
     });
   });
 
-  it("has no footer button", () => {
-    expect(home.primaryAction).toBeNull();
+  it("has Send message with the unsent count, opening on the first person waiting, beside Record payment", () => {
+    expect(home.footer).toEqual([
+      {
+        label: "Send message",
+        icon: "send",
+        variant: "solid",
+        count: 2,
+        target: { kind: "send-message", month: "2026-11", personId: PERSON_IDS.priya },
+      },
+      {
+        label: "Record payment",
+        icon: "banknote",
+        variant: "solid",
+        // Jordan, Priya (for herself and for Sam's utilities) and Sam (rent, paid direct).
+        count: 3,
+        target: { kind: "record-payment", month: "2026-11" },
+      },
+    ]);
+  });
+
+  it("opens Send message on whoever is still waiting once someone's message is out", () => {
+    const one = unsent({ messages: monthly(PERSON_IDS.priya) });
+    expect(one.footer[0]).toMatchObject({ count: 1, target: { personId: PERSON_IDS.jordan } });
   });
 
   it("uses the saved bill's due date over the config's billDueDay", () => {
@@ -311,7 +336,7 @@ describe("buildHome, unsent on 1 Nov", () => {
     const afterPriya = unsent({ messages: monthly(PERSON_IDS.priya) });
     expect(afterPriya.hero.compactStatus).toBe("1 message to send");
     expect(afterPriya.hero.body).toMatchObject({
-      text: "1 message is ready. Open it to review it, then send it on WhatsApp yourself.",
+      text: "Messages ready: 1. Tap Send message to proceed.",
     });
     expect(afterPriya.rows.find((r) => r.title === "Utilities · Jordan")!.badge.label).toBe("Not sent");
     for (const title of ["Utilities · Priya", "Utilities · Sam"]) {
@@ -464,7 +489,7 @@ describe("buildHome, collecting on 3 Nov", () => {
       fronting: {
         label: "You’re fronting",
         value: "$2,652.50",
-        note: "Rent, aircon and other charges paid for others · $950.00 back so far",
+        note: "Paid upfront for others · $950.00 back so far",
       },
       coverage: {
         label: "Utilities bill covered",
@@ -487,27 +512,123 @@ describe("buildHome, collecting on 3 Nov", () => {
     expect(over.hero.body).toMatchObject({ coverage: { text: "$412.30 of $412.30", percent: 100 } });
   });
 
-  it("has the Record payment footer", () => {
-    expect(home.primaryAction).toEqual({
-      label: "Record payment",
-      icon: "banknote",
-      target: { kind: "record-payment", month: "2026-11" },
-    });
+  it("has Send message as an outline with no count, opening on nobody, beside Record payment", () => {
+    expect(home.footer).toEqual([
+      { label: "Send message", icon: "send", variant: "outline", count: null, target: { kind: "send-message", month: "2026-11" } },
+      {
+        label: "Record payment",
+        icon: "banknote",
+        variant: "solid",
+        // Jordan, and Priya for herself and Sam's utilities. Sam's rent is paid.
+        count: 2,
+        target: { kind: "record-payment", month: "2026-11" },
+      },
+    ]);
   });
 
-  it("drops the footer once nobody but Francis has anything left to pay", () => {
+  it("drops Record payment once nobody but Francis has anything left to pay", () => {
     const allPaid = novemberChargesWithBill().map((c) => ({ ...c, paidCents: c.amountCents, paidOn: new Date("2026-11-03") }));
-    expect(collecting({ charges: allPaid }).primaryAction).toBeNull();
+    expect(collecting({ charges: allPaid }).footer.map((b) => b.label)).toEqual(["Send message"]);
   });
 
-  it("keeps the footer for a late payment from an earlier month", () => {
+  it("counts a late payer from an earlier month in Record payment, once per payer", () => {
     const allPaid = novemberChargesWithBill().map((c) => ({ ...c, paidCents: c.amountCents, paidOn: new Date("2026-11-03") }));
-    expect(collecting({ charges: allPaid, earlierUnpaid: true }).primaryAction).toMatchObject({ label: "Record payment" });
+    const late = collecting({ charges: allPaid, earlierUnpaidPayerIds: [PERSON_IDS.priya, PERSON_IDS.priya] });
+    expect(late.footer[1]).toMatchObject({ label: "Record payment", count: 1 });
+    expect(collecting({ earlierUnpaidPayerIds: [PERSON_IDS.jordan] }).footer[1].count).toBe(2);
+  });
+
+  it("adds Mark bill paid to the footer once the bill's due date has come", () => {
+    expect(home.footer.map((b) => b.label)).not.toContain("Mark bill paid");
+    for (const today of ["2026-11-16", "2026-11-18"]) {
+      expect(collecting({ today }).footer.at(-1)).toEqual({
+        label: "Mark bill paid",
+        icon: "check",
+        variant: "solid",
+        count: null,
+        target: { kind: "mark-bill-paid", month: "2026-11" },
+      });
+    }
+  });
+
+  it("leaves Mark bill paid out of the footer once the bill is paid", () => {
+    const paid = collecting({ today: "2026-11-18", bill: { ...BILL, paidCents: 41230, paidOn: new Date("2026-11-16") } });
+    expect(paid.footer.map((b) => b.label)).toEqual(["Send message", "Record payment"]);
   });
 
   it("marks the bill overdue once its due date passes", () => {
     const late = collecting({ today: "2026-11-18" });
     expect(late.rows.find((r) => r.id === "bill")!.badge).toEqual({ label: "Overdue 2 days", tone: "danger" });
+  });
+});
+
+describe("buildHome, bill_due on 12 Nov", () => {
+  const charges = novemberChargesWithBill().map((c) => ({ ...c, paidCents: c.amountCents, paidOn: new Date("2026-11-07") }));
+  const billDue = (overrides: Partial<HomeInput> = {}) =>
+    buildHome(
+      input({
+        status: "bill_due",
+        today: "2026-11-12",
+        charges,
+        bill: BILL,
+        messages: monthly(PERSON_IDS.jordan, PERSON_IDS.priya),
+        ...overrides,
+      }),
+    );
+  const home = billDue();
+
+  it("has the collecting hero saying everyone has paid and when the bill is due", () => {
+    expect(home.status).toBe("bill_due");
+    expect(home.hero.dateLine).toBe("12 Nov · Bill due 16 Nov");
+    expect(home.hero.steps.map((s) => s.state)).toEqual(["done", "done", "current"]);
+    expect(home.hero.compactStatus).toBe("Everyone paid · bill due 16 Nov");
+    expect(home.hero.dueToday).toBeNull();
+    expect(home.hero.body).toEqual({
+      kind: "collecting",
+      fronting: {
+        label: "You’re fronting",
+        value: "$0.00",
+        note: "Paid upfront for others · $3,602.50 back so far",
+      },
+      coverage: {
+        label: "Utilities bill covered",
+        text: "$412.30 of $412.30",
+        percent: 100,
+        note: "Everyone has paid · due 16 Nov",
+      },
+    });
+  });
+
+  it("leaves the due date out when the bill has none", () => {
+    const undated = billDue({ bill: { ...BILL, dueDate: null }, config: { ...NOV_2026_CONFIG, categories: { ...NOV_2026_CONFIG.categories, utilities: { ...NOV_2026_CONFIG.categories.utilities, billDueDay: undefined } } } });
+    expect(undated.hero.dateLine).toBe("12 Nov · Collecting");
+    expect(undated.hero.compactStatus).toBe("Everyone paid");
+    expect(undated.hero.body).toMatchObject({ coverage: { note: "Everyone has paid" } });
+  });
+
+  it("keeps the bill row open with Mark bill paid and the whole bill covered", () => {
+    expect(home.rows.find((r) => r.id === "bill")).toMatchObject({
+      badge: { label: "In 4 days", tone: "neutral" },
+      expanded: true,
+      note: "$412.30 of $412.30 covered.",
+      actions: [
+        { label: "Mark bill paid", tone: "outline", icon: "check", target: { kind: "mark-bill-paid", month: "2026-11" } },
+      ],
+    });
+  });
+
+  it("has Mark bill paid as the only footer button", () => {
+    expect(home.footer).toEqual([
+      { label: "Mark bill paid", icon: "check", variant: "solid", count: null, target: { kind: "mark-bill-paid", month: "2026-11" } },
+    ]);
+  });
+
+  it("keeps Record payment before it for a late payment from an earlier month", () => {
+    const late = billDue({ earlierUnpaidPayerIds: [PERSON_IDS.sam] });
+    expect(late.footer.map((b) => [b.label, b.count])).toEqual([
+      ["Record payment", 1],
+      ["Mark bill paid", null],
+    ]);
   });
 });
 
@@ -611,8 +732,8 @@ describe("buildHome, settled on 29 Nov", () => {
     expect(home.hero.notice).toBeNull();
   });
 
-  it("has no footer button", () => {
-    expect(home.primaryAction).toBeNull();
+  it("has no footer buttons: Start next month is its own action", () => {
+    expect(home.footer).toEqual([]);
   });
 
   it("shows every row Paid, closed, with no actions and no row-level payment prompts", () => {

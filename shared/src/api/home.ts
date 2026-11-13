@@ -3,7 +3,7 @@ import { dateKey, monthKey } from '../schemas/primitives';
 import { badgeSchema } from './history';
 
 /** Where the month is in its cycle. Picks the hero and the footer. */
-export const homeStatusSchema = z.enum(['bill_missing', 'draft', 'unsent', 'collecting', 'settled']);
+export const homeStatusSchema = z.enum(['bill_missing', 'draft', 'unsent', 'collecting', 'bill_due', 'settled']);
 
 /** Where the month is in its cycle. Picks the hero and the footer. */
 export type HomeStatus = z.infer<typeof homeStatusSchema>;
@@ -12,6 +12,13 @@ export type HomeStatus = z.infer<typeof homeStatusSchema>;
 export const homeTargetSchema = z.discriminatedUnion('kind', [
   /** Opens Recipient. Nudge passes the overdue charge it is about, so Recipient's Nudge again nudges that one. */
   z.object({ kind: z.literal('recipient'), month: monthKey, personId: z.string(), chargeId: z.string().optional() }),
+  /**
+   * Opens the Send message sheet for the month's monthly messages. `personId` is the first person
+   * whose message is not sent yet; without one the sheet opens with nobody picked in To.
+   */
+  z.object({ kind: z.literal('send-message'), month: monthKey, personId: z.string().optional() }),
+  /** Opens Charge details for one stored charge. */
+  z.object({ kind: z.literal('view-details'), chargeId: z.string() }),
   z.object({ kind: z.literal('mark-paid'), chargeId: z.string() }),
   z.object({ kind: z.literal('bill-upload'), month: monthKey }),
   z.object({ kind: z.literal('bill-draft-continue'), month: monthKey }),
@@ -64,7 +71,7 @@ export const homeHeroBodySchema = z.discriminatedUnion('kind', [
       label: z.string(),
       /** e.g. `$X,XXX.XX`. */
       value: z.string(),
-      /** e.g. `Rent, aircon and other charges paid for others · $X,XXX.XX back so far`. */
+      /** e.g. `Paid upfront for others · $X,XXX.XX back so far`. */
       note: z.string(),
     }),
     coverage: z.object({
@@ -171,18 +178,20 @@ export const homeRowSchema = z.object({
 /** One row of the Charges list: a charge, or the utilities bill. */
 export type HomeRow = z.infer<typeof homeRowSchema>;
 
-/** The sticky footer button. Null when the status has none. */
-export const homePrimaryActionSchema = z
-  .object({
-    /** e.g. `Upload utilities bill`. */
-    label: z.string(),
-    icon: z.enum(['upload', 'file-pen', 'banknote']),
-    target: homeTargetSchema,
-  })
-  .nullable();
+/** One button in the sticky footer. */
+export const homeFooterButtonSchema = z.object({
+  /** e.g. `Upload utilities bill`. */
+  label: z.string(),
+  icon: z.enum(['upload', 'file-pen', 'send', 'banknote', 'check']),
+  /** `outline` once the button's job is done, like Send message after every monthly message is out. */
+  variant: z.enum(['solid', 'outline']),
+  /** The small number in the button, e.g. how many messages are not sent. Null when it shows none. */
+  count: z.number().int().positive().nullable(),
+  target: homeTargetSchema,
+});
 
-/** The sticky footer button. Null when the status has none. */
-export type HomePrimaryAction = z.infer<typeof homePrimaryActionSchema>;
+/** One button in the sticky footer. */
+export type HomeFooterButton = z.infer<typeof homeFooterButtonSchema>;
 
 /** The text of the Close dialog that confirms starting the next month. */
 export const homeCloseDialogSchema = z.object({
@@ -219,7 +228,8 @@ export const homeResponseSchema = z.object({
   hero: homeHeroSchema,
   /** One per charge, ordered by due date. */
   rows: z.array(homeRowSchema),
-  primaryAction: homePrimaryActionSchema,
+  /** The sticky footer's buttons, in order. Empty when the status has none (a settled month uses `nextMonthAction`). */
+  footer: z.array(homeFooterButtonSchema),
   /** The settled month's bottom button. Null in every other status. */
   nextMonthAction: homeNextMonthActionSchema,
 });

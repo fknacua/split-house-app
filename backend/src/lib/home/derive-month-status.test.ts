@@ -3,31 +3,43 @@ import { deriveMonthStatus, isMonthSettled } from "./derive-month-status";
 
 describe("deriveMonthStatus", () => {
   it("is bill_missing while no bill is saved and no draft is waiting", () => {
-    expect(deriveMonthStatus({ hasBill: false, hasDraft: false, unsentMessages: 0, settled: false })).toBe(
+    expect(deriveMonthStatus({ hasBill: false, hasDraft: false, unsentMessages: 0, othersPaid: false, settled: false })).toBe(
       "bill_missing",
     );
   });
 
   it("is draft while an unsaved bill draft is waiting", () => {
-    expect(deriveMonthStatus({ hasBill: false, hasDraft: true, unsentMessages: 0, settled: false })).toBe("draft");
+    expect(deriveMonthStatus({ hasBill: false, hasDraft: true, unsentMessages: 0, othersPaid: false, settled: false })).toBe("draft");
   });
 
   it("is unsent while a saved bill has people with no monthly message", () => {
-    expect(deriveMonthStatus({ hasBill: true, hasDraft: false, unsentMessages: 2, settled: false })).toBe("unsent");
+    expect(deriveMonthStatus({ hasBill: true, hasDraft: false, unsentMessages: 2, othersPaid: false, settled: false })).toBe("unsent");
   });
 
   it("ignores a leftover draft once the bill is saved", () => {
-    expect(deriveMonthStatus({ hasBill: true, hasDraft: true, unsentMessages: 1, settled: false })).toBe("unsent");
+    expect(deriveMonthStatus({ hasBill: true, hasDraft: true, unsentMessages: 1, othersPaid: false, settled: false })).toBe("unsent");
   });
 
-  it("is collecting once every message is out, whatever is paid", () => {
-    expect(deriveMonthStatus({ hasBill: true, hasDraft: false, unsentMessages: 0, settled: false })).toBe(
+  it("is collecting once every message is out while someone still owes", () => {
+    expect(deriveMonthStatus({ hasBill: true, hasDraft: false, unsentMessages: 0, othersPaid: false, settled: false })).toBe(
       "collecting",
     );
   });
 
+  it("is bill_due once everyone has paid but the bill is not", () => {
+    expect(deriveMonthStatus({ hasBill: true, hasDraft: false, unsentMessages: 0, othersPaid: true, settled: false })).toBe(
+      "bill_due",
+    );
+  });
+
+  it("stays unsent while a message is not out, even when everyone has paid", () => {
+    expect(deriveMonthStatus({ hasBill: true, hasDraft: false, unsentMessages: 1, othersPaid: true, settled: false })).toBe(
+      "unsent",
+    );
+  });
+
   it("is settled once everything is paid", () => {
-    expect(deriveMonthStatus({ hasBill: true, hasDraft: false, unsentMessages: 0, settled: true })).toBe("settled");
+    expect(deriveMonthStatus({ hasBill: true, hasDraft: false, unsentMessages: 0, othersPaid: true, settled: true })).toBe("settled");
   });
 });
 

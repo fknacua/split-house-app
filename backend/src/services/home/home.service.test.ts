@@ -35,12 +35,16 @@ interface FakeOptions {
   messaged?: string[];
   /** Every charge and the bill are paid. Needs `hasBill`. */
   allPaid?: boolean;
+  /** Every charge is paid and the bill is not. Needs `hasBill`. */
+  chargesPaid?: boolean;
+  /** Unpaid charges in earlier months, as the payer read for them. */
+  earlierUnpaid?: { personId: string; payViaPersonId: string | null }[];
 }
 
 /** A database where November is either already open or not, with no household version to open it from. */
 function fakeDb(
   open: boolean,
-  { hasDraft = false, hasBill = false, messaged = [], allPaid = false }: FakeOptions = {},
+  { hasDraft = false, hasBill = false, messaged = [], allPaid = false, chargesPaid = false, earlierUnpaid = [] }: FakeOptions = {},
 ): HomeDb {
   const paidCharges = CHARGES_WITH_BILL.map((c) => ({ ...c, paidCents: c.amountCents, paidOn: new Date("2026-11-03") }));
   const tx = {
@@ -54,8 +58,15 @@ function fakeDb(
     householdVersion: { findFirst: async () => null },
     charge: {
       createMany: async () => undefined,
-      findMany: async () => (allPaid ? paidCharges : hasBill ? CHARGES_WITH_BILL : CHARGES),
-      count: async () => 0,
+      // An earlier-month read filters on `month: { lt }`; the month itself on its key.
+      findMany: async (args: { where: { month: unknown } }) =>
+        typeof args.where.month === "object"
+          ? earlierUnpaid
+          : allPaid || chargesPaid
+            ? paidCharges
+            : hasBill
+              ? CHARGES_WITH_BILL
+              : CHARGES,
     },
     person: {
       findMany: async () => [
@@ -115,7 +126,10 @@ describe("getHome", () => {
     expect(homeResponseSchema.safeParse(home).success).toBe(true);
     expect(home.status).toBe("unsent");
     expect(home.hero.compactStatus).toBe("2 messages to send");
-    expect(home.primaryAction).toBeNull();
+    expect(home.footer.map((b) => [b.label, b.variant, b.count])).toEqual([
+      ["Send message", "solid", 2],
+      ["Record payment", "solid", 3],
+    ]);
     expect(home.rows.find((r) => r.id === "bill")?.amount).toBe("$412.30");
   });
 
@@ -132,7 +146,10 @@ describe("getHome", () => {
     expect(homeResponseSchema.safeParse(home).success).toBe(true);
     expect(home.status).toBe("collecting");
     expect(home.hero.dateLine).toBe("3 Nov · Collecting");
-    expect(home.primaryAction?.label).toBe("Record payment");
+    expect(home.footer.map((b) => [b.label, b.variant, b.count])).toEqual([
+      ["Send message", "outline", null],
+      ["Record payment", "solid", 3],
+    ]);
     expect(home.rows.find((r) => r.title === "Rent · Jordan")?.badge.label).toBe("Overdue 2 days");
   });
 
@@ -150,13 +167,46 @@ describe("getHome", () => {
     expect(home.status).toBe("settled");
     expect(home.hero.dateLine).toBe("29 Nov · Done");
     expect(home.hero.compactStatus).toBe("November is settled");
-    expect(home.primaryAction).toBeNull();
+    expect(home.footer).toEqual([]);
   });
 
   it("stays collecting while charges and the bill are unpaid, however late in the month", async () => {
     vi.stubEnv("DEV_NOW", "2026-11-29T09:00:00+08:00");
     const home = await getHome(fakeDb(true, { hasBill: true, messaged: [PERSON_IDS.priya, PERSON_IDS.jordan] }));
     expect(home.status).toBe("collecting");
+  });
+
+  it("adds Mark bill paid to the collecting footer once the bill's due date has come", async () => {
+    vi.stubEnv("DEV_NOW", "2026-11-16T09:00:00+08:00");
+    const home = await getHome(fakeDb(true, { hasBill: true, messaged: [PERSON_IDS.priya, PERSON_IDS.jordan] }));
+    expect(home.status).toBe("collecting");
+    expect(home.footer.map((b) => b.label)).toEqual(["Send message", "Record payment", "Mark bill paid"]);
+  });
+
+  it("returns the bill_due status once everyone has paid but the bill is not, and it parses", async () => {
+    vi.stubEnv("DEV_NOW", "2026-11-12T09:00:00+08:00");
+    const home = await getHome(
+      fakeDb(true, { hasBill: true, chargesPaid: true, messaged: [PERSON_IDS.priya, PERSON_IDS.jordan] }),
+    );
+    expect(homeResponseSchema.safeParse(home).success).toBe(true);
+    expect(home.status).toBe("bill_due");
+    expect(home.hero.dateLine).toBe("12 Nov · Bill due 16 Nov");
+    expect(home.footer.map((b) => b.label)).toEqual(["Mark bill paid"]);
+  });
+
+  it("counts an earlier month's late payer in Record payment, once per payer", async () => {
+    vi.stubEnv("DEV_NOW", "2026-11-12T09:00:00+08:00");
+    const earlierUnpaid = [
+      { personId: PERSON_IDS.sam, payViaPersonId: PERSON_IDS.priya },
+      { personId: PERSON_IDS.priya, payViaPersonId: null },
+    ];
+    const home = await getHome(
+      fakeDb(true, { hasBill: true, chargesPaid: true, earlierUnpaid, messaged: [PERSON_IDS.priya, PERSON_IDS.jordan] }),
+    );
+    expect(home.footer.map((b) => [b.label, b.count])).toEqual([
+      ["Record payment", 1],
+      ["Mark bill paid", null],
+    ]);
   });
 
   it("answers 409 setup_incomplete while no month has opened", async () => {
