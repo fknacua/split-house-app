@@ -56,7 +56,7 @@ export function Home() {
           </ScrollView>
           {data && compact ? <HomeCompactSummary hero={data.hero} /> : null}
         </View>
-        {data?.primaryAction ? <HomeFooter action={data.primaryAction} /> : null}
+        {data && data.footer.length > 0 ? <HomeFooter buttons={data.footer} /> : null}
         {data?.nextMonthAction ? <HomeNextMonthFooter action={data.nextMonthAction} /> : null}
       </Screen>
     </HomeSheetsProvider>

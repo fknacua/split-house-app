@@ -47,6 +47,12 @@ export function useOpenTarget() {
       case 'record-payment':
         openRecordPayment(target.month);
         return;
+      case 'send-message':
+        // The Send message sheet is built in 12B.
+        return;
+      case 'view-details':
+        // Charge details is built in 12A.4.
+        return;
       case 'recipient':
         router.push({
           pathname: '/recipient/[month]/[personId]',

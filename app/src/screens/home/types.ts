@@ -3,7 +3,7 @@ import type {
   HomeHero,
   HomeNextMonthAction,
   HomeNotice,
-  HomePrimaryAction,
+  HomeFooterButton,
   HomeRow,
   HomeStep,
 } from '@splithouse/shared';
@@ -80,8 +80,8 @@ export interface HomeActionButtonProps {
 
 /** Props for {@link HomeFooter}. */
 export interface HomeFooterProps {
-  /** The footer button. */
-  action: NonNullable<HomePrimaryAction>;
+  /** The footer's buttons, from `GET /api/home`. Not empty. */
+  buttons: HomeFooterButton[];
 }
 
 /** Props for {@link HomeNextMonthFooter}. */

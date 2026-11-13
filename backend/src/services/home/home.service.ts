@@ -7,7 +7,7 @@ import {
   type HomeMessage,
   type HomePerson,
 } from "@/lib/home/build-home";
-import { deriveMonthStatus, isMonthSettled } from "@/lib/home/derive-month-status";
+import { deriveMonthStatus, isMonthSettled, othersAllPaid } from "@/lib/home/derive-month-status";
 import { messageRecipientIds, monthlyMessagedIds, unsentRecipientIds } from "@/lib/home/message-recipients";
 import { currentMonth } from "@/lib/month";
 import { openMonthIfNeeded, type MonthOpenDb } from "@/lib/month-open";
@@ -58,7 +58,10 @@ export type HomeDb = MonthOpenDb & {
   };
   charge: {
     findMany(args: { where: { month: string }; select: typeof CHARGE_SELECT }): Promise<HomeChargeRow[]>;
-    count(args: { where: EarlierUnpaidWhere }): Promise<number>;
+    findMany(args: {
+      where: EarlierUnpaidWhere;
+      select: { personId: true; payViaPersonId: true };
+    }): Promise<{ personId: string; payViaPersonId: string | null }[]>;
   };
   bill: {
     findUnique(args: { where: { month: string }; select: typeof BILL_SELECT }): Promise<HomeBill | null>;
@@ -100,9 +103,10 @@ export async function getHome(db: HomeDb): Promise<HomeResponse> {
     db.bill.findUnique({ where: { month: opened.month }, select: BILL_SELECT }),
     db.billDraft.findUnique({ where: { month: opened.month }, select: { id: true } }),
     db.messageEvent.findMany({ where: { month: opened.month }, select: MESSAGE_SELECT }),
-    // A late payment Record payment can still take keeps its footer.
-    db.charge.count({
+    // A late payment Record payment can still take counts in its footer button.
+    db.charge.findMany({
       where: { month: { lt: opened.month }, paidCents: null, amountCents: { gt: 0 }, person: { isOwner: false } },
+      select: { personId: true, payViaPersonId: true },
     }),
   ]);
 
@@ -119,6 +123,7 @@ export async function getHome(db: HomeDb): Promise<HomeResponse> {
       hasBill: bill !== null,
       hasDraft: draft !== null,
       unsentMessages,
+      othersPaid: othersAllPaid(charges, ownerIds),
       settled: isMonthSettled(charges, ownerIds, bill),
     }),
     config: parseHouseholdConfig(opened.householdVersion.schemaVersion, opened.householdVersion.config),
@@ -126,6 +131,6 @@ export async function getHome(db: HomeDb): Promise<HomeResponse> {
     charges,
     bill,
     messages,
-    earlierUnpaid: earlierUnpaid > 0,
+    earlierUnpaidPayerIds: earlierUnpaid.map((c) => c.payViaPersonId ?? c.personId),
   });
 }

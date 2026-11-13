@@ -8,10 +8,10 @@ import {
   formatMonthLabel,
   formatMonthName,
   type HomeAction,
+  type HomeFooterButton,
   type HomeHero,
   type HomeNextMonthAction,
   type HomeNotice,
-  type HomePrimaryAction,
   type HomeResponse,
   type HomeRow,
   type HomeStatus,
@@ -76,10 +76,11 @@ export interface HomeInput {
   /** The month's message events, monthly messages and nudges. */
   messages: HomeMessage[];
   /**
-   * Whether an earlier month still has an unpaid charge above zero of someone other than the
-   * owner: a late payment Record payment can take, so its footer stays.
+   * Who pays an unpaid charge above zero of someone other than the owner in an earlier month: a
+   * late payment Record payment can take, so they count in its footer button. Someone paid via
+   * another person is that person.
    */
-  earlierUnpaid: boolean;
+  earlierUnpaidPayerIds: string[];
 }
 
 /** When each chat was opened, as date keys: a payer's monthly message, and the latest nudge per charge. */
@@ -141,12 +142,12 @@ function routeDetail(viaPersonId: string | null | undefined, names: Map<string, 
 }
 
 /**
- * One row per real charge. A utilities charge whose payer has no monthly message yet is `Not sent`
- * and has no Mark paid, since the message comes before any payment. When the person pays for
- * themselves the row starts open with a Review message link; a charge paid via someone else has
- * no message of its own, so it stays closed with the usual View details link. An unpaid charge
- * past its due date is shaded and starts open; once the payer's monthly message is out it offers
- * Nudge (or Nudge again) beside Mark paid, which opens Recipient with that charge.
+ * One row per real charge, each with a View details link to its Charge details. A utilities charge
+ * whose payer has no monthly message yet is `Not sent` and has no Mark paid, since the message
+ * comes before any payment. When the person pays for themselves that row starts open; a charge
+ * paid via someone else has no message of its own, so it stays closed. An unpaid charge past its
+ * due date is shaded and starts open; once the payer's monthly message is out it offers Nudge (or
+ * Nudge again) beside Mark paid, which opens Recipient with that charge until the Nudge sheet exists.
  */
 function chargeRow(
   input: HomeInput,
@@ -197,10 +198,7 @@ function chargeRow(
       expanded: dueToday || overdue || ownMessage,
       note: dueToday && input.status === "collecting" ? "You’ll get a payment check tonight if it’s still unpaid." : null,
       actions: unpaid && !messageUnsent ? (nudgeable ? [nudge, markPaid] : [markPaid]) : [],
-      link: {
-        label: ownMessage ? "Review message" : "View details",
-        target: { kind: "recipient", month: input.month, personId: payerId },
-      },
+      link: { label: "View details", target: { kind: "view-details", chargeId: charge.id } },
     },
   };
 }
@@ -208,6 +206,7 @@ function chargeRow(
 /**
  * Utilities rows for charges that do not exist until a bill is saved, taken from the pinned
  * config. A person paid via someone with no due day of their own uses that person's due day.
+ * With no charge yet there are no details to open, so the row has no link.
  */
 function projectedUtilitiesRows(input: HomeInput, names: Map<string, string>): RankedRow[] {
   const { config, month } = input;
@@ -234,10 +233,7 @@ function projectedUtilitiesRows(input: HomeInput, names: Map<string, string>): R
           expanded: false,
           note: "Worked out once the utilities bill is uploaded.",
           actions: [],
-          link: {
-            label: "View details",
-            target: { kind: "recipient", month, personId: via?.personId ?? p.personId },
-          },
+          link: { label: "View details", target: null },
         },
       } satisfies RankedRow;
     });
@@ -281,8 +277,8 @@ function billRow(input: HomeInput, ownerIds: Set<string>): RankedRow {
     };
   }
   const billPaid = input.bill.paidCents !== null;
-  // Mark bill paid is only offered while collecting, and goes once the bill is paid.
-  const collecting = input.status === "collecting" && !billPaid;
+  // Mark bill paid is only offered while collecting or once everyone has paid, and goes once the bill is paid.
+  const collecting = (input.status === "collecting" || input.status === "bill_due") && !billPaid;
   const coverage = billCoverage(input.charges, ownerIds, input.bill.currentChargesCents);
   return {
     rank: BILL_RANK,
@@ -304,7 +300,7 @@ function billRow(input: HomeInput, ownerIds: Set<string>): RankedRow {
         input.status === "unsent"
           ? "Nothing collected yet. Shares go out with the messages."
           : collecting
-            ? `${formatCents(coverage.coveredCents)} of ${formatCents(coverage.totalCents)} covered so far.`
+            ? `${formatCents(coverage.coveredCents)} of ${formatCents(coverage.totalCents)} covered${input.status === "bill_due" ? "" : " so far"}.`
             : null,
       actions: collecting
         ? [
@@ -335,9 +331,7 @@ function frontingTotals(charges: HomeChargeRow[], ownerIds: Set<string>): { fron
 
 /** The `unsent` hero text, counting chats rather than rows: Sam's utilities ride in Priya's message. */
 function unsentText(unsentCount: number): string {
-  return unsentCount === 1
-    ? "1 message is ready. Open it to review it, then send it on WhatsApp yourself."
-    : `${unsentCount} messages are ready. Open each one to review it, then send it on WhatsApp yourself.`;
+  return `Messages ready: ${unsentCount}. Tap Send message to proceed.`;
 }
 
 /** What the hero says about payments due today: the Alert's line and amount, and the compact status. */
@@ -407,34 +401,41 @@ function buildHero(
         dueToday: null,
       };
     }
-    case "collecting": {
-      if (!input.bill) throw new Error("The collecting status needs a saved bill");
+    case "collecting":
+    case "bill_due": {
+      if (!input.bill) throw new Error(`The ${input.status} status needs a saved bill`);
       const coverage = billCoverage(input.charges, ownerIds, input.bill.currentChargesCents);
       const dueDate = billDueDate(input);
-      const share =
-        coverage.othersPaid === 0
+      const due = dueDate === null ? null : formatDateShort(dueDate);
+      // Once everyone has paid, only the bill is left: the hero says so and names its due date.
+      const billDue = input.status === "bill_due";
+      const share = billDue
+        ? "Everyone has paid"
+        : coverage.othersPaid === 0
           ? "Your share only so far"
           : `Your share and ${coverage.othersPaid} of ${coverage.othersTotal} others paid`;
       return {
-        dateLine: `${formatDateShort(input.today)} · Collecting`,
+        dateLine: `${formatDateShort(input.today)} · ${billDue && due ? `Bill due ${due}` : "Collecting"}`,
         steps: [
           { label: "Upload bill", state: "done" },
           { label: "Send messages", state: "done" },
           { label: "Settle up", state: "current" },
         ],
-        compactStatus: dueToday?.compactStatus ?? `Collecting · ${formatCents(fronting)} fronted`,
+        compactStatus: billDue
+          ? `Everyone paid${due ? ` · bill due ${due}` : ""}`
+          : (dueToday?.compactStatus ?? `Collecting · ${formatCents(fronting)} fronted`),
         body: {
           kind: "collecting",
           fronting: {
             label: "You’re fronting",
             value: formatCents(fronting),
-            note: `Rent, aircon and other charges paid for others · ${formatCents(backCents)} back so far`,
+            note: `Paid upfront for others · ${formatCents(backCents)} back so far`,
           },
           coverage: {
             label: "Utilities bill covered",
             text: `${formatCents(coverage.coveredCents)} of ${formatCents(coverage.totalCents)}`,
             percent: coveragePercent(coverage),
-            note: dueDate === null ? share : `${share} · due ${formatDateShort(dueDate)}`,
+            note: due === null ? share : `${share} · due ${due}`,
           },
         },
         notice: null,
@@ -493,40 +494,73 @@ function buildHero(
   }
 }
 
-/** Whether anyone but the owner has an unpaid charge above zero, this month or an earlier one. */
-function hasPaymentToRecord(input: HomeInput): boolean {
-  const ownerIds = new Set(input.people.filter((p) => p.isOwner).map((p) => p.id));
-  return (
-    input.earlierUnpaid ||
-    input.charges.some((c) => c.paidCents === null && c.amountCents > 0 && !ownerIds.has(c.personId))
-  );
+/**
+ * Who still owes something Record payment can take: the payer of every unpaid charge above zero of
+ * someone other than the owner, this month or an earlier one. Someone paid via another person
+ * counts as that person, since they are not in Record payment's From list.
+ */
+function owingPayerIds(input: HomeInput, ownerIds: Set<string>): Set<string> {
+  const payers = input.charges
+    .filter((c) => c.paidCents === null && c.amountCents > 0 && !ownerIds.has(c.personId))
+    .map((c) => c.payViaPersonId ?? c.personId);
+  return new Set([...payers, ...input.earlierUnpaidPayerIds].filter((id) => !ownerIds.has(id)));
 }
 
-function buildPrimaryAction(input: HomeInput): HomePrimaryAction {
+/**
+ * The sticky footer's buttons for the month's status. Send message is solid with the count of
+ * unsent monthly messages until every one is out, then an outline with no count. Record payment
+ * counts the people who still owe and goes when nobody does. Mark bill paid joins them once the
+ * bill's due date has come while payments are still coming in, and is the main button once
+ * everyone has paid. A settled month has none: its button is `nextMonthAction`.
+ */
+function buildFooter(input: HomeInput, ownerIds: Set<string>, unsentIds: string[]): HomeFooterButton[] {
+  const { month } = input;
+  const owing = owingPayerIds(input, ownerIds).size;
+  const record: HomeFooterButton[] =
+    owing > 0
+      ? [{ label: "Record payment", icon: "banknote", variant: "solid", count: owing, target: { kind: "record-payment", month } }]
+      : [];
+  const markBillPaid: HomeFooterButton = {
+    label: "Mark bill paid",
+    icon: "check",
+    variant: "solid",
+    count: null,
+    target: { kind: "mark-bill-paid", month },
+  };
+  // Only an unpaid bill can be due; the saved bill's own date supersedes the day in the config.
+  const dueKey = input.bill && input.bill.paidCents === null ? billDueDate(input) : null;
+  const billDueReached = dueKey !== null && daysUntil(dueKey, input.today) <= 0;
+
   switch (input.status) {
     case "bill_missing":
-      return {
-        label: "Upload utilities bill",
-        icon: "upload",
-        target: { kind: "bill-upload", month: input.month },
-      };
+      return [{ label: "Upload utilities bill", icon: "upload", variant: "solid", count: null, target: { kind: "bill-upload", month } }];
     case "draft":
-      return {
-        label: "Continue bill upload",
-        icon: "file-pen",
-        target: { kind: "bill-draft-continue", month: input.month },
-      };
+      return [
+        { label: "Continue bill upload", icon: "file-pen", variant: "solid", count: null, target: { kind: "bill-draft-continue", month } },
+      ];
     case "unsent":
-      // Each message is reviewed from its row, so there is no footer button.
-      return null;
-    case "settled":
-      // Nothing is left to do this month.
-      return null;
+      return [
+        {
+          label: "Send message",
+          icon: "send",
+          variant: "solid",
+          count: unsentIds.length,
+          // Opens on the first person still waiting for their message.
+          target: { kind: "send-message", month, personId: unsentIds[0] },
+        },
+        ...record,
+      ];
     case "collecting":
-      // Only while Record payment has something to list: the bill may be all that is left.
-      return hasPaymentToRecord(input)
-        ? { label: "Record payment", icon: "banknote", target: { kind: "record-payment", month: input.month } }
-        : null;
+      return [
+        { label: "Send message", icon: "send", variant: "outline", count: null, target: { kind: "send-message", month } },
+        ...record,
+        ...(billDueReached ? [markBillPaid] : []),
+      ];
+    case "bill_due":
+      // Only the bill is left this month; an earlier month's late payment keeps Record payment.
+      return [...record, markBillPaid];
+    case "settled":
+      return [];
   }
 }
 
@@ -554,7 +588,7 @@ function buildNextMonthAction(input: HomeInput): HomeNextMonthAction {
 }
 
 /**
- * Builds the Home response: the hero, one row per charge ordered by due date, and the footer.
+ * Builds the Home response: the hero, one row per charge ordered by due date, and the footer buttons.
  * Rows for utilities charges that do not exist yet are projected from the pinned config.
  *
  * @param input - The month, today's date key, its status, the pinned config and what was read.
@@ -594,7 +628,7 @@ export function buildHome(input: HomeInput): HomeResponse {
       dueTodayCopy(input, names, ownerIds),
     ),
     rows: ranked.map((r) => r.row),
-    primaryAction: buildPrimaryAction(input),
+    footer: buildFooter(input, ownerIds, unsentIds),
     nextMonthAction: buildNextMonthAction(input),
   };
 }
