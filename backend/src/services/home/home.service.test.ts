@@ -61,7 +61,7 @@ function fakeDb(
       // An earlier-month read filters on `month: { lt }`; the month itself on its key.
       findMany: async (args: { where: { month: unknown } }) =>
         typeof args.where.month === "object"
-          ? earlierUnpaid
+          ? earlierUnpaid.map((payer, i) => ({ ...CHARGES[0], id: `earlier-${i}`, month: "2026-10", ...payer }))
           : allPaid || chargesPaid
             ? paidCharges
             : hasBill

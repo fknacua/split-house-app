@@ -43,8 +43,6 @@ const TAB_CSS_CLASS_MAP_BY_STATE: Record<'active' | 'inactive', TabViewEl> = {
     text: ['font-manrope-bold', 'text-on-surface'],
   },
   'inactive': {
-    // Never transparent: RN Android (#52415) squares the corners of a view that goes
-    // transparent -> opaque. `container` is the bar's own colour, so it looks the same.
     view: ['bg-container'],
     icon: ['text-on-surface-variant'],
     text: ['font-manrope-semibold', 'text-on-surface-variant'],

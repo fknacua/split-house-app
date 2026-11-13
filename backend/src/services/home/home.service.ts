@@ -57,11 +57,11 @@ export type HomeDb = MonthOpenDb & {
     findMany(args: { select: { id: true; name: true; isOwner: true } }): Promise<HomePerson[]>;
   };
   charge: {
-    findMany(args: { where: { month: string }; select: typeof CHARGE_SELECT }): Promise<HomeChargeRow[]>;
+    // One signature: the Prisma client's generic findMany can't satisfy an overload set.
     findMany(args: {
-      where: EarlierUnpaidWhere;
-      select: { personId: true; payViaPersonId: true };
-    }): Promise<{ personId: string; payViaPersonId: string | null }[]>;
+      where: { month: string } | EarlierUnpaidWhere;
+      select: typeof CHARGE_SELECT;
+    }): Promise<HomeChargeRow[]>;
   };
   bill: {
     findUnique(args: { where: { month: string }; select: typeof BILL_SELECT }): Promise<HomeBill | null>;
@@ -106,7 +106,7 @@ export async function getHome(db: HomeDb): Promise<HomeResponse> {
     // A late payment Record payment can still take counts in its footer button.
     db.charge.findMany({
       where: { month: { lt: opened.month }, paidCents: null, amountCents: { gt: 0 }, person: { isOwner: false } },
-      select: { personId: true, payViaPersonId: true },
+      select: CHARGE_SELECT,
     }),
   ]);
 
