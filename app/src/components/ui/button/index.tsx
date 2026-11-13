@@ -51,6 +51,8 @@ const buttonStyle = tva({
     size: {
       default: 'h-12 px-6',
       sm: 'h-11 px-4',
+      // Two buttons side by side in a footer: full height, tight sides, the smaller label.
+      split: 'h-12 px-2',
     },
   },
 });
@@ -90,6 +92,7 @@ const buttonTextStyle = tva(
       size: {
         default: 'text-body leading-5',
         sm: 'text-label leading-5',
+        split: 'text-label leading-5',
       },
       disabled: disabledContent,
     },
@@ -112,6 +115,7 @@ const buttonIconStyle = tva({
     size: {
       default: 'h-4 w-4',
       sm: 'h-4 w-4',
+      split: 'h-4 w-4',
     },
     disabled: disabledContent,
   },

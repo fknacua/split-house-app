@@ -182,7 +182,7 @@ export type HomeRow = z.infer<typeof homeRowSchema>;
 export const homeFooterButtonSchema = z.object({
   /** e.g. `Upload utilities bill`. */
   label: z.string(),
-  icon: z.enum(['upload', 'file-pen', 'send', 'banknote', 'check']),
+  icon: z.enum(['upload', 'file-pen', 'send', 'wallet', 'check']),
   /** `outline` once the button's job is done, like Send message after every monthly message is out. */
   variant: z.enum(['solid', 'outline']),
   /** The small number in the button, e.g. how many messages are not sent. Null when it shows none. */

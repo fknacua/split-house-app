@@ -307,7 +307,7 @@ describe("buildHome, unsent on 1 Nov", () => {
       },
       {
         label: "Record payment",
-        icon: "banknote",
+        icon: "wallet",
         variant: "solid",
         // Jordan, Priya (for herself and for Sam's utilities) and Sam (rent, paid direct).
         count: 3,
@@ -517,7 +517,7 @@ describe("buildHome, collecting on 3 Nov", () => {
       { label: "Send message", icon: "send", variant: "outline", count: null, target: { kind: "send-message", month: "2026-11" } },
       {
         label: "Record payment",
-        icon: "banknote",
+        icon: "wallet",
         variant: "solid",
         // Jordan, and Priya for herself and Sam's utilities. Sam's rent is paid.
         count: 2,
@@ -538,10 +538,12 @@ describe("buildHome, collecting on 3 Nov", () => {
     expect(collecting({ earlierUnpaidPayerIds: [PERSON_IDS.jordan] }).footer[1].count).toBe(2);
   });
 
-  it("adds Mark bill paid to the footer once the bill's due date has come", () => {
+  it("makes Mark bill paid the only footer button once the bill's due date has come", () => {
     expect(home.footer.map((b) => b.label)).not.toContain("Mark bill paid");
     for (const today of ["2026-11-16", "2026-11-18"]) {
-      expect(collecting({ today }).footer.at(-1)).toEqual({
+      const footer = collecting({ today }).footer;
+      expect(footer).toHaveLength(1);
+      expect(footer[0]).toEqual({
         label: "Mark bill paid",
         icon: "check",
         variant: "solid",
