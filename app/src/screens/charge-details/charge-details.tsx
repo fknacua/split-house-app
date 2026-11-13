@@ -13,7 +13,7 @@ import { Section } from './components/section';
 /**
  * Charge details: one charge's amount and chip, its Details, its Activity, and Nudge and Mark paid
  * when the server sends them. Every string comes from `GET /api/charges/:id/details`. Opened from a
- * Home row's View details, so the bottom navigation is hidden. A save or a nudge refetches it in
+ * Home row's View details or a History payment row, so the bottom navigation is hidden. A save or a nudge refetches it in
  * place (`allChargeDetails`).
  */
 export function ChargeDetails() {

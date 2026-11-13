@@ -8,6 +8,7 @@ import {
 import { getActiveMonth, type ActiveMonthDb } from "@/services/months/active-month.service";
 
 const CHARGE_SELECT = {
+  id: true,
   month: true,
   category: true,
   label: true,

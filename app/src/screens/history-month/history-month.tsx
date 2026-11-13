@@ -44,7 +44,7 @@ export function HistoryMonth() {
               <Text className="mx-1 font-manrope-bold text-body text-on-surface">Payments</Text>
               <Card padded={false}>
                 {data.payments.map((payment, i) => (
-                  <PaymentRow key={payment.title + i} payment={payment} separated={i > 0} />
+                  <PaymentRow key={payment.chargeId} payment={payment} separated={i > 0} />
                 ))}
               </Card>
             </View>

@@ -50,6 +50,8 @@ export type HistoryListResponse = z.infer<typeof historyListResponseSchema>;
 
 /** One payment row on the month detail: a charge and whether it was paid. */
 export const historyPaymentSchema = z.object({
+  /** The charge the row is. A tap opens its Charge details. */
+  chargeId: z.string(),
   /** e.g. `Rent · Tenant 1`. */
   title: z.string(),
   /** e.g. `$X,XXX.XX`. */

@@ -15,6 +15,7 @@ const charge = (
   amountCents: number,
   paidOn: string | null,
 ): HistoryMonthChargeRow => ({
+  id: `${label}-${name}`,
   month: "2026-11",
   category: "RENT",
   label,
@@ -65,10 +66,10 @@ describe("buildHistoryMonth", () => {
   it("makes one row per charge, label first, newest payment first, ties by label then person", () => {
     const { payments, banners } = buildHistoryMonth("2026-11", BILL, CHARGES, []);
     expect(payments).toEqual([
-      { title: "Rent · Tenant 1", amount: "$950.00", details: [], badge: { label: "Paid 7 Nov", tone: "success" } },
-      { title: "Utilities · Tenant 1", amount: "$82.46", details: [], badge: { label: "Paid 7 Nov", tone: "success" } },
-      { title: "Utilities · Tenant 2", amount: "$82.46", details: [], badge: { label: "Paid 4 Nov", tone: "success" } },
-      { title: "Rent · Tenant 2", amount: "$950.00", details: [], badge: { label: "Paid 3 Nov", tone: "success" } },
+      { chargeId: "Rent-Tenant 1", title: "Rent · Tenant 1", amount: "$950.00", details: [], badge: { label: "Paid 7 Nov", tone: "success" } },
+      { chargeId: "Utilities-Tenant 1", title: "Utilities · Tenant 1", amount: "$82.46", details: [], badge: { label: "Paid 7 Nov", tone: "success" } },
+      { chargeId: "Utilities-Tenant 2", title: "Utilities · Tenant 2", amount: "$82.46", details: [], badge: { label: "Paid 4 Nov", tone: "success" } },
+      { chargeId: "Rent-Tenant 2", title: "Rent · Tenant 2", amount: "$950.00", details: [], badge: { label: "Paid 3 Nov", tone: "success" } },
     ]);
     expect(banners).toEqual([]);
   });
@@ -122,6 +123,7 @@ describe("buildHistoryMonth", () => {
       const unpaid = buildHistoryMonth("2026-10", BILL, [correction("Jordan", 1500)], []).payments;
       expect(unpaid).toEqual([
         {
+          chargeId: "Correction-Jordan",
           title: "Correction · Jordan",
           amount: "$15.00",
           details: ["Sep Utils · Added 5 Oct"],
