@@ -393,7 +393,7 @@ describe("buildHome, collecting on 3 Nov", () => {
   const home = collecting();
   const row = (title: string) => home.rows.find((r) => r.title === title)!;
 
-  it("shows overdue rent shaded and open, with the nudge date and Nudge again beside Mark paid", () => {
+  it("shows overdue rent shaded and open, with the nudge date and Nudge (never Nudge again) beside Mark paid", () => {
     expect(row("Rent · Jordan")).toMatchObject({
       badge: { label: "Overdue 2 days", tone: "danger" },
       tint: "warning",
@@ -402,7 +402,7 @@ describe("buildHome, collecting on 3 Nov", () => {
     });
     expect(row("Rent · Jordan").actions).toEqual([
       {
-        label: "Nudge again",
+        label: "Nudge",
         tone: "warning",
         icon: "bell",
         target: { kind: "recipient", month: "2026-11", personId: PERSON_IDS.jordan, chargeId: jordanRent.id },

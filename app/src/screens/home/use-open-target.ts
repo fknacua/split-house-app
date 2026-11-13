@@ -51,7 +51,7 @@ export function useOpenTarget() {
         // The Send message sheet is built in 12B.
         return;
       case 'view-details':
-        // Charge details is built in 12A.4.
+        router.push({ pathname: '/charge/[chargeId]', params: { chargeId: target.chargeId } });
         return;
       case 'recipient':
         router.push({

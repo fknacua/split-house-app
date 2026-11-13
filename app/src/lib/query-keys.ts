@@ -39,6 +39,10 @@ export const queryKeys = {
   allChargePayments: ['charge-payment'] as const,
   /** @param chargeId The charge whose Mark paid sheet this is. */
   chargePayment: (chargeId: string) => ['charge-payment', chargeId] as const,
+  /** Every Charge details page. The prefix of `chargeDetails`, so a payment or a nudge refreshes whichever is open. */
+  allChargeDetails: ['charge-details'] as const,
+  /** @param chargeId The charge Charge details shows. */
+  chargeDetails: (chargeId: string) => ['charge-details', chargeId] as const,
   /** Every month's Record payment lists. The prefix of `paymentOptions`, so a payment refreshes them all. */
   allPaymentOptions: ['payment-options'] as const,
   /** @param month `YYYY-MM` key of the month Record payment is opened for. */
