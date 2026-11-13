@@ -190,7 +190,9 @@ function chargeRow(
         paid: !unpaid,
         overdue,
         sent: dates.sentOn.has(payerId),
-        nudged: dates.nudgedOn.has(charge.id),
+        // The row's button is too narrow for `Nudge again`, and it is just another nudge, so the row
+        // always says `Nudge`; the detail line already says when it was last nudged.
+        nudged: false,
       }),
       link: { label: "View details", target: { kind: "view-details", chargeId: charge.id } },
     },
