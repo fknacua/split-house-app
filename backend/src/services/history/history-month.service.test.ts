@@ -23,6 +23,7 @@ function fakeDb(
 }
 
 const row = (label: string, correctsMonth: string | null): HistoryMonthChargeRow => ({
+  id: `charge-${label}`,
   month: correctsMonth ? "2026-10" : "2026-09",
   category: correctsMonth ? "CORRECTION" : "RENT",
   label,

@@ -19,6 +19,7 @@ export interface HistoryMonthBillRow {
 
 /** A charge, as much of it as the month detail needs. */
 export interface HistoryMonthChargeRow {
+  id: string;
   month: string;
   category: ChargeCategory;
   label: string;
@@ -72,6 +73,7 @@ function buildStatusBadge(charge: HistoryMonthChargeRow): BadgeContent {
 
 function buildPayment(charge: HistoryMonthChargeRow, badge: BadgeContent): HistoryPayment {
   return {
+    chargeId: charge.id,
     title: buildTitleByCategory(charge),
     amount: formatCents(charge.amountCents),
     details: buildDetailsByCategory(charge),
