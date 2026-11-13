@@ -10,8 +10,14 @@ import {
 import type { ChargeCategory } from "@/generated/prisma/enums";
 import { chargeDueDate } from "@/lib/home/due-dates";
 import { boldRuns } from "./bold-runs";
-import { buildBreakdown, type Breakdown, type BreakdownInput } from "./build-breakdown";
-import { lineLabel } from "./line-label";
+import {
+  buildBreakdown,
+  buildSections,
+  sectionsText,
+  type Breakdown,
+  type BreakdownInput,
+  type BreakdownSection,
+} from "./build-breakdown";
 
 /** One of the placeholders a template may use, without the braces. */
 export type TemplatePlaceholder = (typeof TEMPLATE_PLACEHOLDERS)[number];
@@ -100,13 +106,19 @@ export function renderMonthlyMessage(input: MonthlyMessageInput): MonthlyMessage
   };
   const own = templateFor(input.templates, input.recipientId, "MONTHLY");
   const template = breakdown.dueDate ? own : withoutDueDateLines(own);
+  return { ...fillAroundLines(template, values), breakdown };
+}
+
+/**
+ * Fills a template whole, and the parts before and after its first `{lines}` apart, for the preview card.
+ */
+function fillAroundLines(template: string, values: TemplateValues): { text: string; before: string; after: string } {
   const [head, ...rest] = template.split("{lines}");
   const tail = rest.join("{lines}").replace(/^\n+/, "");
   return {
     text: fillTemplate(template, values),
     before: fillTemplate(head, values).replace(/\n+$/, ""),
     after: fillTemplate(tail, values),
-    breakdown,
   };
 }
 
@@ -117,9 +129,24 @@ export function renderMonthlyMessage(input: MonthlyMessageInput): MonthlyMessage
  * @returns The intro, sections, outro and exact text.
  */
 export function monthlyMessagePreview(message: MonthlyMessage): MessagePreview {
+  return previewOf({ ...message, sections: message.breakdown.sections });
+}
+
+/**
+ * A nudge in the parts the preview card shows, laid out as the monthly breakdown.
+ *
+ * @param message - The rendered nudge.
+ * @returns The intro, sections, outro and exact text.
+ */
+export function nudgeMessagePreview(message: NudgeMessage): MessagePreview {
+  return previewOf(message);
+}
+
+/** A filled message in the preview card's parts. */
+function previewOf(message: { text: string; before: string; after: string; sections: BreakdownSection[] }): MessagePreview {
   return {
     intro: boldRuns(message.before),
-    sections: message.breakdown.sections.map((s) => ({
+    sections: message.sections.map((s) => ({
       title: s.title,
       lines: s.lines.map((l) => ({ label: l.label, amount: l.amount, working: l.working })),
       subtotal: s.subtotal,
@@ -129,18 +156,10 @@ export function monthlyMessagePreview(message: MonthlyMessage): MessagePreview {
   };
 }
 
-/**
- * A nudge in the parts the preview card shows: all intro, since it has no lines.
- *
- * @param text - The rendered nudge.
- * @returns The intro in bold and plain pieces, the empty sections and outro, and the exact text.
- */
-export function nudgeMessagePreview(text: string): MessagePreview {
-  return { intro: boldRuns(text), sections: [], outro: [], text };
-}
-
 /** A charge, as much of it as a nudge needs. */
 export interface NudgeCharge {
+  /** Whose charge it is: the recipient's own, or someone's they collect. */
+  personId: string;
   month: string;
   category: ChargeCategory;
   label: string;
@@ -151,32 +170,67 @@ export interface NudgeCharge {
 
 /** What `renderNudgeMessage` reads. */
 export interface NudgeMessageInput {
-  /** Who the nudge goes to: the person who pays the charge. */
+  /** Who the nudge goes to: the person who pays the charges. */
   recipientId: string;
   recipientName: string;
-  /** The config pinned to the charge's month. */
+  /** The active month, for `{month}`. */
+  month: string;
+  /** The config pinned to the active month, for the due dates. */
   config: HouseholdConfig;
   /** The current wording. */
   templates: MessageTemplates;
-  charge: NudgeCharge;
+  /** Names for the default "please collect" section titles. */
+  people: { id: string; name: string }[];
+  /** The charges the nudge is about: the ticked ones. */
+  charges: NudgeCharge[];
+}
+
+/** A nudge, filled in. */
+export interface NudgeMessage {
+  /** The whole message, exactly as it is sent and copied. */
+  text: string;
+  /** The filled template before `{lines}`, without the blank lines next to it. */
+  before: string;
+  /** The filled template after `{lines}`, without the blank lines next to it; empty without `{lines}`. */
+  after: string;
+  /** The charges' lines, in sections as the monthly breakdown's. */
+  sections: BreakdownSection[];
+  totalCents: number;
 }
 
 /**
- * Renders a nudge about one charge from the recipient's nudge template (or override). `{charge}` is
- * the line label as is (`Rent`), `{month}` the charge's month (`Nov 2026`), `{amount}` its amount
- * and `{dueDate}` its due date (`1 Nov`).
+ * Renders a nudge about one or more charges from the recipient's nudge template (or override).
+ * `{lines}` is one line per charge, built as the monthly breakdown's with `(due 1 Nov)` as the working
+ * (in `Yours` and collect sections once a collected charge is in it), `{total}` their sum, `{month}`
+ * the active month (`Nov 2026`) and `{name}` the recipient's name.
  *
- * @param input - The recipient, the config, the wording and the charge.
- * @returns The message text, exactly as it is sent.
+ * @param input - The recipient, the month, the config, the wording, the people and the charges.
+ * @returns The message, its two template parts and its sections.
  */
-export function renderNudgeMessage(input: NudgeMessageInput): string {
-  const { charge, config, templates } = input;
-  const dueDate = chargeDueDate(charge.month, config, charge);
-  return fillTemplate(templateFor(templates, input.recipientId, "NUDGE"), {
-    name: input.recipientName,
-    charge: lineLabel(templates, charge),
-    month: formatMonthShortLabel(charge.month),
-    amount: formatCents(charge.amountCents),
-    ...(dueDate ? { dueDate: formatDateShort(dueDate) } : {}),
+export function renderNudgeMessage(input: NudgeMessageInput): NudgeMessage {
+  const { config } = input;
+  const template = templateFor(input.templates, input.recipientId, "NUDGE");
+  if (input.charges.length === 0) {
+    // Nothing to list (a preview for someone with no charges): `{lines}` and `{total}` stay as typed.
+    const text = fillTemplate(template, { name: input.recipientName, month: formatMonthShortLabel(input.month) });
+    return { text, before: text, after: "", sections: [], totalCents: 0 };
+  }
+  const sections = buildSections({
+    recipientId: input.recipientId,
+    templates: input.templates,
+    people: input.people,
+    charges: input.charges,
+    working: (charge) => {
+      const dueDate = chargeDueDate(charge.month, config, charge);
+      return dueDate ? `(due ${formatDateShort(dueDate)})` : null;
+    },
   });
+  const totalCents = sections.reduce((s, sec) => s + sec.subtotalCents, 0);
+  const filled = fillAroundLines(template, {
+    name: input.recipientName,
+    month: formatMonthShortLabel(input.month),
+    lines: sectionsText(sections),
+    total: formatCents(totalCents),
+  });
+  return { ...filled, sections, totalCents };
 }

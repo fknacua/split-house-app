@@ -58,10 +58,12 @@ export async function createMessageEvent(
     renderedText = renderNudgeMessage({
       recipientId: input.person.id,
       recipientName: input.person.name,
+      month,
       config: input.config,
       templates: input.templates,
-      charge,
-    });
+      people: input.people,
+      charges: [charge],
+    }).text;
   }
 
   const event = await db.messageEvent.create({

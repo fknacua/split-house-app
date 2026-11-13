@@ -301,7 +301,7 @@ describe("buildRecipient: sent", () => {
 describe("buildRecipient: overdue (nudged)", () => {
   const sent = { kind: "MONTHLY" as const, chargeId: null, openedAt: new Date("2026-11-02T10:00:00+08:00") };
   const rentNudge = { kind: "NUDGE" as const, chargeId: `${jordan}-RENT`, openedAt: new Date("2026-11-02T18:00:00+08:00") };
-  const RENT_NUDGE = "Hi Jordan! Paalala lang, yung Rent for Nov 2026 ($950.00) ay due nung 1 Nov. Salamat! 🙏";
+  const RENT_NUDGE = "Hi Jordan! Paalala lang, overdue pa yung mga ito:\n\n*Rent:* $950.00 (due 1 Nov)\n\n*Total:* $950.00\nSalamat! 🙏";
   const nudgeTarget = (personId: string, chargeId: string, text: string) => ({
     kind: "nudge-whatsapp",
     month: "2026-11",
@@ -349,9 +349,12 @@ describe("buildRecipient: overdue (nudged)", () => {
     expect(r.message).toEqual({
       label: "Last nudge",
       meta: "Sent 2 Nov",
-      intro: [{ text: RENT_NUDGE, bold: false }],
-      sections: [],
-      outro: [],
+      intro: [{ text: "Hi Jordan! Paalala lang, overdue pa yung mga ito:", bold: false }],
+      sections: [{ title: null, lines: [{ label: "Rent", amount: "$950.00", working: "(due 1 Nov)" }], subtotal: null }],
+      outro: [
+        { text: "Total:", bold: true },
+        { text: " $950.00\nSalamat! 🙏", bold: false },
+      ],
       text: RENT_NUDGE,
       editTemplate: { label: "Edit template", icon: null, enabled: true, target: { kind: "edit-template", template: "NUDGE" } },
     });
@@ -399,7 +402,7 @@ describe("buildRecipient: overdue (nudged)", () => {
     const r = buildRecipient(
       input(jordan, JORDAN_CHARGES, { today: "2026-11-05", messages: [sent, rentNudge], chargeId: `${jordan}-UTILITIES` }),
     );
-    const text = "Hi Jordan! Paalala lang, yung Utilities bill for Nov 2026 ($82.46) ay due nung 4 Nov. Salamat! 🙏";
+    const text = "Hi Jordan! Paalala lang, overdue pa yung mga ito:\n\n*Utilities bill:* $82.46 (due 4 Nov)\n\n*Total:* $82.46\nSalamat! 🙏";
 
     expect(r.amountCard.statusLine?.text).toBe("Utilities overdue since 4 Nov");
     expect(r.message).toMatchObject({ label: "Nudge", meta: "Nudge template", text });

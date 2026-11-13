@@ -76,9 +76,9 @@ describe("buildTemplateEditor", () => {
     expect(body).toMatchObject({
       sub: "Nudge",
       text: DEFAULT_MESSAGE_TEMPLATES.nudge,
-      placeholders: ["{name}", "{charge}", "{month}", "{amount}", "{dueDate}"],
+      placeholders: ["{name}", "{month}", "{lines}", "{total}"],
       labels: {
-        hint: "How each charge is named in {charge}.",
+        hint: "How each charge is named in {lines}.",
         sharedNote: "Shared with Monthly breakdown templates",
       },
       sectionLabels: null,
