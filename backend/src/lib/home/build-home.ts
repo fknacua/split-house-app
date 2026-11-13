@@ -509,16 +509,16 @@ function owingPayerIds(input: HomeInput, ownerIds: Set<string>): Set<string> {
 /**
  * The sticky footer's buttons for the month's status. Send message is solid with the count of
  * unsent monthly messages until every one is out, then an outline with no count. Record payment
- * counts the people who still owe and goes when nobody does. Mark bill paid joins them once the
- * bill's due date has come while payments are still coming in, and is the main button once
- * everyone has paid. A settled month has none: its button is `nextMonthAction`.
+ * counts the people who still owe and goes when nobody does. Once the bill's due date has come
+ * while payments are still coming in, Mark bill paid replaces both until the bill is paid, then
+ * they come back. Mark bill paid is also the main button once everyone has paid. A settled month has none: its button is `nextMonthAction`.
  */
 function buildFooter(input: HomeInput, ownerIds: Set<string>, unsentIds: string[]): HomeFooterButton[] {
   const { month } = input;
   const owing = owingPayerIds(input, ownerIds).size;
   const record: HomeFooterButton[] =
     owing > 0
-      ? [{ label: "Record payment", icon: "banknote", variant: "solid", count: owing, target: { kind: "record-payment", month } }]
+      ? [{ label: "Record payment", icon: "wallet", variant: "solid", count: owing, target: { kind: "record-payment", month } }]
       : [];
   const markBillPaid: HomeFooterButton = {
     label: "Mark bill paid",
@@ -551,10 +551,11 @@ function buildFooter(input: HomeInput, ownerIds: Set<string>, unsentIds: string[
         ...record,
       ];
     case "collecting":
+      // Once the bill is due, paying it is the one pressing job, so it is the only button until it is paid.
+      if (billDueReached) return [markBillPaid];
       return [
         { label: "Send message", icon: "send", variant: "outline", count: null, target: { kind: "send-message", month } },
         ...record,
-        ...(billDueReached ? [markBillPaid] : []),
       ];
     case "bill_due":
       // Only the bill is left this month; an earlier month's late payment keeps Record payment.

@@ -176,11 +176,11 @@ describe("getHome", () => {
     expect(home.status).toBe("collecting");
   });
 
-  it("adds Mark bill paid to the collecting footer once the bill's due date has come", async () => {
+  it("makes Mark bill paid the only collecting footer button once the bill's due date has come", async () => {
     vi.stubEnv("DEV_NOW", "2026-11-16T09:00:00+08:00");
     const home = await getHome(fakeDb(true, { hasBill: true, messaged: [PERSON_IDS.priya, PERSON_IDS.jordan] }));
     expect(home.status).toBe("collecting");
-    expect(home.footer.map((b) => b.label)).toEqual(["Send message", "Record payment", "Mark bill paid"]);
+    expect(home.footer.map((b) => b.label)).toEqual(["Mark bill paid"]);
   });
 
   it("returns the bill_due status once everyone has paid but the bill is not, and it parses", async () => {
