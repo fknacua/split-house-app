@@ -109,6 +109,17 @@ export function formatDateMedium(key: string): string {
 }
 
 /**
+ * Formats a date key as a two-digit day, month and year, for Charge details' due date and activity.
+ *
+ * @param key A date key, e.g. `2026-11-02`.
+ * @returns e.g. `02 Nov 2026`.
+ * @throws {RangeError} When `key` is not a valid date key.
+ */
+export function formatDatePadded(key: string): string {
+  return format(dateKeyToDate(key), 'dd MMM yyyy');
+}
+
+/**
  * Formats a span of days, such as a bill's billing period, without repeating the shared month
  * or year.
  *

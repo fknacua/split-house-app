@@ -7,6 +7,7 @@ import {
   dueDateKey,
   formatDateLabel,
   formatDateMedium,
+  formatDatePadded,
   formatDateRange,
   formatDateShort,
   formatDayOrdinal,
@@ -75,6 +76,13 @@ describe('formatDateMedium', () => {
   it('gives day, short month and year with no weekday', () => {
     expect(formatDateMedium('2026-11-16')).toBe('16 Nov 2026');
     expect(formatDateMedium('2026-11-03')).toBe('3 Nov 2026');
+  });
+});
+
+describe('formatDatePadded', () => {
+  it('pads the day to two digits', () => {
+    expect(formatDatePadded('2026-11-02')).toBe('02 Nov 2026');
+    expect(formatDatePadded('2026-11-16')).toBe('16 Nov 2026');
   });
 });
 

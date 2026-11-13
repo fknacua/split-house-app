@@ -1,6 +1,7 @@
 export * from './api/bill';
 export * from './api/bill-draft';
 export * from './api/bootstrap';
+export * from './api/charge-details';
 export * from './api/error';
 export * from './api/history';
 export * from './api/home';
