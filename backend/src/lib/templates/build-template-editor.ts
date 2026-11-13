@@ -7,13 +7,13 @@ import { customText, defaultText, TEMPLATE_NAMES } from "./template-text";
 
 const PLACEHOLDER_CHIPS: Record<TemplateKind, string[]> = {
   MONTHLY: ["{name}", "{month}", "{lines}", "{total}", "{dueDate}"],
-  NUDGE: ["{name}", "{charge}", "{month}", "{amount}", "{dueDate}"],
+  NUDGE: ["{name}", "{month}", "{lines}", "{total}"],
 };
 
 /** The Line labels sheet's hint and the note on what else uses the labels, per template. */
 const LABELS_COPY: Record<TemplateKind, { hint: string; sharedNote: string }> = {
   MONTHLY: { hint: "How each charge is named in {lines}.", sharedNote: "Shared with Nudge templates" },
-  NUDGE: { hint: "How each charge is named in {charge}.", sharedNote: "Shared with Monthly breakdown templates" },
+  NUDGE: { hint: "How each charge is named in {lines}.", sharedNote: "Shared with Monthly breakdown templates" },
 };
 
 /** What `buildTemplateEditor` reads. */

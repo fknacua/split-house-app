@@ -80,7 +80,10 @@ describe("buildTemplateLanding", () => {
     expect(body.title).toBe("Nudge");
     expect(body.custom.cards).toEqual([]);
     expect(body.default.preview?.text).toBe(
-      "Hi Priya! Paalala lang, yung Utilities bill for Nov 2026 ($123.69) ay due nung 7 Nov. Salamat! 🙏",
+      "Hi Priya! Paalala lang, overdue pa yung mga ito:\n\n" +
+        "Yours:\n*Rent:* $1,675.00 (due 7 Nov)\n*Utilities bill:* $123.69 (due 7 Nov)\n*Subtotal:* $1,798.69\n\n" +
+        "Sam’s (please collect):\n*Utilities bill:* $82.46 (due 7 Nov)\n*Subtotal:* $82.46\n\n" +
+        "*Total:* $1,881.15\nSalamat! 🙏",
     );
   });
 

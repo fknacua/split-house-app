@@ -118,12 +118,28 @@ function working(input: BreakdownInput, charge: BreakdownCharge): string | null 
   return null;
 }
 
+/** A charge, as much of it as a section line needs. */
+export type SectionCharge = Pick<BreakdownCharge, "personId" | "month" | "category" | "label" | "amountCents">;
+
+/** What `buildSections` reads. */
+export interface SectionsInput<C extends SectionCharge> {
+  /** Who the message goes to; their own section comes first. */
+  recipientId: string;
+  /** The current wording, for the line labels and section titles. */
+  templates: MessageTemplates;
+  /** Names for the default "please collect" titles, and the order of the other sections. */
+  people: { id: string; name: string }[];
+  /** The charges the message lists, already picked. */
+  charges: C[];
+  /** The working after a line's amount, e.g. `(1/6 units)` or `(due 1 Nov)`; null for none. */
+  working: (charge: C) => string | null;
+}
+
 /**
  * Builds a person's monthly breakdown. It holds the unpaid charges the recipient pays: their own
  * and those paid through them, from the month, plus unpaid corrections from earlier months.
  * Paid charges are left out, so the total is what they still owe; a credit is a negative line.
- * Each person gets a section; the titles and subtotals show only when the message has someone
- * else's section, since a lone section's subtotal is the total.
+ * The sections are `buildSections`'s, with the working on utilities and aircon lines.
  *
  * @param input - The month, recipient, config, bill, people and charges.
  * @returns The sections, the total, the earliest due date and the text for `{lines}`.
@@ -136,8 +152,39 @@ export function buildBreakdown(input: BreakdownInput): Breakdown {
       (c.month === input.month || (c.category === "CORRECTION" && c.month < input.month)),
   );
 
-  const byPerson = new Map<string, BreakdownCharge[]>();
-  for (const charge of included) {
+  const sections = buildSections({
+    recipientId: input.recipientId,
+    templates: input.templates,
+    people: input.people,
+    charges: included,
+    working: (charge) => working(input, charge),
+  });
+
+  const dueDates = included
+    .map((c) => chargeDueDate(c.month, input.config, c))
+    .filter((d): d is string => d !== null)
+    .sort();
+
+  return {
+    sections,
+    totalCents: sections.reduce((s, sec) => s + sec.subtotalCents, 0),
+    dueDate: dueDates[0] ?? null,
+    text: sectionsText(sections),
+  };
+}
+
+/**
+ * Groups a message's charges into one section per person: the recipient's own first, then each person
+ * whose charges they collect. Lines read rent first and earlier corrections last. The titles and
+ * subtotals show only when the message has someone else's section, since a lone section's subtotal is
+ * the total. The monthly breakdown and the nudge both build their lines here.
+ *
+ * @param input - The recipient, the wording, the people, the charges and the working per line.
+ * @returns The sections, in order.
+ */
+export function buildSections<C extends SectionCharge>(input: SectionsInput<C>): BreakdownSection[] {
+  const byPerson = new Map<string, C[]>();
+  for (const charge of input.charges) {
     byPerson.set(charge.personId, [...(byPerson.get(charge.personId) ?? []), charge]);
   }
   const order = [input.recipientId, ...input.people.map((p) => p.id)];
@@ -145,7 +192,7 @@ export function buildBreakdown(input: BreakdownInput): Breakdown {
   const titled = personIds.some((id) => id !== input.recipientId);
   const names = new Map(input.people.map((p) => [p.id, p.name]));
 
-  const sections = personIds.map((personId): BreakdownSection => {
+  return personIds.map((personId): BreakdownSection => {
     const charges = [...byPerson.get(personId)!].sort(
       (a, b) =>
         CATEGORY_ORDER.indexOf(a.category) - CATEGORY_ORDER.indexOf(b.category) ||
@@ -157,7 +204,7 @@ export function buildBreakdown(input: BreakdownInput): Breakdown {
         label: lineLabel(input.templates, charge),
         amountCents: charge.amountCents,
         amount: formatCents(charge.amountCents),
-        working: working(input, charge),
+        working: input.working(charge),
       }),
     );
     const subtotalCents = lines.reduce((s, l) => s + l.amountCents, 0);
@@ -172,18 +219,16 @@ export function buildBreakdown(input: BreakdownInput): Breakdown {
       subtotal: titled ? formatCents(subtotalCents) : null,
     };
   });
+}
 
-  const dueDates = included
-    .map((c) => chargeDueDate(c.month, input.config, c))
-    .filter((d): d is string => d !== null)
-    .sort();
-
-  return {
-    sections,
-    totalCents: sections.reduce((s, sec) => s + sec.subtotalCents, 0),
-    dueDate: dueDates[0] ?? null,
-    text: sections.map(sectionText).join("\n\n"),
-  };
+/**
+ * Sections as message text, for `{lines}`, with a blank line between sections.
+ *
+ * @param sections - The sections from `buildSections`.
+ * @returns The text.
+ */
+export function sectionsText(sections: BreakdownSection[]): string {
+  return sections.map(sectionText).join("\n\n");
 }
 
 /**

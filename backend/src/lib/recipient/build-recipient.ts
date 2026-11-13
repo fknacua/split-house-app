@@ -189,12 +189,14 @@ function openCharges(input: RecipientInput, names: Map<string, string>): OpenCha
       const overdue = dueDate !== null && dueDate < input.today;
       let nudge: RecipientNudgeTarget | null = null;
       if (overdue) {
-        const text = renderNudgeMessage({
+        const { text } = renderNudgeMessage({
           recipientId: person.id,
           recipientName: person.name,
+          month: input.month,
           config: input.config,
           templates: input.templates,
-          charge,
+          people: input.people,
+          charges: [charge],
         });
         nudge = {
           kind: "nudge-whatsapp",
@@ -279,12 +281,14 @@ function overdueRecipient(
   const overdue = open.filter((o) => o.overdue);
   const picked = overdue.find((o) => o.charge.id === input.chargeId);
   const chosen = picked ?? overdue[0];
-  const nudgeText = renderNudgeMessage({
+  const nudge = renderNudgeMessage({
     recipientId: person.id,
     recipientName: person.name,
+    month,
     config: input.config,
     templates: input.templates,
-    charge: chosen.charge,
+    people: input.people,
+    charges: [chosen.charge],
   });
   const status = [`${chosen.title} overdue since ${formatDateShort(chosen.dueDate!)}`];
   if (chosen.nudgedOn) status.push(`nudged ${formatDateShort(chosen.nudgedOn)}`);
@@ -304,7 +308,7 @@ function overdueRecipient(
     message: {
       label: chosen.nudgedOn ? "Last nudge" : "Nudge",
       meta: chosen.nudgedOn ? `Sent ${formatDateShort(chosen.nudgedOn)}` : "Nudge template",
-      ...nudgeMessagePreview(nudgeText),
+      ...nudgeMessagePreview(nudge),
       editTemplate: {
         label: "Edit template",
         icon: null,

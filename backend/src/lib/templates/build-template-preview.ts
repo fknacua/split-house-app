@@ -1,5 +1,4 @@
 import {
-  formatMonthShortLabel,
   type HouseholdConfig,
   type MessagePreview,
   type MessageTemplates,
@@ -7,7 +6,6 @@ import {
 } from "@splithouse/shared";
 import type { BreakdownCharge } from "@/lib/messages/build-breakdown";
 import {
-  fillTemplate,
   monthlyMessagePreview,
   nudgeMessagePreview,
   renderMonthlyMessage,
@@ -30,18 +28,23 @@ export interface TemplatePreviewInput {
   people: { id: string; name: string }[];
 }
 
-/** The charge a sample nudge is about: the primary tenant's utilities, or anyone else's rent, else their first charge. */
-function sampleNudgeCharge(config: HouseholdConfig, personId: string, charges: BreakdownCharge[]): BreakdownCharge | null {
-  const own = charges.filter((c) => c.personId === personId);
-  const isPrimary = config.people.some((p) => p.personId === personId && p.role === "PRIMARY");
-  const category = isPrimary ? "UTILITIES" : "RENT";
-  return own.find((c) => c.category === category) ?? own[0] ?? null;
+/**
+ * The charges a sample nudge is about: two of the person's own (rent and utilities when they have them), and one
+ * charge they collect for someone who pays via them, so the sections and subtotals show.
+ */
+function sampleNudgeCharges(personId: string, charges: BreakdownCharge[]): BreakdownCharge[] {
+  const own = charges.filter((c) => c.personId === personId && c.payViaPersonId === null);
+  const picked = own.filter((c) => c.category === "RENT" || c.category === "UTILITIES");
+  const ownTwo = [...picked, ...own.filter((c) => !picked.includes(c))].slice(0, 2);
+  const collected = charges.find((c) => c.personId !== personId && c.payViaPersonId === personId);
+  return [...ownTwo, ...(collected ? [collected] : [])];
 }
 
 /**
  * Renders a template's text through the code Recipient uses, on sample charges holding every line the person would
  * have, so a changed label always shows. The text replaces every version of the template, so a saved custom template
- * can't hide it. A nudge for someone with no charges fills only `{name}` and `{month}`.
+ * can’t hide it. A nudge lists two of the person’s own charges and one they collect, when they collect any; one for
+ * someone with no charges fills only `{name}` and `{month}`.
  *
  * @param input - The text, the month, the config, the wording and the person.
  * @returns The rendered message, or null for blank text, which has nothing to preview.
@@ -67,9 +70,15 @@ export function buildTemplatePreview(input: TemplatePreviewInput): MessagePrevie
     );
   }
 
-  const charge = sampleNudgeCharge(config, person.id, charges);
-  if (!charge) return nudgeMessagePreview(fillTemplate(text, { name: person.name, month: formatMonthShortLabel(month) }));
   return nudgeMessagePreview(
-    renderNudgeMessage({ recipientId: person.id, recipientName: person.name, config, templates, charge }),
+    renderNudgeMessage({
+      recipientId: person.id,
+      recipientName: person.name,
+      month,
+      config,
+      templates,
+      people,
+      charges: sampleNudgeCharges(person.id, charges),
+    }),
   );
 }

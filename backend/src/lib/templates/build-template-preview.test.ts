@@ -85,24 +85,39 @@ describe("buildTemplatePreview", () => {
     expect(preview({ templates, person: JORDAN, text: "Draft" })?.text).toBe("Draft");
   });
 
-  const NUDGE = "Hi {name}! {charge} for {month} ({amount}) due {dueDate}. {oops}";
+  const NUDGE = "Hi {name}! {month}\n\n{lines}\n\n*Total:* {total}\n{oops}";
 
-  it("renders a tenant's nudge about their rent, all intro", () => {
+  it("renders a tenant's nudge about two of their charges, in one untitled section", () => {
     expect(preview({ kind: "NUDGE", text: NUDGE, person: JORDAN })).toEqual({
-      intro: [{ text: "Hi Jordan! Rent for Nov 2026 ($950.00) due 1 Nov. {oops}", bold: false }],
-      sections: [],
-      outro: [],
-      text: "Hi Jordan! Rent for Nov 2026 ($950.00) due 1 Nov. {oops}",
+      intro: [{ text: "Hi Jordan! Nov 2026", bold: false }],
+      sections: [
+        {
+          title: null,
+          lines: [
+            { label: "Rent", amount: "$950.00", working: "(due 1 Nov)" },
+            { label: "Utilities bill", amount: "$82.46", working: "(due 4 Nov)" },
+          ],
+          subtotal: null,
+        },
+      ],
+      outro: [
+        { text: "Total:", bold: true },
+        { text: " $1,032.46\n{oops}", bold: false },
+      ],
+      text: "Hi Jordan! Nov 2026\n\n*Rent:* $950.00 (due 1 Nov)\n*Utilities bill:* $82.46 (due 4 Nov)\n\n*Total:* $1,032.46\n{oops}",
     });
   });
 
-  it("renders the primary tenant's nudge about their own utilities, not a share they collect", () => {
+  it("renders the primary tenant's nudge with a charge they collect, in sections, with the saved line labels", () => {
     const message = preview({
       kind: "NUDGE",
-      text: "{charge} {amount}",
+      text: "{lines}",
       templates: withTemplates({ lineLabels: { UTILITIES: "PUB" } }),
     });
-    expect(message?.text).toBe("PUB $123.69");
+    expect(message?.text).toBe(
+      "Yours:\n*Rent:* $1,675.00 (due 7 Nov)\n*PUB:* $123.69 (due 7 Nov)\n*Subtotal:* $1,798.69\n\n" +
+        "Sam’s (please collect):\n*PUB:* $82.46 (due 7 Nov)\n*Subtotal:* $82.46",
+    );
   });
 
   it("fills only the name and month of a nudge for someone with no charges", () => {
@@ -113,7 +128,9 @@ describe("buildTemplatePreview", () => {
       ),
       people: NOV_2026_CONFIG.people.map((p) => (p.personId === jordan ? { ...p, utilityShares: 0 } : p)),
     };
-    expect(preview({ kind: "NUDGE", text: NUDGE, config, person: JORDAN })?.text).toBe("Hi Jordan! {charge} for Nov 2026 ({amount}) due {dueDate}. {oops}");
+    expect(preview({ kind: "NUDGE", text: NUDGE, config, person: JORDAN })?.text).toBe(
+      "Hi Jordan! Nov 2026\n\n{lines}\n\n*Total:* {total}\n{oops}",
+    );
   });
 
   it.each(["", "  \n"])("has nothing to preview for blank text %j", (text) => {

@@ -17,16 +17,11 @@ export const CHARGE_TYPES = ["RENT", "UTILITIES", "AIRCON", "RECURRING"] as cons
 /** One of {@link CHARGE_TYPES}. */
 export type ChargeType = (typeof CHARGE_TYPES)[number];
 
-/** Placeholders a message template may use. */
-export const TEMPLATE_PLACEHOLDERS = [
-  "name",
-  "month",
-  "lines",
-  "total",
-  "dueDate",
-  "charge",
-  "amount",
-] as const;
+/**
+ * Placeholders a message template may use. The nudge uses all but `{dueDate}`, which is the monthly
+ * breakdown's: each nudge line carries its own due date.
+ */
+export const TEMPLATE_PLACEHOLDERS = ["name", "month", "lines", "total", "dueDate"] as const;
 
 const nonNegativeInt = z.number().int().min(0);
 const dueDay = z.number().int().min(1).max(31);

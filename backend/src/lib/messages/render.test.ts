@@ -1,3 +1,4 @@
+import type { MessageTemplates } from "@splithouse/shared";
 import { describe, expect, it } from "vitest";
 import { NOV_2026_CONFIG, PERSON_IDS } from "@/lib/fixtures/household";
 import { DEFAULT_MESSAGE_TEMPLATES } from "@/lib/messages/default-templates";
@@ -176,41 +177,97 @@ describe("renderMonthlyMessage", () => {
 });
 
 describe("renderNudgeMessage", () => {
-  const jordanRent: NudgeCharge = {
-    month: "2026-11",
-    category: "RENT",
-    label: "Rent",
-    amountCents: 95000,
-    dueDate: new Date("2026-11-01T00:00:00+08:00"),
-    payViaPersonId: null,
-  };
+  const nudge = (
+    recipientId: string,
+    recipientName: string,
+    charges: NudgeCharge[],
+    templates: MessageTemplates = DEFAULT_MESSAGE_TEMPLATES,
+  ) =>
+    renderNudgeMessage({
+      recipientId,
+      recipientName,
+      month: "2026-11",
+      config: NOV_2026_CONFIG,
+      templates,
+      people: PEOPLE,
+      charges,
+    });
 
-  it("renders the Brief's Tagalog nudge default", () => {
-    expect(
-      renderNudgeMessage({ recipientId: jordan, recipientName: "Jordan", config: NOV_2026_CONFIG, templates: DEFAULT_MESSAGE_TEMPLATES, charge: jordanRent }),
-    ).toBe("Hi Jordan! Paalala lang, yung Rent for Nov 2026 ($950.00) ay due nung 1 Nov. Salamat! 🙏");
+  const [, , , , samUtilities, , jordanRent, jordanUtilities] = NOV_CHARGES;
+  const priyaRent = NOV_CHARGES[0];
+  const jordanOctRent = charge(jordan, "RENT", "Rent", 95000, "2026-10-01", { month: "2026-10" });
+
+  it.each([
+    {
+      name: "one charge: one line and the total",
+      charges: [jordanRent],
+      text: "Hi Jordan! Paalala lang, overdue pa yung mga ito:\n\n*Rent:* $950.00 (due 1 Nov)\n\n*Total:* $950.00\nSalamat! 🙏",
+    },
+    {
+      name: "several charges: a line each, in breakdown order",
+      charges: [jordanUtilities, jordanRent],
+      text: "Hi Jordan! Paalala lang, overdue pa yung mga ito:\n\n*Rent:* $950.00 (due 1 Nov)\n*Utilities bill:* $82.46 (due 4 Nov)\n\n*Total:* $1,032.46\nSalamat! 🙏",
+    },
+    {
+      name: "the same label in two months: told apart by the due date",
+      charges: [jordanRent, jordanOctRent],
+      text: "Hi Jordan! Paalala lang, overdue pa yung mga ito:\n\n*Rent:* $950.00 (due 1 Oct)\n*Rent:* $950.00 (due 1 Nov)\n\n*Total:* $1,900.00\nSalamat! 🙏",
+    },
+  ])("$name", ({ charges, text }) => {
+    expect(nudge(jordan, "Jordan", charges).text).toBe(text);
   });
 
-  it("uses the recipient's nudge override", () => {
-    const templates = withOverride(jordan, "NUDGE", "{name}: {charge} {amount}, {dueDate}");
+  it("puts a collected charge in its own section, with subtotals and the via person's due day", () => {
+    const message = nudge(priya, "Priya", [samUtilities, priyaRent]);
 
-    expect(renderNudgeMessage({ recipientId: jordan, recipientName: "Jordan", config: NOV_2026_CONFIG, templates, charge: jordanRent })).toBe(
-      "Jordan: Rent $950.00, 1 Nov",
+    expect(message.text).toBe(
+      "Hi Priya! Paalala lang, overdue pa yung mga ito:\n\n" +
+        "Yours:\n*Rent:* $1,675.00 (due 7 Nov)\n*Subtotal:* $1,675.00\n\n" +
+        "Sam’s (please collect):\n*Utilities bill:* $82.46 (due 7 Nov)\n*Subtotal:* $82.46\n\n" +
+        "*Total:* $1,757.46\nSalamat! 🙏",
+    );
+    expect(message.totalCents).toBe(175746);
+    expect(message.sections.map((s) => s.title)).toEqual(["Yours:", "Sam’s (please collect):"]);
+  });
+
+  it("uses the saved line labels and section titles", () => {
+    const templates: MessageTemplates = {
+      ...DEFAULT_MESSAGE_TEMPLATES,
+      lineLabels: { RENT: "Upa" },
+      sectionTitles: { [priya]: { [priya]: "Sa iyo", [sam]: "Kay Sam" } },
+    };
+
+    expect(nudge(priya, "Priya", [priyaRent, samUtilities], templates).text).toContain(
+      "Sa iyo:\n*Upa:* $1,675.00 (due 7 Nov)\n*Subtotal:* $1,675.00\n\nKay Sam:\n*Utilities bill:* $82.46 (due 7 Nov)",
     );
   });
 
-  it("uses the via person's due day for a charge paid through them", () => {
-    const samUtilities: NudgeCharge = {
-      month: "2026-11",
-      category: "UTILITIES",
-      label: "Utilities",
-      amountCents: 8246,
-      dueDate: null,
-      payViaPersonId: priya,
-    };
+  it("uses the recipient's nudge override, with the active month", () => {
+    const templates = withOverride(jordan, "NUDGE", "{name}, {month}:\n{lines}\n= {total}");
 
-    expect(
-      renderNudgeMessage({ recipientId: priya, recipientName: "Priya", config: NOV_2026_CONFIG, templates: DEFAULT_MESSAGE_TEMPLATES, charge: samUtilities }),
-    ).toBe("Hi Priya! Paalala lang, yung Utilities bill for Nov 2026 ($82.46) ay due nung 7 Nov. Salamat! 🙏");
+    expect(nudge(jordan, "Jordan", [jordanRent], templates).text).toBe("Jordan, Nov 2026:\n*Rent:* $950.00 (due 1 Nov)\n= $950.00");
+  });
+
+  it("leaves the retired placeholders as typed", () => {
+    const templates = withOverride(jordan, "NUDGE", "{charge} {amount} {dueDate}");
+
+    expect(nudge(jordan, "Jordan", [jordanRent], templates).text).toBe("{charge} {amount} {dueDate}");
+  });
+
+  it("splits the text around {lines} for the preview card", () => {
+    expect(nudge(jordan, "Jordan", [jordanRent])).toMatchObject({
+      before: "Hi Jordan! Paalala lang, overdue pa yung mga ito:",
+      after: "*Total:* $950.00\nSalamat! 🙏",
+    });
+  });
+
+  it("leaves {lines} and {total} as typed with no charges", () => {
+    expect(nudge(jordan, "Jordan", [])).toEqual({
+      text: "Hi Jordan! Paalala lang, overdue pa yung mga ito:\n\n{lines}\n\n*Total:* {total}\nSalamat! 🙏",
+      before: "Hi Jordan! Paalala lang, overdue pa yung mga ito:\n\n{lines}\n\n*Total:* {total}\nSalamat! 🙏",
+      after: "",
+      sections: [],
+      totalCents: 0,
+    });
   });
 });

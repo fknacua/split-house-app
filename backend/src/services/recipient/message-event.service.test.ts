@@ -86,10 +86,12 @@ describe("createMessageEvent", () => {
       renderedText: renderNudgeMessage({
         recipientId: PERSON_IDS.jordan,
         recipientName: "Jordan",
+        month: "2026-11",
         config: NOV_2026_CONFIG,
         templates: DEFAULT_MESSAGE_TEMPLATES,
-        charge: JORDAN_RENT,
-      }),
+        people: PEOPLE,
+        charges: [JORDAN_RENT],
+      }).text,
     });
   });
 
