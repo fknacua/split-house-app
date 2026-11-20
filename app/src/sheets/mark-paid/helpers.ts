@@ -3,15 +3,14 @@ import {
   formatPaymentDifference,
   positiveCents,
   type ChargePaymentResponse,
-  type PaymentOptionPerson,
-  type PaymentOptionsResponse,
   type RecipientPaidCharge,
+  type RecordPaymentChargeRow,
   type SavePaymentRequest,
 } from '@splithouse/shared';
 import { z } from 'zod';
 
 import type { SelectOption } from '@/components';
-import type { AmountState, PaymentChoice, PaymentPick, PaymentVerb } from './types';
+import type { AmountState, PaymentVerb } from './types';
 
 /** The Mark paid form: the amount received and the day. The day picker stops at today. */
 export const markPaidFormSchema = z.object({
@@ -73,37 +72,6 @@ export function toSavePaymentRequest(values: MarkPaidFormValues): SavePaymentReq
 }
 
 /**
- * The person and charge Record payment shows. A chosen charge wins (opened from a charge, or
- * picked in For), then a chosen person with their first charge; with neither, the most urgent
- * person (the server lists them first) and their first charge.
- *
- * @param options The lists from `GET /api/months/:month/payment-options`, or undefined while they load.
- * @param pick What was chosen so far.
- * @returns The person and charge, or `null` while loading or when nobody has anything to pay.
- */
-export function choosePayment(options: PaymentOptionsResponse | undefined, pick: PaymentPick): PaymentChoice | null {
-  if (!options) return null;
-  const byCharge = pick.chargeId
-    ? options.people.find((p) => p.charges.some((c) => c.sheet.chargeId === pick.chargeId))
-    : undefined;
-  const byPerson = options.people.find((p) => p.personId === pick.personId);
-  const person = byCharge ?? byPerson ?? options.people[0];
-  if (!person) return null;
-  const charge = person.charges.find((c) => c.sheet.chargeId === pick.chargeId) ?? person.charges[0];
-  return { person, charge };
-}
-
-/**
- * The From list: each person's name, with their detail line under it.
- *
- * @param options The lists, or undefined while they load (an empty list).
- * @returns One option per person, valued by their id.
- */
-export function toFromOptions(options: PaymentOptionsResponse | undefined): SelectOption[] {
-  return (options?.people ?? []).map((p) => ({ label: p.name, value: p.personId, detail: p.detail }));
-}
-
-/**
  * Edit payment's For list: each paid charge with what was received on the right and its paid line
  * under it.
  *
@@ -114,19 +82,36 @@ export function toPaidChargeOptions(charges: RecipientPaidCharge[]): SelectOptio
   return charges.map((c) => ({ label: c.title, value: c.chargeId, trailing: c.received, detail: c.detail }));
 }
 
+
 /**
- * The For list: the person's charges, each with its expected amount on the right and its due line
- * under it, in red while overdue.
+ * Record payment's ticked charges after one row's Checkbox is tapped.
  *
- * @param person The chosen person, or null while loading (an empty list).
- * @returns One option per charge, valued by its id.
+ * @param rows The For rows as the server sent them.
+ * @param chargeId The tapped row's charge.
+ * @returns The ticked charge ids, in the list's order.
  */
-export function toForOptions(person: PaymentOptionPerson | null): SelectOption[] {
-  return (person?.charges ?? []).map(({ label, sheet }) => ({
-    label,
-    value: sheet.chargeId,
-    trailing: sheet.expected,
-    detail: sheet.due?.text,
-    detailTone: sheet.due?.tone,
-  }));
+export function toggleTicked(rows: RecordPaymentChargeRow[], chargeId: string): string[] {
+  return rows.filter((r) => (r.chargeId === chargeId ? !r.ticked : r.ticked)).map((r) => r.chargeId);
+}
+
+/**
+ * Record payment's Select all: ticks every charge while some or none are ticked, and clears them once all are.
+ *
+ * @param rows The For rows as the server sent them.
+ * @returns The ticked charge ids, in the list's order.
+ */
+export function toggleAllTicked(rows: RecordPaymentChargeRow[]): string[] {
+  const all = rows.length > 0 && rows.every((r) => r.ticked);
+  return all ? [] : rows.map((r) => r.chargeId);
+}
+
+/**
+ * How Select all's box looks: ticked when every charge is, part-ticked when only some are.
+ *
+ * @param rows The For rows as the server sent them.
+ * @returns The Checkbox's `value` and `indeterminate`.
+ */
+export function selectAllState(rows: RecordPaymentChargeRow[]): { value: boolean; indeterminate: boolean } {
+  const ticked = rows.filter((r) => r.ticked).length;
+  return { value: ticked > 0 && ticked === rows.length, indeterminate: ticked > 0 && ticked < rows.length };
 }

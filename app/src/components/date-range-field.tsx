@@ -73,14 +73,16 @@ const BareDateRangeField = forwardRef<
         onPress={open}
       >
         <Input isInvalid={invalid} isDisabled={disabled}>
-          {/* The text is display only, so taps fall through to the pressable that opens the dialog. */}
-          <InputField
-            editable={false}
-            pointerEvents="none"
-            placeholder={placeholder}
-            value={complete ? formatDateRange(value.start, value.end) : ''}
-            className={disabled ? 'text-on-disabled' : undefined}
-          />
+          {/* The text is display only. A TextInput takes taps even when it can't be edited, so it sits in a view
+              that lets them through: a tap anywhere in the box reaches the pressable that opens the dialog. */}
+          <View pointerEvents="none" className="h-full flex-1">
+            <InputField
+              editable={false}
+              placeholder={placeholder}
+              value={complete ? formatDateRange(value.start, value.end) : ''}
+              className={disabled ? 'text-on-disabled' : undefined}
+            />
+          </View>
           {clearable && complete && !disabled && (
             <InputSlot
               accessibilityRole="button"

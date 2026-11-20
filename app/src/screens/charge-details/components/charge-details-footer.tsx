@@ -2,8 +2,8 @@ import { Bell, Check } from 'lucide-react-native';
 import { useRef } from 'react';
 import { View } from 'react-native';
 
-import { Button, SubpageFooter, type AppSheetRef } from '@/components';
-import { MarkPaidSheet } from '@/sheets/mark-paid';
+import { Button, SubpageFooter } from '@/components';
+import { RecordPaymentSheet, type RecordPaymentSheetRef } from '@/sheets/mark-paid';
 import { SendMessageSheet, type SendMessageSheetRef } from '@/sheets/send-message';
 import type { HomeTarget } from '@splithouse/shared';
 import type { ChargeDetailsFooterProps } from '../types';
@@ -12,20 +12,17 @@ const ICONS = { check: Check, bell: Bell } as const;
 
 /**
  * The sticky footer: Nudge or Nudge again above Mark paid, as the server sends them. Mark paid opens
- * the Mark paid sheet on this charge; Nudge opens the nudge sheet for the payer with this charge
+ * Record payment with this charge ticked; Nudge opens the nudge sheet for the payer with this charge
  * ticked. After a save or a recorded nudge the page refetches in place.
  */
 export function ChargeDetailsFooter({ actions }: ChargeDetailsFooterProps) {
-  const markPaid = useRef<AppSheetRef>(null);
+  const recordPayment = useRef<RecordPaymentSheetRef>(null);
   const sendMessage = useRef<SendMessageSheetRef>(null);
-  const markPaidTarget = actions
-    .map((a) => a.target)
-    .find((t): t is Extract<HomeTarget, { kind: 'mark-paid' }> => t.kind === 'mark-paid');
 
   const openTarget = (target: HomeTarget) => {
     switch (target.kind) {
       case 'mark-paid':
-        markPaid.current?.open();
+        recordPayment.current?.open({ chargeId: target.chargeId });
         return;
       case 'send-nudge':
         sendMessage.current?.open({ mode: 'nudge', personId: target.personId, chargeId: target.chargeId });
@@ -51,7 +48,7 @@ export function ChargeDetailsFooter({ actions }: ChargeDetailsFooterProps) {
           ))}
         </View>
       </SubpageFooter>
-      {markPaidTarget ? <MarkPaidSheet ref={markPaid} chargeId={markPaidTarget.chargeId} /> : null}
+      <RecordPaymentSheet ref={recordPayment} />
       <SendMessageSheet ref={sendMessage} />
     </>
   );

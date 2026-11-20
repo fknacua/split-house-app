@@ -1,3 +1,4 @@
+import type { LucideIcon } from 'lucide-react-native';
 import { forwardRef, useImperativeHandle, useRef, useState, type ReactNode } from 'react';
 import { Text, useWindowDimensions, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -58,7 +59,10 @@ function Grabber() {
  * @param children - The body content, placed in a padded column that scrolls.
  * @param actionLabel - The main action's label, for example "Add charge". Leave it out for a sheet that
  *   acts on a tap in its body (Nudge about which charge?): then only Cancel shows.
+ * @param actionIcon - Optional Lucide icon before the action's label, such as Record payment's check. Hidden on Retry.
  * @param onAction - Called when the action is tapped. Not called while `saving` or `disabled`.
+ * @param onCancel - Called by Cancel instead of closing the sheet, such as to ask before dropping what was entered.
+ *   The swipe down, the scrim and the back gesture still close it.
  * @param saving - Show the spinner on the action and lock the sheet.
  * @param failed - Show the failed-save Alert and turn the action into "Retry".
  * @param failedMessage - Replaces the default failed-save text.
@@ -81,7 +85,9 @@ export const AppSheet = forwardRef<
     dangerAction?: { label: string; onPress: () => void };
     children: ReactNode;
     actionLabel?: string;
+    actionIcon?: LucideIcon;
     onAction?: () => void;
+    onCancel?: () => void;
     saving?: boolean;
     failed?: boolean;
     failedMessage?: string;
@@ -100,7 +106,9 @@ export const AppSheet = forwardRef<
     dangerAction,
     children,
     actionLabel,
+    actionIcon,
     onAction,
+    onCancel,
     saving = false,
     failed = false,
     failedMessage = DEFAULT_FAILED_MESSAGE,
@@ -127,6 +135,7 @@ export const AppSheet = forwardRef<
       )
     : null;
   const rowActions = actionsInRow && !!actionLabel && !dangerAction;
+  const cancel = () => (onCancel ? onCancel() : sheetRef.current?.close());
 
   useImperativeHandle(
     ref,
@@ -196,10 +205,11 @@ export const AppSheet = forwardRef<
                   label={cancelLabel}
                   disabled={saving}
                   className="flex-1"
-                  onPress={() => sheetRef.current?.close()}
+                  onPress={cancel}
                 />
                 <Button
                   label={failed ? 'Retry' : actionLabel}
+                  icon={failed ? undefined : actionIcon}
                   loading={saving}
                   disabled={disabled}
                   className="flex-1"
@@ -209,6 +219,7 @@ export const AppSheet = forwardRef<
             ) : actionLabel ? (
               <Button
                 label={failed ? 'Retry' : actionLabel}
+                icon={failed ? undefined : actionIcon}
                 loading={saving}
                 disabled={disabled}
                 onPress={onAction}
@@ -226,7 +237,7 @@ export const AppSheet = forwardRef<
                 variant="ghost"
                 label={cancelLabel}
                 disabled={saving}
-                onPress={() => sheetRef.current?.close()}
+                onPress={cancel}
               />
             )}
           </View>

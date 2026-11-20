@@ -1,4 +1,5 @@
 import { Check, type LucideIcon } from 'lucide-react-native';
+import type { ReactNode } from 'react';
 import { Text, View } from 'react-native';
 
 import { Alert } from '@/components/alert';
@@ -53,6 +54,7 @@ const ICON_COLOR: Record<ConfirmDialogTone, string> = {
  * @param title - The dialog title.
  * @param body - Optional paragraph under the title.
  * @param note - Optional second paragraph under the body, such as what happens to a removed tenant's room.
+ * @param details - Optional content under the body, such as Record payment's From, For, Amount and Received on rows.
  * @param items - Optional extra lines under the body, such as what stays or what to check.
  * @param itemStyle - `check` (what stays) or `bullet` (what to check). Defaults to `check`.
  * @param cancelLabel - The filled, safe button, such as "Cancel" or "Keep editing".
@@ -71,6 +73,7 @@ export function ConfirmDialog({
   title,
   body,
   note,
+  details,
   items,
   itemStyle = 'check',
   cancelLabel = 'Cancel',
@@ -86,6 +89,7 @@ export function ConfirmDialog({
   title: string;
   body?: string;
   note?: string;
+  details?: ReactNode;
   items?: string[];
   itemStyle?: ConfirmDialogListStyle;
   cancelLabel?: string;
@@ -123,6 +127,7 @@ export function ConfirmDialog({
           ) : null}
           {/* The margin and the body's gap make the 16px the board draws around this paragraph. */}
           {note ? <Text className="my-2 font-manrope-medium text-label text-on-surface-variant">{note}</Text> : null}
+          {details}
           {items?.map((item) => (
             <View key={item} className="flex-row items-start gap-2">
               {itemStyle === 'check' ? (

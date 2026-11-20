@@ -23,7 +23,7 @@ export function useSaveHouseholdEdit() {
         queryClient.invalidateQueries({ queryKey: queryKeys.allRecipients }),
         queryClient.invalidateQueries({ queryKey: queryKeys.allBills }),
         queryClient.invalidateQueries({ queryKey: queryKeys.allChargePayments }),
-        queryClient.invalidateQueries({ queryKey: queryKeys.allPaymentOptions }),
+        queryClient.invalidateQueries({ queryKey: queryKeys.allRecordPaymentSheets }),
         queryClient.invalidateQueries({ queryKey: queryKeys.setup }),
       ]),
   });
