@@ -1,19 +1,11 @@
 import { describe, expect, it } from "vitest";
-import { NOV_2026_CONFIG, PERSON_IDS } from "@/lib/fixtures/household";
-import { personRouteLine } from "./sub-line";
+import { joinWords } from "./sub-line";
 
-const { priya, sam, jordan } = PERSON_IDS;
-
-const NAMES = new Map<string, string>([
-  [priya, "Priya"],
-  [sam, "Sam"],
-  [jordan, "Jordan"],
-]);
-
-describe("personRouteLine", () => {
-  it("says how the person pays, with no room", () => {
-    expect(personRouteLine(NOV_2026_CONFIG, priya, NAMES)).toBe("Pays you directly");
-    expect(personRouteLine(NOV_2026_CONFIG, sam, NAMES)).toBe("Utilities and aircon via Priya");
-    expect(personRouteLine(NOV_2026_CONFIG, jordan, NAMES)).toBe("Pays you directly");
+describe("joinWords", () => {
+  it("joins words the way a sentence does", () => {
+    expect(joinWords([])).toBe("");
+    expect(joinWords(["Sam"])).toBe("Sam");
+    expect(joinWords(["Sam", "Jordan"])).toBe("Sam and Jordan");
+    expect(joinWords(["Priya", "Sam", "Jordan"], "or")).toBe("Priya, Sam or Jordan");
   });
 });

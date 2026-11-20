@@ -1,6 +1,6 @@
 import { z } from 'zod';
 import { personColor } from '../schemas/primitives';
-import { messagePreviewSchema, recipientMessageLineSchema } from './recipient';
+import { messageLineSchema, messagePreviewSchema } from './messages';
 
 /** The templates that can be edited: the path of `GET /api/templates/:kind`. */
 export const templateKindSchema = z.enum(['MONTHLY', 'NUDGE']);
@@ -121,7 +121,7 @@ export const templateSectionLabelSchema = z.object({
   /** The usual label, the empty field's grey text: `Yours` for the recipient's own section, else `Sam’s (please collect)`. */
   placeholder: z.string(),
   /** The section's lines from the sample charges the preview uses. */
-  lines: z.array(recipientMessageLineSchema),
+  lines: z.array(messageLineSchema),
   /** e.g. `$X,XXX.XX`. */
   subtotal: z.string(),
 });

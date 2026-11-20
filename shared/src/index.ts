@@ -7,8 +7,8 @@ export * from './api/history';
 export * from './api/home';
 export * from './api/household';
 export * from './api/me';
+export * from './api/messages';
 export * from './api/payment';
-export * from './api/recipient';
 export * from './api/send';
 export * from './api/settings';
 export * from './api/setup';
@@ -17,7 +17,6 @@ export * from './lib/bill';
 export * from './lib/date';
 export * from './lib/money';
 export * from './lib/month';
-export * from './lib/payment';
 export * from './schemas/household-config';
 export * from './schemas/primitives';
 

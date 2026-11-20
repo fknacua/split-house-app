@@ -41,7 +41,7 @@ function sampleNudgeCharges(personId: string, charges: BreakdownCharge[]): Break
 }
 
 /**
- * Renders a template's text through the code Recipient uses, on sample charges holding every line the person would
+ * Renders a template's text through the code the Send message sheet uses, on sample charges holding every line the person would
  * have, so a changed label always shows. The text replaces every version of the template, so a saved custom template
  * can’t hide it. A nudge lists two of the person’s own charges and one they collect, when they collect any; one for
  * someone with no charges fills only `{name}` and `{month}`.

@@ -11,7 +11,7 @@ import type { ShareBillSheetProps, ShareChoice } from './types';
 const SHARE_FAILED = 'Couldn’t share the bill. The PDF didn’t download. Try again.';
 
 /**
- * Share bill (`Share.dc.html`, `pdf` and `summary`), opened from Recipient only. Bill PDF or a
+ * Share bill (`Share.dc.html`, `pdf` and `summary`), opened from the Send message sheet only. Bill PDF or a
  * Summary; the summary shows the "Include each person's share" Switch above its preview (Francis,
  * 7.10 device review: under it, the Switch moved as the preview grew), off each time the sheet opens. Without a stored PDF the Bill PDF card is disabled and Summary is chosen
  * (agreed with Francis, 2026-10-30). "Choose where to send" opens Android's share sheet (the

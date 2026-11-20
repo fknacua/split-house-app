@@ -1,59 +1,7 @@
-import type { ReactNode } from 'react';
-import type {
-  ChargePaymentResponse,
-  PaymentDifference,
-  RecipientPaidCharge,
-  RecordPaymentConfirm,
-  RecordPaymentSheet,
-} from '@splithouse/shared';
+import type { RecordPaymentConfirm, RecordPaymentSheet } from '@splithouse/shared';
 
-/** The word the button uses for an amount that differs: Edit payment's `Save $X`. */
-export type PaymentVerb = 'Save' | 'Record';
-
-/** What the amount field and the button show for the amount typed so far. */
-export interface AmountState {
-  /** Under the amount field: the hint, or `null` while the amount differs (the Alert says it). */
-  helper: string | null;
-  /** The save button: the sheet's label, or `Save $X` while the amount differs. */
-  actionLabel: string;
-  /** The shortfall or overpayment for the info Alert, or `null` for none. */
-  difference: PaymentDifference | null;
-}
-
-/** Props for {@link PaymentSheet}. */
-export interface PaymentSheetProps {
-  /** The charge's sheet, or null while it loads. */
-  sheet: ChargePaymentResponse | null;
-  /** The load's error; a refusal from the server shows its message in a danger Alert. */
-  loadError: unknown;
-  /** The button's word while the amount differs. */
-  verb: PaymentVerb;
-  /** The title while the sheet loads. */
-  fallbackTitle: string;
-  /** The button while the sheet loads. */
-  fallbackActionLabel: string;
-  /** Fields above the summary, such as Edit payment's For. */
-  renderFields?: (state: { saving: boolean }) => ReactNode;
-}
-
-/** Props for {@link PaymentSummary}. */
-export interface PaymentSummaryProps {
-  /** The sheet, or null while it loads. */
-  sheet: ChargePaymentResponse | null;
-}
-
-/** Props for {@link EditPaymentSheet}. */
-export interface EditPaymentSheetProps {
-  /** The payment to open on: the one that differs, else the first. */
-  chargeId: string;
-  /** The person's paid charges; with two or more, a For list picks which payment to edit. */
-  charges: RecipientPaidCharge[];
-}
-
-/** How Record payment opens: nobody picked (Home's footer), a person (Recipient) or a charge (Mark paid). */
+/** How Record payment opens: nobody picked (Home's footer) or on a charge (Mark paid). */
 export interface RecordPaymentOpening {
-  /** Who is picked in From, with nothing ticked. */
-  personId?: string;
   /** The charge Mark paid was tapped on: its payer is picked and it is ticked. */
   chargeId?: string;
 }

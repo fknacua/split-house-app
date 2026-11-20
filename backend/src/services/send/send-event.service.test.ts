@@ -1,18 +1,19 @@
-import { HOUSEHOLD_SCHEMA_VERSION, type RecipientResponse } from "@splithouse/shared";
+import { HOUSEHOLD_SCHEMA_VERSION } from "@splithouse/shared";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { NOV_2026_CONFIG, PERSON_IDS } from "@/lib/fixtures/household";
+import type { BreakdownCharge } from "@/lib/messages/build-breakdown";
 import { DEFAULT_MESSAGE_TEMPLATES } from "@/lib/messages/default-templates";
-import { renderNudgeMessage } from "@/lib/messages/render";
-import { buildRecipient, type RecipientChargeRow } from "@/lib/recipient/build-recipient";
-import { createMessageEvent, type MessageEventDb } from "./message-event.service";
-import { loadRecipientInput } from "./recipient.service";
+import { renderMonthlyMessage, renderNudgeMessage } from "@/lib/messages/render";
+import { createSendEvent, type SendEventDb } from "./send-event.service";
 
 const PEOPLE = [
-  { id: PERSON_IDS.alex, name: "Alex", isOwner: true, whatsappE164: null },
-  { id: PERSON_IDS.jordan, name: "Jordan", isOwner: false, whatsappE164: "+6580000000" },
+  { id: PERSON_IDS.alex, name: "Alex", isOwner: true },
+  { id: PERSON_IDS.jordan, name: "Jordan", isOwner: false },
 ];
 
-const JORDAN_RENT: RecipientChargeRow = {
+const NAMES = PEOPLE.map((p) => ({ id: p.id, name: p.name }));
+
+const JORDAN_RENT: BreakdownCharge & { id: string } = {
   id: "jordan-rent",
   personId: PERSON_IDS.jordan,
   month: "2026-11",
@@ -22,50 +23,43 @@ const JORDAN_RENT: RecipientChargeRow = {
   dueDate: new Date("2026-11-01T00:00:00+08:00"),
   payViaPersonId: null,
   paidCents: null,
-  paidOn: null,
 };
 
-const JORDAN_UTILITIES: RecipientChargeRow = {
+const JORDAN_UTILITIES = {
   ...JORDAN_RENT,
   id: "jordan-utilities",
-  category: "UTILITIES",
+  category: "UTILITIES" as const,
   label: "Utilities",
   amountCents: 8246,
   dueDate: null,
 };
 
 /** An earlier month's unpaid correction, which rides in November's message and can be nudged. */
-const JORDAN_OCT_CORRECTION: RecipientChargeRow = {
+const JORDAN_OCT_CORRECTION = {
   ...JORDAN_RENT,
   id: "jordan-oct-correction",
   month: "2026-10",
-  category: "CORRECTION",
+  category: "CORRECTION" as const,
   label: "Correction",
   amountCents: 1500,
   dueDate: null,
 };
 
-/** A database with November open and its bill saved, unless told otherwise, that keeps what is created. */
-/** The message card, failing the test with a clear error when the layout has none (the paid layouts). */
-function messageOf(r: RecipientResponse): NonNullable<RecipientResponse["message"]> {
-  if (!r.message) throw new Error("expected a message");
-  return r.message;
-}
+const CHARGES = [JORDAN_RENT, JORDAN_UTILITIES, JORDAN_OCT_CORRECTION];
 
+/** A database with November open and its bill saved, unless told otherwise, that keeps what is created. */
 function fakeDb({ open = true, bill = true } = {}) {
   const created: unknown[] = [];
-  const db: MessageEventDb = {
+  const db: SendEventDb = {
     messageTemplates: { findUnique: async () => null },
     month: {
-      findFirst: async () => ({ month: "2026-11" }),
       findUnique: async () =>
         open ? { householdVersion: { schemaVersion: HOUSEHOLD_SCHEMA_VERSION, config: NOV_2026_CONFIG } } : null,
     },
     person: { findMany: async () => PEOPLE },
     bill: { findUnique: async () => (bill ? { currentChargesCents: 41230 } : null) },
-    charge: { findMany: async () => [JORDAN_RENT, JORDAN_UTILITIES, JORDAN_OCT_CORRECTION] },
+    charge: { findMany: async () => CHARGES },
     messageEvent: {
-      findMany: async () => [],
       createManyAndReturn: async (args) => {
         created.push(...args.data);
         return args.data.map((d, i) => ({ id: `event-${i + 1}`, kind: d.kind, chargeId: d.chargeId, openedAt: d.openedAt }));
@@ -78,11 +72,20 @@ function fakeDb({ open = true, bill = true } = {}) {
 beforeEach(() => vi.stubEnv("DEV_NOW", "2026-11-02T10:00:00+08:00"));
 afterEach(() => vi.unstubAllEnvs());
 
-describe("createMessageEvent", () => {
-  it("stores the monthly message exactly as Recipient previews it, opened now", async () => {
+describe("createSendEvent", () => {
+  it("stores the monthly message as the renderer writes it, recorded now", async () => {
     const { db, created } = fakeDb();
-    const event = await createMessageEvent(db, "2026-11", PERSON_IDS.jordan, { kind: "MONTHLY" });
-    const preview = buildRecipient(await loadRecipientInput(db, "2026-11", PERSON_IDS.jordan));
+    const event = await createSendEvent(db, { kind: "MONTHLY", month: "2026-11", personId: PERSON_IDS.jordan });
+    const text = renderMonthlyMessage({
+      month: "2026-11",
+      recipientId: PERSON_IDS.jordan,
+      recipientName: "Jordan",
+      config: NOV_2026_CONFIG,
+      templates: DEFAULT_MESSAGE_TEMPLATES,
+      billCents: 41230,
+      people: NAMES,
+      charges: CHARGES,
+    }).text;
 
     expect(event).toEqual({
       events: [{ id: "event-1", kind: "MONTHLY", chargeId: null, openedAt: "2026-11-02T02:00:00.000Z" }],
@@ -93,7 +96,7 @@ describe("createMessageEvent", () => {
         personId: PERSON_IDS.jordan,
         kind: "MONTHLY",
         chargeId: null,
-        renderedText: messageOf(preview).text,
+        renderedText: text,
         openedAt: new Date("2026-11-02T10:00:00+08:00"),
       },
     ]);
@@ -101,8 +104,10 @@ describe("createMessageEvent", () => {
 
   it("stores one NUDGE event per charge, each with the whole nudge's text and the same time", async () => {
     const { db, created } = fakeDb();
-    const result = await createMessageEvent(db, "2026-11", PERSON_IDS.jordan, {
+    const result = await createSendEvent(db, {
       kind: "NUDGE",
+      month: "2026-11",
+      personId: PERSON_IDS.jordan,
       chargeIds: ["jordan-rent", "jordan-utilities"],
     });
     const text = renderNudgeMessage({
@@ -111,7 +116,7 @@ describe("createMessageEvent", () => {
       month: "2026-11",
       config: NOV_2026_CONFIG,
       templates: DEFAULT_MESSAGE_TEMPLATES,
-      people: PEOPLE,
+      people: NAMES,
       charges: [JORDAN_RENT, JORDAN_UTILITIES],
     }).text;
 
@@ -131,32 +136,47 @@ describe("createMessageEvent", () => {
 
   it("accepts a nudge about an earlier month's unpaid correction", async () => {
     const { db, created } = fakeDb();
-    await createMessageEvent(db, "2026-11", PERSON_IDS.jordan, { kind: "NUDGE", chargeIds: ["jordan-oct-correction"] });
+    await createSendEvent(db, {
+      kind: "NUDGE",
+      month: "2026-11",
+      personId: PERSON_IDS.jordan,
+      chargeIds: ["jordan-oct-correction"],
+    });
     expect(created).toMatchObject([{ month: "2026-11", chargeId: "jordan-oct-correction" }]);
   });
 
   it("throws 409 no_bill for a monthly message before the bill is saved", async () => {
     const { db, created } = fakeDb({ bill: false });
-    await expect(createMessageEvent(db, "2026-11", PERSON_IDS.jordan, { kind: "MONTHLY" })).rejects.toMatchObject({
-      status: 409,
-      code: "no_bill",
-    });
+    await expect(
+      createSendEvent(db, { kind: "MONTHLY", month: "2026-11", personId: PERSON_IDS.jordan }),
+    ).rejects.toMatchObject({ status: 409, code: "no_bill" });
     expect(created).toEqual([]);
   });
 
   it("throws 404 no_charge and stores nothing when any named charge is not theirs", async () => {
     const { db, created } = fakeDb();
     await expect(
-      createMessageEvent(db, "2026-11", PERSON_IDS.jordan, { kind: "NUDGE", chargeIds: ["jordan-rent", "someone-else"] }),
+      createSendEvent(db, {
+        kind: "NUDGE",
+        month: "2026-11",
+        personId: PERSON_IDS.jordan,
+        chargeIds: ["jordan-rent", "someone-else"],
+      }),
     ).rejects.toMatchObject({ status: 404, code: "no_charge" });
     expect(created).toEqual([]);
   });
 
-  it("throws 404 no_month and no_person as Recipient does", async () => {
+  it("throws 404 no_month for a month that is not open", async () => {
     await expect(
-      createMessageEvent(fakeDb({ open: false }).db, "2026-12", PERSON_IDS.jordan, { kind: "MONTHLY" }),
+      createSendEvent(fakeDb({ open: false }).db, { kind: "MONTHLY", month: "2026-12", personId: PERSON_IDS.jordan }),
     ).rejects.toMatchObject({ status: 404, code: "no_month" });
-    await expect(createMessageEvent(fakeDb().db, "2026-11", PERSON_IDS.alex, { kind: "MONTHLY" })).rejects.toMatchObject({
+  });
+
+  it.each([
+    ["the owner", PERSON_IDS.alex],
+    ["an unknown person", "nobody"],
+  ])("throws 404 no_person for %s", async (_, personId) => {
+    await expect(createSendEvent(fakeDb().db, { kind: "MONTHLY", month: "2026-11", personId })).rejects.toMatchObject({
       status: 404,
       code: "no_person",
     });

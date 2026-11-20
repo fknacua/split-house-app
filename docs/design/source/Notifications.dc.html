@@ -116,6 +116,7 @@ class Component extends DCLogic {
     var upload = dark ? 'Upload-Pick-Dark.dc.html' : 'BillUpload.dc.html';
     var homeCollect = dark ? 'Home-DueToday-Dark.dc.html' : 'Home-DueToday-Light.dc.html';
     var paidSheet = dark ? 'RecordPayment-Row-Dark.dc.html' : 'RecordPayment.dc.html';
+    var nudgeSheet = dark ? 'SendV2-Sheet-Nudge-Dark.dc.html' : 'SendV2-Sheet-Nudge-Light.dc.html';
     var A = function (label, href) { return { label: label, href: href }; };
     var item = function (o) {
       o.radius = '20px'; o.opacity = '1';
@@ -126,12 +127,12 @@ class Component extends DCLogic {
       { title: 'Action needed', silent: false, items: [
         item({ time: '9:00', title: 'Upload this month’s utilities bill', body: 'It usually lands around the 2nd. Tap to upload it.', href: upload }),
         item({ time: 'Fri', title: 'Collect Tenant 1’s rent', body: 'Their October rent of $950.00 is still unpaid. Weekend transfers can be slow.', href: homeCollect,
-          actions: [A('Paid', paidSheet), A('Nudge', home)] }),
+          actions: [A('Paid', paidSheet), A('Nudge', nudgeSheet)] }),
         item({ time: 'Yesterday', title: 'Pay utilities bill: collected $123.69 of $412.30', body: 'Due 16 Nov.', href: home })
       ] },
       { title: 'Payment checks', silent: false, items: [
         item({ time: '9:00', title: 'Did Tenant 2 pay Nov utilities ($100.79)?', body: 'Due today.', href: home,
-          actions: [A('Paid', paidSheet), A('Nudge', home)] })
+          actions: [A('Paid', paidSheet), A('Nudge', nudgeSheet)] })
       ] },
       { title: 'Silent', silent: true, items: [
         item({ time: '9:00', title: 'Unusual bill amount', body: 'October’s $349.40 was 18% higher than September’s.', href: home }),

@@ -10,7 +10,7 @@ export interface EmptyBoxProps {
 
 /**
  * A tinted box that stands in for content there is none of, such as the bill's lines when it had
- * none, or Recipient's message once everything is paid: a bold title over a centred note.
+ * none: a bold title over a centred note.
  */
 export function EmptyBox({ title, note }: EmptyBoxProps) {
   return (

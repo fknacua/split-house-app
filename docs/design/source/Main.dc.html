@@ -396,15 +396,13 @@ class Component extends DCLogic {
         id: id, kind: o.kind
       };
     };
-    // Prototype links: each row opens that person's Recipient screen (or the bill)
+    // Prototype links: the bill rows and the actions. View details links are set per row below.
     var L = dark ? {
-      tenant2: 'Recipient-Nudged-Dark.dc.html', primaryNotSent: 'Recipient-NotSent-Dark.dc.html', primarySent: 'Recipient-Sent-Dark.dc.html',
-      primaryPaid: 'Recipient-Paid-Dark.dc.html', billPick: 'Upload-Pick-Dark.dc.html', bill: 'Bill-Collecting-Dark.dc.html', billPaid: 'Bill-Paid-Dark.dc.html', billUnsent: 'Bill-Unsent-Dark.dc.html',
-      markPaid: 'RecordPayment-Row-Dark.dc.html', record: 'RecordPayment-Empty-Dark.dc.html', tenant1: 'Recipient-RentOnly-Dark.dc.html', tenant2Sent: 'Recipient-Sent-Dark.dc.html'
+      billPick: 'Upload-Pick-Dark.dc.html', bill: 'Bill-Collecting-Dark.dc.html', billPaid: 'Bill-Paid-Dark.dc.html', billUnsent: 'Bill-Unsent-Dark.dc.html',
+      markPaid: 'RecordPayment-Row-Dark.dc.html', record: 'RecordPayment-Empty-Dark.dc.html'
     } : {
-      tenant2: 'Recipient-Nudged-Light.dc.html', primaryNotSent: 'Recipient.dc.html', primarySent: 'Recipient-Sent-Light.dc.html',
-      primaryPaid: 'Recipient-Paid-Light.dc.html', billPick: 'BillUpload.dc.html', bill: 'Bill-Collecting-Light.dc.html', billPaid: 'Bill-Paid-Light.dc.html', billUnsent: 'Bill-Unsent-Light.dc.html',
-      markPaid: 'RecordPayment.dc.html', record: 'RecordPayment-Empty-Light.dc.html', tenant1: 'Recipient-RentOnly-Light.dc.html', tenant2Sent: 'Recipient-Sent-Light.dc.html'
+      billPick: 'BillUpload.dc.html', bill: 'Bill-Collecting-Light.dc.html', billPaid: 'Bill-Paid-Light.dc.html', billUnsent: 'Bill-Unsent-Light.dc.html',
+      markPaid: 'RecordPayment.dc.html', record: 'RecordPayment-Empty-Light.dc.html'
     };
     var payBill = dark ? 'PayBill-Partial-Dark.dc.html' : 'PayBill-Partial-Light.dc.html';
     var rows;
@@ -415,81 +413,81 @@ class Component extends DCLogic {
       // Before the bill: utilities amounts are unknown. December (started early on 29 Nov): nothing overdue yet
       var t2rent = dec ? { chip: 'Due in 2 days', kind: 'due3', actions: [PAID()] } : { chip: 'Overdue 1 day', kind: 'overdue', actions: [NUDGE('Nudge'), PAID()], open: true };
       rows = [
-        mk({ day: '1', title: 'Rent · Tenant 2', amount: '$950.00', chip: t2rent.chip, kind: t2rent.kind, href: L.tenant2, actions: t2rent.actions, open: t2rent.open }),
-        mk({ day: '4', title: 'Utilities · Tenant 2', amount: '—', chip: dec ? 'Upcoming' : 'Due in 2 days', kind: dec ? 'wait' : 'due3', href: L.tenant2, note: needsBill }),
-        mk({ day: '4', title: 'Aircon · Tenant 2', amount: '$18.33', chip: dec ? 'Upcoming' : 'Due in 2 days', kind: dec ? 'wait' : 'due3', href: L.tenant2 }),
-        mk({ day: '7', title: 'Rent · Primary Tenant', amount: '$1,675.00', chip: 'Upcoming', kind: 'wait', href: L.primaryNotSent, actions: [PAID()] }),
-        mk({ day: '7', title: 'Starhub · Primary Tenant', amount: '$27.50', chip: 'Upcoming', kind: 'wait', href: L.primaryNotSent, actions: [PAID()] }),
-        mk({ day: '7', title: 'Utilities · Primary Tenant', amount: '—', chip: 'Upcoming', kind: 'wait', href: L.primaryNotSent, note: needsBill }),
-        mk({ day: '7', title: 'Aircon · Primary Tenant', amount: '$36.67', chip: 'Upcoming', kind: 'wait', href: L.primaryNotSent }),
-        mk({ day: '7', title: 'Utilities · Tenant 1', amount: '—', detail: VIA, chip: 'Upcoming', kind: 'wait', href: L.primaryNotSent, note: needsBill }),
-        mk({ day: '7', title: 'Aircon · Tenant 1', amount: '$18.33', detail: VIA, chip: 'Upcoming', kind: 'wait', href: L.primaryNotSent }),
+        mk({ day: '1', title: 'Rent · Tenant 2', amount: '$950.00', chip: t2rent.chip, kind: t2rent.kind, actions: t2rent.actions, open: t2rent.open }),
+        mk({ day: '4', title: 'Utilities · Tenant 2', amount: '—', chip: dec ? 'Upcoming' : 'Due in 2 days', kind: dec ? 'wait' : 'due3', note: needsBill }),
+        mk({ day: '4', title: 'Aircon · Tenant 2', amount: '$18.33', chip: dec ? 'Upcoming' : 'Due in 2 days', kind: dec ? 'wait' : 'due3' }),
+        mk({ day: '7', title: 'Rent · Primary Tenant', amount: '$1,675.00', chip: 'Upcoming', kind: 'wait', actions: [PAID()] }),
+        mk({ day: '7', title: 'Starhub · Primary Tenant', amount: '$27.50', chip: 'Upcoming', kind: 'wait', actions: [PAID()] }),
+        mk({ day: '7', title: 'Utilities · Primary Tenant', amount: '—', chip: 'Upcoming', kind: 'wait', note: needsBill }),
+        mk({ day: '7', title: 'Aircon · Primary Tenant', amount: '$36.67', chip: 'Upcoming', kind: 'wait' }),
+        mk({ day: '7', title: 'Utilities · Tenant 1', amount: '—', detail: VIA, chip: 'Upcoming', kind: 'wait', note: needsBill }),
+        mk({ day: '7', title: 'Aircon · Tenant 1', amount: '$18.33', detail: VIA, chip: 'Upcoming', kind: 'wait' }),
         mk({ day: '16', title: 'Utilities bill', amount: '—', detail: 'You pay utilities', chip: 'Not uploaded', kind: 'wait', href: L.billPick, link: 'Upload bill' }),
-        mk({ day: '28', title: 'Rent · Tenant 1', amount: '$950.00', chip: 'Upcoming', kind: 'wait', href: L.tenant1, actions: [PAID()] })
+        mk({ day: '28', title: 'Rent · Tenant 1', amount: '$950.00', chip: 'Upcoming', kind: 'wait', actions: [PAID()] })
       ];
     } else if (st === 'unsent') {
       rows = [
-        mk({ day: '1', title: 'Rent · Tenant 2', amount: '$950.00', chip: 'Overdue 1 day', kind: 'overdue', href: L.tenant2, actions: [NUDGE('Nudge'), PAID()], open: true }),
-        mk({ day: '4', title: 'Utilities · Tenant 2', amount: '$82.46', chip: 'Not sent', kind: 'todo', href: L.tenant2, open: true }),
-        mk({ day: '4', title: 'Aircon · Tenant 2', amount: '$18.33', chip: 'Due in 2 days', kind: 'due3', href: L.tenant2 }),
-        mk({ day: '7', title: 'Rent · Primary Tenant', amount: '$1,675.00', chip: 'Upcoming', kind: 'wait', href: L.primaryNotSent, actions: [PAID()] }),
-        mk({ day: '7', title: 'Starhub · Primary Tenant', amount: '$27.50', chip: 'Upcoming', kind: 'wait', href: L.primaryNotSent, actions: [PAID()] }),
-        mk({ day: '7', title: 'Utilities · Primary Tenant', amount: '$123.69', chip: 'Not sent', kind: 'todo', href: L.primaryNotSent, open: true }),
-        mk({ day: '7', title: 'Aircon · Primary Tenant', amount: '$36.67', chip: 'Upcoming', kind: 'wait', href: L.primaryNotSent }),
-        mk({ day: '7', title: 'Utilities · Tenant 1', amount: '$82.46', detail: VIA, chip: 'Not sent', kind: 'todo', href: L.primaryNotSent }),
-        mk({ day: '7', title: 'Aircon · Tenant 1', amount: '$18.33', detail: VIA, chip: 'Upcoming', kind: 'wait', href: L.primaryNotSent }),
+        mk({ day: '1', title: 'Rent · Tenant 2', amount: '$950.00', chip: 'Overdue 1 day', kind: 'overdue', actions: [NUDGE('Nudge'), PAID()], open: true }),
+        mk({ day: '4', title: 'Utilities · Tenant 2', amount: '$82.46', chip: 'Not sent', kind: 'todo', open: true }),
+        mk({ day: '4', title: 'Aircon · Tenant 2', amount: '$18.33', chip: 'Due in 2 days', kind: 'due3' }),
+        mk({ day: '7', title: 'Rent · Primary Tenant', amount: '$1,675.00', chip: 'Upcoming', kind: 'wait', actions: [PAID()] }),
+        mk({ day: '7', title: 'Starhub · Primary Tenant', amount: '$27.50', chip: 'Upcoming', kind: 'wait', actions: [PAID()] }),
+        mk({ day: '7', title: 'Utilities · Primary Tenant', amount: '$123.69', chip: 'Not sent', kind: 'todo', open: true }),
+        mk({ day: '7', title: 'Aircon · Primary Tenant', amount: '$36.67', chip: 'Upcoming', kind: 'wait' }),
+        mk({ day: '7', title: 'Utilities · Tenant 1', amount: '$82.46', detail: VIA, chip: 'Not sent', kind: 'todo' }),
+        mk({ day: '7', title: 'Aircon · Tenant 1', amount: '$18.33', detail: VIA, chip: 'Upcoming', kind: 'wait' }),
         mk({ day: '16', title: 'Utilities bill', amount: '$412.30', detail: 'You pay utilities', chip: 'In 14 days', kind: 'wait', href: L.billUnsent, link: 'View bill', note: 'Nothing collected yet. Shares go out with the messages.' }),
-        mk({ day: '28', title: 'Rent · Tenant 1', amount: '$950.00', chip: 'Upcoming', kind: 'wait', href: L.tenant1, actions: [PAID()] })
+        mk({ day: '28', title: 'Rent · Tenant 1', amount: '$950.00', chip: 'Upcoming', kind: 'wait', actions: [PAID()] })
       ];
     } else if (st === 'collecting' || st === 'dueToday') {
       var today = st === 'dueToday';
       var ptChip = today ? { chip: 'Due in 3 days', kind: 'due3' } : { chip: 'Sent · unpaid', kind: 'wait' };
       rows = [
         today
-          ? mk({ day: '1', title: 'Rent · Tenant 2', amount: '$950.00', detail: 'Paid 3 Nov', chip: 'Paid', kind: 'paid', href: L.tenant2 })
-          : mk({ day: '1', title: 'Rent · Tenant 2', amount: '$950.00', detail: 'Nudged 2 Nov', chip: 'Overdue 2 days', kind: 'overdue', href: L.tenant2, actions: [NUDGE('Nudge again'), PAID()], open: true }),
+          ? mk({ day: '1', title: 'Rent · Tenant 2', amount: '$950.00', detail: 'Paid 3 Nov', chip: 'Paid', kind: 'paid' })
+          : mk({ day: '1', title: 'Rent · Tenant 2', amount: '$950.00', detail: 'Nudged 2 Nov', chip: 'Overdue 2 days', kind: 'overdue', actions: [NUDGE('Nudge again'), PAID()], open: true }),
         today
-          ? mk({ day: '4', title: 'Utilities · Tenant 2', amount: '$82.46', detail: 'Sent 2 Nov', chip: 'Due today', kind: 'today', href: L.tenant2Sent, actions: [PAID()], note: 'You’ll get a payment check tonight if it’s still unpaid.', open: true })
-          : mk({ day: '4', title: 'Utilities · Tenant 2', amount: '$82.46', detail: 'Sent 2 Nov', chip: 'Due tomorrow', kind: 'due', href: L.tenant2Sent, actions: [PAID()] }),
+          ? mk({ day: '4', title: 'Utilities · Tenant 2', amount: '$82.46', detail: 'Sent 2 Nov', chip: 'Due today', kind: 'today', actions: [PAID()], note: 'You’ll get a payment check tonight if it’s still unpaid.', open: true })
+          : mk({ day: '4', title: 'Utilities · Tenant 2', amount: '$82.46', detail: 'Sent 2 Nov', chip: 'Due tomorrow', kind: 'due', actions: [PAID()] }),
         today
-          ? mk({ day: '4', title: 'Aircon · Tenant 2', amount: '$18.33', detail: 'Sent 2 Nov', chip: 'Due today', kind: 'today', href: L.tenant2Sent, actions: [PAID()] })
-          : mk({ day: '4', title: 'Aircon · Tenant 2', amount: '$18.33', detail: 'Sent 2 Nov', chip: 'Due tomorrow', kind: 'due', href: L.tenant2Sent, actions: [PAID()] }),
-        mk({ day: '7', title: 'Rent · Primary Tenant', amount: '$1,675.00', detail: 'Sent 2 Nov', chip: ptChip.chip, kind: ptChip.kind, href: L.primarySent, actions: [PAID(null, L.markPaid)] }),
-        mk({ day: '7', title: 'Starhub · Primary Tenant', amount: '$27.50', detail: 'Sent 2 Nov', chip: ptChip.chip, kind: ptChip.kind, href: L.primarySent, actions: [PAID(null, L.markPaid)] }),
-        mk({ day: '7', title: 'Utilities · Primary Tenant', amount: '$123.69', detail: 'Paid 3 Nov', chip: 'Paid', kind: 'paid', href: L.primarySent }),
-        mk({ day: '7', title: 'Aircon · Primary Tenant', amount: '$36.67', detail: 'Sent 2 Nov', chip: ptChip.chip, kind: ptChip.kind, href: L.primarySent }),
-        mk({ day: '7', title: 'Utilities · Tenant 1', amount: '$82.46', detail: VIA + ' · Sent 2 Nov', chip: ptChip.chip, kind: ptChip.kind, href: L.primarySent }),
-        mk({ day: '7', title: 'Aircon · Tenant 1', amount: '$18.33', detail: VIA + ' · Sent 2 Nov', chip: ptChip.chip, kind: ptChip.kind, href: L.primarySent }),
+          ? mk({ day: '4', title: 'Aircon · Tenant 2', amount: '$18.33', detail: 'Sent 2 Nov', chip: 'Due today', kind: 'today', actions: [PAID()] })
+          : mk({ day: '4', title: 'Aircon · Tenant 2', amount: '$18.33', detail: 'Sent 2 Nov', chip: 'Due tomorrow', kind: 'due', actions: [PAID()] }),
+        mk({ day: '7', title: 'Rent · Primary Tenant', amount: '$1,675.00', detail: 'Sent 2 Nov', chip: ptChip.chip, kind: ptChip.kind, actions: [PAID(null, L.markPaid)] }),
+        mk({ day: '7', title: 'Starhub · Primary Tenant', amount: '$27.50', detail: 'Sent 2 Nov', chip: ptChip.chip, kind: ptChip.kind, actions: [PAID(null, L.markPaid)] }),
+        mk({ day: '7', title: 'Utilities · Primary Tenant', amount: '$123.69', detail: 'Paid 3 Nov', chip: 'Paid', kind: 'paid' }),
+        mk({ day: '7', title: 'Aircon · Primary Tenant', amount: '$36.67', detail: 'Sent 2 Nov', chip: ptChip.chip, kind: ptChip.kind }),
+        mk({ day: '7', title: 'Utilities · Tenant 1', amount: '$82.46', detail: VIA + ' · Sent 2 Nov', chip: ptChip.chip, kind: ptChip.kind }),
+        mk({ day: '7', title: 'Aircon · Tenant 1', amount: '$18.33', detail: VIA + ' · Sent 2 Nov', chip: ptChip.chip, kind: ptChip.kind }),
         mk({ day: '16', title: 'Utilities bill', amount: '$412.30', detail: 'You pay utilities', chip: today ? 'In 12 days' : 'In 13 days', kind: 'wait', href: L.bill, link: 'View bill', actions: [PAID('Mark bill paid', payBill)], note: '$247.38 of $412.30 covered so far.', open: true }),
-        mk({ day: '28', title: 'Rent · Tenant 1', amount: '$950.00', detail: 'Paid 3 Nov', chip: 'Paid', kind: 'paid', href: L.tenant1 })
+        mk({ day: '28', title: 'Rent · Tenant 1', amount: '$950.00', detail: 'Paid 3 Nov', chip: 'Paid', kind: 'paid' })
       ];
     } else if (st === 'billDue') {
       rows = [
-        mk({ day: '1', title: 'Rent · Tenant 2', amount: '$950.00', detail: 'Paid 3 Nov', chip: 'Paid', kind: 'paid', href: L.tenant2 }),
-        mk({ day: '4', title: 'Utilities · Tenant 2', amount: '$82.46', detail: 'Paid 4 Nov', chip: 'Paid', kind: 'paid', href: L.tenant2 }),
-        mk({ day: '4', title: 'Aircon · Tenant 2', amount: '$18.33', detail: 'Paid 4 Nov', chip: 'Paid', kind: 'paid', href: L.tenant2 }),
-        mk({ day: '7', title: 'Rent · Primary Tenant', amount: '$1,675.00', detail: 'Paid 7 Nov', chip: 'Paid', kind: 'paid', href: L.primaryPaid }),
-        mk({ day: '7', title: 'Starhub · Primary Tenant', amount: '$27.50', detail: 'Paid 7 Nov', chip: 'Paid', kind: 'paid', href: L.primaryPaid }),
-        mk({ day: '7', title: 'Utilities · Primary Tenant', amount: '$123.69', detail: 'Paid 3 Nov', chip: 'Paid', kind: 'paid', href: L.primaryPaid }),
-        mk({ day: '7', title: 'Aircon · Primary Tenant', amount: '$36.67', detail: 'Paid 3 Nov', chip: 'Paid', kind: 'paid', href: L.primaryPaid }),
-        mk({ day: '7', title: 'Utilities · Tenant 1', amount: '$82.46', detail: VIA + ' · Paid 7 Nov', chip: 'Paid', kind: 'paid', href: L.primaryPaid }),
-        mk({ day: '7', title: 'Aircon · Tenant 1', amount: '$18.33', detail: VIA + ' · Paid 7 Nov', chip: 'Paid', kind: 'paid', href: L.primaryPaid }),
+        mk({ day: '1', title: 'Rent · Tenant 2', amount: '$950.00', detail: 'Paid 3 Nov', chip: 'Paid', kind: 'paid' }),
+        mk({ day: '4', title: 'Utilities · Tenant 2', amount: '$82.46', detail: 'Paid 4 Nov', chip: 'Paid', kind: 'paid' }),
+        mk({ day: '4', title: 'Aircon · Tenant 2', amount: '$18.33', detail: 'Paid 4 Nov', chip: 'Paid', kind: 'paid' }),
+        mk({ day: '7', title: 'Rent · Primary Tenant', amount: '$1,675.00', detail: 'Paid 7 Nov', chip: 'Paid', kind: 'paid' }),
+        mk({ day: '7', title: 'Starhub · Primary Tenant', amount: '$27.50', detail: 'Paid 7 Nov', chip: 'Paid', kind: 'paid' }),
+        mk({ day: '7', title: 'Utilities · Primary Tenant', amount: '$123.69', detail: 'Paid 3 Nov', chip: 'Paid', kind: 'paid' }),
+        mk({ day: '7', title: 'Aircon · Primary Tenant', amount: '$36.67', detail: 'Paid 3 Nov', chip: 'Paid', kind: 'paid' }),
+        mk({ day: '7', title: 'Utilities · Tenant 1', amount: '$82.46', detail: VIA + ' · Paid 7 Nov', chip: 'Paid', kind: 'paid' }),
+        mk({ day: '7', title: 'Aircon · Tenant 1', amount: '$18.33', detail: VIA + ' · Paid 7 Nov', chip: 'Paid', kind: 'paid' }),
         mk({ day: '16', title: 'Utilities bill', amount: '$412.30', detail: 'You pay utilities', chip: 'Due in 4 days', kind: 'due3', href: L.bill, link: 'View bill', actions: [PAID('Mark bill paid', payBill)], note: '$412.30 of $412.30 covered.', open: true }),
-        mk({ day: '28', title: 'Rent · Tenant 1', amount: '$950.00', detail: 'Paid 11 Nov', chip: 'Paid', kind: 'paid', href: L.tenant1 })
+        mk({ day: '28', title: 'Rent · Tenant 1', amount: '$950.00', detail: 'Paid 11 Nov', chip: 'Paid', kind: 'paid' })
       ];
     } else {
       rows = [
-        mk({ day: '1', title: 'Rent · Tenant 2', amount: '$950.00', detail: 'Paid 3 Nov', chip: 'Paid', kind: 'paid', href: L.tenant2 }),
-        mk({ day: '4', title: 'Utilities · Tenant 2', amount: '$82.46', detail: 'Paid 4 Nov', chip: 'Paid', kind: 'paid', href: L.tenant2 }),
-        mk({ day: '4', title: 'Aircon · Tenant 2', amount: '$18.33', detail: 'Paid 4 Nov', chip: 'Paid', kind: 'paid', href: L.tenant2 }),
-        mk({ day: '7', title: 'Rent · Primary Tenant', amount: '$1,675.00', detail: 'Paid 7 Nov', chip: 'Paid', kind: 'paid', href: L.primaryPaid }),
-        mk({ day: '7', title: 'Starhub · Primary Tenant', amount: '$27.50', detail: 'Paid 7 Nov', chip: 'Paid', kind: 'paid', href: L.primaryPaid }),
-        mk({ day: '7', title: 'Utilities · Primary Tenant', amount: '$123.69', detail: 'Paid 3 Nov', chip: 'Paid', kind: 'paid', href: L.primaryPaid }),
-        mk({ day: '7', title: 'Aircon · Primary Tenant', amount: '$36.67', detail: 'Paid 3 Nov', chip: 'Paid', kind: 'paid', href: L.primaryPaid }),
-        mk({ day: '7', title: 'Utilities · Tenant 1', amount: '$82.46', detail: VIA + ' · Paid 7 Nov', chip: 'Paid', kind: 'paid', href: L.primaryPaid }),
-        mk({ day: '7', title: 'Aircon · Tenant 1', amount: '$18.33', detail: VIA + ' · Paid 7 Nov', chip: 'Paid', kind: 'paid', href: L.primaryPaid }),
+        mk({ day: '1', title: 'Rent · Tenant 2', amount: '$950.00', detail: 'Paid 3 Nov', chip: 'Paid', kind: 'paid' }),
+        mk({ day: '4', title: 'Utilities · Tenant 2', amount: '$82.46', detail: 'Paid 4 Nov', chip: 'Paid', kind: 'paid' }),
+        mk({ day: '4', title: 'Aircon · Tenant 2', amount: '$18.33', detail: 'Paid 4 Nov', chip: 'Paid', kind: 'paid' }),
+        mk({ day: '7', title: 'Rent · Primary Tenant', amount: '$1,675.00', detail: 'Paid 7 Nov', chip: 'Paid', kind: 'paid' }),
+        mk({ day: '7', title: 'Starhub · Primary Tenant', amount: '$27.50', detail: 'Paid 7 Nov', chip: 'Paid', kind: 'paid' }),
+        mk({ day: '7', title: 'Utilities · Primary Tenant', amount: '$123.69', detail: 'Paid 3 Nov', chip: 'Paid', kind: 'paid' }),
+        mk({ day: '7', title: 'Aircon · Primary Tenant', amount: '$36.67', detail: 'Paid 3 Nov', chip: 'Paid', kind: 'paid' }),
+        mk({ day: '7', title: 'Utilities · Tenant 1', amount: '$82.46', detail: VIA + ' · Paid 7 Nov', chip: 'Paid', kind: 'paid' }),
+        mk({ day: '7', title: 'Aircon · Tenant 1', amount: '$18.33', detail: VIA + ' · Paid 7 Nov', chip: 'Paid', kind: 'paid' }),
         mk({ day: '16', title: 'Utilities bill', amount: '$412.30', detail: 'You paid 16 Nov', chip: 'Paid', kind: 'paid', href: L.billPaid, link: 'View bill' }),
-        mk({ day: '28', title: 'Rent · Tenant 1', amount: '$950.00', detail: 'Paid 27 Nov', chip: 'Paid', kind: 'paid', href: L.tenant1 })
+        mk({ day: '28', title: 'Rent · Tenant 1', amount: '$950.00', detail: 'Paid 27 Nov', chip: 'Paid', kind: 'paid' })
       ];
     }
     // View details opens a details page for the charge's status (the page shows a sample charge of that status)

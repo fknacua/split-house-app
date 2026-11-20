@@ -32,7 +32,7 @@ The canvas boards are the same component with different props. The tables below 
 
 - Status colours (success, warning, danger) keep the MUI values from the old design. They are in the theme variables already.
 - Success alert (gluestack `Alert`, success variant): only on Mark bill paid, fully collected ("All $412.30 is collected..."). Tinted background (`success-tint`), `success-line` border, `success` check icon, `on-success-container` text. Alert text is tinted per variant (info, warning, success, error), not neutral. The partial-collected note stays a warning alert. Status chips such as Paid are unchanged.
-- Overdue is an error badge: `danger-container` background with `on-danger-container` text, on Home, Recipient and the Can't reach the server backdrop. Recipient's "Rent overdue since..." status line is `danger`. The overdue row's background tint on Home stays the warning tint. Due today and Due tomorrow stay info.
+- Overdue is an error badge: `danger-container` background with `on-danger-container` text, on Home, Charge details and the Can't reach the server backdrop. The overdue row's background tint on Home stays the warning tint. Due today and Due tomorrow stay info.
 - The big day number in every Home charge row uses `on-surface`, whatever the status.
 - Home · All settled has a **Start next month** button in the bottom action bar, above the bottom navigation: solid full-width primary, 48px, fully rounded, 15px bold label, calendar-plus icon on the left, in the same bar (top border and shadow) as Upload utilities bill and Record payment. The navigation bar below it has no shadow of its own in this state. The label is fixed ("Start next month"), not the month's name. It shows only in the settled state and opens the Close dialog (not the next month directly); Confirm there leads to Home for the next month, in the Bill not uploaded state.
 - Close dialog (`CloseMonth`, gluestack AlertDialog, blocking): lock icon in a `danger-line` circle, title "Close November?", body "This closes November 2026 and starts December. You can't undo this.", two check lines (the month moves to History and becomes read-only; household configuration changes take effect after the next month). Cancel is the solid primary button (the safe action is the strong one); Confirm is a destructive outline (`danger` border and text). The month names are built from the month being closed and the one after it. While closing, Confirm shows a spinner and keeps its label, Cancel is disabled, both ignore taps, the dialog is busy for screen readers and cannot be dismissed.
@@ -75,7 +75,7 @@ Not a plan the agent should follow on its own. The owner decides what to build n
 2. Sign in and session: Sign in (5 states), Returning user, Server error.
 3. First run (Welcome), then Household.
 4. Home, then Bill upload, View bill, Mark bill paid.
-5. Recipient, Share, Payments (Mark paid, Record payment), Add charge, History.
+5. Recipient (retired at 12C.3), Share, Payments (Mark paid, Record payment), Add charge, History.
 6. Settings, Notifications, Confirmations.
 
 ## Screens and states
@@ -149,15 +149,9 @@ Component and props are what to pass to the source file in `docs/design/source/`
 | Share bill · Summary | `Share` | `state=summary` |
 | Share bill · System share sheet | `Share` | `state=system` |
 
-### Recipient — message preview & collect
+### Recipient (retired)
 
-| Board | Component | Props |
-|---|---|---|
-| Recipient · Primary Tenant, not sent | `Recipient` | `state=notSent` |
-| Recipient · Primary Tenant, sent unpaid | `Recipient` | `state=sent` |
-| Recipient · Primary Tenant, paid | `Recipient` | `state=paid` |
-| Recipient · Primary Tenant, paid a different amount | `Recipient` | `state=paidDifferent` |
-| Recipient · Tenant 2, nudged 2 Nov | `Recipient` | `state=nudged` |
+Recipient was retired at 12C.3: the Send message sheet and Charge details replace it. The `Recipient` board is removed.
 
 ### Payments — record payment (Phase 12C: one sheet for Mark paid and Record payment; `short` and `over` are not built)
 
@@ -269,7 +263,7 @@ Component and props are what to pass to the source file in `docs/design/source/`
 
 ## Not covered by the design
 
-- Start next month (Home · All settled, Close dialog): the failure state when closing fails (no board; decided in the plan's step 5.7), and starting early while the current month still has unpaid charges (no entry point, no warning). Undo is not offered in v1. The data side (the early open, "current month" meaning the newest opened month, household edits starting after it) is in the Data Model doc. How a correction made against a closed month shows in the next month (Home, Recipient, the WhatsApp message) is not designed.
+- Start next month (Home · All settled, Close dialog): the failure state when closing fails (no board; decided in the plan's step 5.7), and starting early while the current month still has unpaid charges (no entry point, no warning). Undo is not offered in v1. The data side (the early open, "current month" meaning the newest opened month, household edits starting after it) is in the Data Model doc. How a correction made against a closed month shows in the next month (Home, the WhatsApp message) is not designed.
 - Anything not listed above, including a "shared in" bill intake path. That design was removed from v1.
 - Real data, copy for languages other than English, and tablet or landscape layouts.
 - The designs were never rendered on a device. Expect to nudge spacing, especially on the taller label-above forms and the Settings "notifications blocked" state.

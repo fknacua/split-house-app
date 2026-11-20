@@ -83,7 +83,10 @@ describe("GET /api/send", () => {
       title: "Send nudge message",
       to: { personId: jordan },
       charges: { label: "Overdue charges", sub: "Utilities · Nov" },
-      send: { label: "Send on WhatsApp", target: { record: { kind: "NUDGE", chargeIds: ["jordan-utilities"] } } },
+      send: {
+        label: "Send on WhatsApp",
+        target: { record: { kind: "NUDGE", month: "2026-11", personId: jordan, chargeIds: ["jordan-utilities"] } },
+      },
     });
   });
 

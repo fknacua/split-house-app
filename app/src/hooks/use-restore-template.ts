@@ -6,7 +6,7 @@ import type { TemplateKind, TemplateSaveResponse } from '@splithouse/shared';
 
 /**
  * Saves the built-in text as the Default (`POST /api/templates/:kind/restore`), which applies immediately. Settings,
- * the landing page and the editor sit under `allHousehold`, and Recipient shows the wording, so all are refetched; the
+ * the landing page and the editor sit under `allHousehold`, and the Send message sheet shows the wording, so all are refetched; the
  * mutation stays pending until they are, so the editor reloads on the restored text.
  */
 export function useRestoreTemplate() {
@@ -17,7 +17,6 @@ export function useRestoreTemplate() {
     onSuccess: () =>
       Promise.all([
         queryClient.invalidateQueries({ queryKey: queryKeys.allHousehold }),
-        queryClient.invalidateQueries({ queryKey: queryKeys.allRecipients }),
         queryClient.invalidateQueries({ queryKey: queryKeys.allSendSheets }),
       ]),
   });

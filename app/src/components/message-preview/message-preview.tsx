@@ -12,8 +12,8 @@ export interface MessagePreviewProps {
 
 /**
  * A message as WhatsApp shows it, for a card to hold: the intro, each person's section and the text after them, with
- * line breaks and emoji kept and `*bold*` text shown bold without its asterisks. Recipient's message card and the
- * template editor's preview card both use it.
+ * line breaks and emoji kept and `*bold*` text shown bold without its asterisks. The Send message sheet's message card
+ * and the template editor's preview card both use it.
  */
 export function MessagePreview({ message }: MessagePreviewProps) {
   return (

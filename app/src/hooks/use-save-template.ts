@@ -6,7 +6,7 @@ import type { TemplateSaveRequest, TemplateSaveResponse } from '@splithouse/shar
 
 /**
  * Saves the Default's text or one person's custom template (`POST /api/templates`), which applies immediately.
- * Settings and the editor sit under `allHousehold`, and Recipient shows the wording, so all are refetched; the mutation
+ * Settings and the editor sit under `allHousehold`, and the Send message sheet shows the wording, so all are refetched; the mutation
  * stays pending until they are, so Save keeps its spinner until the screens behind it are up to date.
  */
 export function useSaveTemplate() {
@@ -17,7 +17,6 @@ export function useSaveTemplate() {
     onSuccess: () =>
       Promise.all([
         queryClient.invalidateQueries({ queryKey: queryKeys.allHousehold }),
-        queryClient.invalidateQueries({ queryKey: queryKeys.allRecipients }),
         queryClient.invalidateQueries({ queryKey: queryKeys.allSendSheets }),
       ]),
   });

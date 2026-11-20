@@ -197,10 +197,8 @@ describe("buildSend, monthly", () => {
       label: "Send again",
       target: {
         kind: "send-whatsapp",
-        month: "2026-11",
-        personId: priya,
         url: whatsappLink("+6580000001", text),
-        record: { kind: "MONTHLY" },
+        record: { kind: "MONTHLY", month: "2026-11", personId: priya },
       },
     });
   });
@@ -336,10 +334,8 @@ describe("buildSend, nudge", () => {
     expect(sheet.message?.preview?.text).toBe(text);
     expect(sheet.send.target).toEqual({
       kind: "send-whatsapp",
-      month: "2026-11",
-      personId: jordan,
       url: whatsappLink("+6580000003", text),
-      record: { kind: "NUDGE", chargeIds: ["jordan-rent", "jordan-utilities"] },
+      record: { kind: "NUDGE", month: "2026-11", personId: jordan, chargeIds: ["jordan-rent", "jordan-utilities"] },
     });
   });
 
