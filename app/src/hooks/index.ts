@@ -37,6 +37,7 @@ export * from './use-save-start-month';
 export * from './use-save-template';
 export * from './use-save-template-labels';
 export * from './use-save-payment';
+export * from './use-send-sheet';
 export * from './use-settings';
 export * from './use-setup';
 export * from './use-setup-messages';

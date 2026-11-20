@@ -405,7 +405,7 @@ describe("buildHome, collecting on 3 Nov", () => {
         label: "Nudge",
         tone: "warning",
         icon: "bell",
-        target: { kind: "recipient", month: "2026-11", personId: PERSON_IDS.jordan, chargeId: jordanRent.id },
+        target: { kind: "send-nudge", personId: PERSON_IDS.jordan, chargeId: jordanRent.id },
       },
       { label: "Mark paid", tone: "outline", icon: "check", target: { kind: "mark-paid", chargeId: jordanRent.id } },
     ]);

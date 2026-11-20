@@ -15,9 +15,9 @@ export interface RecordMessageEventVariables {
 }
 
 /**
- * Records that a person's WhatsApp chat was opened (`POST /api/months/:month/recipients/:personId/message-events`).
- * Home, the month's bill, Recipient and Charge details show whether a message went out, so all are refetched; the
- * mutation stays pending until they are.
+ * Records that a message went out on WhatsApp (`POST /api/months/:month/recipients/:personId/message-events`).
+ * Home, the month's bill, Recipient, Charge details and the Send message sheet show whether a message went out, so
+ * all are refetched; the mutation stays pending until they are.
  */
 export function useRecordMessageEvent() {
   const queryClient = useQueryClient();
@@ -33,6 +33,7 @@ export function useRecordMessageEvent() {
         queryClient.invalidateQueries({ queryKey: queryKeys.bill(month) }),
         queryClient.invalidateQueries({ queryKey: queryKeys.allRecipients }),
         queryClient.invalidateQueries({ queryKey: queryKeys.allChargeDetails }),
+        queryClient.invalidateQueries({ queryKey: queryKeys.allSendSheets }),
       ]),
   });
 }

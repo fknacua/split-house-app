@@ -3,6 +3,7 @@ import { createContext, useCallback, useContext, useMemo, useRef, useState, type
 import type { AppSheetRef } from '@/components';
 import { MarkPaidSheet, RecordPaymentSheet } from '@/sheets/mark-paid';
 import { PayBillSheet } from '@/sheets/pay-bill';
+import { SendMessageSheet, type SendMessageOpening, type SendMessageSheetRef } from '@/sheets/send-message';
 
 /** What Home's rows and footer can open as a sheet. */
 interface HomeSheetsValue {
@@ -12,12 +13,15 @@ interface HomeSheetsValue {
   openMarkPaid: (chargeId: string) => void;
   /** Opens Record payment for the month, on the most urgent person and charge. */
   openRecordPayment: (month: string) => void;
+  /** Opens Send message: the monthly message, or a nudge with the tapped charge ticked. */
+  openSendMessage: (opening: SendMessageOpening) => void;
 }
 
 const HomeSheetsContext = createContext<HomeSheetsValue>({
   openPayBill: () => {},
   openMarkPaid: () => {},
   openRecordPayment: () => {},
+  openSendMessage: () => {},
 });
 
 /**
@@ -33,6 +37,7 @@ export function HomeSheetsProvider({ children }: { children: ReactNode }) {
   const [markPaidChargeId, setMarkPaidChargeId] = useState<string | null>(null);
   const recordPayment = useRef<AppSheetRef>(null);
   const [recordPaymentMonth, setRecordPaymentMonth] = useState<string | null>(null);
+  const sendMessage = useRef<SendMessageSheetRef>(null);
 
   // Each sheet may mount with this render, so it opens once it has.
   const openPayBill = useCallback((month: string) => {
@@ -47,9 +52,11 @@ export function HomeSheetsProvider({ children }: { children: ReactNode }) {
     setRecordPaymentMonth(month);
     requestAnimationFrame(() => recordPayment.current?.open());
   }, []);
+  // Always mounted, so the sent check still comes up if the sheet was closed while WhatsApp was open.
+  const openSendMessage = useCallback((opening: SendMessageOpening) => sendMessage.current?.open(opening), []);
   const value = useMemo(
-    () => ({ openPayBill, openMarkPaid, openRecordPayment }),
-    [openPayBill, openMarkPaid, openRecordPayment],
+    () => ({ openPayBill, openMarkPaid, openRecordPayment, openSendMessage }),
+    [openPayBill, openMarkPaid, openRecordPayment, openSendMessage],
   );
 
   return (
@@ -58,6 +65,7 @@ export function HomeSheetsProvider({ children }: { children: ReactNode }) {
       {payBillMonth ? <PayBillSheet ref={payBill} month={payBillMonth} /> : null}
       {markPaidChargeId ? <MarkPaidSheet ref={markPaid} chargeId={markPaidChargeId} /> : null}
       {recordPaymentMonth ? <RecordPaymentSheet ref={recordPayment} month={recordPaymentMonth} /> : null}
+      <SendMessageSheet ref={sendMessage} />
     </HomeSheetsContext.Provider>
   );
 }

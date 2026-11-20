@@ -12,8 +12,11 @@ import {
 } from '@/components/ui/alert-dialog';
 import { Icon } from '@/components/ui/icon';
 
-/** The dialog's mood: `danger` for destructive confirmations, `warning` for "check this first". */
-export type ConfirmDialogTone = 'danger' | 'warning';
+/**
+ * The dialog's mood: `danger` for destructive confirmations, `warning` for "check this first", `neutral` for a plain
+ * yes-or-not-yet question (Send message's "Did you send the message?"), where the action is the filled button.
+ */
+export type ConfirmDialogTone = 'danger' | 'warning' | 'neutral';
 
 /** How the extra lines are drawn: a check icon (what stays) or a bullet (what to check). */
 export type ConfirmDialogListStyle = 'check' | 'bullet';
@@ -21,18 +24,22 @@ export type ConfirmDialogListStyle = 'check' | 'bullet';
 const ICON_CIRCLE: Record<ConfirmDialogTone, string> = {
   danger: 'bg-danger-line',
   warning: 'border border-warning-line bg-warning-tint',
+  // The board's `sentCheck`: `container` in light, `track` in dark, where `container` is the dialog's own fill.
+  neutral: 'bg-container dark:bg-track',
 };
 
 const ICON_COLOR: Record<ConfirmDialogTone, string> = {
   danger: 'text-on-danger-tint',
   warning: 'text-warning',
+  neutral: 'text-on-surface',
 };
 
 /**
  * Dialog scaffold (screen mapping doc: Confirmations). Wraps the native gluestack alert dialog
  * with the shared layout: a round icon, a centred 20/28 title, a body, an optional list, and two
  * stacked buttons. The first button is the safe way out, filled; the second is the action, an
- * outline. Used by Remove person, Remove version, Discard changes and Save with warnings.
+ * outline. The `neutral` tone swaps them: the action filled and first, the way out in outline under it.
+ * Used by Remove person, Remove version, Discard changes, Save with warnings and Send message's sent check.
  *
  * There is no close icon, and a tap on the scrim does nothing: the dialog is left through one of
  * the two buttons or the Android back gesture, which calls `onCancel`. While `loading`, the action
@@ -40,8 +47,8 @@ const ICON_COLOR: Record<ConfirmDialogTone, string> = {
  * cannot be dismissed until the work finishes.
  *
  * @param open - Whether the dialog is shown.
- * @param tone - `danger` (red icon, red outline action) or `warning` (amber icon, neutral outline
- *   action). Defaults to `danger`.
+ * @param tone - `danger` (red icon, red outline action), `warning` (amber icon, neutral outline
+ *   action) or `neutral` (plain icon, filled action first). Defaults to `danger`.
  * @param icon - The Lucide icon in the circle, such as `Trash2` or `TriangleAlert`.
  * @param title - The dialog title.
  * @param body - Optional paragraph under the title.
@@ -133,13 +140,22 @@ export function ConfirmDialog({
         </AlertDialogBody>
         {error ? <Alert variant="danger" message={error} /> : null}
         <AlertDialogFooter className="flex-col items-stretch gap-2 pt-1">
-          <Button label={cancelLabel} onPress={onCancel} disabled={loading} />
-          <Button
-            label={confirmLabel}
-            onPress={onConfirm}
-            loading={loading}
-            variant={tone === 'danger' ? 'outline-danger' : 'outline'}
-          />
+          {tone === 'neutral' ? (
+            <>
+              <Button label={confirmLabel} onPress={onConfirm} loading={loading} />
+              <Button label={cancelLabel} onPress={onCancel} disabled={loading} variant="outline" />
+            </>
+          ) : (
+            <>
+              <Button label={cancelLabel} onPress={onCancel} disabled={loading} />
+              <Button
+                label={confirmLabel}
+                onPress={onConfirm}
+                loading={loading}
+                variant={tone === 'danger' ? 'outline-danger' : 'outline'}
+              />
+            </>
+          )}
         </AlertDialogFooter>
       </AlertDialogContent>
     </AlertDialog>

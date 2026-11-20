@@ -1,4 +1,5 @@
 import { Check } from 'lucide-react-native';
+import type { ReactNode } from 'react';
 import { type Control, type FieldPath, type FieldValues, useController } from 'react-hook-form';
 
 import { Icon } from '@/components/icon';
@@ -11,12 +12,14 @@ function CheckboxView({
   onChange,
   disabled,
   className,
+  children,
 }: {
   label: string;
   value: boolean;
   onChange: (value: boolean) => void;
   disabled?: boolean;
   className?: string;
+  children?: ReactNode;
 }) {
   return (
     <NativeCheckbox
@@ -28,7 +31,7 @@ function CheckboxView({
       className={className}
     >
       <CheckboxIndicator>{value ? <Icon as={Check} size={14} strokeWidth={3} className="text-on-primary" /> : null}</CheckboxIndicator>
-      <CheckboxLabel>{label}</CheckboxLabel>
+      {children ?? <CheckboxLabel>{label}</CheckboxLabel>}
     </NativeCheckbox>
   );
 }
@@ -60,16 +63,22 @@ function BoundCheckbox<T extends FieldValues>({
  * @param name - The boolean field's name (form-controlled only).
  * @param disabled - Dims it and ignores taps.
  * @param className - Extra classes, such as `self-end`.
+ * @param children - Content beside the box in place of the label text, such as Send message's charge rows (standalone
+ *   only). `label` stays the accessibility label.
  */
 export function Checkbox<T extends FieldValues = FieldValues>(
   props: { label: string; disabled?: boolean; className?: string } & (
-    | { control: Control<T>; name: FieldPath<T>; value?: never; onChange?: never }
-    | { value: boolean; onChange: (value: boolean) => void; control?: never; name?: never }
+    | { control: Control<T>; name: FieldPath<T>; value?: never; onChange?: never; children?: never }
+    | { value: boolean; onChange: (value: boolean) => void; control?: never; name?: never; children?: ReactNode }
   ),
 ) {
   const { label, disabled, className } = props;
   if (props.control) {
     return <BoundCheckbox control={props.control} name={props.name} label={label} disabled={disabled} className={className} />;
   }
-  return <CheckboxView label={label} value={props.value} onChange={props.onChange} disabled={disabled} className={className} />;
+  return (
+    <CheckboxView label={label} value={props.value} onChange={props.onChange} disabled={disabled} className={className}>
+      {props.children}
+    </CheckboxView>
+  );
 }

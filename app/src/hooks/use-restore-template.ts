@@ -18,6 +18,7 @@ export function useRestoreTemplate() {
       Promise.all([
         queryClient.invalidateQueries({ queryKey: queryKeys.allHousehold }),
         queryClient.invalidateQueries({ queryKey: queryKeys.allRecipients }),
+        queryClient.invalidateQueries({ queryKey: queryKeys.allSendSheets }),
       ]),
   });
 }
