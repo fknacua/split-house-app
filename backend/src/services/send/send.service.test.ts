@@ -123,7 +123,12 @@ describe("previewNudge", () => {
       ["jordan-rent", true],
       ["jordan-utilities", true],
     ]);
-    expect(sheet.send.target?.record).toEqual({ kind: "NUDGE", chargeIds: ["jordan-rent", "jordan-utilities"] });
+    expect(sheet.send.target?.record).toEqual({
+      kind: "NUDGE",
+      month: "2026-11",
+      personId: jordan,
+      chargeIds: ["jordan-rent", "jordan-utilities"],
+    });
   });
 
   it("throws 404 no_person for someone with nothing to nudge", async () => {

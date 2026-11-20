@@ -184,7 +184,7 @@ export const billViewResponseSchema = z.object({
   action: billViewActionSchema.nullable(),
   /** The Mark bill paid sheet's text while the bill is unpaid; null once it is paid. */
   paySheet: billPaySheetSchema.nullable(),
-  /** The Share bill sheet's text, opened from Recipient. */
+  /** The Share bill sheet's text, opened from the Send message sheet. */
   share: billShareSchema,
 });
 

@@ -35,15 +35,11 @@ export const queryKeys = {
    * @param request The values sent to the check.
    */
   billCheck: (month: string, request: unknown) => ['bill-check', month, request] as const,
-  /** Every Mark paid sheet. The prefix of `chargePayment`, so a rename refreshes them all. */
-  allChargePayments: ['charge-payment'] as const,
-  /** @param chargeId The charge whose Mark paid sheet this is. */
-  chargePayment: (chargeId: string) => ['charge-payment', chargeId] as const,
   /** Every Charge details page. The prefix of `chargeDetails`, so a payment or a nudge refreshes whichever is open. */
   allChargeDetails: ['charge-details'] as const,
   /** @param chargeId The charge Charge details shows. */
   chargeDetails: (chargeId: string) => ['charge-details', chargeId] as const,
-  /** Every Record payment sheet. The prefix of `recordPaymentSheet`, so a payment or an edit refreshes the open one. */
+  /** Every Record payment sheet. The prefix of `recordPaymentSheet`, so a payment refreshes the open one. */
   allRecordPaymentSheets: ['record-payment'] as const,
   /**
    * The Record payment sheet, by who is picked and what is ticked.
@@ -53,15 +49,6 @@ export const queryKeys = {
    */
   recordPaymentSheet: (personId: string | null, chargeId: string | null, ticked: string[] | null) =>
     ['record-payment', personId, chargeId, ticked] as const,
-  /** Every Recipient screen. The prefix of `recipient`, so a payment refreshes whichever is open. */
-  allRecipients: ['recipient'] as const,
-  /**
-   * @param month `YYYY-MM` key of the month the Recipient screen shows.
-   * @param personId The person it is for.
-   * @param chargeId The overdue charge Home's Nudge chose, or null.
-   */
-  recipient: (month: string, personId: string, chargeId: string | null) =>
-    ['recipient', month, personId, chargeId] as const,
   /** Every Send message sheet. The prefix of `sendSheet`, so a recorded send refreshes the open one. */
   allSendSheets: ['send'] as const,
   /**

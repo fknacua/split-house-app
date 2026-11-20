@@ -59,7 +59,7 @@ export const RecordPaymentSheet = forwardRef<RecordPaymentSheetRef>(function Rec
     () => ({
       open: (opening = {}) => {
         void queryClient.invalidateQueries({ queryKey: queryKeys.allRecordPaymentSheets });
-        setRequest({ personId: opening.personId ?? null, chargeId: opening.chargeId ?? null, ticked: null });
+        setRequest({ personId: null, chargeId: opening.chargeId ?? null, ticked: null });
         setPaidOn(null);
         setDirty(false);
         setConfirmOpen(false);

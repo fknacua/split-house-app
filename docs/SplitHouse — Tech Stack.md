@@ -165,4 +165,4 @@ Done: the design handover, the gluestack v5 rewrite and the data model. The solu
 2. Run the gluestack spike on Home and the Add charge sheet.
 3. Hand the stack, data model, Design Brief and theme and screen mapping doc to Claude Code, with a `CLAUDE.md`, to build.
 
-Suggested build order, for Claude Code to confirm: the data model and split engine tested against the sample data; Home and bill upload; Recipient and messages; collecting payments and corrections; Household and Settings; notifications; History and first-run setup.
+Suggested build order, for Claude Code to confirm: the data model and split engine tested against the sample data; Home and bill upload; Recipient and messages (Recipient was retired at 12C.3 for the Send message sheet and Charge details); collecting payments and corrections; Household and Settings; notifications; History and first-run setup.

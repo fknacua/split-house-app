@@ -1,7 +1,7 @@
 import { z } from 'zod';
 import { monthKey } from '../schemas/primitives';
 import { badgeSchema } from './history';
-import { createMessageEventRequestSchema, messagePreviewSchema } from './recipient';
+import { messagePreviewSchema } from './messages';
 
 /** The Send message sheet's two modes: the monthly breakdown, or a nudge about overdue charges. */
 export const sendModeSchema = z.enum(['monthly', 'nudge']);
@@ -149,15 +149,56 @@ export const sendMessageCardSchema = z.object({
 export type SendMessageCard = z.infer<typeof sendMessageCardSchema>;
 
 /**
- * Opens the person's WhatsApp chat at `url` (`https://wa.me/...` with the message filled in), then records
- * `record` with `POST /api/months/:month/recipients/:personId/message-events`.
+ * `POST /api/send/events`: records that a message went out on WhatsApp, once Francis confirms it was sent. The server
+ * renders and stores the message text itself.
+ */
+export const sendEventRequestSchema = z.discriminatedUnion('kind', [
+  /** The monthly breakdown (Send on WhatsApp, Send again). */
+  z.object({ kind: z.literal('MONTHLY'), month: monthKey, personId: z.string().min(1) }),
+  /** A nudge about one or more of the person's charges: one NUDGE event per charge, all at the same moment. */
+  z.object({
+    kind: z.literal('NUDGE'),
+    month: monthKey,
+    personId: z.string().min(1),
+    chargeIds: z
+      .array(z.string().min(1))
+      .min(1)
+      .refine((ids) => new Set(ids).size === ids.length, 'Each charge may be named once.'),
+  }),
+]);
+
+/** `POST /api/send/events`: records that a message went out on WhatsApp. */
+export type SendEventRequest = z.infer<typeof sendEventRequestSchema>;
+
+/** One recorded message event. */
+export const messageEventSchema = z.object({
+  id: z.string(),
+  kind: z.enum(['MONTHLY', 'NUDGE']),
+  /** The nudged charge; null for a monthly message. */
+  chargeId: z.string().nullable(),
+  /** When the send was recorded, as an ISO timestamp. */
+  openedAt: z.iso.datetime({ offset: true }),
+});
+
+/** One recorded message event. Not `MessageEvent`, which the DOM and Prisma already name. */
+export type MessageEventRecord = z.infer<typeof messageEventSchema>;
+
+/** `POST /api/send/events`: the recorded events, one for a monthly message and one per charge for a nudge. */
+export const messageEventResponseSchema = z.object({
+  events: z.array(messageEventSchema).min(1),
+});
+
+/** `POST /api/send/events`: the recorded events. */
+export type MessageEventResponse = z.infer<typeof messageEventResponseSchema>;
+
+/**
+ * Opens the person's WhatsApp chat at `url` (`https://wa.me/...` with the message filled in). Once Francis confirms it
+ * was sent, the app posts `record` to `POST /api/send/events` as it is.
  */
 export const sendWhatsappTargetSchema = z.object({
   kind: z.literal('send-whatsapp'),
-  month: monthKey,
-  personId: z.string(),
   url: z.url(),
-  record: createMessageEventRequestSchema,
+  record: sendEventRequestSchema,
 });
 
 /** Opens WhatsApp with the message, then records it. */

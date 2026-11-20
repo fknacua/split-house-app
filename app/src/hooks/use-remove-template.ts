@@ -6,7 +6,7 @@ import type { TemplateKind, TemplateSaveResponse } from '@splithouse/shared';
 
 /**
  * Removes one person's custom template (`DELETE /api/templates/:kind`), so they get the Default from now on. Settings,
- * the landing page and the editor sit under `allHousehold`, and Recipient shows the wording, so all are refetched; the
+ * the landing page and the editor sit under `allHousehold`, and the Send message sheet shows the wording, so all are refetched; the
  * mutation stays pending until they are.
  */
 export function useRemoveTemplate() {
@@ -19,7 +19,6 @@ export function useRemoveTemplate() {
     onSuccess: () =>
       Promise.all([
         queryClient.invalidateQueries({ queryKey: queryKeys.allHousehold }),
-        queryClient.invalidateQueries({ queryKey: queryKeys.allRecipients }),
         queryClient.invalidateQueries({ queryKey: queryKeys.allSendSheets }),
       ]),
   });

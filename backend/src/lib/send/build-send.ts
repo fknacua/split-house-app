@@ -81,7 +81,7 @@ interface Overdue {
 // Proposed copy (not drawn): the To field before anyone is picked.
 const TO_PLACEHOLDER = "Choose a person";
 
-// Charges due on the same day go: rent, recurring, utilities, aircon, then the rest (as Recipient).
+// Charges due on the same day go: rent, recurring, utilities, aircon, then the rest.
 const CATEGORY_RANK: Partial<Record<ChargeCategory, number>> = { RENT: 0, RECURRING: 1, UTILITIES: 2, AIRCON: 3 };
 
 /** Orders overdue charges by due date, then rent, recurring, utilities, aircon and the rest. */
@@ -193,7 +193,8 @@ interface PickedParts {
   message: SendMessageCard;
   /** The message text to send; null when there is nothing to send yet. */
   text: string | null;
-  record: SendWhatsappTarget["record"] | null;
+  /** What to record once the send is confirmed, without the month and person `buildSend` adds. */
+  record: { kind: "MONTHLY" } | { kind: "NUDGE"; chargeIds: string[] } | null;
 }
 
 /** Monthly mode: the Total card, the sent history and the breakdown message. */
@@ -243,7 +244,7 @@ function monthlyParts(input: SendInput, person: Person, names: Map<string, strin
       empty: null,
       editTemplate: editTemplate(input.templates, person.id, "MONTHLY"),
     },
-    // A monthly message waits for the bill, as the message-events endpoint does.
+    // A monthly message waits for the bill, as the send events endpoint does.
     text: input.billCents === null ? null : message.text,
     record: { kind: "MONTHLY" },
   };
@@ -362,10 +363,8 @@ export function buildSend(input: SendInput, pick: SendPick): SendResponse {
     person.whatsappE164 && parts.text !== null && parts.record
       ? {
           kind: "send-whatsapp",
-          month,
-          personId: person.id,
           url: whatsappLink(person.whatsappE164, parts.text),
-          record: parts.record,
+          record: { ...parts.record, month, personId: person.id },
         }
       : null;
 

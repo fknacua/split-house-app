@@ -53,7 +53,7 @@ export function useWhatsappSend() {
   const confirm = async () => {
     if (!check) return;
     try {
-      await record.mutateAsync({ month: check.month, personId: check.personId, event: check.record });
+      await record.mutateAsync(check.record);
     } catch {
       return; // The dialog stays open and shows `recordError`.
     }

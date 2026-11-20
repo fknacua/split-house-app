@@ -43,7 +43,7 @@ const SCENARIOS = {
   fullyCollected: { devNow: "2026-11-10T09:00:00+08:00" },
   // As collecting, but every charge is paid and the bill is marked paid.
   settled: { devNow: "2026-11-29T09:00:00+08:00" },
-  // As settled, but Priya's rent came in $X,XXX.XX short, so her Recipient page shows `paidDifferent`.
+  // As settled, but Priya's rent came in $X,XXX.XX short (a short payment from before 12C, which only pays in full).
   shortPaid: { devNow: "2026-11-29T09:00:00+08:00" },
   // As upload, plus a December 2026 version that no month has opened: saved values not in effect yet.
   householdUpcoming: { devNow: "2026-11-03T09:00:00+08:00" },

@@ -47,7 +47,6 @@ function SessionStack() {
         <Stack.Screen name="(tabs)" />
         <Stack.Screen name="history/[month]" />
         <Stack.Screen name="bill/[month]/index" />
-        <Stack.Screen name="recipient/[month]/[personId]" />
         <Stack.Screen name="charge/[chargeId]" />
       </Stack.Protected>
       <Stack.Protected guard={signedIn && !setupComplete}>

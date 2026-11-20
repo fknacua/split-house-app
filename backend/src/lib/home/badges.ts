@@ -10,7 +10,7 @@ export const HOME_BADGES = {
   paid: { label: "Paid", tone: "success" },
   dueToday: { label: "Due today", tone: "info" },
   dueTomorrow: { label: "Due tomorrow", tone: "info" },
-  /** Home rows and Recipient's chip: the monthly message is out and nothing is paid. */
+  /** Home rows and the Send message sheet's chip: the monthly message is out and nothing is paid. */
   sentUnpaid: { label: "Sent · unpaid", tone: "neutral" },
   upcoming: { label: "Upcoming", tone: "neutral" },
   /** Charge details: the Payment status pill on a charge with no payment yet. */
@@ -22,12 +22,6 @@ export const HOME_BADGES = {
   covered: { label: "Covered", tone: "success" },
   /** View bill: a share whose message is out and is not paid or overdue. */
   waiting: { label: "Waiting", tone: "neutral" },
-  /** Recipient: a charge is past its due date; the rows below say which and by how long. */
-  recipientOverdue: { label: "Overdue", tone: "danger" },
-  /** Recipient: every charge has a payment, but less came in than was asked. */
-  recipientPaidLess: { label: "Paid less", tone: "warning" },
-  /** Recipient: every charge has a payment, and more came in than was asked (not drawn). */
-  recipientPaidMore: { label: "Paid more", tone: "info" },
   /** Landlord & rooms: a tenant room with no one in it. */
   roomEmpty: { label: "Empty", tone: "neutral" },
 } as const satisfies Record<string, BadgeContent>;
@@ -62,7 +56,7 @@ function chargeDueBadge(days: number): BadgeContent | null {
 
 /**
  * The chip for a charge, first match wins: Paid, Not sent, Overdue N days, Due today, Due tomorrow,
- * Due in N days (up to three), Sent unpaid, Upcoming. Home's rows and Recipient's charge rows use it.
+ * Due in N days (up to three), Sent unpaid, Upcoming. Home's rows and Charge details use it.
  *
  * @param flags - Where the charge stands.
  * @param flags.paid - The charge is paid.
