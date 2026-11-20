@@ -9,6 +9,7 @@ export * from './api/household';
 export * from './api/me';
 export * from './api/payment';
 export * from './api/recipient';
+export * from './api/send';
 export * from './api/settings';
 export * from './api/setup';
 export * from './api/templates';

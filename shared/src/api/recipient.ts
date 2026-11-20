@@ -230,15 +230,21 @@ export type RecipientResponse = z.infer<typeof recipientResponseSchema>;
 export const createMessageEventRequestSchema = z.discriminatedUnion('kind', [
   /** The monthly breakdown (Send on WhatsApp, Send again). */
   z.object({ kind: z.literal('MONTHLY') }),
-  /** A nudge about one of the person's charges (7.8). */
-  z.object({ kind: z.literal('NUDGE'), chargeId: z.string().min(1) }),
+  /** A nudge about one or more of the person's charges: one NUDGE event per charge, all opened at the same moment. */
+  z.object({
+    kind: z.literal('NUDGE'),
+    chargeIds: z
+      .array(z.string().min(1))
+      .min(1)
+      .refine((ids) => new Set(ids).size === ids.length, 'Each charge may be named once.'),
+  }),
 ]);
 
 /** `POST /api/months/:month/recipients/:personId/message-events`: records that a WhatsApp chat was opened. */
 export type CreateMessageEventRequest = z.infer<typeof createMessageEventRequestSchema>;
 
-/** The recorded message event. The server renders and stores the message text itself. */
-export const messageEventResponseSchema = z.object({
+/** One recorded message event. */
+export const messageEventSchema = z.object({
   id: z.string(),
   kind: z.enum(['MONTHLY', 'NUDGE']),
   /** The nudged charge; null for a monthly message. */
@@ -247,5 +253,16 @@ export const messageEventResponseSchema = z.object({
   openedAt: z.iso.datetime({ offset: true }),
 });
 
-/** The recorded message event. The server renders and stores the message text itself. */
+/** One recorded message event. Not `MessageEvent`, which the DOM and Prisma already name. */
+export type MessageEventRecord = z.infer<typeof messageEventSchema>;
+
+/**
+ * The recorded message events: one for a monthly message, one per charge for a nudge. The server renders and
+ * stores the message text itself.
+ */
+export const messageEventResponseSchema = z.object({
+  events: z.array(messageEventSchema).min(1),
+});
+
+/** The recorded message events: one for a monthly message, one per charge for a nudge. */
 export type MessageEventResponse = z.infer<typeof messageEventResponseSchema>;

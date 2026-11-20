@@ -49,12 +49,8 @@ function useNovember() {
     },
     messageEvent: {
       findMany: async () => [],
-      create: async ({ data }: { data: { kind: string; chargeId: string | null; openedAt: Date } }) => ({
-        id: "event-1",
-        kind: data.kind,
-        chargeId: data.chargeId,
-        openedAt: data.openedAt,
-      }),
+      createManyAndReturn: async ({ data }: { data: { kind: string; chargeId: string | null; openedAt: Date }[] }) =>
+        data.map((d, i) => ({ id: `event-${i + 1}`, kind: d.kind, chargeId: d.chargeId, openedAt: d.openedAt })),
     },
   });
 }
@@ -68,11 +64,17 @@ describe("POST /api/months/:month/recipients/:personId/message-events", () => {
     const response = await POST(post({ kind: "MONTHLY" }), params("2026-11", PERSON_IDS.priya));
     expect(response.status).toBe(200);
     expect(messageEventResponseSchema.parse(await response.json())).toEqual({
-      id: "event-1",
-      kind: "MONTHLY",
-      chargeId: null,
-      openedAt: "2026-11-02T02:00:00.000Z",
+      events: [{ id: "event-1", kind: "MONTHLY", chargeId: null, openedAt: "2026-11-02T02:00:00.000Z" }],
     });
+  });
+
+  it("records a nudge about the named charges, parsing with the shared schema", async () => {
+    useNovember();
+    const response = await POST(post({ kind: "NUDGE", chargeIds: ["priya-rent"] }), params("2026-11", PERSON_IDS.priya));
+    expect(response.status).toBe(200);
+    expect(messageEventResponseSchema.parse(await response.json()).events).toMatchObject([
+      { kind: "NUDGE", chargeId: "priya-rent" },
+    ]);
   });
 
   it("returns 400 for a month that is not YYYY-MM", async () => {
@@ -85,6 +87,9 @@ describe("POST /api/months/:month/recipients/:personId/message-events", () => {
   it.each([
     ["an unknown kind", { kind: "EMAIL" }],
     ["a nudge without a charge", { kind: "NUDGE" }],
+    ["a nudge with no charges", { kind: "NUDGE", chargeIds: [] }],
+    ["a nudge naming a charge twice", { kind: "NUDGE", chargeIds: ["priya-rent", "priya-rent"] }],
+    ["the old single chargeId", { kind: "NUDGE", chargeId: "priya-rent" }],
   ])("returns 400 for %s", async (_, body) => {
     useNovember();
     const response = await POST(post(body), params("2026-11", PERSON_IDS.priya));
@@ -94,7 +99,7 @@ describe("POST /api/months/:month/recipients/:personId/message-events", () => {
 
   it("returns 404 no_charge for a nudge about someone else's charge", async () => {
     useNovember();
-    const response = await POST(post({ kind: "NUDGE", chargeId: "sam-rent" }), params("2026-11", PERSON_IDS.priya));
+    const response = await POST(post({ kind: "NUDGE", chargeIds: ["sam-rent"] }), params("2026-11", PERSON_IDS.priya));
     expect(response.status).toBe(404);
     expect((await response.json()).error.code).toBe("no_charge");
   });

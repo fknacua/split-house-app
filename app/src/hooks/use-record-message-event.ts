@@ -10,7 +10,7 @@ export interface RecordMessageEventVariables {
   month: string;
   /** Whose chat was opened. */
   personId: string;
-  /** MONTHLY, or NUDGE with its charge. */
+  /** MONTHLY, or NUDGE with its charges. */
   event: CreateMessageEventRequest;
 }
 

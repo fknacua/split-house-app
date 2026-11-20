@@ -52,7 +52,7 @@ export function useOpenRecipientTarget(charges: RecipientChargeRow[] = []) {
         void openChat(target, { kind: 'MONTHLY' });
         return;
       case 'nudge-whatsapp':
-        void openChat(target, { kind: 'NUDGE', chargeId: target.chargeId });
+        void openChat(target, { kind: 'NUDGE', chargeIds: [target.chargeId] });
         return;
       case 'choose-nudge':
         openChooseNudge(
