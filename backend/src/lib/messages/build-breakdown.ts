@@ -136,6 +136,24 @@ export interface SectionsInput<C extends SectionCharge> {
 }
 
 /**
+ * The charges a person's monthly breakdown lists: the unpaid ones they pay (their own, and those paid
+ * through them) from the month, plus unpaid corrections from earlier months.
+ *
+ * @param charges - The month's charges and earlier months' corrections.
+ * @param month - The message's month, `YYYY-MM`.
+ * @param recipientId - Who the message goes to.
+ * @returns The charges that belong, in the order given.
+ */
+export function breakdownCharges<C extends BreakdownCharge>(charges: C[], month: string, recipientId: string): C[] {
+  return charges.filter(
+    (c) =>
+      (c.payViaPersonId ?? c.personId) === recipientId &&
+      c.paidCents === null &&
+      (c.month === month || (c.category === "CORRECTION" && c.month < month)),
+  );
+}
+
+/**
  * Builds a person's monthly breakdown. It holds the unpaid charges the recipient pays: their own
  * and those paid through them, from the month, plus unpaid corrections from earlier months.
  * Paid charges are left out, so the total is what they still owe; a credit is a negative line.
@@ -145,12 +163,7 @@ export interface SectionsInput<C extends SectionCharge> {
  * @returns The sections, the total, the earliest due date and the text for `{lines}`.
  */
 export function buildBreakdown(input: BreakdownInput): Breakdown {
-  const included = input.charges.filter(
-    (c) =>
-      (c.payViaPersonId ?? c.personId) === input.recipientId &&
-      c.paidCents === null &&
-      (c.month === input.month || (c.category === "CORRECTION" && c.month < input.month)),
-  );
+  const included = breakdownCharges(input.charges, input.month, input.recipientId);
 
   const sections = buildSections({
     recipientId: input.recipientId,

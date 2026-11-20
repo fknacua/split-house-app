@@ -10,7 +10,7 @@ const EVENT_SELECT = { id: true, kind: true, chargeId: true, openedAt: true } as
 /** The slice of the Prisma client this service uses, so tests can pass an in-memory fake. */
 export interface MessageEventDb extends RecipientDb {
   messageEvent: RecipientDb["messageEvent"] & {
-    create(args: {
+    createManyAndReturn(args: {
       data: {
         month: string;
         personId: string;
@@ -18,25 +18,26 @@ export interface MessageEventDb extends RecipientDb {
         chargeId: string | null;
         renderedText: string;
         openedAt: Date;
-      };
+      }[];
       select: typeof EVENT_SELECT;
-    }): Promise<{ id: string; kind: "MONTHLY" | "NUDGE"; chargeId: string | null; openedAt: Date }>;
+    }): Promise<{ id: string; kind: "MONTHLY" | "NUDGE"; chargeId: string | null; openedAt: Date }[]>;
   };
 }
 
 /**
  * Records that Francis opened a person's WhatsApp chat. The app cannot know whether the message was
  * sent, so this stores the open. The server renders the text itself from the same data as the
- * Recipient preview and stores it.
+ * preview and stores it. A nudge about several charges stores one NUDGE event per charge, each with
+ * the whole nudge's text and the same time, in one statement.
  *
  * @param db - The Prisma client, or a fake in tests.
  * @param month - The month key, e.g. `2026-11`.
  * @param personId - Whose chat was opened.
- * @param values - MONTHLY, or NUDGE with the charge it is about.
- * @returns The recorded event.
+ * @param values - MONTHLY, or NUDGE with the charges it is about.
+ * @returns The recorded events.
  * @throws {ApiError} 404 `no_month` or `no_person`, as `loadRecipientInput`; 409 `no_bill` for a
- * monthly message before the month's bill is saved; 404 `no_charge` for a nudge about a charge of
- * the month that the person does not pay.
+ * monthly message before the month's bill is saved; 404 `no_charge` for a nudge naming a charge the
+ * person does not pay (this month's, or an earlier month's unpaid correction).
  */
 export async function createMessageEvent(
   db: MessageEventDb,
@@ -46,15 +47,16 @@ export async function createMessageEvent(
 ): Promise<MessageEventResponse> {
   const input = await loadRecipientInput(db, month, personId);
 
-  let chargeId: string | null = null;
+  let chargeIds: (string | null)[];
   let renderedText: string;
   if (values.kind === "MONTHLY") {
     if (input.billCents === null) throw new ApiError(409, "no_bill", "Upload this month’s bill before sending.");
+    chargeIds = [null];
     renderedText = recipientMonthlyMessage(input).text;
   } else {
-    const charge = input.charges.find((c) => c.id === values.chargeId && c.month === month);
-    if (!charge) throw new ApiError(404, "no_charge", "That charge isn’t one of theirs this month.");
-    chargeId = charge.id;
+    const charges = values.chargeIds.map((id) => input.charges.find((c) => c.id === id));
+    if (charges.some((c) => !c)) throw new ApiError(404, "no_charge", "That charge isn’t one of theirs.");
+    chargeIds = values.chargeIds;
     renderedText = renderNudgeMessage({
       recipientId: input.person.id,
       recipientName: input.person.name,
@@ -62,13 +64,14 @@ export async function createMessageEvent(
       config: input.config,
       templates: input.templates,
       people: input.people,
-      charges: [charge],
+      charges: charges.filter((c) => c !== undefined),
     }).text;
   }
 
-  const event = await db.messageEvent.create({
-    data: { month, personId, kind: values.kind, chargeId, renderedText, openedAt: now() },
+  const openedAt = now();
+  const events = await db.messageEvent.createManyAndReturn({
+    data: chargeIds.map((chargeId) => ({ month, personId, kind: values.kind, chargeId, renderedText, openedAt })),
     select: EVENT_SELECT,
   });
-  return { ...event, openedAt: event.openedAt.toISOString() };
+  return { events: events.map((e) => ({ ...e, openedAt: e.openedAt.toISOString() })) };
 }
