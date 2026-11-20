@@ -19,7 +19,7 @@ import {
 } from "@splithouse/shared";
 import { z } from "zod";
 import type { ChargeCategory, MessageKind } from "@/generated/prisma/enums";
-import { billDueInBadge, HOME_BADGES, overdueBadge, paidOnBadge } from "@/lib/home/badges";
+import { dueInBadge, HOME_BADGES, overdueBadge, paidOnBadge } from "@/lib/home/badges";
 import { billDueDateKey, chargeDueDate } from "@/lib/home/due-dates";
 import { messageRecipientIds, monthlyMessagedIds, unsentRecipientIds } from "@/lib/home/message-recipients";
 import { billCoverage, coveragePercent, type BillCoverage } from "./bill-coverage";
@@ -217,7 +217,7 @@ export function buildBillView(input: BillViewInput): BillViewResponse {
     ? paidOnBadge(bill.paidOn ? dateKeyOf(bill.paidOn) : null)
     : dueDate === null
       ? HOME_BADGES.upcoming
-      : billDueInBadge(daysUntil(dueDate, input.today));
+      : dueInBadge(daysUntil(dueDate, input.today));
 
   return {
     month: input.month,

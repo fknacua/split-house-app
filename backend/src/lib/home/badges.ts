@@ -3,7 +3,7 @@ import { formatDateShort, type BadgeContent } from "@splithouse/shared";
 /**
  * Every fixed badge Home and View bill show, keyed by name. The builders pick from here instead of
  * writing labels and tones inline, so a badge changes in one place. Badges with a number or a date
- * in them are made by `overdueBadge`, `chargeDueBadge`, `billDueBadge`, `billDueInBadge` and
+ * in them are made by `overdueBadge`, `chargeDueBadge`, `billDueBadge`, `dueInBadge` and
  * `paidOnBadge`. Later steps add their own.
  */
 export const HOME_BADGES = {
@@ -97,12 +97,13 @@ export function billDueBadge(days: number): BadgeContent {
 }
 
 /**
- * View bill's chip on an unpaid bill, which counts every day down rather than switching to `In N days`.
+ * A chip that counts every day down rather than switching to `In N days`: View bill's chip on an
+ * unpaid bill, and Record payment's chip on each unpaid charge.
  *
  * @param days - Whole days from today to the bill's due date. Negative once it is past.
  * @returns `Overdue N days`, `Due today`, `Due tomorrow`, or `Due in N days`.
  */
-export function billDueInBadge(days: number): BadgeContent {
+export function dueInBadge(days: number): BadgeContent {
   return chargeDueBadge(days) ?? { label: `Due in ${days} days`, tone: "neutral" };
 }
 
