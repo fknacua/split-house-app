@@ -90,7 +90,7 @@ describe("buildChargeDetails", () => {
           label: "Nudge again",
           tone: "warning",
           icon: "bell",
-          target: { kind: "recipient", month: "2026-11", personId: PERSON_IDS.jordan, chargeId: JORDAN_RENT.id },
+          target: { kind: "send-nudge", personId: PERSON_IDS.jordan, chargeId: JORDAN_RENT.id },
         },
         { label: "Mark paid", tone: "outline", icon: "check", target: { kind: "mark-paid", chargeId: JORDAN_RENT.id } },
       ],

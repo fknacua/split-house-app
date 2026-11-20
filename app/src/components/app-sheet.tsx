@@ -41,7 +41,7 @@ function Grabber() {
  * the shared frame: grabber, 20/28 title with an optional subtitle, a scrolling body and a sticky
  * footer with the main action and a Cancel text button under it. There is no close icon; the
  * sheet is also dismissed by swiping down, tapping the scrim or the back gesture. Used by Add
- * charge, Mark paid, Record payment, Mark bill paid and Share bill.
+ * charge, Mark paid, Record payment, Mark bill paid, Share bill and Send message.
  *
  * While `saving` the body ignores touches, the action shows its spinner, and Cancel, the
  * swipe-down and a tap on the scrim stop closing the sheet. When `failed` a danger Alert sits above
@@ -68,6 +68,8 @@ function Grabber() {
  *   Past that the body scrolls between the pinned title and footer.
  * @param actionsInRow - Put Cancel (outline) and the action side by side, Cancel first, instead of the action with a
  *   Cancel text button under it. Ignored with `dangerAction` or without `actionLabel`.
+ * @param footer - Replaces the action and Cancel with the sheet's own buttons, such as Send message's Send on
+ *   WhatsApp and Share bill. The failed Alert still shows above it.
  * @param onClose - Called after the sheet has closed, by any route.
  */
 export const AppSheet = forwardRef<
@@ -87,6 +89,7 @@ export const AppSheet = forwardRef<
     snapPoint?: string;
     fitContent?: boolean;
     actionsInRow?: boolean;
+    footer?: ReactNode;
     onClose?: () => void;
   }
 >(function AppSheet(
@@ -105,6 +108,7 @@ export const AppSheet = forwardRef<
     snapPoint = '90%',
     fitContent = false,
     actionsInRow = false,
+    footer,
     onClose,
   },
   ref
@@ -184,7 +188,8 @@ export const AppSheet = forwardRef<
             onLayout={(e) => measure('footer', e.nativeEvent.layout.height)}
           >
             {failed ? <Alert variant="danger" message={failedMessage} /> : null}
-            {rowActions ? (
+            {footer ?? null}
+            {footer ? null : rowActions ? (
               <View className="flex-row gap-2">
                 <Button
                   variant="outline"
@@ -209,7 +214,7 @@ export const AppSheet = forwardRef<
                 onPress={onAction}
               />
             ) : null}
-            {rowActions ? null : dangerAction ? (
+            {footer || rowActions ? null : dangerAction ? (
               <Button
                 variant="ghost-danger"
                 label={dangerAction.label}

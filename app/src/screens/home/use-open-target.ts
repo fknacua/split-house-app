@@ -8,7 +8,8 @@ import type { HomeTarget } from '@splithouse/shared';
 
 /**
  * How Home opens what a row link, a row button or the footer points at. Most targets open a
- * screen; Mark bill paid, Mark paid and Record payment open Home's sheets (`HomeSheetsProvider`); Discard runs at once.
+ * screen; Mark bill paid, Mark paid, Record payment, Send message and Nudge open Home's sheets
+ * (`HomeSheetsProvider`); Discard runs at once.
  * Targets whose screen does not exist yet do nothing; each case is filled in by the phase that
  * builds its screen.
  *
@@ -18,7 +19,7 @@ import type { HomeTarget } from '@splithouse/shared';
  */
 export function useOpenTarget() {
   const discardDraft = useDiscardBillDraft();
-  const { openPayBill, openMarkPaid, openRecordPayment } = useHomeSheets();
+  const { openPayBill, openMarkPaid, openRecordPayment, openSendMessage } = useHomeSheets();
   const discarding = useIsMutating({ mutationKey: queryKeys.billDraftDiscard }) > 0;
 
   const isDisabled = (target: HomeTarget): boolean => target.kind === 'bill-draft-continue' && discarding;
@@ -48,21 +49,13 @@ export function useOpenTarget() {
         openRecordPayment(target.month);
         return;
       case 'send-message':
-        // The Send message sheet is built in 12B.
+        openSendMessage({ mode: 'monthly', personId: target.personId });
+        return;
+      case 'send-nudge':
+        openSendMessage({ mode: 'nudge', personId: target.personId, chargeId: target.chargeId });
         return;
       case 'view-details':
         router.push({ pathname: '/charge/[chargeId]', params: { chargeId: target.chargeId } });
-        return;
-      case 'recipient':
-        router.push({
-          pathname: '/recipient/[month]/[personId]',
-          // Nudge passes the charge it is about; the other links open the person's page.
-          params: {
-            month: target.month,
-            personId: target.personId,
-            ...(target.chargeId ? { chargeId: target.chargeId } : {}),
-          },
-        });
         return;
     }
   };

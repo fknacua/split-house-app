@@ -56,6 +56,17 @@ export const queryKeys = {
    */
   recipient: (month: string, personId: string, chargeId: string | null) =>
     ['recipient', month, personId, chargeId] as const,
+  /** Every Send message sheet. The prefix of `sendSheet`, so a recorded send refreshes the open one. */
+  allSendSheets: ['send'] as const,
+  /**
+   * The Send message sheet, by who is picked and what is ticked.
+   * @param mode `monthly` or `nudge`.
+   * @param personId Who is picked, or null for nobody.
+   * @param chargeId The tapped charge (nudge), or null.
+   * @param ticked The ticked charge ids from a preview, or null for the sheet as it opens.
+   */
+  sendSheet: (mode: string, personId: string | null, chargeId: string | null, ticked: string[] | null) =>
+    ['send', mode, personId, chargeId, ticked] as const,
   /** Every month of the Household screen. The prefix of `household`, so an edit refreshes them all. */
   allHousehold: ['household'] as const,
   /** @param month `YYYY-MM` key of the month picked in "Showing:", or null for the active month. */

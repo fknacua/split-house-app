@@ -22,7 +22,7 @@ export interface ChargeActionFlags {
  * show the same thing. Mark paid is on every unpaid charge, even before the monthly message goes out.
  * Nudge (or Nudge again once nudged) comes first, and only on an overdue charge whose payer's
  * monthly message is out, since a nudge follows the message, and never on a charge paid via someone
- * else. Nudge opens Recipient with that charge until the Nudge sheet exists.
+ * else. Nudge opens the nudge sheet for the payer with that charge ticked.
  *
  * @param flags - Where the charge stands.
  * @returns The buttons in order; empty once the charge is paid.
@@ -40,7 +40,7 @@ export function chargeActions(flags: ChargeActionFlags): HomeAction[] {
     label: flags.nudged ? "Nudge again" : "Nudge",
     tone: "warning",
     icon: "bell",
-    target: { kind: "recipient", month: flags.month, personId: flags.payerId, chargeId: flags.chargeId },
+    target: { kind: "send-nudge", personId: flags.payerId, chargeId: flags.chargeId },
   };
   return [nudge, markPaid];
 }

@@ -10,8 +10,8 @@ export type HomeStatus = z.infer<typeof homeStatusSchema>;
 
 /** Where a tap on a row link, a row action or the footer goes. Carries only the ids the target screen needs. */
 export const homeTargetSchema = z.discriminatedUnion('kind', [
-  /** Opens Recipient. Nudge passes the overdue charge it is about, so Recipient's Nudge again nudges that one. */
-  z.object({ kind: z.literal('recipient'), month: monthKey, personId: z.string(), chargeId: z.string().optional() }),
+  /** Opens the Send message sheet in nudge mode for the person who pays the charge, with the charge ticked. */
+  z.object({ kind: z.literal('send-nudge'), personId: z.string(), chargeId: z.string() }),
   /**
    * Opens the Send message sheet for the month's monthly messages. `personId` is the first person
    * whose message is not sent yet; without one the sheet opens with nobody picked in To.

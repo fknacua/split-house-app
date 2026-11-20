@@ -25,6 +25,7 @@ export function useSavePayment(chargeId: string) {
         queryClient.invalidateQueries({ queryKey: queryKeys.chargePayment(chargeId) }),
         queryClient.invalidateQueries({ queryKey: queryKeys.allPaymentOptions }),
         queryClient.invalidateQueries({ queryKey: queryKeys.allRecipients }),
+        queryClient.invalidateQueries({ queryKey: queryKeys.allSendSheets }),
         queryClient.invalidateQueries({ queryKey: queryKeys.allChargeDetails }),
       ]),
   });
