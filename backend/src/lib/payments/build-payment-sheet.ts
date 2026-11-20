@@ -31,17 +31,14 @@ export interface PaymentSheetInput {
   /** The config pinned to the charge's month, for a via charge's due day. */
   config: HouseholdConfig;
   charge: PaymentSheetChargeRow;
-  /** `mark` (default) for Mark paid from a row, `record` for Record payment's wording. */
-  mode?: "mark" | "record";
 }
 
 /**
  * The payment sheet for one charge. An unpaid charge is filled in with its expected amount and
  * today; a paid one with the stored amount and day, and titled `Edit payment` with a `Save $X`
- * button, so Edit payment (7.9) opens on what was saved. Record payment words the title, subtitle
- * and button its own way; the rest is the same.
+ * button, so Edit payment (7.9) opens on what was saved.
  *
- * @param input - Today, the pinned config, the charge with its person's name, and the mode.
+ * @param input - Today, the pinned config and the charge with its person's name.
  * @returns The sheet, ready to render.
  */
 export function buildPaymentSheet(input: PaymentSheetInput): ChargePaymentResponse {
@@ -52,19 +49,12 @@ export function buildPaymentSheet(input: PaymentSheetInput): ChargePaymentRespon
       : null;
   const amountCents = stored?.cents ?? charge.amountCents;
   const monthName = formatMonthName(charge.month);
-  const words =
-    input.mode === "record"
-      ? {
-          title: "Record payment",
-          subtitle: `Money you received for ${monthName}`,
-          actionLabel: `Record ${formatCents(amountCents)}`,
-        }
-      : {
-          title: stored ? "Edit payment" : "Mark paid",
-          subtitle: `${charge.label} · ${charge.person.name} · ${monthName}`,
-          // The app shows this only while the amount matches the expected one, so it names that amount.
-          actionLabel: stored ? `Save ${formatCents(charge.amountCents)}` : "Mark as paid",
-        };
+  const words = {
+    title: stored ? "Edit payment" : "Mark paid",
+    subtitle: `${charge.label} · ${charge.person.name} · ${monthName}`,
+    // The app shows this only while the amount matches the expected one, so it names that amount.
+    actionLabel: stored ? `Save ${formatCents(charge.amountCents)}` : "Mark as paid",
+  };
   return {
     chargeId: charge.id,
     month: charge.month,

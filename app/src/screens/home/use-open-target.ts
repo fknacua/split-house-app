@@ -8,7 +8,8 @@ import type { HomeTarget } from '@splithouse/shared';
 
 /**
  * How Home opens what a row link, a row button or the footer points at. Most targets open a
- * screen; Mark bill paid, Mark paid, Record payment, Send message and Nudge open Home's sheets
+ * screen; Mark bill paid, Record payment (from the footer, or a row's Mark paid with its charge ticked),
+ * Send message and Nudge open Home's sheets
  * (`HomeSheetsProvider`); Discard runs at once.
  * Targets whose screen does not exist yet do nothing; each case is filled in by the phase that
  * builds its screen.
@@ -19,7 +20,7 @@ import type { HomeTarget } from '@splithouse/shared';
  */
 export function useOpenTarget() {
   const discardDraft = useDiscardBillDraft();
-  const { openPayBill, openMarkPaid, openRecordPayment, openSendMessage } = useHomeSheets();
+  const { openPayBill, openRecordPayment, openSendMessage } = useHomeSheets();
   const discarding = useIsMutating({ mutationKey: queryKeys.billDraftDiscard }) > 0;
 
   const isDisabled = (target: HomeTarget): boolean => target.kind === 'bill-draft-continue' && discarding;
@@ -43,10 +44,10 @@ export function useOpenTarget() {
         if (!discardDraft.isPending) discardDraft.mutate(target.month);
         return;
       case 'mark-paid':
-        openMarkPaid(target.chargeId);
+        openRecordPayment({ chargeId: target.chargeId });
         return;
       case 'record-payment':
-        openRecordPayment(target.month);
+        openRecordPayment();
         return;
       case 'send-message':
         openSendMessage({ mode: 'monthly', personId: target.personId });

@@ -1,4 +1,4 @@
-import { Check } from 'lucide-react-native';
+import { Check, Minus } from 'lucide-react-native';
 import type { ReactNode } from 'react';
 import { type Control, type FieldPath, type FieldValues, useController } from 'react-hook-form';
 
@@ -13,6 +13,7 @@ function CheckboxView({
   disabled,
   className,
   children,
+  indeterminate = false,
 }: {
   label: string;
   value: boolean;
@@ -20,17 +21,24 @@ function CheckboxView({
   disabled?: boolean;
   className?: string;
   children?: ReactNode;
+  indeterminate?: boolean;
 }) {
+  // A part-ticked box (Select all with some ticked) is filled, with a dash in place of the tick.
+  const filled = value || indeterminate;
   return (
     <NativeCheckbox
       value={label}
-      isChecked={value}
+      isChecked={filled}
       isDisabled={disabled}
-      onChange={onChange}
+      onChange={() => onChange(!value)}
       aria-label={label}
       className={className}
     >
-      <CheckboxIndicator>{value ? <Icon as={Check} size={14} strokeWidth={3} className="text-on-primary" /> : null}</CheckboxIndicator>
+      <CheckboxIndicator>
+        {filled ? (
+          <Icon as={value ? Check : Minus} size={14} strokeWidth={3} className="text-on-primary" />
+        ) : null}
+      </CheckboxIndicator>
       {children ?? <CheckboxLabel>{label}</CheckboxLabel>}
     </NativeCheckbox>
   );
@@ -65,11 +73,20 @@ function BoundCheckbox<T extends FieldValues>({
  * @param className - Extra classes, such as `self-end`.
  * @param children - Content beside the box in place of the label text, such as Send message's charge rows (standalone
  *   only). `label` stays the accessibility label.
+ * @param indeterminate - Draws the box part-ticked, filled with a dash, such as Record payment's Select all while only
+ *   some charges are ticked (standalone only). A tap still calls `onChange` with `!value`.
  */
 export function Checkbox<T extends FieldValues = FieldValues>(
   props: { label: string; disabled?: boolean; className?: string } & (
     | { control: Control<T>; name: FieldPath<T>; value?: never; onChange?: never; children?: never }
-    | { value: boolean; onChange: (value: boolean) => void; control?: never; name?: never; children?: ReactNode }
+    | {
+        value: boolean;
+        onChange: (value: boolean) => void;
+        control?: never;
+        name?: never;
+        children?: ReactNode;
+        indeterminate?: boolean;
+      }
   ),
 ) {
   const { label, disabled, className } = props;
@@ -77,7 +94,14 @@ export function Checkbox<T extends FieldValues = FieldValues>(
     return <BoundCheckbox control={props.control} name={props.name} label={label} disabled={disabled} className={className} />;
   }
   return (
-    <CheckboxView label={label} value={props.value} onChange={props.onChange} disabled={disabled} className={className}>
+    <CheckboxView
+      label={label}
+      value={props.value}
+      onChange={props.onChange}
+      disabled={disabled}
+      className={className}
+      indeterminate={props.indeterminate}
+    >
       {props.children}
     </CheckboxView>
   );

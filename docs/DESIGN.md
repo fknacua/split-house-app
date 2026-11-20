@@ -159,19 +159,20 @@ Component and props are what to pass to the source file in `docs/design/source/`
 | Recipient · Primary Tenant, paid a different amount | `Recipient` | `state=paidDifferent` |
 | Recipient · Tenant 2, nudged 2 Nov | `Recipient` | `state=nudged` |
 
-### Payments — mark paid & record payment
+### Payments — record payment (Phase 12C: one sheet for Mark paid and Record payment; `short` and `over` are not built)
 
 | Board | Component | Props |
 |---|---|---|
-| Mark paid · Full amount | `MarkPaid` | `state=full`, `save=idle` |
-| Mark paid · Different amount | `MarkPaid` | `state=different` |
-| Mark paid · Different amount · Saving | `MarkPaid` | `state=different`, `save=saving` |
-| Mark paid · Different amount · Failed save | `MarkPaid` | `state=different`, `save=failed` |
-| Record payment · Tenant 2 picked | `MarkPaid` | `state=record` |
-| Record payment · From dropdown open | `MarkPaid` | `state=recordOpen` |
-| Record payment · For dropdown open | `MarkPaid` | `state=recordForOpen` |
-| Record payment · Saving | `MarkPaid` | `state=record`, `save=saving` |
-| Record payment · Failed save | `MarkPaid` | `state=record`, `save=failed` |
+| Record payment · One charge ticked | `RecordPayment` | `state=row` |
+| Record payment · Nobody picked | `RecordPayment` | `state=empty` |
+| Record payment · Some ticked | `RecordPayment` | `state=some` |
+| Record payment · All ticked | `RecordPayment` | `state=all` |
+| Record payment · No date | `RecordPayment` | `state=errors` |
+| Record payment · From open | `RecordPayment` | `state=fromOpen` |
+| Record payment · Date picker | `RecordPayment` | `state=datePicker` |
+| Record payment · Everyone has paid | `RecordPayment` | `state=settled` |
+| Record this payment? · One charge, several, saving | `Confirm` | `kind=recordPayment`, `recordMulti`, `recordSaving` |
+| Discard this payment? | `Confirm` | `kind=discardPayment` |
 
 ### Add charge — bottom sheet
 
