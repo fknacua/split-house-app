@@ -23,6 +23,8 @@ body{margin:0}
 <header style="display: flex; align-items: center; padding: 4px 16px; height: 56px; flex-shrink: 0">
 <sc-if value="{{isLoaded}}" hint-placeholder-val="{{true}}"><h1 style="margin: 0; font-size: 24px; line-height: 32px; font-weight: 800; letter-spacing: -0.3px">{{monthLabel}}</h1></sc-if>
 <sc-if value="{{isLoading}}" hint-placeholder-val="{{false}}"><div aria-hidden="true" style="width: 190px; height: 28px; border-radius: 8px; background: {{c.skel}}"></div></sc-if>
+<!-- PROPOSED: Add charge entry, Lucide plus, right of the month name -->
+<sc-if value="{{isLoaded}}" hint-placeholder-val="{{true}}"><a href="{{addChargeHref}}" style="margin: 0 0 0 auto; height: 40px; padding: 0 14px 0 10px; box-sizing: border-box; gap: 6px; border: 1px solid {{c.outline}}; border-radius: 20px; color: {{c.onSurface}}; font-size: 14px; font-weight: 700; text-decoration: none; display: flex; align-items: center; justify-content: center"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12h14"></path><path d="M12 5v14"></path></svg>Add charge</a></sc-if>
 </header>
 
 <sc-if value="{{compact}}" hint-placeholder-val="{{false}}">
@@ -322,7 +324,7 @@ Start next month
 </div>
 </div>
 </x-dc>
-<script type="text/x-dc" data-dc-script data-props='{"state":{"editor":"enum","options":["upload","draft","unsent","collecting","dueToday","billDue","settled","loading"],"default":"upload"},"month":{"editor":"enum","options":["nov","dec"],"default":"nov"},"notice":{"editor":"enum","options":["none","saveFailed"],"default":"none"},"theme":{"editor":"enum","options":["light","dark"],"default":"light"},"$preview":{"width":400,"height":848}}'>
+<script type="text/x-dc" data-dc-script data-props='{"state":{"editor":"enum","options":["upload","draft","unsent","collecting","dueToday","billDue","settled","loading","addedAfterSend"],"default":"upload"},"month":{"editor":"enum","options":["nov","dec"],"default":"nov"},"notice":{"editor":"enum","options":["none","saveFailed"],"default":"none"},"theme":{"editor":"enum","options":["light","dark"],"default":"light"},"$preview":{"width":400,"height":848}}'>
 class Component extends DCLogic {
   renderVals() {
     var dark = this.props.theme === 'dark';
@@ -330,7 +332,8 @@ class Component extends DCLogic {
     // draft and loading are variants of the "bill not uploaded" screen
     var isLoading = st0 === 'loading';
     var isDraft = st0 === 'draft';
-    var st = (isLoading || isDraft) ? 'upload' : st0;
+    var added = st0 === 'addedAfterSend';
+    var st = (isLoading || isDraft) ? 'upload' : (added ? 'collecting' : st0);
     var c = dark ? {
       background: '#111214', surface: '#1A1C1E', container: '#222427', sheet: '#222427',
       onSurface: '#E3E3E6', onSurfaceVariant: '#C4C6CB', outline: '#8E9196', outlineVariant: '#2E3134',
@@ -490,6 +493,11 @@ class Component extends DCLogic {
         mk({ day: '28', title: 'Rent · Tenant 1', amount: '$950.00', detail: 'Paid 27 Nov', chip: 'Paid', kind: 'paid' })
       ];
     }
+    if (added) {
+      // Charge added after the messages went out: not sent yet, plus a refund correction on a paid charge
+      rows.push(mk({ day: '24', title: 'Fridge repair · Tenant 2', amount: '$30.00', chip: 'Not sent', kind: 'todo', href: 'ChargeDetails-Unsent-' + T + '.dc.html' }));
+      rows.push(mk({ day: '21', title: 'Correction · Tenant 2', amount: '−$5.00', detail: 'Oct Utils · Added 21 Nov', chip: 'Refunded', kind: 'paid', href: 'ChargeDetails-CorrectionRefund-' + T + '.dc.html' }));
+    }
     // View details opens a details page for the charge's status (the page shows a sample charge of that status)
     rows.forEach(function (r) {
       if (r.linkLabel !== 'View details') return;
@@ -556,8 +564,8 @@ class Component extends DCLogic {
       hasDueToday: st === 'dueToday', dueText: '2 payments are due today', dueAmt: '$100.79',
       recordHref: L.record,
       sendHref: 'SendV2-Sheet-Monthly-' + T + '.dc.html', payBillHref: payBill,
-      isDual: st === 'unsent' || st === 'collecting' || st === 'dueToday', isBillDue: st === 'billDue',
-      sBg: st === 'unsent' ? c.primary : 'transparent', sFg: st === 'unsent' ? c.onPrimary : c.onSurface, sBd: st === 'unsent' ? '0' : '1px solid ' + c.outline, sCount: st === 'unsent', sN: '2', rN: '2',
+      isDual: st === 'unsent' || st === 'collecting' || st === 'dueToday', addChargeHref: 'AddCharge-Empty-' + T + '.dc.html', isBillDue: st === 'billDue',
+      sBg: (st === 'unsent' || added) ? c.primary : 'transparent', sFg: (st === 'unsent' || added) ? c.onPrimary : c.onSurface, sBd: (st === 'unsent' || added) ? '0' : '1px solid ' + c.outline, sCount: st === 'unsent' || added, sN: added ? '1' : '2', rN: '2',
       monthLabel: dec ? 'December 2026' : 'November 2026',
       monAbbr: dec ? 'DEC' : 'NOV',
       frontAmt: dec ? '$0.00' : ({ upload: '$3,675.83', unsent: '$3,675.83', collecting: '$2,725.83', dueToday: '$1,775.83', billDue: '$0.00', settled: '$0.00' }[st]),

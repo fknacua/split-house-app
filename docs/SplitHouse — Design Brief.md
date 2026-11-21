@@ -52,7 +52,7 @@ Four kinds of charges feed each person's next payment:
 | **Recurring** | Rent, utilities | Starhub mobile plan, primary tenant, $27.50/month |
 | **One-off** | Aircon servicing, repairs | Purchases like Waltermart; corrections (+ or −) |
 
-Corrections for a past month are one-off charges, positive or negative, linked to the month they fix.
+Corrections for a past month are one-off charges, positive or negative, linked to the month they fix. *(Phase 13C: a correction is linked to the one paid charge it fixes; a lower one is a refund Francis makes himself, saved as history. See the Data Model.)*
 
 ## Monthly timeline and core flows
 
@@ -69,8 +69,8 @@ Core flows:
 
 1. **Monthly bill:** upload PDF → app reads it → confirm amount → messages are ready. If reading fails: the app asks whether it is the right bill; if yes, the PDF is kept and Francis types the Current Charges amount and continues, and if no, the PDF is discarded and he picks another file.
 2. **Send:** per recipient, preview the message, tap Send → WhatsApp opens in that chat with text ready. Optional Share bill opens Android's share sheet with the stored bill file.
-3. **Collect:** mark a charge paid (amount editable). When a charge is due or overdue, Nudge opens WhatsApp with a reminder; the app records when it was nudged.
-4. **Add a one-off charge:** shared or personal, amount (can be negative), split method, optional link to a past month as a correction. It lands on each person's next payment.
+3. **Collect:** mark a charge paid (amount editable). When a charge is due or overdue, Nudge opens WhatsApp with a reminder; the app records when it was nudged. *(v1: each charge is paid in full, with no amount field; short and over payments are skipped. Edit payment changes the date or removes the payment.)*
+4. **Add a one-off charge:** shared or personal, amount (can be negative), split method, optional link to a past month as a correction. It lands on each person's next payment. *(Redrawn for Phase 13: aircon servicing or Other, an amount above zero, its own due date, in the newest opened month; corrections are a separate mode that takes the correct amount of one paid charge.)*
 5. **Change the household:** add or remove a subtenant, change rent, shares, due dates or routes from a chosen month, with a preview of the new amounts before saving.
 
 ## Screens
@@ -82,7 +82,7 @@ Seven core screens cover v1; Home carries most of the daily use. Screens added d
 | Home (this month) | Charges ordered by due date with status; one primary action that changes with the month (Upload bill, then Record payment); rows expand to show Mark paid, Nudge, Mark bill paid and View bill; there is no bottom button while messages are unsent, since each message is reviewed from its row; amount Francis is fronting; utilities bill coverage (collected vs. bill) | Bill not uploaded; messages unsent; due today; overdue; all settled |
 | Bill upload | Pick PDF; the file is read on the backend into a draft, then a review screen shows the file name, bill month, billing period, due date, Current Charges and electricity/gas/water lines, all editable, with a Choose another file link; nothing is stored until Save | Reading; read OK; read failed → right bill? → amount fields (file kept) or pick another file; billing period doesn't match the month; month already has a bill → Replace |
 | Recipient | Retired at 12C.3: the Send message sheet and Charge details replace it. Was: one person's message preview in sections (their lines, and for the primary tenant a separate Tenant 1 section) with subtotals; Send, Share bill, Nudge, Mark paid | Not sent; sent; nudged on date; paid; paid a different amount |
-| Add charge | Bottom sheet: shared or personal, amount (+/−), split method (per share, per unit, custom), who, note, link to past month | Split preview; totals check |
+| Add charge | Bottom sheet: shared or personal, amount (+/−), split method (per share, per unit, custom), who, note, link to past month. *(Redrawn for Phase 13: see DESIGN.md's Add charge table.)* | Split preview; totals check |
 | Household | Rooms and units, who occupies each, rent, utility shares and split percentages (including the remainder split between Francis and the primary tenant, e.g. 50/50 or 60/40, set separately for rent, utilities and aircon), due dates, payment route, WhatsApp number, deposit; add or remove subtenant | Editing with "starts from" month; preview of new amounts; validation errors (e.g. percentages not adding to 100%) |
 | History | Past months with paid status; tap into a read-only month and its bill | Month corrected later; unpaid carried |
 | Settings | Notification toggles; message templates with placeholders, per-person overrides, custom line labels and live preview; no payment details or PayNow stored in v1 | n/a |
@@ -93,7 +93,7 @@ Added during design:
 | --- | --- | --- |
 | View bill | Read-only: Current Charges with electricity, gas and water, how much is collected and each person's status, bill facts, and the PDF. Opened from Home's bill row; the only action is Mark bill paid while collecting | Collecting; paid |
 | Mark bill paid (sheet) | Amount paid (prefilled), Paid on date, and a note on how much Francis is covering until others pay. Opens from Home and View bill | Collected less than the bill (warning alert); fully collected (success alert, green) |
-| Mark paid and Record payment (sheets) | Mark paid: expected vs. received, editable amount, date, and, when the payment is short, the difference shown as information (no carry; the shortfall is history only). Record payment: From and For dropdowns for money received outside a row | Full; different amount; record; dropdowns open |
+| Mark paid and Record payment (sheets) | Mark paid: expected vs. received, editable amount, date, and, when the payment is short, the difference shown as information (no carry; the shortfall is history only). Record payment: From and For dropdowns for money received outside a row. *(Since Phase 12C one Record payment sheet pays ticked charges in full; short and over payments are skipped for v1.)* | Full; different amount; record; dropdowns open |
 | Share bill (sheet) | Choose the bill PDF or a text summary (optionally with each person's share), then Android's share sheet. Opened from the Send message sheet only (from the Recipient screen until 12C.3) | PDF; summary; system share sheet |
 | Notifications | Heads-up and shade matching the notification table below; Paid on a notification opens Record payment | Heads-up; shade |
 | First-run setup | Checklist: Rent and rooms, People, Your split, Messages (optional) | Empty; in progress |
@@ -163,7 +163,7 @@ Out of scope for v1:
 - Read-only views for the primary tenant, Tenant 1 or Tenant 2
 - Fully automatic WhatsApp sending or attachments inside messages
 - AI bill reading
-- Partial-payment carry-over (Francis edits the paid amount instead)
+- Partial-payment carry-over (Francis edits the paid amount instead) *(v1 skips short and over payments altogether: Francis waits for the full amount)*
 - Mid-month move-ins and proration
 
 ## Sample data for mockups (Nov 2026)
