@@ -35,7 +35,7 @@ body{margin:0}
 <sc-if value="{{iconUndo}}" hint-placeholder-val="{{false}}"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 7v6h6"></path><path d="M21 17a9 9 0 0 0-9-9 9 9 0 0 0-6 2.3L3 13"></path></svg></sc-if>
 </span>
 <h1 id="dlgTitle" style="margin: 0; text-align: center; font-size: 20px; line-height: 28px; font-weight: 800; letter-spacing: -0.3px">{{title}}</h1>
-<p id="dlgBody" style="margin: 0; font-size: 14px; line-height: 20px; color: {{c.onSurfaceVariant}}">{{body}}</p>
+<sc-if value="{{hasBody}}" hint-placeholder-val="{{true}}"><p id="dlgBody" style="margin: 0; font-size: 14px; line-height: 20px; color: {{c.onSurfaceVariant}}">{{body}}</p></sc-if>
 <sc-if value="{{hasDetails}}" hint-placeholder-val="{{false}}">
 <div style="background: {{c.background}}; border-radius: 12px; padding: 4px 14px; max-height: 300px; overflow-y: auto; overscroll-behavior: contain; scrollbar-width: none; display: flex; flex-direction: column">
 <sc-for list="{{details}}" as="d" hint-placeholder-count="4">
@@ -83,7 +83,7 @@ body{margin:0}
 </div>
 </div>
 </x-dc>
-<script type="text/x-dc" data-dc-script data-props='{"kind":{"editor":"enum","options":["removePerson","removePersonNoPrimary","removePersonIncluded","removeVersion","removeNudge","skipMessages","restoreBreakdown","restoreNudge","discard","discardRooms","discardAddPerson","discardSplit","removePrimary","removePersonRefused","removePersonFirstRun","removeRecurring","discardPayment","recordPayment","recordSaving","recordMulti","sentCheck"],"default":"removePerson"},"expanded":{"editor":"enum","options":["collapsed","expanded"],"default":"collapsed"},"theme":{"editor":"enum","options":["light","dark"],"default":"light"},"$preview":{"width":400,"height":848}}'>
+<script type="text/x-dc" data-dc-script data-props='{"kind":{"editor":"enum","options":["removePerson","removePersonNoPrimary","removePersonIncluded","removeVersion","removeNudge","skipMessages","restoreBreakdown","restoreNudge","discard","discardRooms","discardAddPerson","discardSplit","removePrimary","removePersonRefused","removePersonFirstRun","removeRecurring","discardPayment","recordPayment","recordSaving","recordMulti","sentCheck","addCharge","addCorrection","discardCharge","removePayment","deleteCorrection","deleteCorrectionPaid"],"default":"removePerson"},"expanded":{"editor":"enum","options":["collapsed","expanded"],"default":"collapsed"},"theme":{"editor":"enum","options":["light","dark"],"default":"light"},"$preview":{"width":400,"height":848}}'>
 class Component extends DCLogic {
   renderVals() {
     var dark = this.props.theme === 'dark';
@@ -186,6 +186,39 @@ class Component extends DCLogic {
         v.confirmLabel = 'Record $1,050.79';
       }
       if (k === 'recordSaving') { v.isSaving = true; v.busy = 'true'; v.confirmEvents = 'none'; v.confirmBg = c.disabledBg; v.confirmFg = c.disabledFg; v.cancelBorder = c.outlineVariant; v.cancelFg = c.disabledFg; }
+    } else if (k === 'addCharge' || k === 'addCorrection') {
+      var corr = k === 'addCorrection';
+      v.bgTitle = 'Add charge'; v.iconCheck = true; v.isDestructive = false; v.isPrimaryConfirm = true;
+      v.iconBg = dark ? c.track : c.container; v.iconFg = c.onSurface;
+      v.title = corr ? 'Add this correction?' : 'Add this charge?';
+      v.body = corr ? 'It will be linked to the original charge.' : '';
+      v.hasDetails = true;
+      var self2 = this, open2 = this.state && this.state.open !== undefined ? this.state.open : this.props.expanded === 'expanded';
+      var Q = function (l, val, i) { return { label: l, value: val, isPlain: true, divider: i === 0 ? 'transparent' : c.outlineVariant }; };
+      if (corr) {
+        v.details = [Q('For', 'Utilities · Tenant 2 · Oct 2026', 0), Q('Correct amount', '$77.46', 1), Q('Outcome', 'Refund $5.00 to Tenant 2 yourself. Saved as history.', 2)];
+        v.confirmLabel = 'Add correction';
+      } else {
+        var ppl = [['You', '$36.67'], ['Primary Tenant', '$36.67'], ['Tenant 1', '$18.33'], ['Tenant 2', '$18.33']].map(function (r) { return { label: r[0], value: r[1], isSub: true, isPlain: false }; });
+        v.details = [Q('What it’s for', 'Aircon servicing', 0), Q('Amount', '$110.00', 1), { label: 'Split per person', value: 'Per unit · 4 people', isToggle: true, isPlain: false, divider: c.outlineVariant, rot: open2 ? 180 : 0, expandedAttr: open2 ? 'true' : 'false', toggle: function () { self2.setState({ open: !open2 }); } }].concat(open2 ? ppl : [], [Q('Due date', '5 Dec 2026', 9)]);
+        v.confirmLabel = 'Add $110.00';
+      }
+      v.cancelLabel = 'Go back';
+    } else if (k === 'discardCharge') {
+      v.bgTitle = 'Add charge'; v.iconUndo = true;
+      v.title = 'Discard this charge?';
+      v.body = 'This charge hasn’t been added yet. If you leave now, what you entered will be lost.';
+      v.confirmLabel = 'Discard'; v.cancelLabel = 'Keep editing';
+    } else if (k === 'removePayment') {
+      v.bgTitle = 'Edit payment'; v.iconTrash = true;
+      v.title = 'Remove this payment?';
+      v.body = 'Rent · Tenant 2 will show as unpaid again.';
+      v.confirmLabel = 'Remove'; v.cancelLabel = 'Keep';
+    } else if (k === 'deleteCorrection' || k === 'deleteCorrectionPaid') {
+      v.bgTitle = 'Charge details'; v.iconTrash = true;
+      v.title = 'Delete this correction?';
+      v.body = 'It’s removed from Utilities · Tenant 2 and from History.' + (k === 'deleteCorrectionPaid' ? ' Its payment is removed too.' : '');
+      v.confirmLabel = 'Delete'; v.cancelLabel = 'Keep';
     } else if (k === 'discardAddPerson') {
       v.bgTitle = 'Add person'; v.iconUndo = true;
       v.title = 'Discard changes?';
@@ -241,6 +274,12 @@ class Component extends DCLogic {
     else if (k === 'removeRecurring') { v.cancelHref = 'Household-RecurringEdit-' + T + '.dc.html'; v.confirmHref = 'Household-ViewRecurring-' + T + '.dc.html'; }
     else if (k === 'discardPayment') { v.cancelHref = dark ? 'RecordPayment-Some-Dark.dc.html' : 'RecordPayment-Some-Light.dc.html'; v.confirmHref = 'Home-Overdue-' + T + '.dc.html'; }
     else if (k === 'recordPayment') { v.cancelHref = dark ? 'RecordPayment-Row-Dark.dc.html' : 'RecordPayment.dc.html'; v.confirmHref = 'Confirm-RecordSaving-' + T + '.dc.html'; }
+    else if (k === 'addCharge') { v.cancelHref = 'AddCharge-Aircon-' + T + '.dc.html'; v.confirmHref = 'Home-AddedAfterSend-' + T + '.dc.html'; }
+    else if (k === 'addCorrection') { v.cancelHref = 'AddCharge-CorrectionRefund-' + T + '.dc.html'; v.confirmHref = 'ChargeDetails-Corrected-' + T + '.dc.html'; }
+    else if (k === 'discardCharge') { v.cancelHref = 'AddCharge-Aircon-' + T + '.dc.html'; v.confirmHref = dark ? 'Home-Overdue-Dark.dc.html' : 'Main.dc.html'; }
+    else if (k === 'removePayment') { v.cancelHref = 'EditPayment-Idle-' + T + '.dc.html'; v.confirmHref = 'ChargeDetails-Overdue-' + T + '.dc.html'; }
+    else if (k === 'deleteCorrection') { v.cancelHref = 'ChargeDetails-CorrectionUnpaid-' + T + '.dc.html'; v.confirmHref = 'ChargeDetails-PaidCorrectable-' + T + '.dc.html'; }
+    else if (k === 'deleteCorrectionPaid') { v.cancelHref = 'ChargeDetails-CorrectionPaid-' + T + '.dc.html'; v.confirmHref = 'ChargeDetails-PaidCorrectable-' + T + '.dc.html'; }
     else if (k === 'recordSaving' || k === 'sentCheck') { v.cancelHref = '#'; v.confirmHref = '#'; }
     else if (k === 'recordMulti') { v.cancelHref = 'RecordPayment-All-' + T + '.dc.html'; v.confirmHref = 'Home-Overdue-' + T + '.dc.html'; }
     else if (k === 'discardAddPerson') { v.cancelHref = 'Household-AddPerson-' + T + '.dc.html'; v.confirmHref = viewH; }
@@ -248,6 +287,7 @@ class Component extends DCLogic {
     else if (k === 'discardRooms') { v.cancelHref = 'LandlordRooms-Changed-' + T + '.dc.html'; v.confirmHref = viewH; }
     else if (k === 'removePersonIncluded') { v.cancelHref = 'Household-EditTenant1-' + T + '.dc.html'; v.confirmHref = viewH; }
     else { v.cancelHref = 'Household-EditPerson-' + T + '.dc.html'; v.confirmHref = viewH; }
+    v.hasBody = !!v.body;
     return v;
   }
 }

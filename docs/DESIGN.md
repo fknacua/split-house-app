@@ -14,7 +14,7 @@ This is the design reference for the coding agent working in this repo. It point
 
 | Path | What it is |
 |---|---|
-| `docs/design/source/*.dc.html` | One file per screen component (19). Read them as markup (they need the design tool to render): the HTML gives exact spacing, sizes, copy and the token set `c` in the script block. They are a visual reference, not code to port line by line. |
+| `docs/design/source/*.dc.html` | One file per screen component (30). Read them as markup (they need the design tool to render): the HTML gives exact spacing, sizes, copy and the token set `c` in the script block. They are a visual reference, not code to port line by line. |
 | `docs/design/config.ts`, `docs/design/global.css` | NativeWind and gluestack v5 theme variables, light and dark. Copy into the app's gluestack provider config and global CSS. |
 | `docs/Rent & Utils — gluestack v5 theme and screen mapping.md` | Token names, which gluestack component each part of each screen uses, and what is custom. |
 | Design canvas (private, owner only) | https://claude.ai/artifact/Lknba8Qamp5n3N7BLMNuQe. The agent cannot open it. Ask the owner for a screenshot of a board when the source file is not enough. |
@@ -47,12 +47,12 @@ The canvas boards are the same component with different props. The tables below 
   - 150 ms transition on corner radius, background and text colour. Nothing else moves.
   - Disabled while saving: selected `track`, unselected `disabled`, all text `on-disabled`. Taps ignored. (The handoff calls these `disabled-bg` and `disabled-fg`; in the theme they are `disabled` and `on-disabled`.)
   - Accessibility: group role with a label, each button exposes its selected state.
-- Single-select chips (choose one of three or more options that wrap). Used for Add charge Split method (Per share, Per unit, Custom) and Who.
+- Single-select chips (choose one of three or more options that wrap). Used for Add charge Split method (Per share, Per unit, Custom) and Who. *(Phase 13B: the redrawn Add charge uses chips for Split only, `Equal`, `Per share`, `Custom`; Who is a Select, and aircon's per-unit split has no chips.)*
   - Height 44, horizontal padding 16, radius 22, text 14/20 weight 700, no wrap, 8px gap. No check mark or icon.
   - Border is always 1px, so it never changes layout width.
   - Unselected: transparent background, `outline` border, `on-surface` text. Selected: `primary` background, border the same colour, `on-primary` text.
   - Disabled while saving: selected background and border `track`, unselected border `outline-variant`, all text `on-disabled`. Taps ignored. 150 ms colour transition only.
-  - Not these controls: the "Insert" placeholder chips in the message template editor (they add text), and the radio cards in Mark paid > shortfall and Share bill.
+  - Not these controls: the "Insert" placeholder chips in the message template editor (they add text), and the radio cards in Mark paid > shortfall and Share bill. *(Short and over payments are skipped for v1, so the shortfall radio cards are not built.)*
   - The selected fill matches the primary action button (e.g. Add charge below the sheet). Approved by the owner. Fallback if it reads as confusing: the grey `selected` token as the fill.
 - Person colors (Household page only for now): every person has one of nine fixed colors, stored by name, with no custom picker. Blue, Orange, Green, Purple, Pink, Teal, Gold, Brown, Slate, as `person-*` tokens; text on a color uses `on-person`. Teal is reserved for You, so tenants choose from the other eight. No red, because red means error and overdue. Sample assignment: You Teal, Primary Tenant Blue, Tenant 1 Orange, Tenant 2 Green.
 - Household overview order: header, rent card, Household split, People, Add subtenant. Household split has three rows (Rent, Utilities, Aircon), each with a total on the right, one 8px bar with 2px gaps and a segment per person sized by amount, and a two-by-two legend (dot, name, amount). Tenant cards have View and Edit; the You card has no buttons.
@@ -115,6 +115,43 @@ Component and props are what to pass to the source file in `docs/design/source/`
 | Home · All settled (with Start next month) | `Main` | `state=settled` |
 | Home · December, bill not uploaded | `Main` | `state=upload`, `month=dec` |
 | Home · Unfinished bill draft | `Main` | `state=draft` |
+| Home · Bill due (Mark bill paid) | `Main` | `state=billDue` |
+| Home · Charge added after the messages went out | `Main` | `state=addedAfterSend` |
+
+Every loaded state has the `+ Add charge` outline button in the header (Phase 13B).
+
+### Charge details — one charge (Phase 12A, 13A, 13C)
+
+| Board | Component | Props |
+|---|---|---|
+| Charge details · Overdue | `ChargeDetails` | `state=overdue` |
+| Charge details · Overdue, no message yet | `ChargeDetails` | `state=overdueNew` |
+| Charge details · Not sent | `ChargeDetails` | `state=unsent` |
+| Charge details · Due today | `ChargeDetails` | `state=dueToday` |
+| Charge details · Due soon | `ChargeDetails` | `state=dueSoon` |
+| Charge details · Sent, unpaid | `ChargeDetails` | `state=sentUnpaid` |
+| Charge details · Upcoming | `ChargeDetails` | `state=upcoming` |
+| Charge details · Paid via someone | `ChargeDetails` | `state=routed` |
+| Charge details · Paid (Edit payment) | `ChargeDetails` | `state=paid` |
+| Charge details · Paid, correctable (Edit payment, Add correction) | `ChargeDetails` | `state=paidCorrectable` |
+| Charge details · Corrected | `ChargeDetails` | `state=corrected` |
+| Charge details · Correction, refund | `ChargeDetails` | `state=correctionRefund` |
+| Charge details · Correction, unpaid | `ChargeDetails` | `state=correctionUnpaid` |
+| Charge details · Correction, paid | `ChargeDetails` | `state=correctionPaid` |
+| Charge details · Before the bill | `ChargeDetails` | `state=beforeBill` *(Not built, V7.)* |
+
+### Edit payment — bottom sheet (Phase 13A)
+
+| Board | Component | Props |
+|---|---|---|
+| Edit payment · Unchanged | `EditPayment` | `state=idle` |
+| Edit payment · New date | `EditPayment` | `state=changed` |
+| Edit payment · Date picker | `EditPayment` | `state=datePicker` |
+| Edit payment · No date | `EditPayment` | `state=dateError` |
+| Edit payment · Saving | `EditPayment` | `state=saving` |
+| Edit payment · Failed save | `EditPayment` | `state=failed` |
+| Remove this payment? | `Confirm` | `kind=removePayment` |
+| Discard unsaved changes (Cancel after a change) | `Confirm` | `kind=discard` |
 
 ### Bill upload — PDF → reading → review → save, Nov 2026
 
@@ -168,15 +205,33 @@ Recipient was retired at 12C.3: the Send message sheet and Charge details replac
 | Record this payment? · One charge, several, saving | `Confirm` | `kind=recordPayment`, `recordMulti`, `recordSaving` |
 | Discard this payment? | `Confirm` | `kind=discardPayment` |
 
-### Add charge — bottom sheet
+### Add charge — bottom sheet (redrawn for Phase 13B and 13C)
+
+One sheet with two modes, `Charge | Correction`. The old `mode` and `save` props are gone; every board is a `state`.
 
 | Board | Component | Props |
 |---|---|---|
-| Add charge · Shared, per unit | `AddCharge` | `mode=shared`, `save=idle` |
-| Add charge · Personal correction | `AddCharge` | `mode=correction` |
-| Add charge · Custom split doesn't add up | `AddCharge` | `mode=error` |
-| Add charge · Saving | `AddCharge` | `mode=shared`, `save=saving` |
-| Add charge · Failed save | `AddCharge` | `mode=shared`, `save=failed` |
+| Add charge · Empty | `AddCharge` | `state=empty` |
+| Add charge · Other | `AddCharge` | `state=other` |
+| Add charge · Aircon servicing, by units | `AddCharge` | `state=aircon` |
+| Add charge · Shared, Equal | `AddCharge` | `state=shared` |
+| Add charge · Shared, Per share | `AddCharge` | `state=perShare` |
+| Add charge · Custom, left to split | `AddCharge` | `state=custom` |
+| Add charge · Custom, over the total | `AddCharge` | `state=customOver` |
+| Add charge · Personal | `AddCharge` | `state=personal` |
+| Add charge · What's it for open | `AddCharge` | `state=whatOpen` |
+| Add charge · Field errors | `AddCharge` | `state=errors` |
+| Add charge · Saving | `AddCharge` | `state=saving` |
+| Add charge · Failed save | `AddCharge` | `state=failed` |
+| Add charge · Correction, empty | `AddCharge` | `state=correctionEmpty` |
+| Add charge · Correction, refund | `AddCharge` | `state=correctionRefund` |
+| Add charge · Correction, refund via someone | `AddCharge` | `state=correctionRefundRouted` |
+| Add charge · Correction, extra charge | `AddCharge` | `state=correctionCharge` |
+| Add charge · Correction, after one correction | `AddCharge` | `state=correctionAfterOne` |
+| Add correction · From Charge details | `AddCharge` | `state=correctionFromCharge` |
+| Add this charge? (split collapsed, expanded) | `Confirm` | `kind=addCharge`, `expanded=collapsed` or `expanded` |
+| Add this correction? | `Confirm` | `kind=addCorrection` |
+| Discard this charge? | `Confirm` | `kind=discardCharge` |
 
 ### History — past months (viewed Feb 2027)
 
@@ -184,7 +239,8 @@ Recipient was retired at 12C.3: the Send message sheet and Charge details replac
 |---|---|---|
 | History · Loading | `History` | `state=loading` |
 | History · Months | `History` | `state=list` |
-| History · Nov 2026, corrected later | `History` | `state=monthCorrected` |
+| History · Nov 2026, corrected later (the banner reads `refund` for a lower correction) | `History` | `state=monthCorrected` |
+| History · Dec 2026 | `History` | `state=monthDec` |
 | History · Dec 2026, unpaid carried | `History` | `state=monthCarried` *(Not built in v1, deferred.)* |
 
 ### Household — rooms, people & splits
@@ -242,6 +298,9 @@ Recipient was retired at 12C.3: the Send message sheet and Charge details replac
 | Confirm · Remove custom nudge | `Confirm` | `kind=removeNudge` |
 | Confirm · Restore original template | `Confirm` | `kind=restoreBreakdown`, `kind=restoreNudge` |
 | Confirm · Discard unsaved changes | `Confirm` | `kind=discard` |
+| Confirm · Remove this payment? (Edit payment) | `Confirm` | `kind=removePayment` |
+| Confirm · Delete this correction? (unpaid, paid) | `Confirm` | `kind=deleteCorrection`, `kind=deleteCorrectionPaid` |
+| Confirm · Add this charge? / Add this correction? / Discard this charge? | `Confirm` | see Add charge |
 | Month picker | `MonthPicker` | `title`, `minYear`, `minMonth`, `maxYear`, `maxMonth` |
 | Close November (start next month) | `CloseMonth` | `state=idle` |
 | Close November · Closing | `CloseMonth` | `state=saving` |
@@ -263,7 +322,7 @@ Recipient was retired at 12C.3: the Send message sheet and Charge details replac
 
 ## Not covered by the design
 
-- Start next month (Home · All settled, Close dialog): the failure state when closing fails (no board; decided in the plan's step 5.7), and starting early while the current month still has unpaid charges (no entry point, no warning). Undo is not offered in v1. The data side (the early open, "current month" meaning the newest opened month, household edits starting after it) is in the Data Model doc. How a correction made against a closed month shows in the next month (Home, the WhatsApp message) is not designed.
+- Start next month (Home · All settled, Close dialog): the failure state when closing fails (no board; decided in the plan's step 5.7), and starting early while the current month still has unpaid charges (no entry point, no warning). Undo is not offered in v1. The data side (the early open, "current month" meaning the newest opened month, household edits starting after it) is in the Data Model doc. How a correction made against a closed month shows in the next month (Home, the WhatsApp message) is not designed. *(Phase 13C settles it: a lower correction is a refund saved as history, a higher one is a new charge in the newest opened month with the message line `*{line label} correction ({Mon}):* $X`; see the plan.)*
 - Anything not listed above, including a "shared in" bill intake path. That design was removed from v1.
 - Real data, copy for languages other than English, and tablet or landscape layouts.
 - The designs were never rendered on a device. Expect to nudge spacing, especially on the taller label-above forms and the Settings "notifications blocked" state.

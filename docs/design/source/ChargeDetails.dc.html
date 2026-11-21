@@ -67,14 +67,15 @@ body{margin:0}
 
 <sc-if value="{{hasFooter}}" hint-placeholder-val="{{true}}">
 <footer style="position: relative; z-index: 3; flex-shrink: 0; padding: 10px 16px 28px; display: flex; flex-direction: column; gap: 8px; background: {{c.background}}; border-top: 1px solid {{c.outlineVariant}}; box-shadow: {{c.footShadow}}">
-<sc-if value="{{hasNudge}}" hint-placeholder-val="{{false}}"><a href="{{nudgeHref}}" style="height: 48px; box-sizing: border-box; border-radius: 24px; font-size: 15px; line-height: 20px; font-weight: 700; display: flex; align-items: center; justify-content: center; gap: 8px; text-decoration: none; background: {{c.warningContainer}}; color: {{c.onWarningContainer}}; border: 1px solid {{c.warning}}"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M10.268 21a2 2 0 0 0 3.464 0"></path><path d="M3.262 15.326A1 1 0 0 0 4 17h16a1 1 0 0 0 .74-1.673C19.41 13.956 18 12.499 18 8A6 6 0 0 0 6 8c0 4.499-1.411 5.956-2.738 7.326"></path></svg> {{nudgeLabel}}</a></sc-if>
-<a href="{{paidHref}}" style="height: 48px; box-sizing: border-box; border-radius: 24px; font-size: 15px; line-height: 20px; font-weight: 700; display: flex; align-items: center; justify-content: center; gap: 8px; text-decoration: none; border: 1px solid {{c.outline}}; color: {{c.onSurface}}"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 6 9 17l-5-5"></path></svg> Mark paid</a>
+<sc-for list="{{actions}}" as="a" hint-placeholder-count="2">
+<a href="{{a.href}}" style="height: 48px; box-sizing: border-box; border-radius: 24px; font-size: 15px; line-height: 20px; font-weight: 700; display: flex; align-items: center; justify-content: center; gap: 8px; text-decoration: none; background: {{a.bg}}; color: {{a.fg}}; border: 1px solid {{a.border}};"><sc-if value="{{a.isNudge}}" hint-placeholder-val="{{false}}"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M10.268 21a2 2 0 0 0 3.464 0"></path><path d="M3.262 15.326A1 1 0 0 0 4 17h16a1 1 0 0 0 .74-1.673C19.41 13.956 18 12.499 18 8A6 6 0 0 0 6 8c0 4.499-1.411 5.956-2.738 7.326"></path></svg></sc-if><sc-if value="{{a.isCheck}}" hint-placeholder-val="{{false}}"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 6 9 17l-5-5"></path></svg></sc-if><sc-if value="{{a.isEdit}}" hint-placeholder-val="{{false}}"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21.174 6.812a1 1 0 0 0-3.986-3.987L3.842 16.174a2 2 0 0 0-.5.83l-1.321 4.352a.5.5 0 0 0 .623.622l4.353-1.32a2 2 0 0 0 .83-.497z"></path><path d="m15 5 4 4"></path></svg></sc-if><sc-if value="{{a.isPlus}}" hint-placeholder-val="{{false}}"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12h14"></path><path d="M12 5v14"></path></svg></sc-if><sc-if value="{{a.isTrash}}" hint-placeholder-val="{{false}}"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 6h18"></path><path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"></path><path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"></path><line x1="10" x2="10" y1="11" y2="17"></line><line x1="14" x2="14" y1="11" y2="17"></line></svg></sc-if> {{a.label}}</a>
+</sc-for>
 </footer>
 </sc-if>
 </div>
 </div>
 </x-dc>
-<script type="text/x-dc" data-dc-script data-props='{"state":{"editor":"enum","options":["overdue","overdueNew","sentUnpaid","dueSoon","upcoming","unsent","dueToday","partlyPaid","paid","routed","beforeBill"],"default":"overdue"},"theme":{"editor":"enum","options":["light","dark"],"default":"dark"},"$preview":{"width":400,"height":848}}'>
+<script type="text/x-dc" data-dc-script data-props='{"state":{"editor":"enum","options":["overdue","overdueNew","sentUnpaid","dueSoon","upcoming","unsent","dueToday","paid","paidCorrectable","corrected","correctionRefund","correctionUnpaid","correctionPaid","routed","beforeBill"],"default":"overdue"},"theme":{"editor":"enum","options":["light","dark"],"default":"dark"},"$preview":{"width":400,"height":848}}'>
 class Component extends DCLogic {
   renderVals() {
     var dark = this.props.theme !== 'light';
@@ -118,34 +119,53 @@ class Component extends DCLogic {
         act: [] },
       dueToday: { title: 'Utilities · Tenant 2', amount: '$82.46', chip: ['Due today', 'info'], payer: 'Tenant 2', route: 'Direct', due: '04 Nov 2026', pay: 'Unpaid',
         act: [['Monthly message sent', '02 Nov 2026']], cardNote: 'You’ll get a payment check tonight if it’s still unpaid.' },
-      partlyPaid: { title: 'Rent · Tenant 2', amount: '$950.00', chip: ['Overdue 2 days', 'overdue'], payer: 'Tenant 2', route: 'Direct', due: '01 Nov 2026', pay: 'Partially paid',
-        act: [['Payment $500.00', '03 Nov 2026'], ['Nudged', '02 Nov 2026'], ['Monthly message sent', '02 Nov 2026']], nudge: 'Nudge again' },
       paid: { title: 'Rent · Tenant 2', amount: '$950.00', chip: ['Paid', 'paid'], payer: 'Tenant 2', route: 'Direct', due: '01 Nov 2026', pay: 'Paid',
-        act: [['Payment $950.00', '03 Nov 2026'], ['Nudged', '02 Nov 2026'], ['Monthly message sent', '02 Nov 2026']], noFooter: true },
+        act: [['Payment $950.00', '03 Nov 2026'], ['Nudged', '02 Nov 2026'], ['Monthly message sent', '02 Nov 2026']], actions: ['edit'] },
+      paidCorrectable: { title: 'Utilities · Tenant 2', sub: 'October 2026', amount: '$82.46', chip: ['Paid', 'paid'], payer: 'Tenant 2', route: 'Direct', due: '04 Oct 2026', pay: 'Paid',
+        act: [['Payment $82.46', '06 Oct 2026'], ['Monthly message sent', '02 Oct 2026']], actions: ['edit', 'correct'] },
+      corrected: { title: 'Utilities · Tenant 2', sub: 'October 2026', amount: '$82.46', chip: ['Paid', 'paid'], payer: 'Tenant 2', route: 'Direct', due: '04 Oct 2026', pay: 'Paid', cardNote: 'Corrected to $77.46 · 1 correction',
+        act: [['Correction −$5.00', '21 Nov 2026'], ['Payment $82.46', '06 Oct 2026'], ['Monthly message sent', '02 Oct 2026']], actions: ['edit', 'correct'] },
+      correctionRefund: { title: 'Correction · Tenant 2', sub: 'November 2026', amount: '−$5.00', chip: ['Refunded', 'paid'], payer: 'Tenant 2', route: 'Direct', fixes: 'Utilities · Oct 2026', pay: 'Refunded 21 Nov',
+        act: [['Refund −$5.00', '21 Nov 2026']], actions: ['deleteCorr'] },
+      correctionUnpaid: { title: 'Correction · Tenant 2', sub: 'November 2026', amount: '$5.00', chip: ['Not sent', 'solid'], payer: 'Tenant 2', route: 'Direct', fixes: 'Utilities · Oct 2026', due: '24 Nov 2026', pay: 'Unpaid',
+        act: [], actions: ['paid', 'deleteCorr'] },
+      correctionPaid: { title: 'Correction · Tenant 2', sub: 'November 2026', amount: '$5.00', chip: ['Paid', 'paid'], payer: 'Tenant 2', route: 'Direct', fixes: 'Utilities · Oct 2026', due: '24 Nov 2026', pay: 'Paid',
+        act: [['Payment $5.00', '21 Nov 2026']], actions: ['edit', 'deleteCorr'] },
       routed: { title: 'Utilities · Tenant 1', amount: '$82.46', chip: ['Sent · unpaid', 'neutral'], payer: 'Tenant 1', route: 'Via Primary Tenant', due: '07 Nov 2026', pay: 'Unpaid',
         act: [['Monthly message sent', '02 Nov 2026']] },
       beforeBill: { title: 'Utilities · Tenant 2', amount: '—', chip: ['Due in 2 days', 'neutral'], payer: 'Tenant 2', route: 'Direct', due: '04 Nov 2026', pay: 'Unpaid',
         act: [], cardNote: 'Worked out once the utilities bill is uploaded.', noFooter: true }
     }[st];
     var ck = K[D.chip[1]];
-    var pk = { 'Unpaid': K.neutral, 'Partially paid': K.warn, 'Paid': K.paid }[D.pay];
+    var pk = { 'Unpaid': K.neutral, 'Partially paid': K.warn, 'Paid': K.paid }[D.pay] || K.paid;
     var line = function (i) { return i === 0 ? 'transparent' : c.outlineVariant; };
-    var facts = [
-      { label: 'Payer', value: D.payer },
-      { label: 'Payment routing', value: D.route },
-      { label: 'Due', value: D.due },
-      { label: 'Payment status', value: D.pay, pill: true }
-    ].map(function (f, i) { return { label: f.label, value: f.value, divider: line(i), pad: f.pill ? '2px 10px' : '0', bg: f.pill ? pk[0] : 'transparent', fg: f.pill ? pk[1] : c.onSurface, size: f.pill ? '12px' : '14px', lh: f.pill ? '16px' : '20px' }; });
+    var rows = [{ label: 'Payer', value: D.payer }, { label: 'Payment routing', value: D.route }];
+    if (D.fixes) rows.push({ label: 'Fixes', value: D.fixes });
+    if (D.due) rows.push({ label: 'Due', value: D.due });
+    rows.push({ label: 'Payment status', value: D.pay, pill: true });
+    var facts = rows.map(function (f, i) { return { label: f.label, value: f.value, divider: line(i), pad: f.pill ? '2px 10px' : '0', bg: f.pill ? pk[0] : 'transparent', fg: f.pill ? pk[1] : c.onSurface, size: f.pill ? '12px' : '14px', lh: f.pill ? '16px' : '20px' }; });
+    var AC = D.actions || (D.noFooter ? [] : (D.nudge ? ['nudge', 'paid'] : ['paid']));
+    var A = {
+      nudge: { label: D.nudge, href: 'SendV2-Sheet-' + (D.nudge === 'Nudge again' ? 'NudgeAgain' : 'Nudge') + '-' + T + '.dc.html', isNudge: true, tone: 'warn' },
+      paid: { label: 'Mark paid', href: dark ? 'RecordPayment-Row-Dark.dc.html' : 'RecordPayment.dc.html', isCheck: true },
+      edit: { label: 'Edit payment', href: 'EditPayment-Idle-' + T + '.dc.html', isEdit: true },
+      correct: { label: 'Add correction', href: 'AddCharge-CorrectionFromCharge-' + T + '.dc.html', isPlus: true },
+      deleteCorr: { label: 'Delete correction', href: 'Confirm-DeleteCorrection' + (st === 'correctionPaid' ? 'Paid' : '') + '-' + T + '.dc.html', isTrash: true, tone: 'danger' }
+    };
+    var actions = AC.map(function (k) {
+      var a = A[k], tone = a.tone;
+      return { label: a.label, href: a.href, isNudge: !!a.isNudge, isCheck: !!a.isCheck, isEdit: !!a.isEdit, isPlus: !!a.isPlus, isTrash: !!a.isTrash,
+        bg: tone === 'warn' ? c.warningContainer : 'transparent', fg: tone === 'warn' ? c.onWarningContainer : (tone === 'danger' ? c.danger : c.onSurface),
+        border: tone === 'warn' ? c.warning : (tone === 'danger' ? c.danger : c.outline) };
+    });
     var hasNudge = !!D.nudge;
     return {
-      c: c, backHref: '#', title: D.title, sub: 'November 2026',
+      c: c, backHref: '#', title: D.title, sub: D.sub || 'November 2026',
       amount: D.amount, chip: D.chip[0], chipBg: ck[0], chipFg: ck[1],
       facts: facts, hasNote: !!D.note, note: D.note || '', hasCardNote: !!D.cardNote, cardNote: D.cardNote || '',
       noActivity: D.act.length === 0, hasActivity: D.act.length > 0,
       activity: D.act.map(function (a, i) { return { title: a[0], date: a[1], divider: line(i) }; }),
-      hasFooter: !D.noFooter, hasNudge: hasNudge, nudgeLabel: D.nudge || '',
-      nudgeHref: 'SendV2-Sheet-' + (D.nudge === 'Nudge again' ? 'NudgeAgain' : 'Nudge') + '-' + T + '.dc.html',
-      paidHref: dark ? 'RecordPayment-Row-Dark.dc.html' : 'RecordPayment.dc.html'
+      hasFooter: actions.length > 0, actions: actions
     };
   }
 }
