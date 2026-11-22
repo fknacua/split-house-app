@@ -12,6 +12,7 @@ import {
   splitByShares,
   splitByUnits,
   splitCustom,
+  splitByWeights,
   splitEqual,
   splitShareCategory,
 } from "./engine";
@@ -357,6 +358,13 @@ describe("recurring charges", () => {
 describe("Add charge builders (Nov 2026 fixture)", () => {
   const { alex, priya, sam, jordan } = PERSON_IDS;
   const basics = { label: "Fridge repair", totalCents: 12000, dueDate: "2026-12-05" };
+  // The household's utility shares, with the owner and primary tenant's part of the rest: 1.5, 1.5, 1, 1.
+  const HOUSEHOLD_SHARES = [
+    { personId: alex, units: 1500 },
+    { personId: priya, units: 1500 },
+    { personId: sam, units: 1000 },
+    { personId: jordan, units: 1000 },
+  ];
   const amounts = (charges: { personId: string; amountCents: number }[]) =>
     Object.fromEntries(charges.map((c) => [c.personId, c.amountCents]));
 
@@ -373,8 +381,8 @@ describe("Add charge builders (Nov 2026 fixture)", () => {
     expect(charges.every((c) => c.category === "ONE_OFF" && c.label === "Fridge repair")).toBe(true);
   });
 
-  it("splits a shared one-off by utility shares, with the owner and primary tenant splitting the rest", () => {
-    const charges = buildSharedOneOffCharges(NOV_2026_CONFIG, basics, { method: "PER_SHARE" });
+  it("splits a shared one-off by the given shares (the household's here)", () => {
+    const charges = buildSharedOneOffCharges(NOV_2026_CONFIG, basics, { method: "PER_SHARE", parts: HOUSEHOLD_SHARES });
     expect(amounts(charges)).toEqual({ [alex]: 3600, [priya]: 3600, [sam]: 2400, [jordan]: 2400 });
   });
 
@@ -416,5 +424,37 @@ describe("Add charge builders (Nov 2026 fixture)", () => {
 
   it.each([alex, "person-nobody"])("refuses a personal charge for %s", (personId) => {
     expect(() => buildPersonalOneOffCharge(NOV_2026_CONFIG, basics, personId)).toThrow(SplitEngineError);
+  });
+});
+
+describe("splitByWeights", () => {
+  const { alex, priya, sam, jordan } = PERSON_IDS;
+
+  it("splits by the weights, rounding everyone but the owner, who takes the remainder", () => {
+    const parts = [
+      { personId: alex, units: 0 },
+      { personId: priya, units: 1000 },
+      { personId: sam, units: 1000 },
+      { personId: jordan, units: 1000 },
+    ];
+    // $100 over three shares: 3333 each, so the owner, at 0 shares, takes the leftover cent.
+    expect(splitByWeights(10000, parts, alex)).toEqual({ [alex]: 1, [priya]: 3333, [sam]: 3333, [jordan]: 3333 });
+  });
+
+  it("handles shares changed for one charge", () => {
+    const parts = [
+      { personId: alex, units: 1000 },
+      { personId: priya, units: 2000 },
+      { personId: jordan, units: 1000 },
+    ];
+    expect(splitByWeights(100000, parts, alex)).toEqual({ [alex]: 25000, [priya]: 50000, [jordan]: 25000 });
+  });
+
+  it.each([
+    ["the owner is left out", [{ personId: priya, units: 1000 }]],
+    ["a share is below 0", [{ personId: alex, units: 2000 }, { personId: priya, units: -1000 }]],
+    ["every share is 0", [{ personId: alex, units: 0 }, { personId: priya, units: 0 }]],
+  ])("throws when %s", (_name, parts) => {
+    expect(() => splitByWeights(1000, parts, alex)).toThrow(SplitEngineError);
   });
 });

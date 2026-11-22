@@ -9,6 +9,7 @@ import {
 
 import { Alert, PageHeader, Screen } from '@/components';
 import { useHome, usePullToRefresh } from '@/hooks';
+import { HomeAddChargeButton } from './components/home-add-charge-button';
 import { HomeCharges } from './components/home-charges';
 import { HomeCompactSummary } from './components/home-compact-summary';
 import { HomeFooter } from './components/home-footer';
@@ -37,7 +38,7 @@ export function Home() {
   return (
     <HomeSheetsProvider>
       <Screen>
-        {data ? <PageHeader title={data.monthName} /> : <HomeHeaderSkeleton />}
+        {data ? <PageHeader title={data.monthName} trailing={<HomeAddChargeButton />} /> : <HomeHeaderSkeleton />}
         <View className="relative min-h-0 flex-1">
           <ScrollView
             refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} />}

@@ -1,12 +1,15 @@
 import { createContext, useCallback, useContext, useMemo, useRef, useState, type ReactNode } from 'react';
 
 import type { AppSheetRef } from '@/components';
+import { AddChargeSheet, type AddChargeSheetRef } from '@/sheets/add-charge';
 import { RecordPaymentSheet, type RecordPaymentOpening, type RecordPaymentSheetRef } from '@/sheets/mark-paid';
 import { PayBillSheet } from '@/sheets/pay-bill';
 import { SendMessageSheet, type SendMessageOpening, type SendMessageSheetRef } from '@/sheets/send-message';
 
 /** What Home's rows and footer can open as a sheet. */
 interface HomeSheetsValue {
+  /** Opens Add charge for the newest opened month. */
+  openAddCharge: () => void;
   /** Opens Mark bill paid for the month. */
   openPayBill: (month: string) => void;
   /** Opens Record payment: with nobody picked (the footer), or a row's charge ticked (Mark paid). */
@@ -16,13 +19,14 @@ interface HomeSheetsValue {
 }
 
 const HomeSheetsContext = createContext<HomeSheetsValue>({
+  openAddCharge: () => {},
   openPayBill: () => {},
   openRecordPayment: () => {},
   openSendMessage: () => {},
 });
 
 /**
- * Mounts Home's sheets once and lets any row button or footer open them (`useOpenTarget` reads
+ * Mounts Home's sheets once and lets any row button, footer or the header's Add charge open them (`useOpenTarget` reads
  * this). Each screen that offers a sheet mounts its own; this is Home's.
  *
  * @param children - The Home screen.
@@ -32,6 +36,7 @@ export function HomeSheetsProvider({ children }: { children: ReactNode }) {
   const [payBillMonth, setPayBillMonth] = useState<string | null>(null);
   const recordPayment = useRef<RecordPaymentSheetRef>(null);
   const sendMessage = useRef<SendMessageSheetRef>(null);
+  const addCharge = useRef<AddChargeSheetRef>(null);
 
   // Mark bill paid may mount with this render, so it opens once it has.
   const openPayBill = useCallback((month: string) => {
@@ -41,9 +46,10 @@ export function HomeSheetsProvider({ children }: { children: ReactNode }) {
   const openRecordPayment = useCallback((opening?: RecordPaymentOpening) => recordPayment.current?.open(opening), []);
   // Always mounted, so the sent check still comes up if the sheet was closed while WhatsApp was open.
   const openSendMessage = useCallback((opening: SendMessageOpening) => sendMessage.current?.open(opening), []);
+  const openAddCharge = useCallback(() => addCharge.current?.open(), []);
   const value = useMemo(
-    () => ({ openPayBill, openRecordPayment, openSendMessage }),
-    [openPayBill, openRecordPayment, openSendMessage],
+    () => ({ openAddCharge, openPayBill, openRecordPayment, openSendMessage }),
+    [openAddCharge, openPayBill, openRecordPayment, openSendMessage],
   );
 
   return (
@@ -52,6 +58,7 @@ export function HomeSheetsProvider({ children }: { children: ReactNode }) {
       {payBillMonth ? <PayBillSheet ref={payBill} month={payBillMonth} /> : null}
       <RecordPaymentSheet ref={recordPayment} />
       <SendMessageSheet ref={sendMessage} />
+      <AddChargeSheet ref={addCharge} />
     </HomeSheetsContext.Provider>
   );
 }

@@ -96,6 +96,31 @@ export function splitEqual(totalCents: number, personIds: string[], ownerPersonI
   return result;
 }
 
+/**
+ * Splits a total by each person's weight (shares in thousandths, for an Add charge one-off split `PER_SHARE`):
+ * everyone except the owner gets the total times their weight over the sum, rounded to the nearest cent, half up;
+ * the owner gets the remainder, so the parts add up exactly to the total.
+ *
+ * @param totalCents - The total to split.
+ * @param parts - Everyone in the split with their weight, the owner included.
+ * @param ownerPersonId - The owner, who takes the remainder.
+ * @returns Each person's amount, by person id.
+ * @throws SplitEngineError when the owner is not in `parts`, a weight is below 0, or every weight is 0.
+ */
+export function splitByWeights(totalCents: number, parts: SharePart[], ownerPersonId: string): Record<string, number> {
+  if (!parts.some((p) => p.personId === ownerPersonId)) throw new SplitEngineError("The owner must be in a weighted split");
+  if (parts.some((p) => p.units < 0)) throw new SplitEngineError("A share can't be below 0");
+  const sum = parts.reduce((s, p) => s + p.units, 0);
+  if (sum <= 0) throw new SplitEngineError("At least one share must be above 0");
+  const result: Record<string, number> = {};
+  for (const part of parts) {
+    if (part.personId !== ownerPersonId) result[part.personId] = roundCents((totalCents * part.units) / sum);
+  }
+  const othersSum = Object.values(result).reduce((s, v) => s + v, 0);
+  result[ownerPersonId] = totalCents - othersSum;
+  return result;
+}
+
 export function splitCustom(totalCents: number, parts: CustomPart[]): Record<string, number> {
   const sum = parts.reduce((s, p) => s + p.amountCents, 0);
   if (sum !== totalCents) {
@@ -291,7 +316,10 @@ export function buildUtilitiesCharges(
 }
 
 /** How a shared one-off from the Add charge sheet is split. */
-export type OneOffSplit = { method: "EQUAL" } | { method: "PER_SHARE" } | { method: "CUSTOM"; parts: CustomPart[] };
+export type OneOffSplit =
+  | { method: "EQUAL" }
+  | { method: "PER_SHARE"; parts: SharePart[] }
+  | { method: "CUSTOM"; parts: CustomPart[] };
 
 /** What every Add charge charge has: its label, total and the one due date everyone in it shares. */
 export interface AddChargeBasics {
@@ -341,10 +369,11 @@ export function buildAirconCharges(config: HouseholdConfig, basics: AddChargeBas
  *
  * @param config - The config pinned to the month.
  * @param basics - The label, total and due date.
- * @param split - Equal, per utility share, or custom amounts that add up to the total.
+ * @param split - Equal, by shares (each person's, in thousandths: the household's or changed for this charge), or
+ *   custom amounts that add up to the total.
  * @returns One `ONE_OFF` charge per person with an amount.
- * @throws SplitEngineError when the config has no owner, or custom amounts don't add up or name someone not in the
- * config.
+ * @throws SplitEngineError when the config has no owner, the shares are below 0 or all 0, or custom amounts don't add
+ * up; or the parts name someone not in the config.
  */
 export function buildSharedOneOffCharges(config: HouseholdConfig, basics: AddChargeBasics, split: OneOffSplit): EngineCharge[] {
   const owner = config.people.find((p) => p.role === "OWNER");
@@ -353,7 +382,8 @@ export function buildSharedOneOffCharges(config: HouseholdConfig, basics: AddCha
   if (split.method === "EQUAL") {
     amounts = splitEqual(basics.totalCents, config.people.map((p) => p.personId), owner.personId);
   } else if (split.method === "PER_SHARE") {
-    amounts = utilityShareAmounts(config, basics.totalCents);
+    for (const part of split.parts) personOrThrow(config, part.personId);
+    amounts = splitByWeights(basics.totalCents, split.parts, owner.personId);
   } else {
     for (const part of split.parts) personOrThrow(config, part.personId);
     amounts = splitCustom(basics.totalCents, split.parts);
