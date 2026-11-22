@@ -1,8 +1,7 @@
 import { dateKeyToValue, dueDateKey, type HouseholdConfig } from "@splithouse/shared";
-import { roomOf, totalAirconUnits } from "@/lib/household/room-amounts";
 import { viaOf } from "@/lib/household/route-via";
 import type { BreakdownCharge } from "@/lib/messages/build-breakdown";
-import { buildMonthCharges, buildUtilitiesCharges, splitShareCategory, type EngineCharge } from "@/lib/split/engine";
+import { airconUnitAmounts, buildMonthCharges, buildUtilitiesCharges, type EngineCharge } from "@/lib/split/engine";
 
 /** The bill total a preview splits, since the month's bill may not be saved yet. */
 export const SAMPLE_BILL_CENTS = 41230;
@@ -12,18 +11,7 @@ const SAMPLE_AIRCON_CENTS = 11000;
 
 /** Aircon split as a real servicing would be: each tenant's room's units, with the owner and primary tenant taking the rest. */
 function sampleAirconCharges(config: HouseholdConfig, month: string): EngineCharge[] {
-  const tenants = config.people.filter((p) => p.role === "TENANT" && roomOf(config, p.personId).airconUnits > 0);
-  const amounts = splitShareCategory(
-    SAMPLE_AIRCON_CENTS,
-    totalAirconUnits(config),
-    tenants.map((p) => ({ personId: p.personId, units: roomOf(config, p.personId).airconUnits })),
-    {
-      // The config schema requires an owner.
-      ownerPersonId: config.people.find((p) => p.role === "OWNER")!.personId,
-      primaryPersonId: config.people.find((p) => p.role === "PRIMARY")?.personId ?? null,
-      primaryBps: config.categories.aircon.primaryBps,
-    },
-  );
+  const amounts = airconUnitAmounts(config, SAMPLE_AIRCON_CENTS);
   return config.people
     .filter((person) => (amounts[person.personId] ?? 0) !== 0)
     .map((person) => ({

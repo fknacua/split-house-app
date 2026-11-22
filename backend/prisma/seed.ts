@@ -115,6 +115,7 @@ async function wipeDomainTables() {
   await prisma.messageEvent.deleteMany();
   await prisma.charge.deleteMany();
   await prisma.chargeGroup.deleteMany();
+  await prisma.idempotentRequest.deleteMany();
   await prisma.billFile.deleteMany();
   await prisma.bill.deleteMany();
   await prisma.billDraft.deleteMany();

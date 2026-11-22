@@ -68,7 +68,10 @@ One row per person per obligation.
 Paid, unpaid, due today and overdue are derived from these fields. `correctsChargeId`, `correctsMonth` and `correctsCategory` are required when `category` is `CORRECTION` and null otherwise, enforced by a database check; `correctsMonth` and `correctsCategory` are copied from the linked charge.
 
 ### ChargeGroup
-For one-offs added from the Add charge sheet: `id`, `scope` (`SHARED` or `PERSONAL`), `splitMethod` (`EQUAL`, `PER_SHARE`, `PER_UNIT`, `CUSTOM`), `totalCents`, `note`. It keeps the original input so the sheet can show what produced the per-person charges. `EQUAL` splits the total evenly across everyone with the usual rounding rule; `PER_SHARE` uses the pinned version's utility shares; `PER_UNIT` (aircon servicing only) uses aircon units; `CUSTOM` takes one amount per person that must add up to the total.
+For aircon servicing and shared one-offs added from the Add charge sheet (a Personal charge is one charge with no group, so `PERSONAL` is unused for now): `id`, `scope` (`SHARED` or `PERSONAL`), `splitMethod` (`EQUAL`, `PER_SHARE`, `PER_UNIT`, `CUSTOM`), `totalCents`, `note`. It keeps the original input so the sheet can show what produced the per-person charges. `EQUAL` splits the total evenly across everyone with the usual rounding rule; `PER_SHARE` uses the pinned version's utility shares; `PER_UNIT` (aircon servicing only) uses aircon units; `CUSTOM` takes one amount per person that must add up to the total.
+
+### IdempotentRequest
+`key` (sent by the app, unique), `endpoint` (e.g. `POST /api/add-charge`), `response` (JSON), `createdAt`. A save that is safe to retry stores its response under the request's key in the same transaction; a repeated key answers with the stored response and saves nothing, and a key stored by another endpoint is refused. Used by Add charge (Phase 13B) and corrections (Phase 13C).
 
 ### MessageEvent
 `id`, `month`, `personId`, `kind` (`MONTHLY` or `NUDGE`), `chargeId` (nullable), `renderedText`, `openedAt`. The app cannot know whether WhatsApp actually sent anything, so this records when the chat was opened.

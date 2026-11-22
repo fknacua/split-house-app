@@ -4,7 +4,10 @@ import { JAN_2027_CONFIG, NOV_2026_CONFIG, PERSON_IDS, ROOM_IDS } from "@/lib/fi
 import { roomOf, totalAirconUnits } from "@/lib/household/room-amounts";
 import {
   SplitEngineError,
+  buildAirconCharges,
   buildMonthCharges,
+  buildPersonalOneOffCharge,
+  buildSharedOneOffCharges,
   buildUtilitiesCharges,
   splitByShares,
   splitByUnits,
@@ -348,5 +351,70 @@ describe("recurring charges", () => {
       recurring: [{ id: "c", label: "Parking", amountCents: 1000, personId: PERSON_IDS.jordan, endMonth: "2026-10" }],
     };
     expect(recurringOf(config)).toBeUndefined();
+  });
+});
+
+describe("Add charge builders (Nov 2026 fixture)", () => {
+  const { alex, priya, sam, jordan } = PERSON_IDS;
+  const basics = { label: "Fridge repair", totalCents: 12000, dueDate: "2026-12-05" };
+  const amounts = (charges: { personId: string; amountCents: number }[]) =>
+    Object.fromEntries(charges.map((c) => [c.personId, c.amountCents]));
+
+  it("splits aircon servicing by units, with Sam's routed via Priya, all on the one due date", () => {
+    const charges = buildAirconCharges(NOV_2026_CONFIG, { label: "Aircon servicing", totalCents: 11000, dueDate: "2026-12-05" });
+    expect(amounts(charges)).toEqual({ [alex]: 3667, [priya]: 3667, [sam]: 1833, [jordan]: 1833 });
+    expect(charges.every((c) => c.category === "AIRCON" && c.dueDate === "2026-12-05")).toBe(true);
+    expect(charges.find((c) => c.personId === sam)?.payViaPersonId).toBe(priya);
+  });
+
+  it("splits a shared one-off equally across everyone, the owner included", () => {
+    const charges = buildSharedOneOffCharges(NOV_2026_CONFIG, basics, { method: "EQUAL" });
+    expect(amounts(charges)).toEqual({ [alex]: 3000, [priya]: 3000, [sam]: 3000, [jordan]: 3000 });
+    expect(charges.every((c) => c.category === "ONE_OFF" && c.label === "Fridge repair")).toBe(true);
+  });
+
+  it("splits a shared one-off by utility shares, with the owner and primary tenant splitting the rest", () => {
+    const charges = buildSharedOneOffCharges(NOV_2026_CONFIG, basics, { method: "PER_SHARE" });
+    expect(amounts(charges)).toEqual({ [alex]: 3600, [priya]: 3600, [sam]: 2400, [jordan]: 2400 });
+  });
+
+  it("routes a one-off the way each person's utilities go", () => {
+    const charges = buildSharedOneOffCharges(NOV_2026_CONFIG, basics, { method: "EQUAL" });
+    expect(charges.find((c) => c.personId === sam)?.payViaPersonId).toBe(priya);
+    expect(charges.find((c) => c.personId === jordan)?.payViaPersonId).toBeNull();
+  });
+
+  it("takes custom amounts that add up, leaving out anyone at $0", () => {
+    const parts = [
+      { personId: alex, amountCents: 6000 },
+      { personId: priya, amountCents: 6000 },
+      { personId: sam, amountCents: 0 },
+    ];
+    expect(amounts(buildSharedOneOffCharges(NOV_2026_CONFIG, basics, { method: "CUSTOM", parts }))).toEqual({
+      [alex]: 6000,
+      [priya]: 6000,
+    });
+  });
+
+  it.each([
+    ["don't add up", [{ personId: alex, amountCents: 100 }]],
+    ["name someone not in the household", [{ personId: "person-nobody", amountCents: 12000 }]],
+  ])("refuses custom amounts that %s", (_name, parts) => {
+    expect(() => buildSharedOneOffCharges(NOV_2026_CONFIG, basics, { method: "CUSTOM", parts })).toThrow(SplitEngineError);
+  });
+
+  it("makes one personal charge, routed by the person's utilities route", () => {
+    expect(buildPersonalOneOffCharge(NOV_2026_CONFIG, basics, sam)).toEqual({
+      personId: sam,
+      category: "ONE_OFF",
+      label: "Fridge repair",
+      amountCents: 12000,
+      payViaPersonId: priya,
+      dueDate: "2026-12-05",
+    });
+  });
+
+  it.each([alex, "person-nobody"])("refuses a personal charge for %s", (personId) => {
+    expect(() => buildPersonalOneOffCharge(NOV_2026_CONFIG, basics, personId)).toThrow(SplitEngineError);
   });
 });

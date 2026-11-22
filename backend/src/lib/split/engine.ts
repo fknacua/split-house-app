@@ -1,5 +1,5 @@
 import { dueDateKey, type ChargeType, type HouseholdConfig, type PersonConfig } from "@splithouse/shared";
-import { masterRentCents, roomOf } from "@/lib/household/room-amounts";
+import { masterRentCents, roomOf, totalAirconUnits } from "@/lib/household/room-amounts";
 
 // Pure split engine (see docs/SplitHouse — Data Model.md "Split engine" and
 // "Rounding rule"). No Prisma, no Date.now: every input is passed in.
@@ -11,7 +11,7 @@ export class SplitEngineError extends Error {}
 
 export interface EngineCharge {
   personId: string;
-  category: Exclude<ChargeType, "RECURRING"> | "RECURRING";
+  category: ChargeType | "ONE_OFF";
   label: string;
   amountCents: number;
   payViaPersonId: string | null;
@@ -149,6 +149,52 @@ function routeFor(person: PersonConfig, type: ChargeType): string | null {
   return route?.kind === "VIA" ? route.viaPersonId : null;
 }
 
+/** The owner/primary remainder config for a category's primary tenant percent. */
+function remainderOf(config: HouseholdConfig, primaryBps: number): RemainderConfig {
+  const owner = config.people.find((p) => p.role === "OWNER");
+  if (!owner) throw new SplitEngineError("Config has no owner");
+  const primary = config.people.find((p) => p.role === "PRIMARY") ?? null;
+  return { ownerPersonId: owner.personId, primaryPersonId: primary?.personId ?? null, primaryBps };
+}
+
+/**
+ * A total split by utility shares: each tenant's shares, with the owner and primary tenant splitting the rest by the
+ * utilities percent. Used for a bill's utilities and a one-off split `PER_SHARE`.
+ *
+ * @param config - The pinned config.
+ * @param totalCents - The total to split.
+ * @returns Each person's amount, by person id.
+ * @throws SplitEngineError when the config has no owner or the tenants' shares exceed the total.
+ */
+export function utilityShareAmounts(config: HouseholdConfig, totalCents: number): Record<string, number> {
+  const tenants = config.people.filter((p) => p.role === "TENANT" && p.utilityShares > 0);
+  return splitShareCategory(
+    totalCents,
+    config.categories.utilities.totalShares,
+    tenants.map((p) => ({ personId: p.personId, units: p.utilityShares })),
+    remainderOf(config, config.categories.utilities.primaryBps),
+  );
+}
+
+/**
+ * A total split by aircon units: each tenant's room's units, with the owner and primary tenant splitting the rest (the
+ * master, common and empty rooms' units) by the aircon percent.
+ *
+ * @param config - The pinned config.
+ * @param totalCents - The total to split.
+ * @returns Each person's amount, by person id.
+ * @throws SplitEngineError when the config has no owner.
+ */
+export function airconUnitAmounts(config: HouseholdConfig, totalCents: number): Record<string, number> {
+  const tenants = config.people.filter((p) => p.role === "TENANT" && roomOf(config, p.personId).airconUnits > 0);
+  return splitShareCategory(
+    totalCents,
+    totalAirconUnits(config),
+    tenants.map((p) => ({ personId: p.personId, units: roomOf(config, p.personId).airconUnits })),
+    remainderOf(config, config.categories.aircon.primaryBps),
+  );
+}
+
 function personOrThrow(config: HouseholdConfig, personId: string): PersonConfig {
   const person = config.people.find((p) => p.personId === personId);
   if (!person) throw new SplitEngineError(`Unknown person ${personId}`);
@@ -223,21 +269,7 @@ export function buildUtilitiesCharges(
   bill: { month: string; currentChargesCents: number },
   label = "Utilities",
 ): EngineCharge[] {
-  const owner = config.people.find((p) => p.role === "OWNER");
-  if (!owner) throw new SplitEngineError("Config has no owner");
-  const primary = config.people.find((p) => p.role === "PRIMARY") ?? null;
-
-  const tenants = config.people.filter((p) => p.role === "TENANT" && p.utilityShares > 0);
-  const amounts = splitShareCategory(
-    bill.currentChargesCents,
-    config.categories.utilities.totalShares,
-    tenants.map((p) => ({ personId: p.personId, units: p.utilityShares })),
-    {
-      ownerPersonId: owner.personId,
-      primaryPersonId: primary?.personId ?? null,
-      primaryBps: config.categories.utilities.primaryBps,
-    },
-  );
+  const amounts = utilityShareAmounts(config, bill.currentChargesCents);
 
   const sum = Object.values(amounts).reduce((s, v) => s + v, 0);
   if (sum !== bill.currentChargesCents) {
@@ -256,4 +288,97 @@ export function buildUtilitiesCharges(
       dueDate: dueDateKey(bill.month, person.dueDays.UTILITIES),
     };
   });
+}
+
+/** How a shared one-off from the Add charge sheet is split. */
+export type OneOffSplit = { method: "EQUAL" } | { method: "PER_SHARE" } | { method: "CUSTOM"; parts: CustomPart[] };
+
+/** What every Add charge charge has: its label, total and the one due date everyone in it shares. */
+export interface AddChargeBasics {
+  label: string;
+  totalCents: number;
+  /** `YYYY-MM-DD`. Null only for a preview before the date is picked; a stored charge always has one. */
+  dueDate: string | null;
+}
+
+/** One charge per person with an amount, in the config's order. Someone at $0 gets no charge. */
+function chargesFor(
+  config: HouseholdConfig,
+  amounts: Record<string, number>,
+  category: "AIRCON" | "ONE_OFF",
+  routeType: ChargeType,
+  basics: AddChargeBasics,
+): EngineCharge[] {
+  const sum = Object.values(amounts).reduce((s, v) => s + v, 0);
+  if (sum !== basics.totalCents) throw new SplitEngineError("The split does not add up to the total");
+  return config.people
+    .filter((person) => (amounts[person.personId] ?? 0) !== 0)
+    .map((person) => ({
+      personId: person.personId,
+      category,
+      label: basics.label,
+      amountCents: amounts[person.personId],
+      payViaPersonId: routeFor(person, routeType),
+      dueDate: basics.dueDate,
+    }));
+}
+
+/**
+ * Aircon servicing from the Add charge sheet: always shared by aircon units, routed by each person's aircon route.
+ *
+ * @param config - The config pinned to the month.
+ * @param basics - The label, total and due date.
+ * @returns One `AIRCON` charge per person with an amount, the owner's included.
+ * @throws SplitEngineError when the config has no owner.
+ */
+export function buildAirconCharges(config: HouseholdConfig, basics: AddChargeBasics): EngineCharge[] {
+  return chargesFor(config, airconUnitAmounts(config, basics.totalCents), "AIRCON", "AIRCON", basics);
+}
+
+/**
+ * A shared one-off (Other) from the Add charge sheet: split across everyone, the owner included, and routed the way
+ * each person's utilities go.
+ *
+ * @param config - The config pinned to the month.
+ * @param basics - The label, total and due date.
+ * @param split - Equal, per utility share, or custom amounts that add up to the total.
+ * @returns One `ONE_OFF` charge per person with an amount.
+ * @throws SplitEngineError when the config has no owner, or custom amounts don't add up or name someone not in the
+ * config.
+ */
+export function buildSharedOneOffCharges(config: HouseholdConfig, basics: AddChargeBasics, split: OneOffSplit): EngineCharge[] {
+  const owner = config.people.find((p) => p.role === "OWNER");
+  if (!owner) throw new SplitEngineError("Config has no owner");
+  let amounts: Record<string, number>;
+  if (split.method === "EQUAL") {
+    amounts = splitEqual(basics.totalCents, config.people.map((p) => p.personId), owner.personId);
+  } else if (split.method === "PER_SHARE") {
+    amounts = utilityShareAmounts(config, basics.totalCents);
+  } else {
+    for (const part of split.parts) personOrThrow(config, part.personId);
+    amounts = splitCustom(basics.totalCents, split.parts);
+  }
+  return chargesFor(config, amounts, "ONE_OFF", "UTILITIES", basics);
+}
+
+/**
+ * A personal one-off (Other) from the Add charge sheet: one charge for one person, routed the way their utilities go.
+ *
+ * @param config - The config pinned to the month.
+ * @param basics - The label, total and due date.
+ * @param personId - Who owes it. Never the owner.
+ * @returns The charge.
+ * @throws SplitEngineError when the person is not in the config or is the owner.
+ */
+export function buildPersonalOneOffCharge(config: HouseholdConfig, basics: AddChargeBasics, personId: string): EngineCharge {
+  const person = personOrThrow(config, personId);
+  if (person.role === "OWNER") throw new SplitEngineError("A personal charge is never the owner's");
+  return {
+    personId,
+    category: "ONE_OFF",
+    label: basics.label,
+    amountCents: basics.totalCents,
+    payViaPersonId: routeFor(person, "UTILITIES"),
+    dueDate: basics.dueDate,
+  };
 }

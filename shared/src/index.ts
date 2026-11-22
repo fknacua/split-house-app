@@ -1,3 +1,4 @@
+export * from './api/add-charge';
 export * from './api/bill';
 export * from './api/bill-draft';
 export * from './api/bootstrap';
