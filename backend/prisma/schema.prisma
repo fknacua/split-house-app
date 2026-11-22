@@ -236,6 +236,19 @@ model ChargeGroup {
   @@map("charge_group")
 }
 
+// A save that is safe to retry: the app sends a key with it, and a repeated key gets the stored
+// response instead of saving again. Written in the same transaction as the save. Add charge uses
+// it (Phase 13B); corrections reuse it (Phase 13C).
+model IdempotentRequest {
+  key       String   @id
+  // e.g. `POST /api/add-charge`, so a key is never answered by another endpoint's response.
+  endpoint  String
+  response  Json
+  createdAt DateTime @default(now())
+
+  @@map("idempotent_request")
+}
+
 // One row per person per obligation. `amountCents` is signed and never
 // recalculated after creation. Paid / unpaid / due / overdue are derived.
 model Charge {
