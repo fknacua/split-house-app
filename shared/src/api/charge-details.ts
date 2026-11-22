@@ -47,7 +47,10 @@ export const chargeDetailsResponseSchema = z.object({
   facts: z.array(chargeDetailsFactSchema),
   /** Newest first. Empty shows the shared `No activity yet` card. */
   activity: z.array(chargeDetailsActivitySchema),
-  /** The footer's buttons, top to bottom: Nudge or Nudge again, then Mark paid. Empty hides the footer. */
+  /**
+   * The footer's buttons, top to bottom: Nudge or Nudge again, then Mark paid, on an unpaid charge;
+   * Edit payment on a paid one. Empty hides the footer.
+   */
   footer: z.array(homeActionSchema),
 });
 

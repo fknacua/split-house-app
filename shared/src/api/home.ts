@@ -20,6 +20,8 @@ export const homeTargetSchema = z.discriminatedUnion('kind', [
   /** Opens Charge details for one stored charge. */
   z.object({ kind: z.literal('view-details'), chargeId: z.string() }),
   z.object({ kind: z.literal('mark-paid'), chargeId: z.string() }),
+  /** Opens the Edit payment sheet for one paid charge (Charge details only). */
+  z.object({ kind: z.literal('edit-payment'), chargeId: z.string() }),
   z.object({ kind: z.literal('bill-upload'), month: monthKey }),
   z.object({ kind: z.literal('bill-draft-continue'), month: monthKey }),
   z.object({ kind: z.literal('bill-draft-discard'), month: monthKey }),
@@ -106,7 +108,7 @@ export const homeActionSchema = z.object({
   /** `warning` is the orange Nudge button. */
   tone: z.enum(['primary', 'outline', 'warning']),
   /** Null for a button with a label only, like Continue. */
-  icon: z.enum(['check', 'bell']).nullable(),
+  icon: z.enum(['check', 'bell', 'pencil']).nullable(),
   target: homeTargetSchema,
 });
 
