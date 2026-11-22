@@ -39,6 +39,10 @@ export const queryKeys = {
   allChargeDetails: ['charge-details'] as const,
   /** @param chargeId The charge Charge details shows. */
   chargeDetails: (chargeId: string) => ['charge-details', chargeId] as const,
+  /** Every Edit payment sheet. The prefix of `editPaymentSheet`, so the sheet opens fetched fresh. */
+  allEditPaymentSheets: ['edit-payment'] as const,
+  /** @param chargeId The paid charge the Edit payment sheet is about. */
+  editPaymentSheet: (chargeId: string) => ['edit-payment', chargeId] as const,
   /** Every Record payment sheet. The prefix of `recordPaymentSheet`, so a payment refreshes the open one. */
   allRecordPaymentSheets: ['record-payment'] as const,
   /**

@@ -19,6 +19,8 @@ export * from './use-load-bill-draft';
 export * from './use-open-bill-pdf';
 export * from './use-mark-bill-paid';
 export * from './use-discard-setup-messages';
+export * from './use-edit-payment';
+export * from './use-edit-payment-sheet';
 export * from './use-finish-setup';
 export * from './use-mark-setup-step';
 export * from './use-skip-setup-step';

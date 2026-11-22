@@ -5,6 +5,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { Alert } from '@/components/alert';
 import { Button } from '@/components/button';
+import { SkeletonBlock } from '@/components/skeletons';
 import {
   BottomSheet,
   BottomSheetBackdrop,
@@ -53,6 +54,8 @@ function Grabber() {
  *
  * @param title - The sheet title.
  * @param subtitle - Optional one-line caption under the title, such as "Money you received for November".
+ * @param subtitleLoading - Hold the subtitle's line with a skeleton block until `subtitle` arrives, so the
+ *   header doesn't grow when the data lands.
  * @param cancelLabel - The text button under the action. Defaults to "Cancel".
  * @param dangerAction - Replaces Cancel with a red text button, such as "Remove charge". The sheet still
  *   closes by swiping down, tapping the scrim or the back gesture.
@@ -81,6 +84,7 @@ export const AppSheet = forwardRef<
   {
     title: string;
     subtitle?: string;
+    subtitleLoading?: boolean;
     cancelLabel?: string;
     dangerAction?: { label: string; onPress: () => void };
     children: ReactNode;
@@ -102,6 +106,7 @@ export const AppSheet = forwardRef<
   {
     title,
     subtitle,
+    subtitleLoading = false,
     cancelLabel = 'Cancel',
     dangerAction,
     children,
@@ -178,6 +183,13 @@ export const AppSheet = forwardRef<
               <Text className="font-manrope-medium text-caption text-on-surface-variant">
                 {subtitle}
               </Text>
+            ) : subtitleLoading ? (
+              // In the sheet's context, so the block takes the colour that shows on the sheet.
+              <InSheetContext.Provider value={true}>
+                <View className="h-4 justify-center">
+                  <SkeletonBlock className="h-3 w-16" />
+                </View>
+              </InSheetContext.Provider>
             ) : null}
           </View>
 

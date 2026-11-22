@@ -1,6 +1,13 @@
+import { useContext } from 'react';
 import { View, type DimensionValue } from 'react-native';
 
+import { InSheetContext } from '@/components/ui/bottomsheet/sheet-aware-text-input';
 import { Skeleton } from '@/components/ui/skeleton';
+
+/** The pulse colour on a page. */
+const PAGE_COLOR = 'bg-container';
+/** In dark the sheet is the `container` colour itself, so inside a sheet the blocks pulse in `track` instead. */
+const SHEET_COLOR = 'bg-container dark:bg-track';
 
 /**
  * Loading placeholders (screen mapping doc: Skeleton). Blocks use the `container` token and the
@@ -10,7 +17,8 @@ import { Skeleton } from '@/components/ui/skeleton';
 
 /**
  * One placeholder block. Size it with `className` (for example `h-4 w-24`); the radius defaults
- * to a small round, use `rounded-full` for pills and avatars.
+ * to a small round, use `rounded-full` for pills and avatars. Inside an `AppSheet` it pulses in
+ * `track` in dark, since `container` is the sheet's own colour there.
  *
  * @param className - Size and shape classes.
  * @param width - Width as a percentage or number, for the sample row widths a class cannot express.
@@ -22,9 +30,10 @@ export function SkeletonBlock({
   className?: string;
   width?: DimensionValue;
 }) {
+  const inSheet = useContext(InSheetContext);
   return (
     <Skeleton
-      startColor="bg-container"
+      startColor={inSheet ? SHEET_COLOR : PAGE_COLOR}
       className={`h-4 w-full rounded-lg ${className ?? ''}`}
       style={width === undefined ? undefined : { width }}
     />
