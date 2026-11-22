@@ -136,14 +136,6 @@ export interface SplitRowProps {
   separated: boolean;
 }
 
-/** Props for {@link PersonSplitBar}. */
-export interface PersonSplitBarProps {
-  /** Each person's width and color. */
-  segments: HouseholdSplitSegment[];
-  /** What the split shows, read out by screen readers. */
-  accessibilityLabel: string;
-}
-
 /** Props for {@link SplitLegendItem}. */
 export interface SplitLegendItemProps {
   /** The person's color, name, amount and whether they are in the total. */

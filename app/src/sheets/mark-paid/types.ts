@@ -58,14 +58,6 @@ export interface RecordConfirmDialogProps {
   onGoBack: () => void;
 }
 
-/** Props for {@link ConfirmDetailRow}. */
-export interface ConfirmDetailRowProps {
-  label: string;
-  value: string;
-  /** The first row has no divider above it. */
-  first?: boolean;
-}
-
 /** Props for {@link DiscardPaymentDialog}. */
 export interface DiscardPaymentDialogProps {
   open: boolean;
