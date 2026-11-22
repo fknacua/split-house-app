@@ -72,6 +72,30 @@ export function splitByUnits(
   return splitProportional(totalCents, totalUnits, parts);
 }
 
+/**
+ * Splits a total evenly across everyone in it, for an Add charge one-off split `EQUAL`. Everyone
+ * except the owner is rounded to the nearest cent, half up; the owner gets the remainder, so the
+ * parts add up exactly to the total.
+ *
+ * @param totalCents - The total to split.
+ * @param personIds - Everyone in the split, the owner included.
+ * @param ownerPersonId - The owner, who takes the remainder.
+ * @returns Each person's amount, by person id.
+ * @throws SplitEngineError when the owner is not in `personIds` or a person is listed twice.
+ */
+export function splitEqual(totalCents: number, personIds: string[], ownerPersonId: string): Record<string, number> {
+  if (!personIds.includes(ownerPersonId)) throw new SplitEngineError("The owner must be in an equal split");
+  if (new Set(personIds).size !== personIds.length) throw new SplitEngineError("A person is listed twice in an equal split");
+  const each = roundCents(totalCents / personIds.length);
+  const result: Record<string, number> = {};
+  for (const personId of personIds) {
+    if (personId !== ownerPersonId) result[personId] = each;
+  }
+  const othersSum = Object.values(result).reduce((s, v) => s + v, 0);
+  result[ownerPersonId] = totalCents - othersSum;
+  return result;
+}
+
 export function splitCustom(totalCents: number, parts: CustomPart[]): Record<string, number> {
   const sum = parts.reduce((s, p) => s + p.amountCents, 0);
   if (sum !== totalCents) {

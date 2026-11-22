@@ -68,7 +68,7 @@ One row per person per obligation.
 Paid, unpaid, due today and overdue are derived from these fields. `correctsChargeId`, `correctsMonth` and `correctsCategory` are required when `category` is `CORRECTION` and null otherwise, enforced by a database check; `correctsMonth` and `correctsCategory` are copied from the linked charge.
 
 ### ChargeGroup
-For one-offs added from the Add charge sheet: `id`, `scope` (`SHARED` or `PERSONAL`), `splitMethod` (`EQUAL`, `PER_SHARE`, `PER_UNIT`, `CUSTOM`), `totalCents`, `note`, `correctsMonth`. It keeps the original input so the sheet can show what produced the per-person charges. `EQUAL` splits the total evenly across everyone with the usual rounding rule; `PER_SHARE` uses the pinned version's utility shares; `PER_UNIT` (aircon servicing only) uses aircon units; `CUSTOM` takes one amount per person that must add up to the total.
+For one-offs added from the Add charge sheet: `id`, `scope` (`SHARED` or `PERSONAL`), `splitMethod` (`EQUAL`, `PER_SHARE`, `PER_UNIT`, `CUSTOM`), `totalCents`, `note`. It keeps the original input so the sheet can show what produced the per-person charges. `EQUAL` splits the total evenly across everyone with the usual rounding rule; `PER_SHARE` uses the pinned version's utility shares; `PER_UNIT` (aircon servicing only) uses aircon units; `CUSTOM` takes one amount per person that must add up to the total.
 
 ### MessageEvent
 `id`, `month`, `personId`, `kind` (`MONTHLY` or `NUDGE`), `chargeId` (nullable), `renderedText`, `openedAt`. The app cannot know whether WhatsApp actually sent anything, so this records when the chat was opened.

@@ -49,7 +49,7 @@ describe("planAddPerson", () => {
       roomId: ROOM_ID,
       utilityShares: 1000,
       routes: {},
-      dueDays: { RENT: 3, UTILITIES: 5, AIRCON: 5 },
+      dueDays: { RENT: 3, UTILITIES: 5 },
       depositCents: 90000,
     });
   });

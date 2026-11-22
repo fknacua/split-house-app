@@ -602,7 +602,7 @@ export const householdPersonEditSchema = z.object({
   depositCents: z.number().int().optional(),
   /** Null clears the day. */
   rentDueDay: z.number().int().nullable().optional(),
-  /** Also sets the aircon due day. Null clears both. */
+  /** Null clears the day. */
   utilitiesDueDay: z.number().int().nullable().optional(),
   /** Who rent is sent via. Null means paid directly. Tenants only. */
   rentViaPersonId: z.string().min(1).nullable().optional(),
@@ -629,7 +629,7 @@ export const householdAddPersonEditSchema = z.object({
   depositCents: z.number().int(),
   /** Required unless rent is sent via someone. */
   rentDueDay: z.number().int().nullable(),
-  /** Also sets the aircon due day. Required unless utilities are sent via someone. */
+  /** Required unless utilities are sent via someone. */
   utilitiesDueDay: z.number().int().nullable(),
   /** Who rent is sent via. Null means paid directly. */
   rentViaPersonId: z.string().min(1).nullable(),

@@ -13,10 +13,10 @@ const person = (config: typeof NOV_2026_CONFIG, personId: string) => config.peop
 describe("applyHouseholdEdit", () => {
   it.each([
     ["deposit", { depositCents: 0 }, { depositCents: 0 }],
-    ["rent due", { rentDueDay: 5 }, { dueDays: { RENT: 5, UTILITIES: 4, AIRCON: 4 } }],
-    ["utilities due, which also sets aircon", { utilitiesDueDay: 9 }, { dueDays: { RENT: 1, UTILITIES: 9, AIRCON: 9 } }],
-    ["utilities cleared, with aircon", { utilitiesDueDay: null }, { dueDays: { RENT: 1 } }],
-    ["rent due cleared", { rentDueDay: null }, { dueDays: { UTILITIES: 4, AIRCON: 4 } }],
+    ["rent due", { rentDueDay: 5 }, { dueDays: { RENT: 5, UTILITIES: 4 } }],
+    ["utilities due", { utilitiesDueDay: 9 }, { dueDays: { RENT: 1, UTILITIES: 9 } }],
+    ["utilities cleared", { utilitiesDueDay: null }, { dueDays: { RENT: 1 } }],
+    ["rent due cleared", { rentDueDay: null }, { dueDays: { UTILITIES: 4 } }],
   ])("applies %s", (_name, fields, expected) => {
     const next = applyHouseholdEdit(NOV_2026_CONFIG, edit(PERSON_IDS.jordan, fields));
     expect(person(next, PERSON_IDS.jordan)).toMatchObject(expected);
@@ -28,15 +28,23 @@ describe("applyHouseholdEdit", () => {
     expect(next.categories.rent).toEqual(NOV_2026_CONFIG.categories.rent);
   });
 
-  it("leaves the aircon day alone when the utilities day does not change", () => {
+  it("writes no aircon day with the utilities day", () => {
+    const next = applyHouseholdEdit(NOV_2026_CONFIG, edit(PERSON_IDS.jordan, { utilitiesDueDay: 9 }));
+    expect(person(next, PERSON_IDS.jordan)?.dueDays).toEqual({ RENT: 1, UTILITIES: 9 });
+  });
+
+  it.each([
+    ["changed", 9, { UTILITIES: 9, AIRCON: 6 }],
+    ["cleared", null, { AIRCON: 6 }],
+  ])("leaves an aircon day stored by an older version as it is when the utilities day is %s", (_name, day, expected) => {
     const config = {
       ...NOV_2026_CONFIG,
       people: NOV_2026_CONFIG.people.map((p) =>
         p.personId === PERSON_IDS.jordan ? { ...p, dueDays: { UTILITIES: 4, AIRCON: 6 } } : p,
       ),
     };
-    const next = applyHouseholdEdit(config, edit(PERSON_IDS.jordan, { utilitiesDueDay: 4 }));
-    expect(person(next, PERSON_IDS.jordan)?.dueDays).toEqual({ UTILITIES: 4, AIRCON: 6 });
+    const next = applyHouseholdEdit(config, edit(PERSON_IDS.jordan, { utilitiesDueDay: day }));
+    expect(person(next, PERSON_IDS.jordan)?.dueDays).toEqual(expected);
   });
 
   it("changes nobody else, and not the config it was given", () => {

@@ -1,6 +1,9 @@
 import { dateKeyOf, dueDateKey, type ChargeType, type HouseholdConfig } from "@splithouse/shared";
 import type { ChargeCategory } from "@/generated/prisma/enums";
 
+/** The charge types a person's due day applies to. */
+const DUE_DAY_TYPES: ChargeCategory[] = ["RENT", "UTILITIES"];
+
 /** A charge, as much of it as its due date needs. */
 export interface DueDateCharge {
   category: ChargeCategory;
@@ -12,6 +15,8 @@ export interface DueDateCharge {
  * The date a charge is due. A charge stored with no due date that is paid via someone (Sam's
  * utilities) uses that person's due day for the same charge type, as the projected row did before
  * the bill was saved. The stored charge is not changed. Home's rows and View bill's people read this.
+ * Only rent and utilities have a due day: aircon and other one-offs carry their own date, and an `AIRCON` day
+ * stored by an older version is ignored.
  *
  * @param month - The charge's month, `YYYY-MM`.
  * @param config - The config pinned to the month.
@@ -20,10 +25,11 @@ export interface DueDateCharge {
  */
 export function chargeDueDate(month: string, config: HouseholdConfig, charge: DueDateCharge): string | null {
   if (charge.dueDate) return dateKeyOf(charge.dueDate);
-  if (!charge.payViaPersonId) return null;
+  if (!charge.payViaPersonId || !DUE_DAY_TYPES.includes(charge.category)) return null;
   const via = config.people.find((p) => p.personId === charge.payViaPersonId);
   return dueDateKey(month, via?.dueDays[charge.category as ChargeType]);
 }
+
 
 /**
  * The utilities bill's due date: the saved bill's own date supersedes the day in the config, which

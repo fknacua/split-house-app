@@ -13,21 +13,19 @@ import { SHARE_SCALE } from "./amount-text";
 import { sharedAirconUnits } from "./room-amounts";
 import { viaOf } from "./route-via";
 
-/** The due days after an edit. The utilities day also sets aircon, and an unchanged day leaves both as they are. */
+/**
+ * The due days after an edit. Aircon has no due day of its own any more (each aircon charge carries its date from
+ * the Add charge sheet), so an `AIRCON` day stored by an older version is left as it is and never read.
+ */
 function nextDueDays(person: PersonConfig, edit: HouseholdPersonEdit): PersonConfig["dueDays"] {
   const dueDays = { ...person.dueDays };
   if (edit.rentDueDay !== undefined) {
     if (edit.rentDueDay === null) delete dueDays.RENT;
     else dueDays.RENT = edit.rentDueDay;
   }
-  if (edit.utilitiesDueDay !== undefined && edit.utilitiesDueDay !== (person.dueDays.UTILITIES ?? null)) {
-    if (edit.utilitiesDueDay === null) {
-      delete dueDays.UTILITIES;
-      delete dueDays.AIRCON;
-    } else {
-      dueDays.UTILITIES = edit.utilitiesDueDay;
-      dueDays.AIRCON = edit.utilitiesDueDay;
-    }
+  if (edit.utilitiesDueDay !== undefined) {
+    if (edit.utilitiesDueDay === null) delete dueDays.UTILITIES;
+    else dueDays.UTILITIES = edit.utilitiesDueDay;
   }
   return dueDays;
 }

@@ -32,7 +32,8 @@ function sampleAirconCharges(config: HouseholdConfig, month: string): EngineChar
       label: "Aircon servicing",
       amountCents: amounts[person.personId],
       payViaPersonId: viaOf(person, "AIRCON"),
-      dueDate: dueDateKey(month, person.dueDays.AIRCON),
+      // A real servicing carries the date picked in Add charge; the sample uses the utilities day.
+      dueDate: dueDateKey(month, person.dueDays.UTILITIES),
     }));
 }
 

@@ -419,7 +419,7 @@ describe("saveHouseholdEdit", () => {
     ]);
     expect(await saveHouseholdEdit(db, dueDays)).toEqual({ savedFromMonth: "2026-12" });
     const saved = (state.versions.at(-1)?.config as HouseholdConfig).people.find((p) => p.personId === PERSON_IDS.priya);
-    expect(saved?.dueDays).toMatchObject({ RENT: 9, UTILITIES: 9, AIRCON: 9 });
+    expect(saved?.dueDays).toEqual({ RENT: 9, UTILITIES: 9 });
   });
 
   it("clears a WhatsApp number", async () => {
@@ -987,7 +987,7 @@ describe("First run (no month open)", () => {
       expect(state.versions).toHaveLength(1);
       const config = configOf(state.versions[0]);
       const primary = config.people.find((p) => p.role === "PRIMARY");
-      expect(primary).toMatchObject({ roomId: ROOM_IDS.master, utilityShares: 0, dueDays: { RENT: 7, UTILITIES: 7, AIRCON: 7 } });
+      expect(primary).toMatchObject({ roomId: ROOM_IDS.master, utilityShares: 0, dueDays: { RENT: 7, UTILITIES: 7 } });
       expect(state.people.find((p) => p.id === primary?.personId)).toMatchObject({ name: "Priya", isOwner: false });
       expect(splitsOf(config)).toEqual([
         [5000, 5000],
