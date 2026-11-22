@@ -1,4 +1,4 @@
-import { Bell, Check } from 'lucide-react-native';
+import { Bell, Check, Pencil } from 'lucide-react-native';
 import { useRef } from 'react';
 import { View } from 'react-native';
 
@@ -8,7 +8,7 @@ import { SendMessageSheet, type SendMessageSheetRef } from '@/sheets/send-messag
 import type { HomeTarget } from '@splithouse/shared';
 import type { ChargeDetailsFooterProps } from '../types';
 
-const ICONS = { check: Check, bell: Bell } as const;
+const ICONS = { check: Check, bell: Bell, pencil: Pencil } as const;
 
 /**
  * The sticky footer: Nudge or Nudge again above Mark paid, as the server sends them. Mark paid opens
@@ -28,7 +28,7 @@ export function ChargeDetailsFooter({ actions }: ChargeDetailsFooterProps) {
         sendMessage.current?.open({ mode: 'nudge', personId: target.personId, chargeId: target.chargeId });
         return;
       default:
-        // Charge details only sends Nudge and Mark paid.
+        // Edit payment opens its sheet from 13A.2; Charge details sends nothing else.
         return;
     }
   };

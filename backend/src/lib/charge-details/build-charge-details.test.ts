@@ -165,7 +165,7 @@ describe("buildChargeDetails", () => {
     expect(labels(late)).toEqual(["Mark paid"]);
   });
 
-  it("paid: Paid chip and pill, the payment on top of the same-day order, no footer", () => {
+  it("paid: Paid chip and pill, the payment on top of the same-day order, and Edit payment", () => {
     const paid = { ...JORDAN_RENT, paidCents: 95000, paidOn: new Date("2026-11-03") };
     const d = details(paid, "2026-11-05", [monthly(PERSON_IDS.jordan), nudge(JORDAN_RENT.id)]);
     expect(d.amount.chip).toEqual({ label: "Paid", tone: "success" });
@@ -175,7 +175,19 @@ describe("buildChargeDetails", () => {
       { title: "Nudged", date: "02 Nov 2026" },
       { title: "Monthly message sent", date: "02 Nov 2026" },
     ]);
-    expect(d.footer).toEqual([]);
+    expect(d.footer).toEqual([
+      { label: "Edit payment", tone: "outline", icon: "pencil", target: { kind: "edit-payment", chargeId: JORDAN_RENT.id } },
+    ]);
+  });
+
+  it("paid via someone: Edit payment too", () => {
+    const paid = { ...SAM_UTILITIES, paidCents: 8246, paidOn: new Date("2026-11-07") };
+    expect(labels(details(paid, "2026-11-08"))).toEqual(["Edit payment"]);
+  });
+
+  it("gives a paid refund (a charge below zero) no Edit payment", () => {
+    const refund = charge({ id: "charge-7", category: "CORRECTION", label: "Correction", amountCents: -500, paidCents: -500, paidOn: new Date("2026-11-03"), dueDate: null });
+    expect(details(refund, "2026-11-05").footer).toEqual([]);
   });
 
   it("lists a payment made the same day as a nudge above it", () => {
@@ -197,5 +209,8 @@ describe("buildChargeDetails", () => {
   it("gives the owner's own charge no footer", () => {
     const own = charge({ id: "charge-6", personId: PERSON_IDS.alex, dueDate: new Date("2026-11-01") });
     expect(details(own, "2026-11-03").footer).toEqual([]);
+    // Even if a payment were stored on it, the owner's charge never gets Edit payment.
+    const ownPaid = { ...own, paidCents: 95000, paidOn: new Date("2026-11-02") };
+    expect(details(ownPaid, "2026-11-03").footer).toEqual([]);
   });
 });

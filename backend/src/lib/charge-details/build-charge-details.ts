@@ -14,6 +14,7 @@ import type { ChargeCategory, MessageKind } from "@/generated/prisma/enums";
 import { chargeBadge, HOME_BADGES } from "@/lib/home/badges";
 import { chargeActions } from "@/lib/home/charge-actions";
 import { chargeDueDate } from "@/lib/home/due-dates";
+import { editPaymentAction, isPaymentEditable } from "@/lib/payments/build-edit-payment";
 
 /** The charge, as much of it as Charge details needs. */
 export interface ChargeDetailsCharge {
@@ -97,8 +98,8 @@ function activity(input: ChargeDetailsInput, payerId: string): ChargeDetailsActi
 /**
  * Builds Charge details for one charge: the amount card with the charge's Home chip, the Details
  * rows, the Activity, and the footer. The chip and the footer follow the Home row's rules
- * (`chargeBadge`, `chargeActions`), so both screens agree. The owner's own charges are not payments
- * to anyone, so they have no footer.
+ * (`chargeBadge`, `chargeActions`), so both screens agree; a paid charge gets Edit payment instead
+ * (`isPaymentEditable`). The owner's own charges are not payments to anyone, so they have no footer.
  *
  * @param input - Today, the pinned config, the charge, the people it names and the month's messages.
  * @returns The response, ready to render.
@@ -151,7 +152,9 @@ export function buildChargeDetails(input: ChargeDetailsInput): ChargeDetailsResp
     activity: activity(input, payerId),
     footer: isOwner
       ? []
-      : chargeActions({
+      : isPaymentEditable(charge, isOwner)
+        ? [editPaymentAction(charge.id)]
+        : chargeActions({
           chargeId: charge.id,
           month: charge.month,
           payerId,
