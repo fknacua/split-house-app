@@ -1,8 +1,17 @@
 import { Text, View } from 'react-native';
 
-import type { ConfirmDetailRowProps } from '../types';
+/** Props for {@link ConfirmDetailRow}. */
+export interface ConfirmDetailRowProps {
+  label: string;
+  value: string;
+  /** The first row has no divider above it. */
+  first?: boolean;
+}
 
-/** One label and value row in the confirm dialog's details box; every row but the first has a divider above it. */
+/**
+ * One label and value row in a confirm dialog's details box (`Confirm` boards); every row but the first has a
+ * divider above it. Used by Record payment's and Add charge's confirm dialogs.
+ */
 export function ConfirmDetailRow({ label, value, first = false }: ConfirmDetailRowProps) {
   return (
     <View

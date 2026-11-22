@@ -1,9 +1,8 @@
 import { CircleMinus } from 'lucide-react-native';
 import { Text, View } from 'react-native';
 
-import { Icon } from '@/components';
+import { Icon, PersonSplitBar } from '@/components';
 import type { SplitRowProps } from '../types';
-import { PersonSplitBar } from './person-split-bar';
 import { SplitLegendItem } from './split-legend-item';
 
 /** One row of "Household split": the label and total, the bar with a segment per person, the legend, and who is not in the total. */
