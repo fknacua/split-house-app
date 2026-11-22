@@ -43,7 +43,7 @@ const CHARGES: SendCharge[] = [
   charge("priya-starhub", priya, "RECURRING", "Starhub", 2750, "2026-11-07"),
   charge("sam-rent", sam, "RENT", "Rent", 95000, "2026-11-28"),
   charge("sam-utilities", sam, "UTILITIES", "Utilities", 8246, null, { payViaPersonId: priya }),
-  charge("sam-aircon", sam, "AIRCON", "Aircon", 1833, null, { payViaPersonId: priya }),
+  charge("sam-aircon", sam, "AIRCON", "Aircon", 1833, "2026-11-07", { payViaPersonId: priya }),
   charge("jordan-rent", jordan, "RENT", "Rent", 95000, "2026-11-01"),
   charge("jordan-utilities", jordan, "UTILITIES", "Utilities", 8246, "2026-11-04"),
   charge("jordan-aircon", jordan, "AIRCON", "Aircon", 1833, "2026-11-04"),

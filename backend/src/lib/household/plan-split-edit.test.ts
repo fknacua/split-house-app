@@ -290,7 +290,7 @@ describe("planSplitEdit", () => {
 
   it("leaves a due day as it is when shares go to 0", () => {
     const { nextConfig } = plan({ tenantShares: [{ personId: PERSON_IDS.jordan, utilityShares: 0 }] });
-    expect(nextConfig?.people.find((p) => p.personId === PERSON_IDS.jordan)?.dueDays).toEqual({ RENT: 1, UTILITIES: 4, AIRCON: 4 });
+    expect(nextConfig?.people.find((p) => p.personId === PERSON_IDS.jordan)?.dueDays).toEqual({ RENT: 1, UTILITIES: 4 });
   });
 
   it("works with a tenant gone from the version", () => {

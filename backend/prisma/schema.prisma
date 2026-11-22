@@ -91,6 +91,7 @@ enum ChargeCategory {
 }
 
 enum SplitMethod {
+  EQUAL
   PER_SHARE
   PER_UNIT
   CUSTOM
@@ -228,7 +229,6 @@ model ChargeGroup {
   splitMethod   SplitMethod
   totalCents    Int
   note          String?
-  correctsMonth String?
   createdAt     DateTime    @default(now())
 
   charges Charge[]

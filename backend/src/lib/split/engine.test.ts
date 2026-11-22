@@ -9,6 +9,7 @@ import {
   splitByShares,
   splitByUnits,
   splitCustom,
+  splitEqual,
   splitShareCategory,
 } from "./engine";
 
@@ -52,6 +53,40 @@ describe("splitCustom", () => {
     expect(() =>
       splitCustom(1000, [{ personId: PERSON_IDS.sam, amountCents: 400 }]),
     ).toThrow(SplitEngineError);
+  });
+});
+
+describe("splitEqual", () => {
+  const { alex, priya, sam, jordan } = PERSON_IDS;
+  const everyone = [alex, priya, sam, jordan];
+
+  // [case, total, expected for everyone but the owner (each), the owner's remainder]
+  it.each([
+    ["an even split", 40000, 10000, 10000],
+    ["everyone else rounded down, the owner gets the extra", 10001, 2500, 2501],
+    ["everyone else rounded half up, the owner gets less", 10002, 2501, 2499],
+    ["everyone else rounded up, the owner gets less", 10003, 2501, 2500],
+    ["the smallest amount", 1, 0, 1],
+  ])("%s: %i", (_, total, each, owner) => {
+    const result = splitEqual(total, everyone, alex);
+    expect(result).toEqual({ [alex]: owner, [priya]: each, [sam]: each, [jordan]: each });
+    expect(Object.values(result).reduce((s, v) => s + v, 0)).toBe(total);
+  });
+
+  it("rounds a three-way split to the nearest cent, with the owner taking the remainder", () => {
+    expect(splitEqual(10000, [priya, alex, jordan], alex)).toEqual({ [alex]: 3334, [priya]: 3333, [jordan]: 3333 });
+  });
+
+  it("gives the owner everything when they are the only one", () => {
+    expect(splitEqual(5000, [alex], alex)).toEqual({ [alex]: 5000 });
+  });
+
+  it("throws when the owner is not in the split", () => {
+    expect(() => splitEqual(1000, [priya, sam], alex)).toThrow(SplitEngineError);
+  });
+
+  it("throws when a person is listed twice", () => {
+    expect(() => splitEqual(1000, [alex, priya, priya], alex)).toThrow(SplitEngineError);
   });
 });
 
