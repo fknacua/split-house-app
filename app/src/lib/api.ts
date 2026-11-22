@@ -33,7 +33,7 @@ export class ApiRequestError extends Error {
 
 /** Options for {@link apiFetch}. */
 export interface ApiFetchOptions {
-  method?: 'GET' | 'POST' | 'PUT' | 'DELETE';
+  method?: 'GET' | 'POST' | 'PUT' | 'PATCH' | 'DELETE';
   /** Sent as JSON. Ignored when `formData` is set. */
   body?: unknown;
   /** Sent as multipart (bill upload). */
