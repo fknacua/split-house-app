@@ -7,7 +7,13 @@ import {
   type ChargeDetailsMessage,
 } from "@/lib/charge-details/build-charge-details";
 import { deriveMonthStatus, isMonthSettled, othersAllPaid } from "@/lib/home/derive-month-status";
-import { messageRecipientIds, monthlyMessagedIds, unsentRecipientIds } from "@/lib/home/message-recipients";
+import {
+  isChargeUnsent,
+  messageRecipientIds,
+  monthlyMessagedIds,
+  unsentContext,
+  unsentRecipientIds,
+} from "@/lib/home/message-recipients";
 import { now } from "@/lib/now";
 
 const CHARGE_SELECT = {
@@ -21,24 +27,34 @@ const CHARGE_SELECT = {
   dueDate: true,
   paidCents: true,
   paidOn: true,
+  createdAt: true,
   householdVersion: { select: { schemaVersion: true, config: true } },
 } as const;
 
 // Only what the month's status needs.
-const MONTH_CHARGE_SELECT = { personId: true, payViaPersonId: true, category: true, paidCents: true } as const;
+const MONTH_CHARGE_SELECT = {
+  personId: true,
+  payViaPersonId: true,
+  category: true,
+  amountCents: true,
+  paidCents: true,
+  createdAt: true,
+} as const;
 
 // The rendered text of a message is never needed here.
 const MESSAGE_SELECT = { personId: true, kind: true, chargeId: true, openedAt: true } as const;
 
 /** The charge row this service reads: the builder's fields plus the version pinned to it. */
-type ChargeDetailsRow = ChargeDetailsCharge & { householdVersion: { schemaVersion: number; config: unknown } };
+type ChargeDetailsRow = ChargeDetailsCharge & { createdAt: Date; householdVersion: { schemaVersion: number; config: unknown } };
 
 /** A charge of the same month, as much of it as the month's status needs. */
 interface MonthChargeRow {
   personId: string;
   payViaPersonId: string | null;
   category: ChargeCategory;
+  amountCents: number;
   paidCents: number | null;
+  createdAt: Date;
 }
 
 /** The slice of the Prisma client this service uses, so tests can pass an in-memory fake. */
@@ -79,7 +95,7 @@ export interface ChargeDetailsDb {
 export async function getChargeDetails(db: ChargeDetailsDb, chargeId: string): Promise<ChargeDetailsResponse> {
   const charge = await db.charge.findUnique({ where: { id: chargeId }, select: CHARGE_SELECT });
   if (!charge) throw new ApiError(404, "no_charge", "This charge doesn’t exist.");
-  const { householdVersion, ...row } = charge;
+  const { householdVersion, createdAt, ...row } = charge;
   const { month } = row;
 
   // The draft is looked up by id only: its PDF bytes stay in the database.
@@ -107,5 +123,6 @@ export async function getChargeDetails(db: ChargeDetailsDb, chargeId: string): P
     people,
     messages,
     monthStatus,
+    messageUnsent: isChargeUnsent({ ...row, createdAt }, unsentContext(monthCharges, messages, ownerIds)),
   });
 }

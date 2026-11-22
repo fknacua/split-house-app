@@ -17,6 +17,7 @@ function charge(id: string, personId: string, category: SendCharge["category"], 
     dueDate: due ? new Date(`${due}T00:00:00+08:00`) : null,
     payViaPersonId: payVia,
     paidCents: null,
+    createdAt: new Date("2026-11-01T09:00:00+08:00"),
   };
 }
 

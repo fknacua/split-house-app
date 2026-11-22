@@ -53,14 +53,15 @@ function nudge(chargeId: string): ChargeDetailsMessage {
   return { personId: PERSON_IDS.jordan, kind: "NUDGE", chargeId, openedAt: new Date("2026-11-02T18:00:00+08:00") };
 }
 
-/** Builds the details and checks them against the shared contract. */
+/** Builds the details and checks them against the shared contract. `messageUnsent` is worked out by the service (`isChargeUnsent`, tested with it). */
 function details(
   c: ChargeDetailsCharge,
   today: string,
   messages: ChargeDetailsMessage[] = [],
   monthStatus: HomeStatus = "collecting",
+  messageUnsent = false,
 ) {
-  const input: ChargeDetailsInput = { today, config: NOV_2026_CONFIG, charge: c, people: PEOPLE, messages, monthStatus };
+  const input: ChargeDetailsInput = { today, config: NOV_2026_CONFIG, charge: c, people: PEOPLE, messages, monthStatus, messageUnsent };
   return chargeDetailsResponseSchema.parse(buildChargeDetails(input));
 }
 
@@ -111,7 +112,7 @@ describe("buildChargeDetails", () => {
   });
 
   it("unsent: Not sent, no activity, and Mark paid before the message", () => {
-    const d = details(JORDAN_UTILITIES, "2026-11-02", [], "unsent");
+    const d = details(JORDAN_UTILITIES, "2026-11-02", [], "unsent", true);
     expect(d.amount.chip).toEqual({ label: "Not sent", tone: "primary" });
     expect(d.activity).toEqual([]);
     expect(labels(d)).toEqual(["Mark paid"]);

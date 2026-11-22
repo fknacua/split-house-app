@@ -29,6 +29,7 @@ function charge(
     dueDate: due ? new Date(`${due}T00:00:00+08:00`) : null,
     payViaPersonId: null,
     paidCents: null,
+    createdAt: new Date("2026-11-01T09:00:00+08:00"),
     ...extra,
   };
 }
@@ -377,5 +378,28 @@ describe("buildSend, nudge", () => {
       template: "NUDGE",
       personId: jordan,
     });
+  });
+});
+
+describe("buildSend, monthly, unsent again", () => {
+  // Sam's share of a fridge repair, collected through Priya, added after Priya's last message on 3 Nov.
+  const fridge = charge("sam-fridge", sam, "ONE_OFF", "Fridge repair", 3000, "2026-11-24", {
+    payViaPersonId: priya,
+    createdAt: at("2026-11-21T10:00:00+08:00"),
+  });
+
+  it("reads Not sent on the Total for the payer of a charge added since their message", () => {
+    expect(build({ charges: [...CHARGES, fridge] }, { personId: priya }).total?.chip).toEqual(HOME_BADGES.notSent);
+  });
+
+  it("leaves someone with nothing new as Sent · unpaid", () => {
+    expect(build({ charges: [...CHARGES, fridge] }, { personId: jordan }).total?.chip).toEqual(HOME_BADGES.sentUnpaid);
+  });
+
+  it("goes back to Sent · unpaid once the message goes out again", () => {
+    const again: SendMessageEvent = { personId: priya, kind: "MONTHLY", chargeId: null, openedAt: at("2026-11-21T12:00:00+08:00") };
+    expect(build({ charges: [...CHARGES, fridge], messages: [...MESSAGES, again] }, { personId: priya }).total?.chip).toEqual(
+      HOME_BADGES.sentUnpaid,
+    );
   });
 });

@@ -23,6 +23,7 @@ const CHARGE_SELECT = {
   dueDate: true,
   paidCents: true,
   paidOn: true,
+  createdAt: true,
 } as const;
 
 // The rendered text of a message is never needed on Home.

@@ -19,7 +19,7 @@ import {
 import type { ChargeCategory, MessageKind } from "@/generated/prisma/enums";
 import { HOME_BADGES, overdueBadge } from "@/lib/home/badges";
 import { chargeDueDate } from "@/lib/home/due-dates";
-import { messageRecipientIds } from "@/lib/home/message-recipients";
+import { messageRecipientIds, unsentAgainIds, unsentContext } from "@/lib/home/message-recipients";
 import { joinWords } from "@/lib/household/sub-line";
 import { breakdownCharges, type BreakdownCharge } from "@/lib/messages/build-breakdown";
 import {
@@ -31,7 +31,11 @@ import {
 import { whatsappLink } from "@/lib/messages/whatsapp-link";
 
 /** A charge row, as much of it as the sheet needs. */
-export type SendCharge = BreakdownCharge & { id: string };
+export type SendCharge = BreakdownCharge & {
+  id: string;
+  /** When the charge was added: one added after the payer's monthly message makes them unsent again. */
+  createdAt: Date;
+};
 
 /** A message event of the active month. */
 export interface SendMessageEvent {
@@ -216,6 +220,10 @@ function monthlyParts(input: SendInput, person: Person, names: Map<string, strin
     (c) => (c.payViaPersonId ?? c.personId) === person.id && c.month === input.month && c.amountCents > 0,
   );
   const allPaid = owed.length > 0 && owed.every((c) => c.paidCents !== null);
+  // A charge added since the last message is in no message that went out, so the person reads Not sent again.
+  const owners = new Set(input.config.people.filter((p) => p.role === "OWNER").map((p) => p.personId));
+  const monthCharges = input.charges.filter((c) => c.month === input.month);
+  const unsentAgain = unsentAgainIds(monthCharges, unsentContext(monthCharges, input.messages, owners)).includes(person.id);
   const sub = [`${included.length} ${included.length === 1 ? "charge" : "charges"}`];
   if (message.breakdown.dueDate) sub.push(`due ${formatDateShort(message.breakdown.dueDate)}`);
   const collected = message.breakdown.sections
@@ -227,7 +235,7 @@ function monthlyParts(input: SendInput, person: Person, names: Map<string, strin
       amount: formatCents(message.breakdown.totalCents),
       sub: sub.join(" · "),
       paysFor: collected.length > 0 ? `Pays for: ${joinWords(collected)}` : null,
-      chip: allPaid ? HOME_BADGES.paid : sent.length > 0 ? HOME_BADGES.sentUnpaid : HOME_BADGES.notSent,
+      chip: allPaid ? HOME_BADGES.paid : sent.length > 0 && !unsentAgain ? HOME_BADGES.sentUnpaid : HOME_BADGES.notSent,
       rows: [...included]
         .sort(
           (a, b) =>
