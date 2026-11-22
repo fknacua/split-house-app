@@ -15,6 +15,7 @@ const CHARGE_SELECT = {
   dueDate: true,
   payViaPersonId: true,
   paidCents: true,
+  createdAt: true,
 } as const;
 
 const MESSAGE_SELECT = { personId: true, kind: true, chargeId: true, openedAt: true } as const;

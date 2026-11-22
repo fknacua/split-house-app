@@ -52,6 +52,8 @@ export interface ChargeDetailsInput {
   messages: ChargeDetailsMessage[];
   /** Where the charge's month is in its cycle. Only `collecting` matters, for the due-today note. */
   monthStatus: HomeStatus;
+  /** The charge is not in a message that went out, by Home's rule (`isChargeUnsent`), so its chip is `Not sent`. */
+  messageUnsent: boolean;
 }
 
 /** An Activity line with what it sorts by: its day, then a payment before a chat on the same day, then the time. */
@@ -116,7 +118,7 @@ export function buildChargeDetails(input: ChargeDetailsInput): ChargeDetailsResp
 
   const chip = chargeBadge({
     paid,
-    messageUnsent: !paid && !isOwner && charge.category === "UTILITIES" && !sent,
+    messageUnsent: input.messageUnsent,
     days,
     sent,
   });

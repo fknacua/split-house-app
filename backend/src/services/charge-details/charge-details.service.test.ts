@@ -30,24 +30,29 @@ const MONTHLY: ChargeDetailsMessage = {
   openedAt: new Date("2026-11-02T10:00:00+08:00"),
 };
 
+/** When the bill was saved: before the 2 Nov message. */
+const CREATED = new Date("2026-11-01T09:00:00+08:00");
+
 interface FakeOptions {
   charge?: ChargeDetailsCharge | null;
   hasBill?: boolean;
   messages?: ChargeDetailsMessage[];
+  /** When the charge was added; the bill's save by default. */
+  createdAt?: Date;
 }
 
 /** A November with Jordan's utilities and Priya's paid utilities; records the month each query asked for. */
-function fakeDb({ charge = UTILITIES, hasBill = true, messages = [MONTHLY] }: FakeOptions = {}) {
+function fakeDb({ charge = UTILITIES, hasBill = true, messages = [MONTHLY], createdAt = CREATED }: FakeOptions = {}) {
   const months: string[] = [];
   const db: ChargeDetailsDb = {
     charge: {
       findUnique: async () =>
-        charge && { ...charge, householdVersion: { schemaVersion: HOUSEHOLD_SCHEMA_VERSION, config: NOV_2026_CONFIG } },
+        charge && { ...charge, createdAt, householdVersion: { schemaVersion: HOUSEHOLD_SCHEMA_VERSION, config: NOV_2026_CONFIG } },
       findMany: async ({ where }) => {
         months.push(where.month);
         return [
-          { personId: PERSON_IDS.jordan, payViaPersonId: null, category: "UTILITIES", paidCents: null },
-          { personId: PERSON_IDS.priya, payViaPersonId: null, category: "UTILITIES", paidCents: 8246 },
+          { personId: PERSON_IDS.jordan, payViaPersonId: null, category: "UTILITIES", amountCents: 8246, paidCents: null, createdAt: CREATED },
+          { personId: PERSON_IDS.priya, payViaPersonId: null, category: "UTILITIES", amountCents: 8246, paidCents: 8246, createdAt: CREATED },
         ];
       },
     },
@@ -88,6 +93,26 @@ describe("getChargeDetails", () => {
     expect(res.amount.note).toBeNull();
   });
 
+
+  describe("the Not sent chip, by Home's rule", () => {
+    const sentToBoth = [MONTHLY, { ...MONTHLY, personId: PERSON_IDS.priya }];
+
+    it("is off for a charge already in the message that went out", async () => {
+      const res = await getChargeDetails(fakeDb({ messages: sentToBoth }).db, UTILITIES.id);
+      expect(res.amount.chip.label).not.toBe("Not sent");
+    });
+
+    it("is on while the payer's first message is still to go", async () => {
+      const res = await getChargeDetails(fakeDb({ messages: [] }).db, UTILITIES.id);
+      expect(res.amount.chip.label).toBe("Not sent");
+    });
+
+    it("is on again for a charge added after the payer's message", async () => {
+      const fridge = { ...UTILITIES, id: "jordan-fridge", category: "ONE_OFF" as const, label: "Fridge repair", amountCents: 3000 };
+      const db = fakeDb({ charge: fridge, messages: sentToBoth, createdAt: new Date("2026-11-21T10:00:00+08:00") }).db;
+      expect((await getChargeDetails(db, fridge.id)).amount.chip.label).toBe("Not sent");
+    });
+  });
   it("answers 404 no_charge for an unknown charge", async () => {
     await expect(getChargeDetails(fakeDb({ charge: null }).db, "nope")).rejects.toMatchObject({
       status: 404,

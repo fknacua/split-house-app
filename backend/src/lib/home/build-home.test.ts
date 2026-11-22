@@ -21,6 +21,8 @@ function toRows(charges: EngineCharge[]): HomeChargeRow[] {
     dueDate: c.dueDate ? new Date(c.dueDate) : null,
     paidCents: null,
     paidOn: null,
+    // Rent, recurring and utilities are added when the month opens and the bill is saved, before any message.
+    createdAt: new Date("2026-11-01T09:00:00+08:00"),
   }));
 }
 
@@ -781,5 +783,76 @@ describe("buildHome, settled on 29 Nov", () => {
       title: "Close December?",
       body: "This closes December 2026 and starts January. You can’t undo this.",
     });
+  });
+});
+
+describe("buildHome, collecting with a charge added after the messages went out", () => {
+  // As the board draws it: the bill paid on 16 Nov, and Jordan's fridge repair share added on 21 Nov, after both
+  // messages went out on 2 Nov.
+  const PAID_BILL = { ...BILL, paidCents: 41230, paidOn: new Date("2026-11-16") };
+  const fridge: HomeChargeRow = {
+    id: "jordan-fridge",
+    personId: PERSON_IDS.jordan,
+    payViaPersonId: null,
+    category: "ONE_OFF",
+    label: "Fridge repair",
+    amountCents: 3000,
+    dueDate: new Date("2026-11-24"),
+    paidCents: null,
+    paidOn: null,
+    createdAt: new Date("2026-11-21T10:00:00+08:00"),
+  };
+  const home = (messages = monthly(PERSON_IDS.priya, PERSON_IDS.jordan)) =>
+    buildHome(
+      input({ status: "collecting", today: "2026-11-21", charges: [...novemberChargesWithBill(), fridge], bill: PAID_BILL, messages }),
+    );
+
+  it("keeps the collecting hero, as drawn", () => {
+    expect(home().hero.body.kind).toBe("collecting");
+  });
+
+  it("fills Send message with the count, opening on Jordan", () => {
+    expect(home().footer[0]).toEqual({
+      label: "Send message",
+      icon: "send",
+      variant: "solid",
+      count: 1,
+      target: { kind: "send-message", month: "2026-11", personId: PERSON_IDS.jordan },
+    });
+  });
+
+  it("shows Not sent on the new row only, open", () => {
+    const rows = home().rows;
+    expect(rows.find((r) => r.id === "jordan-fridge")).toMatchObject({ badge: { label: "Not sent" }, expanded: true });
+    expect(rows.filter((r) => r.badge.label === "Not sent").map((r) => r.id)).toEqual(["jordan-fridge"]);
+  });
+
+  it("goes back to the outline Send message once Jordan's message goes out again", () => {
+    const again = { personId: PERSON_IDS.jordan, kind: "MONTHLY" as const, chargeId: null, openedAt: new Date("2026-11-21T12:00:00+08:00") };
+    const sentAgain = home([...monthly(PERSON_IDS.priya, PERSON_IDS.jordan), again]);
+    expect(sentAgain.footer[0]).toMatchObject({ label: "Send message", variant: "outline", count: null });
+    expect(sentAgain.rows.find((r) => r.id === "jordan-fridge")?.badge.label).not.toBe("Not sent");
+  });
+});
+
+describe("buildHome, a charge added after the send once the bill is due", () => {
+  it("keeps Mark bill paid as the only button, as before", () => {
+    const fridge: HomeChargeRow = {
+      id: "jordan-fridge",
+      personId: PERSON_IDS.jordan,
+      payViaPersonId: null,
+      category: "ONE_OFF",
+      label: "Fridge repair",
+      amountCents: 3000,
+      dueDate: new Date("2026-11-24"),
+      paidCents: null,
+      paidOn: null,
+      createdAt: new Date("2026-11-21T10:00:00+08:00"),
+    };
+    const charges = [...novemberChargesWithBill(), fridge];
+    const home = buildHome(
+      input({ status: "collecting", today: "2026-11-21", charges, bill: BILL, messages: monthly(PERSON_IDS.priya, PERSON_IDS.jordan) }),
+    );
+    expect(home.footer.map((b) => b.label)).toEqual(["Mark bill paid"]);
   });
 });

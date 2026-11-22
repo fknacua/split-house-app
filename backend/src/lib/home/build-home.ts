@@ -21,7 +21,15 @@ import { billCoverage, coveragePercent } from "@/lib/bill/bill-coverage";
 import { billDueBadge, chargeBadge, HOME_BADGES } from "./badges";
 import { chargeActions } from "./charge-actions";
 import { billDueDateKey, chargeDueDate } from "./due-dates";
-import { messageRecipientIds, monthlyMessagedIds, unsentRecipientIds } from "./message-recipients";
+import {
+  isChargeUnsent,
+  messageRecipientIds,
+  monthlyMessagedIds,
+  unsentAgainIds,
+  unsentContext,
+  unsentRecipientIds,
+  type UnsentContext,
+} from "./message-recipients";
 
 /** A person, as much of them as Home needs. */
 export interface HomePerson {
@@ -41,6 +49,8 @@ export interface HomeChargeRow {
   dueDate: Date | null;
   paidCents: number | null;
   paidOn: Date | null;
+  /** When the charge was added: one added after its payer's monthly message is unsent again. */
+  createdAt: Date;
 }
 
 /** A WhatsApp chat opened for a person, as much of it as Home needs. */
@@ -142,8 +152,8 @@ function routeDetail(viaPersonId: string | null | undefined, names: Map<string, 
 }
 
 /**
- * One row per real charge, each with a View details link to its Charge details. A utilities charge
- * whose payer has no monthly message yet is `Not sent`. When the person pays for themselves that
+ * One row per real charge, each with a View details link to its Charge details. A charge not in a
+ * message that went out is `Not sent` (`isChargeUnsent`). When the person pays for themselves that
  * row starts open; a charge paid via someone else has no message of its own, so it stays closed.
  * An unpaid charge past its due date is shaded and starts open. The buttons come from
  * `chargeActions`, the same as Charge details' footer.
@@ -152,13 +162,13 @@ function chargeRow(
   input: HomeInput,
   charge: HomeChargeRow,
   names: Map<string, string>,
-  unsentIds: Set<string>,
+  unsent: UnsentContext,
   dates: MessageDates,
 ): RankedRow {
   const dueDate = chargeDueDate(input.month, input.config, charge);
   const payerId = charge.payViaPersonId ?? charge.personId;
   const unpaid = charge.paidCents === null;
-  const messageUnsent = unpaid && charge.category === "UTILITIES" && unsentIds.has(payerId);
+  const messageUnsent = isChargeUnsent(charge, unsent);
   // Someone paid via another person rides in that person's message, so only the payer's own rows
   // are reviewed. A via row stays Not sent until the payer's message goes out, but has no message.
   const ownMessage = messageUnsent && charge.payViaPersonId === null;
@@ -504,7 +514,8 @@ function owingPayerIds(input: HomeInput, ownerIds: Set<string>): Set<string> {
 
 /**
  * The sticky footer's buttons for the month's status. Send message is solid with the count of
- * unsent monthly messages until every one is out, then an outline with no count. Record payment
+ * monthly messages to send until every one is out, then an outline with no count; while collecting,
+ * it is solid again with a count while someone is unsent again (a charge added since their message). Record payment
  * counts the people who still owe and goes when nobody does. Once the bill's due date has come
  * while payments are still coming in, Mark bill paid replaces both until the bill is paid, then
  * they come back. Mark bill paid is also the main button once everyone has paid. A settled month has none: its button is `nextMonthAction`.
@@ -550,7 +561,9 @@ function buildFooter(input: HomeInput, ownerIds: Set<string>, unsentIds: string[
       // Once the bill is due, paying it is the one pressing job, so it is the only button until it is paid.
       if (billDueReached) return [markBillPaid];
       return [
-        { label: "Send message", icon: "send", variant: "outline", count: null, target: { kind: "send-message", month } },
+        unsentIds.length > 0
+          ? { label: "Send message", icon: "send", variant: "solid", count: unsentIds.length, target: { kind: "send-message", month, personId: unsentIds[0] } }
+          : { label: "Send message", icon: "send", variant: "outline", count: null, target: { kind: "send-message", month } },
         ...record,
       ];
     case "bill_due":
@@ -594,15 +607,17 @@ function buildNextMonthAction(input: HomeInput): HomeNextMonthAction {
 export function buildHome(input: HomeInput): HomeResponse {
   const names = new Map(input.people.map((p) => [p.id, p.name]));
   const ownerIds = new Set(input.people.filter((p) => p.isOwner).map((p) => p.id));
-  const unsentIds = unsentRecipientIds(messageRecipientIds(input.charges, ownerIds), monthlyMessagedIds(input.messages));
-  const unsentSet = new Set(unsentIds);
+  const unsent = unsentContext(input.charges, input.messages, ownerIds);
+  // Everyone with a message to send: no monthly message yet, then unsent again.
+  const firstRound = unsentRecipientIds(messageRecipientIds(input.charges, ownerIds), monthlyMessagedIds(input.messages));
+  const unsentIds = [...new Set([...firstRound, ...unsentAgainIds(input.charges, unsent)])];
   const dates = messageDates(input.messages);
 
   // The owner's own charges are not payments to anyone, so they get no row.
   const ranked: RankedRow[] = [
     ...input.charges
       .filter((c) => !ownerIds.has(c.personId))
-      .map((c) => chargeRow(input, c, names, unsentSet, dates)),
+      .map((c) => chargeRow(input, c, names, unsent, dates)),
     ...(input.status === "bill_missing" || input.status === "draft" ? projectedUtilitiesRows(input, names) : []),
     billRow(input, ownerIds),
   ];
