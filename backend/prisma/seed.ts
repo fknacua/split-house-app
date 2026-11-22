@@ -5,7 +5,14 @@ import { openMonthIfNeeded } from "@/lib/month-open";
 import { HOUSEHOLD_SCHEMA_VERSION, type MessageTemplates, type PersonColor } from "@splithouse/shared";
 import { DEFAULT_MESSAGE_TEMPLATES } from "@/lib/messages/default-templates";
 import { JAN_2027_CONFIG, NOV_2026_CONFIG, PERSON_IDS, ROOM_IDS, VERSION_A_CONFIG } from "@/lib/fixtures/household";
-import { buildMonthCharges, buildUtilitiesCharges, type EngineCharge } from "@/lib/split/engine";
+import {
+  buildAirconCharges,
+  buildMonthCharges,
+  buildPersonalOneOffCharge,
+  buildSharedOneOffCharges,
+  buildUtilitiesCharges,
+  type EngineCharge,
+} from "@/lib/split/engine";
 import { BILL_FIXTURE } from "@/lib/fixtures/bill";
 import { generateBillFixturePdf } from "@/lib/fixtures/generate-bill-pdf";
 import { countPdfPages } from "@/services/bill/read-bill.service";
@@ -43,6 +50,16 @@ const SCENARIOS = {
   fullyCollected: { devNow: "2026-11-10T09:00:00+08:00" },
   // As collecting, but every charge is paid and the bill is marked paid.
   settled: { devNow: "2026-11-29T09:00:00+08:00" },
+  // As settled, then a shared fridge repair (Equal, due 24 Nov) added on 21 Nov, after the messages went out: Priya
+  // (with Sam's share, collected through her) and Jordan are unsent again (Phase 13B).
+  addedAfterSend: { devNow: "2026-11-21T12:00:00+08:00" },
+  // As unsent, plus aircon servicing ($110, due 20 Nov) added on 1 Nov before any message: its rows wait for the
+  // first message with the utilities, so they read Not sent too (Phase 13B.4).
+  addChargeFirstRound: { devNow: "2026-11-01T12:00:00+08:00" },
+  // As collecting, with one of each Add charge kind saved on 1 Nov, before the 2 Nov messages (Phase 13B.3): aircon
+  // servicing ($110, by units), a fridge repair ($120, Per share), a cleaning fee ($90, Custom: Sam at $0) and Sam's
+  // replacement key ($8.20, Personal, collected through Priya, due 2 Nov so already overdue).
+  addChargeSaved: { devNow: "2026-11-03T09:00:00+08:00" },
   // As upload, plus a December 2026 version that no month has opened: saved values not in effect yet.
   householdUpcoming: { devNow: "2026-11-03T09:00:00+08:00" },
   // As upload, but Room 3 is part of the landlord rent, so everyone is in the Rent row's total.
@@ -146,6 +163,7 @@ type ChargeInsert = Omit<EngineCharge, "category"> & {
   month: string;
   householdVersionId: string;
   billId?: string;
+  chargeGroupId?: string;
   correctsMonth?: string;
   correctsCategory?: EngineCharge["category"];
   createdAt?: string;
@@ -165,6 +183,7 @@ async function insertCharge(c: ChargeInsert) {
       amountCents: c.amountCents,
       dueDate: c.dueDate ? new Date(c.dueDate) : null,
       billId: c.billId ?? null,
+      chargeGroupId: c.chargeGroupId ?? null,
       correctsMonth: c.correctsMonth ?? null,
       correctsCategory: c.correctsCategory ?? null,
       ...(c.createdAt ? { createdAt: new Date(c.createdAt) } : {}),
@@ -244,6 +263,22 @@ async function markPaid(chargeId: string, personId: string, paidOn: string) {
     where: { id: chargeId },
     data: { paidCents: charge.amountCents, paidOn: new Date(paidOn), paidByPersonId: personId },
   });
+}
+
+/**
+ * Stores Add charge charges as its save does: a ChargeGroup for a shared one (none for Personal) and its charges,
+ * added at `createdAt`.
+ */
+async function seedAddCharge(
+  householdVersionId: string,
+  createdAt: string,
+  charges: EngineCharge[],
+  group: { splitMethod: "EQUAL" | "PER_SHARE" | "PER_UNIT" | "CUSTOM"; totalCents: number } | null,
+) {
+  const saved = group ? await prisma.chargeGroup.create({ data: { scope: "SHARED", ...group } }) : null;
+  for (const c of charges) {
+    await insertCharge({ ...c, month: "2026-11", householdVersionId, chargeGroupId: saved?.id, createdAt });
+  }
 }
 
 async function markBillPaid(billId: string, paidOn: string) {
@@ -447,7 +482,10 @@ async function main() {
     scenario === "collecting" ||
     scenario === "dueToday" ||
     scenario === "fullyCollected" ||
-    scenario === "settled"
+    scenario === "settled" ||
+    scenario === "addedAfterSend" ||
+    scenario === "addChargeFirstRound" ||
+    scenario === "addChargeSaved"
   ) {
     // Opened through the same function Home uses, so November has version B's rent and recurring
     // charges. The bill is synthetic, with the Nov 2026 fixture total and the View bill board's
@@ -483,11 +521,48 @@ async function main() {
       await insertCharge({ ...c, month: "2026-11", householdVersionId: november.householdVersionId, billId: bill.id });
     }
 
+    const versionId = november.householdVersionId;
+    if (scenario === "addChargeFirstRound" || scenario === "addChargeSaved") {
+      const aircon = { label: "Aircon servicing", totalCents: 11000, dueDate: "2026-11-20" };
+      const at = scenario === "addChargeFirstRound" ? "2026-11-01T11:00:00+08:00" : "2026-11-01T12:00:00+08:00";
+      await seedAddCharge(versionId, at, buildAirconCharges(NOV_2026_CONFIG, aircon), { splitMethod: "PER_UNIT", totalCents: 11000 });
+    }
+    if (scenario === "addChargeSaved") {
+      const at = "2026-11-01T12:00:00+08:00";
+      const fridge = { label: "Fridge repair", totalCents: 12000, dueDate: "2026-11-15" };
+      // The household's shares: 1.5 each for Alex and Priya, 1 each for Sam and Jordan.
+      const shares = [
+        { personId: PERSON_IDS.alex, units: 1500 },
+        { personId: PERSON_IDS.priya, units: 1500 },
+        { personId: PERSON_IDS.sam, units: 1000 },
+        { personId: PERSON_IDS.jordan, units: 1000 },
+      ];
+      await seedAddCharge(versionId, at, buildSharedOneOffCharges(NOV_2026_CONFIG, fridge, { method: "PER_SHARE", parts: shares }), {
+        splitMethod: "PER_SHARE",
+        totalCents: 12000,
+      });
+      const cleaning = { label: "Cleaning", totalCents: 9000, dueDate: "2026-11-10" };
+      const parts = [
+        { personId: PERSON_IDS.alex, amountCents: 3000 },
+        { personId: PERSON_IDS.priya, amountCents: 3000 },
+        { personId: PERSON_IDS.sam, amountCents: 0 },
+        { personId: PERSON_IDS.jordan, amountCents: 3000 },
+      ];
+      await seedAddCharge(versionId, at, buildSharedOneOffCharges(NOV_2026_CONFIG, cleaning, { method: "CUSTOM", parts }), {
+        splitMethod: "CUSTOM",
+        totalCents: 9000,
+      });
+      const key = { label: "Replacement key", totalCents: 820, dueDate: "2026-11-02" };
+      await seedAddCharge(versionId, at, [buildPersonalOneOffCharge(NOV_2026_CONFIG, key, PERSON_IDS.sam)], null);
+    }
+
     if (
       scenario === "collecting" ||
       scenario === "dueToday" ||
       scenario === "fullyCollected" ||
-      scenario === "settled"
+      scenario === "settled" ||
+      scenario === "addedAfterSend" ||
+      scenario === "addChargeSaved"
     ) {
       const charges = await prisma.charge.findMany({ where: { month: "2026-11" } });
       const find = (personId: string, category: string) => {
@@ -521,7 +596,7 @@ async function main() {
         await markPaid(find(PERSON_IDS.jordan, "UTILITIES").id, PERSON_IDS.jordan, "2026-11-04");
         await markPaid(find(PERSON_IDS.sam, "UTILITIES").id, PERSON_IDS.priya, "2026-11-08");
       }
-      if (scenario === "settled") {
+      if (scenario === "settled" || scenario === "addedAfterSend") {
         // Jordan's rent came late, the rest of what was left came on the 27th, and the bill went on
         // its due date. The owner's own charges are not payments to anyone.
         await markPaid(jordanRent.id, PERSON_IDS.jordan, "2026-11-05");
@@ -535,6 +610,14 @@ async function main() {
         });
         await markPaid(correction.id, PERSON_IDS.jordan, "2026-11-27");
         await markBillPaid(bill.id, "2026-11-16");
+      }
+      if (scenario === "addedAfterSend") {
+        // Added on 21 Nov through the same split as the Add charge sheet, with a group as its save makes.
+        const basics = { label: "Fridge repair", totalCents: 12000, dueDate: "2026-11-24" };
+        await seedAddCharge(versionId, "2026-11-21T10:00:00+08:00", buildSharedOneOffCharges(NOV_2026_CONFIG, basics, { method: "EQUAL" }), {
+          splitMethod: "EQUAL",
+          totalCents: 12000,
+        });
       }
     }
   }

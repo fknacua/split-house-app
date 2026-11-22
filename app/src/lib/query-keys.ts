@@ -21,6 +21,12 @@ export const queryKeys = {
   history: ['history'] as const,
   /** @param month `YYYY-MM` key. */
   historyMonth: (month: string) => ['history', month] as const,
+  /** Every Add charge query, the sheet and its previews. The prefix of `addChargeSheet` and `addChargePreview`. */
+  allAddCharge: ['add-charge'] as const,
+  /** The Add charge sheet for the newest opened month. The server picks the month, so there is none in the key. */
+  addChargeSheet: ['add-charge', 'sheet'] as const,
+  /** @param values The fields previewed (`POST /api/add-charge/preview`). */
+  addChargePreview: (values: unknown) => ['add-charge', 'preview', values] as const,
   /** Every month's View bill. The prefix of `bill`, so a rename refreshes them all. */
   allBills: ['bill'] as const,
   /** @param month `YYYY-MM` key of the month View bill shows. */

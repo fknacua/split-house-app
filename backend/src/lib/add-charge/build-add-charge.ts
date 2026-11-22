@@ -20,6 +20,7 @@ import {
   buildAirconCharges,
   buildPersonalOneOffCharge,
   buildSharedOneOffCharges,
+  splitEqual,
   type EngineCharge,
 } from "@/lib/split/engine";
 
@@ -28,6 +29,7 @@ export const AIRCON_LABEL = "Aircon servicing";
 
 const OWNER_NAME = "You";
 const EMPTY_PREVIEW = "Enter an amount and choose a split to see who pays what.";
+const NO_SHARES = "Give at least one person a share above 0.";
 
 /** The words the split method shows as in the confirm dialog. */
 const METHOD_WORDS = { AIRCON: "Per unit", EQUAL: "Equal", PER_SHARE: "Per share", CUSTOM: "Custom" } as const;
@@ -55,8 +57,15 @@ const OPENING_VALUES: AddChargeValues = {
   personId: null,
   split: "EQUAL",
   customAmounts: [],
+  shares: [],
   dueDate: null,
 };
+
+/** One person's Custom amount or share, as its field shows it: null for an empty field. */
+interface PersonValue {
+  person: PersonConfig;
+  value: number | null;
+}
 
 /** The owner, the primary tenant, then the tenants in household order: the order every list in the sheet uses. */
 function splitOrder(config: HouseholdConfig): PersonConfig[] {
@@ -75,27 +84,80 @@ function lookup(input: AddChargeInput) {
   };
 }
 
+/** The amount when it is above $0, else null. */
+function positive(amountCents: number | null): number | null {
+  return amountCents !== null && amountCents > 0 ? amountCents : null;
+}
+
 /** Everyone except the owner, in household order: the Personal Who list. */
 function whoOptions(input: AddChargeInput) {
   const { plainName } = lookup(input);
   return input.config.people.filter((p) => p.role !== "OWNER").map((p) => ({ personId: p.personId, name: plainName(p.personId) }));
 }
 
-/** The sum of the typed custom amounts for people in the household; an empty field counts as $0. */
-function customSum(config: HouseholdConfig, values: AddChargeValues): number {
-  const ids = new Set(config.people.map((p) => p.personId));
-  return values.customAmounts.filter((c) => ids.has(c.personId)).reduce((sum, c) => sum + (c.amountCents ?? 0), 0);
+/** The route as text, e.g. `via Priya`, or null when paid directly. */
+function viaText(input: AddChargeInput, via: string | null): string | null {
+  return via ? `via ${lookup(input).plainName(via)}` : null;
 }
 
-/** True when the typed custom amounts are all $0 or more and add up to the amount. */
-function customAddsUp(config: HouseholdConfig, values: AddChargeValues, totalCents: number): boolean {
-  return values.customAmounts.every((c) => (c.amountCents ?? 0) >= 0) && customSum(config, values) === totalCents;
+/** A person's field label in Custom and Per share: their name, with their utilities route, e.g. `Sam · via Priya`. */
+function fieldLabel(input: AddChargeInput, person: PersonConfig): string {
+  const name = lookup(input).name(person.personId);
+  const via = viaText(input, viaOf(person, "UTILITIES"));
+  return via ? `${name} · ${via}` : name;
+}
+
+/**
+ * Everyone's Custom amount, in split order: the typed ones (an empty field, or someone left out, shows empty), or the
+ * Equal split of the amount while nothing is typed, so Custom starts from Equal and follows the amount until a field
+ * is typed in. Every value is null while there is no amount yet.
+ */
+function customAmountsOf(config: HouseholdConfig, values: AddChargeValues): PersonValue[] {
+  const order = splitOrder(config);
+  if (values.customAmounts.length === 0) {
+    const total = positive(values.amountCents);
+    const owner = order.find((p) => p.role === "OWNER");
+    if (total === null || !owner) return order.map((person) => ({ person, value: null }));
+    const equal = splitEqual(total, order.map((p) => p.personId), owner.personId);
+    return order.map((person) => ({ person, value: equal[person.personId] }));
+  }
+  const typed = new Map(values.customAmounts.map((c) => [c.personId, c.amountCents]));
+  return order.map((person) => ({ person, value: typed.get(person.personId) ?? null }));
+}
+
+/** True when the Custom amounts are all $0 or more and add up to the amount. */
+function customAddsUp(amounts: PersonValue[], totalCents: number): boolean {
+  return amounts.every((a) => (a.value ?? 0) >= 0) && amounts.reduce((sum, a) => sum + (a.value ?? 0), 0) === totalCents;
+}
+
+/** A person's household shares, in thousandths: a tenant's utility shares, or the owner's or primary tenant's part of the rest. */
+function householdShares(config: HouseholdConfig, person: PersonConfig): number {
+  const remainders = remaindersOf(config);
+  if (person.role === "OWNER") return remainders.shares.owner;
+  if (person.role === "PRIMARY") return remainders.shares.primary;
+  return person.utilityShares;
+}
+
+/**
+ * Everyone's Per share shares, in split order and thousandths: the household's while none is changed, else the
+ * changed ones (an empty field, or someone left out, shows empty and counts as 0). For this charge only.
+ */
+function sharesOf(config: HouseholdConfig, values: AddChargeValues): PersonValue[] {
+  const order = splitOrder(config);
+  if (values.shares.length === 0) return order.map((person) => ({ person, value: householdShares(config, person) }));
+  const typed = new Map(values.shares.map((s) => [s.personId, s.shares]));
+  return order.map((person) => ({ person, value: typed.get(person.personId) ?? null }));
+}
+
+/** True when no share is below 0 and at least one is above 0. */
+function sharesValid(shares: PersonValue[]): boolean {
+  return shares.every((s) => (s.value ?? 0) >= 0) && shares.some((s) => (s.value ?? 0) > 0);
 }
 
 /**
  * The split the fields make, through the split engine, whatever the label and due date: the preview shows it before
  * they are filled. Null while there is nothing to split: nothing picked, no amount above $0, nobody picked for
- * Personal, or Custom amounts that don't add up.
+ * Personal, shares that are all 0, or Custom amounts that don't add up.
  */
 function splitCharges(input: AddChargeInput, values: AddChargeValues, airconLabel: string): EngineCharge[] | null {
   const { config } = input;
@@ -109,19 +171,24 @@ function splitCharges(input: AddChargeInput, values: AddChargeValues, airconLabe
     return [buildPersonalOneOffCharge(config, basics, values.personId)];
   }
   if (values.split === "CUSTOM") {
-    if (!customAddsUp(config, values, amountCents)) return null;
-    const parts = values.customAmounts
-      .filter((c) => config.people.some((p) => p.personId === c.personId))
-      .map((c) => ({ personId: c.personId, amountCents: c.amountCents ?? 0 }));
+    const amounts = customAmountsOf(config, values);
+    if (!customAddsUp(amounts, amountCents)) return null;
+    const parts = amounts.map((a) => ({ personId: a.person.personId, amountCents: a.value ?? 0 }));
     return buildSharedOneOffCharges(config, basics, { method: "CUSTOM", parts });
   }
-  return buildSharedOneOffCharges(config, basics, { method: values.split });
+  if (values.split === "PER_SHARE") {
+    const shares = sharesOf(config, values);
+    if (!sharesValid(shares)) return null;
+    const parts = shares.map((s) => ({ personId: s.person.personId, units: s.value ?? 0 }));
+    return buildSharedOneOffCharges(config, basics, { method: "PER_SHARE", parts });
+  }
+  return buildSharedOneOffCharges(config, basics, { method: "EQUAL" });
 }
 
 /**
  * The charges the fields make, through the split engine, or null while the fields can't make any yet: nothing picked,
- * no amount above $0, no due date, no label for Other, nobody picked for Personal, or Custom amounts that don't add up.
- * The save stores exactly these.
+ * no amount above $0, no due date, no label for Other, nobody picked for Personal, shares that are all 0, or Custom
+ * amounts that don't add up. The save stores exactly these.
  *
  * @param input - The month, its config and the people.
  * @param values - The fields as they stand.
@@ -140,14 +207,31 @@ export interface AddChargeProblem {
   message: string;
 }
 
+/** The Custom amount fields and their Alert. */
+function customFor(input: AddChargeInput, values: AddChargeValues): NonNullable<AddChargePreview["custom"]> {
+  const amounts = customAmountsOf(input.config, values);
+  const rows = amounts.map((a) => ({ personId: a.person.personId, label: fieldLabel(input, a.person), amountCents: a.value }));
+  const total = positive(values.amountCents);
+  const left = total === null ? 0 : total - amounts.reduce((sum, a) => sum + (a.value ?? 0), 0);
+  const alert = left > 0 ? `${formatCents(left)} left to split` : left < 0 ? `${formatCents(-left)} over the total` : null;
+  return { heading: "Amounts", rows, alert };
+}
+
+/** The Per share fields and their Alert. */
+function sharesFor(input: AddChargeInput, values: AddChargeValues): NonNullable<AddChargePreview["shares"]> {
+  const shares = sharesOf(input.config, values);
+  const rows = shares.map((s) => ({ personId: s.person.personId, label: fieldLabel(input, s.person), shares: s.value }));
+  return { heading: "Shares", rows, alert: sharesValid(shares) ? null : NO_SHARES };
+}
+
 /**
  * The first reason the fields can't be saved, in the sheet's order, or null when they can.
  *
  * @param input - The month, its config and the people.
  * @param values - The fields to save.
- * @returns 422 `no_kind`, `no_label` (Other), `no_amount` ($0 or less), `no_who` (Personal, nobody picked), `no_date`
- * or `split_mismatch` (Custom amounts below $0 or not adding up); 404 `no_person` for a Personal pick who isn't in the
- * month's household or is the owner; or null.
+ * @returns 422 `no_kind`, `no_label` (Other), `no_amount` ($0 or less), `no_who` (Personal, nobody picked), `no_date`,
+ * `no_shares` (Per share: a share below 0, or all 0) or `split_mismatch` (Custom amounts below $0 or not adding up);
+ * 404 `no_person` for a Personal pick who isn't in the month's household or is the owner; or null.
  */
 export function addChargeProblem(input: AddChargeInput, values: AddChargeValues): AddChargeProblem | null {
   const unprocessable = (code: string, message: string): AddChargeProblem => ({ status: 422, code, message });
@@ -163,51 +247,74 @@ export function addChargeProblem(input: AddChargeInput, values: AddChargeValues)
     }
   }
   if (values.dueDate === null) return unprocessable("no_date", "Pick a due date.");
-  if (isOther && values.scope === "SHARED" && values.split === "CUSTOM" && !customAddsUp(input.config, values, amountCents)) {
-    const alert = customFor(input, values)?.alert;
+  const shared = isOther && values.scope === "SHARED";
+  if (shared && values.split === "PER_SHARE" && !sharesValid(sharesOf(input.config, values))) {
+    return unprocessable("no_shares", NO_SHARES);
+  }
+  if (shared && values.split === "CUSTOM" && !customAddsUp(customAmountsOf(input.config, values), amountCents)) {
+    const { alert } = customFor(input, values);
     return unprocessable("split_mismatch", alert ? `The amounts don’t add up: ${alert}.` : "Each amount must be $0.00 or more.");
   }
   return null;
 }
 
-/** The units or shares under a person's name, before the route. Null for Equal, which has none. */
+/** The units or shares under a person's name, before the route. Null for Equal and Custom, which have none. */
 function basisCount(config: HouseholdConfig, person: PersonConfig, values: AddChargeValues): string | null {
-  const remainders = remaindersOf(config);
   if (values.kind === "AIRCON") {
+    const remainders = remaindersOf(config);
     if (person.role === "OWNER") return countText(remainders.units.owner, "unit");
     if (person.role === "PRIMARY") return countText(remainders.units.primary, "unit");
     return countText(roomOf(config, person.personId).airconUnits * SHARE_SCALE, "unit");
   }
   if (values.split !== "PER_SHARE") return null;
-  if (person.role === "OWNER") return countText(remainders.shares.owner, "share");
-  if (person.role === "PRIMARY") return countText(remainders.shares.primary, "share");
-  return countText(person.utilityShares, "share");
+  const shares = sharesOf(config, values).find((s) => s.person.personId === person.personId)?.value ?? 0;
+  return countText(shares, "share");
 }
 
-/** The route as text, e.g. `via Priya`, or null when paid directly. */
-function viaText(input: AddChargeInput, via: string | null): string | null {
-  return via ? `via ${lookup(input).plainName(via)}` : null;
+/** One person's amount for the preview, with the route it is paid by. */
+interface PreviewAmount {
+  personId: string;
+  amountCents: number;
+  payViaPersonId: string | null;
 }
 
-/** The preview rows for charges the fields make: everyone with an amount, in split order. */
-function previewRows(input: AddChargeInput, values: AddChargeValues, charges: EngineCharge[], totalCents: number): AddChargePreviewRow[] {
+/** The preview rows: everyone with an amount above $0, in split order, each with their part of the bar. */
+function previewRows(input: AddChargeInput, values: AddChargeValues, amounts: PreviewAmount[]): AddChargePreviewRow[] {
   const { name, color } = lookup(input);
-  const byPerson = new Map(charges.map((c) => [c.personId, c]));
+  const shown = amounts.filter((a) => a.amountCents > 0);
+  const sum = shown.reduce((s, a) => s + a.amountCents, 0);
+  const byPerson = new Map(shown.map((a) => [a.personId, a]));
   return splitOrder(input.config).flatMap((person) => {
-    const charge = byPerson.get(person.personId);
-    if (!charge) return [];
-    const parts = [basisCount(input.config, person, values), viaText(input, charge.payViaPersonId)].filter((p) => p !== null);
+    const amount = byPerson.get(person.personId);
+    if (!amount) return [];
+    const parts = [basisCount(input.config, person, values), viaText(input, amount.payViaPersonId)].filter((p) => p !== null);
     return [
       {
         personId: person.personId,
         name: name(person.personId),
         basis: parts.length > 0 ? parts.join(" · ") : null,
-        value: formatCents(charge.amountCents),
+        value: formatCents(amount.amountCents),
         color: color(person.personId),
-        percent: (charge.amountCents / totalCents) * 100,
+        percent: (amount.amountCents / sum) * 100,
       },
     ];
   });
+}
+
+/**
+ * What the preview shows: the split's charges, or for Custom the amounts as they stand, added up or not. Null while
+ * there is nothing to split.
+ */
+function previewAmounts(input: AddChargeInput, values: AddChargeValues): PreviewAmount[] | null {
+  if (values.kind === "ONE_OFF" && values.split === "CUSTOM") {
+    if (positive(values.amountCents) === null) return null;
+    return customAmountsOf(input.config, values).map((a) => ({
+      personId: a.person.personId,
+      amountCents: a.value ?? 0,
+      payViaPersonId: viaOf(a.person, "UTILITIES"),
+    }));
+  }
+  return splitCharges(input, values, AIRCON_LABEL);
 }
 
 /** The `Add this charge?` dialog for charges the fields make. */
@@ -237,23 +344,9 @@ function confirmFor(input: AddChargeInput, values: AddChargeValues, charges: Eng
   return { title: "Add this charge?", rows, confirmLabel: `Add ${formatCents(amountCents)}`, cancelLabel: "Go back" };
 }
 
-/** The Custom amount fields and their Alert. */
-function customFor(input: AddChargeInput, values: AddChargeValues): AddChargePreview["custom"] {
-  const { config } = input;
-  const { name } = lookup(input);
-  const rows = splitOrder(config).map((person) => {
-    const via = viaText(input, viaOf(person, "UTILITIES"));
-    return { personId: person.personId, label: via ? `${name(person.personId)} · ${via}` : name(person.personId) };
-  });
-  const total = values.amountCents !== null && values.amountCents > 0 ? values.amountCents : null;
-  const left = total === null ? 0 : total - customSum(config, values);
-  const alert = left > 0 ? `${formatCents(left)} left to split` : left < 0 ? `${formatCents(-left)} over the total` : null;
-  return { heading: "Amounts", rows, alert };
-}
-
 /**
  * Everything in the Add charge sheet that follows from the fields as they stand: which fields show, the split
- * preview, Custom's fields and Alert, Save and the confirm dialog. Nothing is stored.
+ * preview, Custom's and Per share's fields and Alerts, Save and the confirm dialog. Nothing is stored.
  *
  * @param input - The newest opened month, its config and the people.
  * @param values - The fields as they stand.
@@ -262,17 +355,17 @@ function customFor(input: AddChargeInput, values: AddChargeValues): AddChargePre
 export function buildAddChargePreview(input: AddChargeInput, values: AddChargeValues): AddChargePreview {
   const isOther = values.kind === "ONE_OFF";
   const personal = isOther && values.scope === "PERSONAL";
-  const custom = isOther && !personal && values.split === "CUSTOM";
-  const amountCents = values.amountCents !== null && values.amountCents > 0 ? values.amountCents : null;
+  const shared = isOther && !personal;
+  const amountCents = positive(values.amountCents);
 
   let preview: AddChargePreview["preview"] = null;
-  if (!personal && !custom) {
+  if (!personal) {
     const heading = values.kind === "AIRCON" ? "Split by aircon units" : "Split preview";
-    const charges = splitCharges(input, values, AIRCON_LABEL);
-    if (charges === null || amountCents === null) {
+    const amounts = previewAmounts(input, values);
+    const rows = amounts === null ? [] : previewRows(input, values, amounts);
+    if (rows.length === 0) {
       preview = { heading, empty: EMPTY_PREVIEW, rows: [], accessibilityLabel: null };
     } else {
-      const rows = previewRows(input, values, charges, amountCents);
       const spoken = rows.map((r) => `${r.name} ${r.value}`).join(", ");
       preview = { heading, empty: null, rows, accessibilityLabel: `${heading}: ${spoken}` };
     }
@@ -280,9 +373,10 @@ export function buildAddChargePreview(input: AddChargeInput, values: AddChargeVa
 
   const charges = buildAddChargeCharges(input, values);
   return {
-    show: { label: isOther, scope: isOther, who: personal, split: isOther && !personal },
+    show: { label: isOther, scope: isOther, who: personal, split: shared },
     preview,
-    custom: custom ? customFor(input, values) : null,
+    custom: shared && values.split === "CUSTOM" ? customFor(input, values) : null,
+    shares: shared && values.split === "PER_SHARE" ? sharesFor(input, values) : null,
     save: { label: amountCents === null ? "Save" : `Save ${formatCents(amountCents)}`, enabled: charges !== null },
     confirm: charges === null ? null : confirmFor(input, values, charges),
   };

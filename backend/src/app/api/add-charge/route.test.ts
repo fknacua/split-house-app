@@ -57,6 +57,7 @@ const VALUES = {
   personId: null,
   split: "EQUAL",
   customAmounts: [],
+  shares: [],
   dueDate: "2026-12-05",
 };
 
@@ -145,6 +146,12 @@ describe("POST /api/add-charge", () => {
       { ...BODY, kind: "ONE_OFF", label: "Fridge repair", split: "CUSTOM", customAmounts: [{ personId: alex, amountCents: 1 }] },
       422,
       "split_mismatch",
+    ],
+    [
+      "shares all at 0",
+      { ...BODY, kind: "ONE_OFF", label: "Fridge repair", split: "PER_SHARE", shares: [{ personId: alex, shares: 0 }] },
+      422,
+      "no_shares",
     ],
     ["the owner for Personal", { ...BODY, kind: "ONE_OFF", label: "Key", scope: "PERSONAL", personId: alex }, 404, "no_person"],
   ])("answers %s with %i", async (_name, body, status, code) => {

@@ -30,6 +30,7 @@ const OPENING: AddChargeValues = {
   personId: null,
   split: "EQUAL",
   customAmounts: [],
+  shares: [],
   dueDate: null,
 };
 
@@ -129,11 +130,8 @@ describe("buildAddChargePreview: the split preview", () => {
     expect(preview({ ...SHARED, amountCents }).preview?.empty).not.toBeNull();
   });
 
-  it.each([
-    ["Personal", PERSONAL],
-    ["Custom", custom([])],
-  ])("has no preview for %s", (_name, values) => {
-    expect(preview(values).preview).toBeNull();
+  it("has no preview for Personal", () => {
+    expect(preview(PERSONAL).preview).toBeNull();
   });
 });
 
@@ -302,5 +300,111 @@ describe("addChargeProblem", () => {
 describe("buildAddChargeCharges with a line label", () => {
   it("stores aircon under the label given", () => {
     expect(buildAddChargeCharges(INPUT, AIRCON, "Aircon")?.every((c) => c.label === "Aircon")).toBe(true);
+  });
+});
+
+describe("buildAddChargePreview: Custom starts from Equal", () => {
+  const thousand = (values: Partial<AddChargeValues> = {}): AddChargeValues => ({
+    ...SHARED,
+    amountCents: 100000,
+    split: "CUSTOM",
+    ...values,
+  });
+
+  it("fills every field with the Equal split while nothing is typed: $1,000 is $250 each", () => {
+    const result = preview(thousand());
+    expect(result.custom?.rows.map((r) => r.amountCents)).toEqual([25000, 25000, 25000, 25000]);
+    expect(result.custom?.alert).toBeNull();
+    expect(result.save.enabled).toBe(true);
+  });
+
+  it("follows the amount until a field is typed in", () => {
+    expect(preview(thousand({ amountCents: 10001 })).custom?.rows.map((r) => r.amountCents)).toEqual([2501, 2500, 2500, 2500]);
+  });
+
+  it("has empty fields while there is no amount", () => {
+    expect(preview(thousand({ amountCents: null })).custom?.rows.map((r) => r.amountCents)).toEqual([null, null, null, null]);
+  });
+
+  it("keeps the typed amounts once one is typed, the rest showing empty", () => {
+    const rows = preview(thousand({ customAmounts: [{ personId: sam, amountCents: 10000 }] })).custom?.rows;
+    expect(rows?.map((r) => r.amountCents)).toEqual([null, null, 10000, null]);
+  });
+
+  it("previews the typed amounts even while they don't add up, the bar measured against their sum", () => {
+    const values = thousand({
+      customAmounts: [
+        { personId: alex, amountCents: 30000 },
+        { personId: priya, amountCents: 30000 },
+        { personId: sam, amountCents: 20000 },
+        { personId: jordan, amountCents: 0 },
+      ],
+    });
+    const result = preview(values);
+    expect(result.custom?.alert).toBe("$200.00 left to split");
+    expect(result.preview?.rows.map((r) => [r.name, r.basis, r.value, r.percent])).toEqual([
+      ["You", null, "$300.00", 37.5],
+      ["Priya", null, "$300.00", 37.5],
+      ["Sam", "via Priya", "$200.00", 25],
+    ]);
+  });
+
+  it("saves the Equal split when Custom is picked and nothing typed", () => {
+    expect(buildAddChargeCharges(INPUT, thousand())?.map((c) => c.amountCents)).toEqual([25000, 25000, 25000, 25000]);
+  });
+});
+
+describe("buildAddChargePreview: Per share", () => {
+  const perShare = (shares: [string, number | null][] = []): AddChargeValues => ({
+    ...SHARED,
+    split: "PER_SHARE",
+    shares: shares.map(([personId, value]) => ({ personId, shares: value })),
+  });
+
+  it("starts from the household's shares, labelled with each route", () => {
+    expect(preview(perShare()).shares).toEqual({
+      heading: "Shares",
+      rows: [
+        { personId: alex, label: "You", shares: 1500 },
+        { personId: priya, label: "Priya", shares: 1500 },
+        { personId: sam, label: "Sam · via Priya", shares: 1000 },
+        { personId: jordan, label: "Jordan", shares: 1000 },
+      ],
+      alert: null,
+    });
+  });
+
+  it("splits by changed shares, for this charge only", () => {
+    const values = perShare([[alex, 1000], [priya, 2000], [sam, 0], [jordan, 1000]]);
+    expect(rowsOf(values)).toEqual([
+      { name: "You", basis: "1 share", value: "$30.00" },
+      { name: "Priya", basis: "2 shares", value: "$60.00" },
+      { name: "Jordan", basis: "1 share", value: "$30.00" },
+    ]);
+    expect(preview(values).confirm?.rows[2].value).toBe("Per share · 3 people");
+  });
+
+  it("counts an empty share field as 0", () => {
+    expect(rowsOf(perShare([[alex, 1000], [priya, null], [sam, null], [jordan, 1000]]))).toHaveLength(2);
+  });
+
+  it.each([
+    ["every share at 0", [[alex, 0], [priya, 0], [sam, 0], [jordan, 0]]],
+    ["a share below 0", [[alex, 2000], [priya, -1000], [sam, 0], [jordan, 0]]],
+  ] as [string, [string, number | null][]][])("warns and disables Save with %s", (_name, shares) => {
+    const result = preview(perShare(shares));
+    expect(result.shares?.alert).toBe("Give at least one person a share above 0.");
+    expect(result.save.enabled).toBe(false);
+    expect(addChargeProblem(INPUT, perShare(shares))).toMatchObject({ status: 422, code: "no_shares" });
+  });
+
+  it("has no share fields for the other splits", () => {
+    expect(preview(SHARED).shares).toBeNull();
+  });
+});
+
+describe("the preview's colors", () => {
+  it("gives each row its person's color, as the dots before the names use", () => {
+    expect(preview(SHARED).preview?.rows.map((r) => r.color)).toEqual(["BLUE", "ORANGE", "GREEN", "PURPLE"]);
   });
 });

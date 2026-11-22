@@ -82,6 +82,7 @@ const BASE: AddChargeRequest = {
   personId: null,
   split: "EQUAL",
   customAmounts: [],
+  shares: [],
   dueDate: "2026-12-05",
 };
 

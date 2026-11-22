@@ -29,6 +29,16 @@ export const addChargeCustomAmountSchema = z.object({
 /** One person's typed amount in a Custom split. */
 export type AddChargeCustomAmount = z.infer<typeof addChargeCustomAmountSchema>;
 
+/** One person's share in a Per share split, changed for this charge only. */
+export const addChargeShareSchema = z.object({
+  personId: z.string().min(1),
+  /** In thousandths, so 1.5 shares is 1500. Null while the field is empty, which counts as 0. */
+  shares: z.number().int().nullable(),
+});
+
+/** One person's share in a Per share split. */
+export type AddChargeShare = z.infer<typeof addChargeShareSchema>;
+
 /**
  * The Add charge sheet's fields as they stand. `POST /api/add-charge/preview` takes them as they are typed, so any
  * of them can be empty; the save (Phase 13B.3) takes the same fields. Fields the chosen kind and scope don't show
@@ -47,8 +57,17 @@ export const addChargeValuesSchema = z.object({
   personId: z.string().min(1).nullable(),
   /** Shared Other only. */
   split: z.enum(ADD_CHARGE_SPLITS),
-  /** Custom only: one entry per person with a typed amount. People left out count as $0. */
+  /**
+   * Custom only. Empty until a field is typed in: the Equal split of the amount is used then (and follows the
+   * amount). Once one is typed, the app sends every field's amount; people left out count as $0.
+   */
   customAmounts: z.array(addChargeCustomAmountSchema),
+  /**
+   * Per share only. Empty until a field is changed: the household's shares (the pinned version's utility shares, with
+   * the owner's and primary tenant's part of the rest) are used then. Once one is changed, the app sends every field's
+   * shares; people left out count as 0. Changes apply to this charge only.
+   */
+  shares: z.array(addChargeShareSchema),
   /** Null until picked. A past day is allowed. */
   dueDate: dateKey.nullable(),
 });
@@ -164,7 +183,7 @@ export const addChargePreviewSchema = z.object({
     /** The split chips: shared Other only. */
     split: z.boolean(),
   }),
-  /** The split preview; null for Personal and Custom, which have none. */
+  /** The split preview; null for Personal, which has none. For Custom it follows the typed amounts, added up or not. */
   preview: z
     .object({
       /** `Split by aircon units` for aircon, `Split preview` otherwise. */
@@ -182,9 +201,23 @@ export const addChargePreviewSchema = z.object({
     .object({
       /** `Amounts`. */
       heading: z.string(),
-      /** One field per person, in the preview's order, labelled e.g. `You`, `Sam · via Priya`. */
-      rows: z.array(z.object({ personId: z.string(), label: z.string() })).min(1),
+      /**
+       * One field per person, in the preview's order, labelled e.g. `You`, `Sam · via Priya`, with the amount to show:
+       * the typed one, or the Equal split while nothing is typed (null with no amount yet).
+       */
+      rows: z.array(z.object({ personId: z.string(), label: z.string(), amountCents: z.number().int().nullable() })).min(1),
       /** The warning Alert, e.g. `$X.XX left to split` or `$X.XX over the total`; null when they add up or there is no total yet. */
+      alert: z.string().nullable(),
+    })
+    .nullable(),
+  /** Per share's share fields; null unless the split is Per share. */
+  shares: z
+    .object({
+      /** `Shares`. */
+      heading: z.string(),
+      /** One field per person, in the preview's order, with the shares to show (thousandths): changed, or the household's. */
+      rows: z.array(z.object({ personId: z.string(), label: z.string(), shares: z.number().int().nullable() })).min(1),
+      /** The warning Alert when no one has a share above 0, or a share is below 0; null otherwise. */
       alert: z.string().nullable(),
     })
     .nullable(),
@@ -225,7 +258,7 @@ export const addChargeSheetSchema = z.object({
   }),
   /** `Equal`, `Per share` and `Custom`. */
   splits: z.array(addChargeOptionSchema(ADD_CHARGE_SPLITS)).min(1),
-  /** The fields as the sheet opens: nothing picked, Shared, Equal, no due date. */
+  /** The fields as the sheet opens: nothing picked, Shared, Equal, no due date, no Custom amounts or shares typed. */
   values: addChargeValuesSchema,
   /** The preview for `values`, so the sheet renders without a preview call. */
   preview: addChargePreviewSchema,
