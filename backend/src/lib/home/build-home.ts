@@ -7,7 +7,6 @@ import {
   formatDateShort,
   formatMonthLabel,
   formatMonthName,
-  formatMonthShort,
   type HomeFooterButton,
   type HomeHero,
   type HomeNextMonthAction,
@@ -20,6 +19,7 @@ import {
 import type { ChargeCategory, MessageKind } from "@/generated/prisma/enums";
 import { billCoverage, coveragePercent } from "@/lib/bill/bill-coverage";
 import { isRefund } from "@/lib/corrections/correction-fields";
+import { correctionFixes } from "@/lib/corrections/correction-name";
 import { billDueBadge, chargeBadge, HOME_BADGES } from "./badges";
 import { chargeActions } from "./charge-actions";
 import { billDueDateKey, chargeDueDate } from "./due-dates";
@@ -138,8 +138,7 @@ function chargeDetail(
   payerId: string,
 ): string | null {
   if (charge.correctsCharge) {
-    const { label, month } = charge.correctsCharge;
-    return `${label} ${formatMonthShort(month)} · Added ${formatDateShort(dateKeyOf(charge.createdAt))}`;
+    return `${correctionFixes(charge.correctsCharge)} · Added ${formatDateShort(dateKeyOf(charge.createdAt))}`;
   }
   const parts = [routeDetail(charge.payViaPersonId, names), chargeState(charge, dates, payerId)].filter(
     (p) => p !== null,

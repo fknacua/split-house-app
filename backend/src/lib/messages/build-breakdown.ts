@@ -55,7 +55,7 @@ export interface BreakdownLine {
   /** e.g. `Utilities bill`, without the colon. */
   label: string;
   amountCents: number;
-  /** e.g. `$X,XXX.XX`; a credit reads `-$X,XXX.XX`. */
+  /** e.g. `$X,XXX.XX`; a negative amount reads `-$X,XXX.XX`. */
   amount: string;
   /** The working after the amount, e.g. `(total bill $X,XXX.XX)` or `(1/6 units)`; null for other lines. */
   working: string | null;
@@ -163,7 +163,7 @@ export function breakdownCharges<C extends BreakdownCharge>(charges: C[], month:
 /**
  * Builds a person's monthly breakdown. It holds the unpaid charges the recipient pays: their own
  * and those paid through them, from the month, plus unpaid corrections from earlier months.
- * Paid charges are left out, so the total is what they still owe; a credit is a negative line.
+ * Paid charges are left out, so the total is what they still owe, and a refund (always saved paid) never shows.
  * The sections are `buildSections`'s, with the working on utilities and aircon lines.
  *
  * @param input - The month, recipient, config, bill, people and charges.

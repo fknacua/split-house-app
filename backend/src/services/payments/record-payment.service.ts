@@ -26,6 +26,7 @@ const CHARGE_SELECT = {
   dueDate: true,
   payViaPersonId: true,
   paidCents: true,
+  correctsCharge: { select: { label: true, month: true } },
   householdVersion: { select: { schemaVersion: true, config: true } },
 } as const;
 

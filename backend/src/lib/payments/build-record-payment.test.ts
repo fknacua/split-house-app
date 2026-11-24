@@ -90,6 +90,16 @@ describe("buildRecordPayment", () => {
     expect(byPayer.has(alex)).toBe(false);
   });
 
+  it("names a correction by what it fixes, with no month of its own", () => {
+    const fix = charge("sam-fix", sam, "Utilities correction (Oct)", 500, "2026-11-30", {
+      category: "CORRECTION",
+      payViaPersonId: priya,
+      correctsCharge: { label: "Utilities", month: "2026-10" },
+    });
+    const byPayer = payablesByPayer({ month: "2026-11", today: "2026-11-03", people: PEOPLE, charges: [fix] });
+    expect(byPayer.get(priya)?.map((p) => p.title)).toEqual(["Correction · Utilities Oct · Sam"]);
+  });
+
   it("leaves out paid charges, credits and later months", () => {
     const sheet = build(NOBODY, [
       charge("paid", jordan, "Rent", 95000, "2026-11-01", { paidCents: 95000 }),

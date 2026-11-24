@@ -29,10 +29,14 @@ import {
   renderNudgeMessage,
 } from "@/lib/messages/render";
 import { whatsappLink } from "@/lib/messages/whatsapp-link";
+import { correctionName, type CorrectedCharge } from "@/lib/corrections/correction-name";
 
 /** A charge row, as much of it as the sheet needs. */
 export type SendCharge = BreakdownCharge & {
   id: string;
+  /** For a correction, the charge it fixes, so its row reads `Correction · Utilities Sep`; null or left out otherwise. */
+  correctsCharge?: CorrectedCharge | null;
+
   /** When the charge was added: one added after the payer's monthly message makes them unsent again. */
   createdAt: Date;
 };
@@ -117,11 +121,15 @@ function overdueCharges(input: SendInput, personId: string): Overdue[] {
     .sort(byDueDate);
 }
 
-/** `Rent · Nov`, or `Utilities · Sam · Nov` for a charge collected through the person. */
+/**
+ * `Rent · Nov`, or `Utilities · Sam · Nov` for a charge collected through the person. A correction is
+ * `Correction · Utilities Sep`, which already says its month.
+ */
 function chargeTitle(charge: SendCharge, names: Map<string, string>): string {
-  const parts = [charge.label];
+  const name = correctionName(charge.correctsCharge);
+  const parts = [name ?? charge.label];
   if (charge.payViaPersonId) parts.push(names.get(charge.personId) ?? "Someone");
-  parts.push(formatMonthShort(charge.month));
+  if (!name) parts.push(formatMonthShort(charge.month));
   return parts.join(" · ");
 }
 
