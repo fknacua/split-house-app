@@ -20,6 +20,7 @@ function useHousehold(versions: { startsFromMonth: string; schemaVersion: number
     messageTemplates: { findUnique: async () => null },
     month: { findFirst: async () => ({ month: "2026-11" }) },
     householdVersion: { findMany: async () => versions },
+    settings: { findUnique: async () => null },
   });
 }
 

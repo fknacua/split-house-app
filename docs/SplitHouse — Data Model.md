@@ -77,7 +77,7 @@ For aircon servicing and shared one-offs added from the Add charge sheet (a Pers
 `id`, `month`, `personId`, `kind` (`MONTHLY` or `NUDGE`), `chargeId` (nullable), `renderedText`, `openedAt`. The app cannot know whether WhatsApp actually sent anything, so this records when the chat was opened.
 
 ### Settings
-One row: notification toggles per channel and type. Theme stays on the device.
+One row (`id` `singleton`), `notifications` (JSON validated in code), `updatedAt`. `notifications` holds the five toggles: `uploadBill` (Upload the utilities bill), `collectRent` (Collect rent), `payBill` (Pay the utilities bill), `paymentChecks` (Payment checks) and `fyi` (FYI updates). Every toggle is on by default except `fyi`, and with no row yet every toggle takes its default. The reader ignores stored keys it doesn't know (such as an old `savings`) and fills a missing toggle with its default. Theme stays on the device.
 
 ### Setup
 One row (`id` `singleton`), created on first write: `startMonth` (the month chosen in First run's Start month step, `YYYY-MM`, null until chosen), `doneSteps` (the First run step ids recorded as done) and `updatedAt`. Read only during First run; once a month is open, the first `Month` and the version's `startsFromMonth` hold the start month.

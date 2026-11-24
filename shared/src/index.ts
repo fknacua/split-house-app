@@ -10,6 +10,7 @@ export * from './api/home';
 export * from './api/household';
 export * from './api/me';
 export * from './api/messages';
+export * from './api/notifications';
 export * from './api/payment';
 export * from './api/send';
 export * from './api/settings';
@@ -21,4 +22,5 @@ export * from './lib/money';
 export * from './lib/month';
 export * from './schemas/household-config';
 export * from './schemas/primitives';
+export * from './schemas/settings';
 

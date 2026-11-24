@@ -98,19 +98,21 @@ The design calls for three Android channels with their own importance levels, ac
 
 | Notification | Channel | Trigger | Actions |
 | --- | --- | --- | --- |
-| Upload this month's utilities bill | Action needed (heads-up) | About the 2nd, repeats daily until done | Opens bill upload |
-| Collect Tenant 1's rent | Action needed (heads-up) | Last working day before the 1st, if unpaid | Paid, Nudge |
-| Pay utilities bill: collected $X of $Y | Action needed (heads-up) | Before the bill's due date | Opens Home |
-| Did {name} pay {charge}? | Payment checks | Each charge's due date, if unpaid | Paid, Nudge |
+| Upload this month's utilities bill | Action needed (heads-up) | 9:00 daily from the 2nd until that month's bill is saved or the month ends | None; a tap opens bill upload |
+| Collect {name}'s rent | Action needed (heads-up) | 9:00 on the last weekday (Monday to Friday; public holidays are not counted) before the 1st, one per tenant whose rent for that month is unpaid | Paid, Nudge |
+| Pay utilities bill: collected $X of $Y | Action needed (heads-up) | 9:00 the day before the bill's due date, while the bill is not marked paid | None; a tap opens Home |
+| Did {name} pay {charge}? | Payment checks | 20:00 on each unpaid charge's due date, for everyone but the owner (refunds are paid already, so never) | Paid, Nudge |
 | Unusual bill, aircon servicing due, month settled | FYI (silent) | When triggered | None |
+
+Times are Asia/Singapore.
 
 What this means for the build, using local notifications scheduled on the phone (to confirm against the plugin's docs):
 
 - **Date-based** notifications are scheduled ahead and recomputed whenever data changes, such as a new bill, a recorded payment or an edited due date.
-- **Event-based** notifications fire immediately from Francis's own actions in the app.
+- **Event-based** notifications (unusual bill, month settled) come in the schedule only on the day the bill was saved or the month settled, each with a stable id the app records once shown, so a rebuild never shows one twice.
 - **Live amounts** like "collected $X of $Y" are fixed when scheduled, so each recorded payment reschedules that notification.
 - **Permissions:** Android 13 and later asks for notification permission at runtime, and no exact-alarm permission is requested in v1, so reminders may arrive late.
-- **Paid** opens the Record payment sheet and **Nudge** opens WhatsApp, so both actions bring the app to the foreground.
+- **Paid** opens the Record payment sheet with that charge ticked and **Nudge** opens the Send sheet in nudge mode for that charge, so both actions bring the app to the foreground. Nothing is sent or marked paid automatically.
 - **Reschedule on sign-in and launch:** scheduled notifications live on the device and do not carry over to a new phone, so the app rebuilds the schedule on every sign-in and launch. Otherwise a fresh install has no reminders.
 - **Expo builds:** channels and action buttons likely need a development build rather than Expo Go. Confirm when setting up the project.
 
