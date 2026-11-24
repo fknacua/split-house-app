@@ -26,6 +26,7 @@ export * from './use-edit-payment';
 export * from './use-edit-payment-sheet';
 export * from './use-finish-setup';
 export * from './use-mark-setup-step';
+export * from './use-notification-schedule';
 export * from './use-skip-setup-step';
 export * from './use-keep-focused-input-visible';
 export * from './use-me';

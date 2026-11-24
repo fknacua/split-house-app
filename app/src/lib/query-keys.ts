@@ -8,6 +8,8 @@
  */
 export const queryKeys = {
   me: ['me'] as const,
+  /** The notifications the phone schedules (`GET /api/notifications/plan`), fetched fresh on every rebuild. */
+  notificationPlan: ['notification-plan'] as const,
   bootstrap: ['bootstrap'] as const,
   /** Welcome (`GET /api/setup`). Every first-setup save invalidates it, and the Start month page under it. */
   setup: ['setup'] as const,
