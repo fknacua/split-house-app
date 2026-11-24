@@ -23,6 +23,13 @@ import {
   splitEqual,
   type EngineCharge,
 } from "@/lib/split/engine";
+import {
+  buildCorrectionPreview,
+  correctionPeople,
+  openingCorrectionValues,
+  type CorrectableCharge,
+  type CorrectionInput,
+} from "./build-correction";
 
 /** The label every aircon servicing charge is stored under. */
 export const AIRCON_LABEL = "Aircon servicing";
@@ -48,8 +55,8 @@ export interface AddChargeInput {
   people: AddChargePerson[];
 }
 
-/** The fields as the sheet opens. */
-const OPENING_VALUES: AddChargeValues = {
+/** Charge mode's fields as the sheet opens. */
+const OPENING_CHARGE_VALUES: Omit<AddChargeValues, "mode" | "correction"> = {
   kind: null,
   label: "",
   amountCents: null,
@@ -202,7 +209,7 @@ export function buildAddChargeCharges(input: AddChargeInput, values: AddChargeVa
 
 /** Why the fields can't be saved: the status and code the save answers with, and a message. */
 export interface AddChargeProblem {
-  status: 404 | 422;
+  status: 404 | 409 | 422;
   code: string;
   message: string;
 }
@@ -341,12 +348,13 @@ function confirmFor(input: AddChargeInput, values: AddChargeValues, charges: Eng
     rows.push({ label: "Split per person", value: `${method} · ${items.length} ${items.length === 1 ? "person" : "people"}`, items });
   }
   rows.push(plain("Due date", formatDateMedium(dueDate)));
-  return { title: "Add this charge?", rows, confirmLabel: `Add ${formatCents(amountCents)}`, cancelLabel: "Go back" };
+  return { title: "Add this charge?", body: null, rows, confirmLabel: `Add ${formatCents(amountCents)}`, cancelLabel: "Go back" };
 }
 
 /**
- * Everything in the Add charge sheet that follows from the fields as they stand: which fields show, the split
- * preview, Custom's and Per share's fields and Alerts, Save and the confirm dialog. Nothing is stored.
+ * Everything in the Add charge sheet's Charge mode that follows from the fields as they stand: which fields show, the
+ * split preview, Custom's and Per share's fields and Alerts, Save and the confirm dialog. Nothing is stored. Correction
+ * mode's is {@link buildCorrectionPreview}.
  *
  * @param input - The newest opened month, its config and the people.
  * @param values - The fields as they stand.
@@ -377,21 +385,26 @@ export function buildAddChargePreview(input: AddChargeInput, values: AddChargeVa
     preview,
     custom: shared && values.split === "CUSTOM" ? customFor(input, values) : null,
     shares: shared && values.split === "PER_SHARE" ? sharesFor(input, values) : null,
+    correction: null,
     save: { label: amountCents === null ? "Save" : `Save ${formatCents(amountCents)}`, enabled: charges !== null },
     confirm: charges === null ? null : confirmFor(input, values, charges),
   };
 }
 
 /**
- * The Add charge sheet as it opens, for the newest opened month: the options and the opening preview.
+ * The Add charge sheet as it opens, for the newest opened month: the options of both modes and the opening preview.
+ * Opened from a charge, it is `Add correction`: no mode toggle, Correction mode with that charge picked and locked.
  *
- * @param input - The newest opened month, its config and the people.
+ * @param input - The newest opened month, its config, the people, today and the charges that may be corrected.
+ * @param from - The charge `Add correction` was tapped on, one {@link findCorrectable} offers, or null.
  * @returns The sheet.
  */
-export function buildAddChargeSheet(input: AddChargeInput): AddChargeSheet {
+export function buildAddChargeSheet(input: CorrectionInput, from: CorrectableCharge | null = null): AddChargeSheet {
+  const correction = openingCorrectionValues(input.today, from);
+  const values: AddChargeValues = { mode: from ? "CORRECTION" : "CHARGE", ...OPENING_CHARGE_VALUES, correction };
   return {
     month: input.month,
-    title: "Add charge",
+    title: from ? "Add correction" : "Add charge",
     subtitle: formatMonthShortLabel(input.month),
     what: {
       placeholder: "Select",
@@ -410,7 +423,23 @@ export function buildAddChargeSheet(input: AddChargeInput): AddChargeSheet {
       { value: "PER_SHARE", label: "Per share" },
       { value: "CUSTOM", label: "Custom" },
     ],
-    values: OPENING_VALUES,
-    preview: buildAddChargePreview(input, OPENING_VALUES),
+    modes: from
+      ? null
+      : {
+          label: "Add as",
+          options: [
+            { value: "CHARGE", label: "Charge" },
+            { value: "CORRECTION", label: "Correction" },
+          ],
+        },
+    correction: {
+      locked: from !== null,
+      person: { placeholder: "Select person" },
+      month: { placeholder: "Select month" },
+      charge: { placeholder: "Select charge" },
+      people: correctionPeople(input),
+    },
+    values,
+    preview: from ? buildCorrectionPreview(input, correction) : buildAddChargePreview(input, values),
   };
 }

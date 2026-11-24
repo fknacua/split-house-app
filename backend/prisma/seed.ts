@@ -348,7 +348,7 @@ async function seedOctober(versionAId: string) {
   await insertCharge({
     personId: PERSON_IDS.jordan,
     category: "CORRECTION",
-    label: "Correction: September utilities",
+    label: "Utilities correction (Sep)",
     amountCents: 1500,
     payViaPersonId: null,
     dueDate: "2026-10-25", // the same as October's utilities
@@ -363,10 +363,10 @@ async function seedOctober(versionAId: string) {
   const samRefund = await insertCharge({
     personId: PERSON_IDS.sam,
     category: "CORRECTION",
-    label: "Correction: September utilities",
+    label: "Utilities correction (Sep)",
     amountCents: -500,
     payViaPersonId: samSepUtilities.payViaPersonId,
-    dueDate: null,
+    dueDate: "2026-10-02", // a refund is due the day it is saved, as the save does
     month: "2026-10",
     corrects: correctionFields(samSepUtilities, PERSON_IDS.alex),
     createdAt: "2026-10-02T10:00:00+08:00",

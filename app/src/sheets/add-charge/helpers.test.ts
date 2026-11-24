@@ -13,6 +13,8 @@ import {
 } from './helpers';
 
 const OPENING: AddChargeValues = {
+  mode: 'CHARGE',
+  correction: { personId: null, month: null, chargeId: null, amountCents: null, dueDate: '2026-11-24' },
   kind: null,
   label: '',
   amountCents: null,
