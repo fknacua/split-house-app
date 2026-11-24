@@ -102,7 +102,7 @@ describe("buildAddChargeSheet", () => {
       correction: { personId: jordan, month: "2026-10", chargeId: "oct-utilities-jordan", amountCents: null, dueDate: "2026-11-24" },
     });
     expect(sheet.preview.correction).toEqual({
-      current: "Currently $77.46 · after 1 correction",
+      corrections: "1 correction",
       outcome: null,
       amountEnabled: true,
       dueDateEnabled: false,

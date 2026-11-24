@@ -5,15 +5,17 @@ import { queryKeys } from '@/lib';
 import type { AddChargePreview, AddChargeSheet, AddChargeValues } from '@splithouse/shared';
 
 /**
- * The Add charge sheet for the newest opened month, as it opens (`GET /api/add-charge`): the options, the opening
- * values and their preview.
+ * The Add charge sheet for the newest opened month, as it opens (`GET /api/add-charge`): the options of both modes,
+ * the opening values and their preview. Opened on a charge (`?chargeId=`), it is `Add correction` with it picked.
  *
  * @param enabled False while the sheet is closed.
+ * @param chargeId The charge `Add correction` was tapped on, or null for Home's Add charge.
  */
-export function useAddChargeSheet(enabled: boolean) {
+export function useAddChargeSheet(enabled: boolean, chargeId: string | null) {
   return useQuery({
-    queryKey: queryKeys.addChargeSheet,
-    queryFn: () => apiFetch<AddChargeSheet>('/api/add-charge'),
+    queryKey: queryKeys.addChargeSheet(chargeId),
+    queryFn: () =>
+      apiFetch<AddChargeSheet>(chargeId ? `/api/add-charge?chargeId=${encodeURIComponent(chargeId)}` : '/api/add-charge'),
     enabled,
   });
 }

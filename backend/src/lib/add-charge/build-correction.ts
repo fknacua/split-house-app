@@ -171,8 +171,8 @@ function differenceOf(charge: CorrectableCharge, amountCents: number | null): nu
   return diff === 0 ? null : diff;
 }
 
-/** The outcome as the Alert says it, or as the confirm dialog's shorter row says it. */
-function outcomeText(input: AddChargeInput, charge: CorrectableCharge, diff: number, short: boolean): string {
+/** The outcome as the sheet's Alert says it, naming who it is for and the payer of a routed one. */
+function outcomeText(input: AddChargeInput, charge: CorrectableCharge, diff: number): string {
   const name = nameOf(input, charge.personId);
   if (diff > 0) {
     const via = extraVia(input, charge);
@@ -180,7 +180,20 @@ function outcomeText(input: AddChargeInput, charge: CorrectableCharge, diff: num
   }
   const payer = refundPayer(charge);
   const to = payer === charge.personId ? name : `${nameOf(input, payer)} (for ${name})`;
-  return `Refund ${formatCents(-diff)} to ${to} yourself. ${short ? "Saved" : "This is saved"} as history.`;
+  return `Refund ${formatCents(-diff)} to ${to} yourself. This is saved as history.`;
+}
+
+/**
+ * The confirm dialog's Outcome row: just the amount, since its For row names the charge and person, e.g. `Adds $5.00`
+ * or `Refunds $5.00`. A routed one still names its payer (`Refunds $5.00 to Priya`, `Adds $5.00 · via Priya`).
+ */
+function outcomeRow(input: AddChargeInput, charge: CorrectableCharge, diff: number): string {
+  if (diff > 0) {
+    const via = extraVia(input, charge);
+    return `Adds ${formatCents(diff)}${via ? ` · via ${nameOf(input, via)}` : ""}`;
+  }
+  const payer = refundPayer(charge);
+  return `Refunds ${formatCents(-diff)}${payer === charge.personId ? "" : ` to ${nameOf(input, payer)}`}`;
 }
 
 /**
@@ -269,23 +282,24 @@ function confirmFor(input: AddChargeInput, values: AddCorrectionValues, charge: 
   const row = (label: string, value: string) => ({ label, value, items: null });
   const rows = [
     row("For", `${charge.label} · ${nameOf(input, charge.personId)} · ${formatMonthShortLabel(charge.month)}`),
-    row("Correct amount", formatCents(values.amountCents ?? 0)),
-    row("Outcome", outcomeText(input, charge, diff, true)),
+    row("New amount", formatCents(values.amountCents ?? 0)),
+    row("Outcome", outcomeRow(input, charge, diff)),
   ];
   if (diff > 0 && values.dueDate !== null) rows.push(row("Due date", formatDateMedium(values.dueDate)));
   return {
     title: "Add this correction?",
     body: "It will be linked to the original charge.",
     rows,
-    confirmLabel: "Add correction",
+    confirmLabel: "Yes, add it",
     cancelLabel: "Go back",
   };
 }
 
 /**
- * Everything in Correction mode that follows from the fields as they stand: the current amount under the field, the
- * outcome Alert, whether the amount and Due date can be changed, Save and the confirm dialog. A charge that isn't
- * offered counts as none picked. Nothing is stored.
+ * Everything in Correction mode that follows from the fields as they stand: how many times the picked charge was
+ * corrected (under the Charge field, whose option already shows its current amount), the outcome Alert, whether the
+ * amount and Due date can be changed, Save and the confirm dialog. A charge that isn't offered counts as none picked.
+ * Nothing is stored.
  *
  * @param input - The month, its config, the people, today and the charges.
  * @param values - Correction mode's fields.
@@ -295,7 +309,6 @@ export function buildCorrectionPreview(input: CorrectionInput, values: AddCorrec
   const charge = findCorrectable(input, values.chargeId);
   const diff = charge === null ? null : differenceOf(charge, values.amountCents);
   const count = charge?.correctionCents.length ?? 0;
-  const after = count === 0 ? "" : ` · after ${count} ${count === 1 ? "correction" : "corrections"}`;
   const canSave = charge !== null && addCorrectionProblem(input, values, charge) === null && diff !== null;
   return {
     show: { label: false, scope: false, who: false, split: false },
@@ -303,8 +316,8 @@ export function buildCorrectionPreview(input: CorrectionInput, values: AddCorrec
     custom: null,
     shares: null,
     correction: {
-      current: charge === null ? null : `Currently ${formatCents(currentCents(charge))}${after}`,
-      outcome: charge === null || diff === null ? null : outcomeText(input, charge, diff, false),
+      corrections: count === 0 ? null : `${count} ${count === 1 ? "correction" : "corrections"}`,
+      outcome: charge === null || diff === null ? null : outcomeText(input, charge, diff),
       amountEnabled: charge !== null,
       dueDateEnabled: diff !== null && diff > 0,
     },

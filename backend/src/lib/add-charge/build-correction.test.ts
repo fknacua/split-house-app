@@ -120,36 +120,34 @@ describe("buildCorrectionPreview", () => {
       preview: null,
       custom: null,
       shares: null,
-      correction: { current: null, outcome: null, amountEnabled: false, dueDateEnabled: false },
+      correction: { corrections: null, outcome: null, amountEnabled: false, dueDateEnabled: false },
       save: { label: "Save", enabled: false },
       confirm: null,
     });
   });
 
-  it("once a charge is picked: the current amount shows and the amount can be typed", () => {
+  it("once a charge is picked: the amount can be typed, and a charge never corrected has no count", () => {
     expect(preview(picked("sep-utilities-sam", null)).correction).toEqual({
-      current: "Currently $82.46",
+      corrections: null,
       outcome: null,
       amountEnabled: true,
       dueDateEnabled: false,
     });
   });
 
-  it("says how many corrections the current amount is after", () => {
-    expect(preview(picked("oct-utilities-jordan", null)).correction?.current).toBe("Currently $77.46 · after 1 correction");
+  it("says how many times the picked charge was corrected", () => {
+    expect(preview(picked("oct-utilities-jordan", null)).correction?.corrections).toBe("1 correction");
     const twice: CorrectionInput = {
       ...INPUT,
       charges: [{ ...charge("oct-utilities-jordan"), correctionCents: [-500, 200] }],
     };
-    expect(buildCorrectionPreview(twice, picked("oct-utilities-jordan", null)).correction?.current).toBe(
-      "Currently $79.46 · after 2 corrections",
-    );
+    expect(buildCorrectionPreview(twice, picked("oct-utilities-jordan", null)).correction?.corrections).toBe("2 corrections");
   });
 
   it("a lower amount on a routed charge: a refund to whoever paid it, Due date off, Save on", () => {
     const result = preview(picked("sep-utilities-sam", 7746));
     expect(result.correction).toEqual({
-      current: "Currently $82.46",
+      corrections: null,
       outcome: "Refund $5.00 to Priya (for Sam) yourself. This is saved as history.",
       amountEnabled: true,
       dueDateEnabled: false,
@@ -160,10 +158,10 @@ describe("buildCorrectionPreview", () => {
       body: "It will be linked to the original charge.",
       rows: [
         { label: "For", value: "Utilities · Sam · Sep 2026", items: null },
-        { label: "Correct amount", value: "$77.46", items: null },
-        { label: "Outcome", value: "Refund $5.00 to Priya (for Sam) yourself. Saved as history.", items: null },
+        { label: "New amount", value: "$77.46", items: null },
+        { label: "Outcome", value: "Refunds $5.00 to Priya", items: null },
       ],
-      confirmLabel: "Add correction",
+      confirmLabel: "Yes, add it",
       cancelLabel: "Go back",
     });
   });
@@ -185,14 +183,20 @@ describe("buildCorrectionPreview", () => {
     expect(result.correction).toMatchObject({ outcome: "Adds a $5.00 charge for Jordan", dueDateEnabled: true });
     expect(result.confirm?.rows).toEqual([
       { label: "For", value: "Fridge repair · Jordan · Oct 2026", items: null },
-      { label: "Correct amount", value: "$35.00", items: null },
-      { label: "Outcome", value: "Adds a $5.00 charge for Jordan", items: null },
+      { label: "New amount", value: "$35.00", items: null },
+      { label: "Outcome", value: "Adds $5.00", items: null },
       { label: "Due date", value: "30 Nov 2026", items: null },
     ]);
   });
 
   it("a higher amount for someone who pays via another person names the payer", () => {
-    expect(preview(picked("oct-aircon-sam", 2333)).correction?.outcome).toBe("Adds a $5.00 charge for Sam · via Priya");
+    const result = preview(picked("oct-aircon-sam", 2333));
+    expect(result.correction?.outcome).toBe("Adds a $5.00 charge for Sam · via Priya");
+    expect(result.confirm?.rows[2]).toEqual({ label: "Outcome", value: "Adds $5.00 · via Priya", items: null });
+  });
+
+  it("the confirm's Outcome is just the amount when it is paid directly", () => {
+    expect(preview(picked("oct-fridge-jordan", 0)).confirm?.rows[2].value).toBe("Refunds $30.00");
   });
 
   it("a higher amount with no due date keeps Save off", () => {
@@ -213,7 +217,7 @@ describe("buildCorrectionPreview", () => {
 
   it("a charge that isn't offered counts as none picked", () => {
     expect(preview(picked("oct-rent-jordan", 90000)).correction).toEqual({
-      current: null,
+      corrections: null,
       outcome: null,
       amountEnabled: false,
       dueDateEnabled: false,

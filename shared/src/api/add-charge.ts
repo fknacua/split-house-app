@@ -201,10 +201,10 @@ export const addChargeConfirmSchema = z.object({
   body: z.string().nullable(),
   /**
    * A charge, in order: `What it’s for`, `Amount`, then `Split per person` (shared, with items) or `Who` (Personal),
-   * then `Due date`. A correction: `For`, `Correct amount`, `Outcome`, then `Due date` for a higher one.
+   * then `Due date`. A correction: `For`, `New amount`, `Outcome` (e.g. `Adds $X.XX`), then `Due date` for a higher one.
    */
   rows: z.array(addChargeConfirmRowSchema).min(1),
-  /** e.g. `Add $X,XXX.XX`, or `Add correction`. */
+  /** e.g. `Add $X,XXX.XX`, or `Yes, add it` for a correction. */
   confirmLabel: z.string(),
   /** `Go back`. */
   cancelLabel: z.string(),
@@ -267,8 +267,8 @@ export const addChargePreviewSchema = z.object({
   /** Correction mode's parts; null in Charge mode. */
   correction: z
     .object({
-      /** Under the amount: e.g. `Currently $X.XX` or `Currently $X.XX · after 1 correction`; null until a charge is picked. */
-      current: z.string().nullable(),
+      /** Under the Charge field: how many times the picked charge was corrected, e.g. `1 correction`; null when none or nothing is picked. */
+      corrections: z.string().nullable(),
       /** The info Alert, e.g. `Refund $X.XX to Sam yourself. This is saved as history.`; null while the amount is empty or unchanged. */
       outcome: z.string().nullable(),
       /** The amount can be typed in once a charge is picked. */
