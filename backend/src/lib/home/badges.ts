@@ -8,6 +8,8 @@ import { formatDateShort, type BadgeContent } from "@splithouse/shared";
  */
 export const HOME_BADGES = {
   paid: { label: "Paid", tone: "success" },
+  /** Home rows and Charge details: a refund correction, which the user paid back and is saved already paid. */
+  refunded: { label: "Refunded", tone: "success" },
   dueToday: { label: "Due today", tone: "info" },
   dueTomorrow: { label: "Due tomorrow", tone: "info" },
   /** Home rows and the Send message sheet's chip: the monthly message is out and nothing is paid. */
@@ -55,10 +57,11 @@ function chargeDueBadge(days: number): BadgeContent | null {
 }
 
 /**
- * The chip for a charge, first match wins: Paid, Not sent, Overdue N days, Due today, Due tomorrow,
+ * The chip for a charge, first match wins: Refunded, Paid, Not sent, Overdue N days, Due today, Due tomorrow,
  * Due in N days (up to three), Sent unpaid, Upcoming. Home's rows and Charge details use it.
  *
  * @param flags - Where the charge stands.
+ * @param flags.refund - The charge is a refund correction (`isRefund`): `Refunded`, before anything else.
  * @param flags.paid - The charge is paid.
  * @param flags.messageUnsent - A utilities charge whose payer has no monthly message yet.
  * @param flags.days - Whole days to the due date, negative once past. Null when no due day is known.
@@ -66,11 +69,13 @@ function chargeDueBadge(days: number): BadgeContent | null {
  * @returns The chip.
  */
 export function chargeBadge(flags: {
+  refund: boolean;
   paid: boolean;
   messageUnsent: boolean;
   days: number | null;
   sent: boolean;
 }): BadgeContent {
+  if (flags.refund) return HOME_BADGES.refunded;
   if (flags.paid) return HOME_BADGES.paid;
   if (flags.messageUnsent) return HOME_BADGES.notSent;
   const due = flags.days === null ? null : chargeDueBadge(flags.days);

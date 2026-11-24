@@ -17,7 +17,7 @@ function fakeDb(
 ): HistoryMonthDb {
   return {
     bill: { findUnique: async () => bill },
-    charge: { findMany: async ({ where }) => ("correctsMonth" in where ? corrections : charges) },
+    charge: { findMany: async ({ where }) => ("correctsCharge" in where ? corrections : charges) },
     month: { findFirst: async () => (newestMonth ? { month: newestMonth } : null) },
   };
 }
@@ -45,6 +45,18 @@ describe("getHistoryMonth", () => {
     expect(await getHistoryMonth(fakeDb(BILL, CHARGES, CORRECTIONS), "2026-09")).toEqual(
       buildHistoryMonth("2026-09", BILL, CHARGES, CORRECTIONS),
     );
+  });
+
+  it("finds the banners' corrections through their link to a charge of the month", async () => {
+    const wheres: unknown[] = [];
+    const db = fakeDb(BILL, CHARGES, CORRECTIONS);
+    const findMany = db.charge.findMany;
+    db.charge.findMany = async (args) => {
+      wheres.push(args.where);
+      return findMany(args);
+    };
+    await getHistoryMonth(db, "2026-09");
+    expect(wheres).toContainEqual({ correctsCharge: { month: "2026-09" }, person: { isOwner: false } });
   });
 
   it("answers 404 when the month has no saved bill", async () => {

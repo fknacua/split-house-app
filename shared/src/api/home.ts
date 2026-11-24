@@ -22,6 +22,10 @@ export const homeTargetSchema = z.discriminatedUnion('kind', [
   z.object({ kind: z.literal('mark-paid'), chargeId: z.string() }),
   /** Opens the Edit payment sheet for one paid charge (Charge details only). */
   z.object({ kind: z.literal('edit-payment'), chargeId: z.string() }),
+  /** Opens the Add charge sheet as `Add correction` for one paid charge (Charge details only). */
+  z.object({ kind: z.literal('add-correction'), chargeId: z.string() }),
+  /** Opens the `Delete this correction?` dialog for a correction (Charge details only). */
+  z.object({ kind: z.literal('delete-correction'), chargeId: z.string() }),
   z.object({ kind: z.literal('bill-upload'), month: monthKey }),
   z.object({ kind: z.literal('bill-draft-continue'), month: monthKey }),
   z.object({ kind: z.literal('bill-draft-discard'), month: monthKey }),
@@ -105,10 +109,10 @@ export type HomeHeroBody = z.infer<typeof homeHeroBodySchema>;
 export const homeActionSchema = z.object({
   /** e.g. `Mark paid`. */
   label: z.string(),
-  /** `warning` is the orange Nudge button. */
-  tone: z.enum(['primary', 'outline', 'warning']),
+  /** `warning` is the orange Nudge button; `outline-danger` is Delete correction. */
+  tone: z.enum(['primary', 'outline', 'warning', 'outline-danger']),
   /** Null for a button with a label only, like Continue. */
-  icon: z.enum(['check', 'bell', 'pencil']).nullable(),
+  icon: z.enum(['check', 'bell', 'pencil', 'plus', 'trash']).nullable(),
   target: homeTargetSchema,
 });
 

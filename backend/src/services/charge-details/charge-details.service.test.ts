@@ -39,15 +39,29 @@ interface FakeOptions {
   messages?: ChargeDetailsMessage[];
   /** When the charge was added; the bill's save by default. */
   createdAt?: Date;
+  /** For a correction, the charge it fixes. */
+  correctsCharge?: { label: string; month: string } | null;
+  corrections?: { amountCents: number; createdAt: Date }[];
+  /** No month open at all. */
+  noMonth?: boolean;
 }
 
 /** A November with Jordan's utilities and Priya's paid utilities; records the month each query asked for. */
-function fakeDb({ charge = UTILITIES, hasBill = true, messages = [MONTHLY], createdAt = CREATED }: FakeOptions = {}) {
+function fakeDb({
+  charge = UTILITIES,
+  hasBill = true,
+  messages = [MONTHLY],
+  createdAt = CREATED,
+  correctsCharge = null,
+  corrections = [],
+  noMonth = false,
+}: FakeOptions = {}) {
   const months: string[] = [];
+  const version = { schemaVersion: HOUSEHOLD_SCHEMA_VERSION, config: NOV_2026_CONFIG };
   const db: ChargeDetailsDb = {
+    month: { findFirst: async () => (noMonth ? null : { householdVersion: version }) },
     charge: {
-      findUnique: async () =>
-        charge && { ...charge, createdAt, householdVersion: { schemaVersion: HOUSEHOLD_SCHEMA_VERSION, config: NOV_2026_CONFIG } },
+      findUnique: async () => charge && { ...charge, createdAt, householdVersion: version, correctsCharge, corrections },
       findMany: async ({ where }) => {
         months.push(where.month);
         return [
@@ -113,6 +127,38 @@ describe("getChargeDetails", () => {
       expect((await getChargeDetails(db, fridge.id)).amount.chip.label).toBe("Not sent");
     });
   });
+  describe("corrections", () => {
+    const paid = { ...UTILITIES, paidCents: 8246, paidOn: new Date("2026-11-03") };
+
+    it("offers Add correction on a paid utilities charge of someone in the newest month's household", async () => {
+      const res = await getChargeDetails(fakeDb({ charge: paid }).db, paid.id);
+      expect(res.footer.map((a) => a.label)).toEqual(["Edit payment", "Add correction"]);
+    });
+
+    it.each([
+      ["an unpaid charge", UTILITIES],
+      ["rent", { ...paid, category: "RENT" as const, label: "Rent" }],
+      ["someone no longer in the household", { ...paid, personId: "person-former" }],
+    ])("offers no Add correction for %s", async (_name, charge) => {
+      const res = await getChargeDetails(fakeDb({ charge }).db, charge.id);
+      expect(res.footer.map((a) => a.label)).not.toContain("Add correction");
+    });
+
+    it("passes the corrections to the Activity and what a correction fixes to its Fixes row", async () => {
+      const corrected = await getChargeDetails(
+        fakeDb({ charge: paid, corrections: [{ amountCents: -500, createdAt: new Date("2026-11-21T10:00:00+08:00") }] }).db,
+        paid.id,
+      );
+      expect(corrected.amount.note).toBe("Corrected to $77.46 · 1 correction");
+      const refund = { ...UTILITIES, id: "refund", category: "CORRECTION" as const, amountCents: -500, paidCents: -500, paidOn: new Date("2026-11-21") };
+      const res = chargeDetailsResponseSchema.parse(
+        await getChargeDetails(fakeDb({ charge: refund, correctsCharge: { label: "Utilities", month: "2026-10" } }).db, refund.id),
+      );
+      expect(res.facts).toContainEqual({ kind: "text", label: "Fixes", value: "Utilities · Oct 2026" });
+      expect(res.footer.map((a) => a.label)).toEqual(["Delete correction"]);
+    });
+  });
+
   it("answers 404 no_charge for an unknown charge", async () => {
     await expect(getChargeDetails(fakeDb({ charge: null }).db, "nope")).rejects.toMatchObject({
       status: 404,

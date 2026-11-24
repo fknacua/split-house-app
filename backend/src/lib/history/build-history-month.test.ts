@@ -105,9 +105,9 @@ describe("buildHistoryMonth", () => {
       expect(result.payments).toHaveLength(CHARGES.length);
     });
 
-    it("calls a negative correction a credit", () => {
+    it("calls a negative correction a refund", () => {
       const result = buildHistoryMonth("2026-09", BILL, CHARGES, [correction("Tenant 2", -820)]);
-      expect(result.banners[0].text).toBe("A $8.20 credit for Tenant 2 was added in Oct.");
+      expect(result.banners[0].text).toBe("A $8.20 refund for Tenant 2 was added in Oct.");
     });
 
     it("makes a banner per correction, oldest first", () => {

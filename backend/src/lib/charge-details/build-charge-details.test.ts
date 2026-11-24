@@ -60,8 +60,21 @@ function details(
   messages: ChargeDetailsMessage[] = [],
   monthStatus: HomeStatus = "collecting",
   messageUnsent = false,
+  links: Partial<Pick<ChargeDetailsInput, "fixes" | "corrections" | "canCorrect">> = {},
 ) {
-  const input: ChargeDetailsInput = { today, config: NOV_2026_CONFIG, charge: c, people: PEOPLE, messages, monthStatus, messageUnsent };
+  const input: ChargeDetailsInput = {
+    today,
+    config: NOV_2026_CONFIG,
+    charge: c,
+    people: PEOPLE,
+    messages,
+    monthStatus,
+    messageUnsent,
+    fixes: null,
+    corrections: [],
+    canCorrect: false,
+    ...links,
+  };
   return chargeDetailsResponseSchema.parse(buildChargeDetails(input));
 }
 
@@ -95,6 +108,7 @@ describe("buildChargeDetails", () => {
         },
         { label: "Mark paid", tone: "outline", icon: "check", target: { kind: "mark-paid", chargeId: JORDAN_RENT.id } },
       ],
+      deleteCorrection: null,
     });
   });
 
@@ -186,9 +200,9 @@ describe("buildChargeDetails", () => {
     expect(labels(details(paid, "2026-11-08"))).toEqual(["Edit payment"]);
   });
 
-  it("gives a paid refund (a charge below zero) no Edit payment", () => {
+  it("gives a paid refund (a charge below zero) no Edit payment, only Delete correction", () => {
     const refund = charge({ id: "charge-7", category: "CORRECTION", label: "Correction", amountCents: -500, paidCents: -500, paidOn: new Date("2026-11-03"), dueDate: null });
-    expect(details(refund, "2026-11-05").footer).toEqual([]);
+    expect(labels(details(refund, "2026-11-05"))).toEqual(["Delete correction"]);
   });
 
   it("lists a payment made the same day as a nudge above it", () => {
@@ -213,5 +227,100 @@ describe("buildChargeDetails", () => {
     // Even if a payment were stored on it, the owner's charge never gets Edit payment.
     const ownPaid = { ...own, paidCents: 95000, paidOn: new Date("2026-11-02") };
     expect(details(ownPaid, "2026-11-03").footer).toEqual([]);
+  });
+});
+
+describe("buildChargeDetails: corrections", () => {
+  const OCT_UTILITIES = { label: "Utilities", month: "2026-10" };
+  const paidUtilities = { ...JORDAN_UTILITIES, month: "2026-10", dueDate: new Date("2026-10-04"), paidCents: 8246, paidOn: new Date("2026-10-06") };
+  const correction = (amountCents: number, paid: boolean) =>
+    charge({
+      id: "correction-1",
+      category: "CORRECTION",
+      label: "Utilities correction (Oct)",
+      amountCents,
+      dueDate: new Date("2026-11-24"),
+      paidCents: paid ? amountCents : null,
+      paidOn: paid ? new Date("2026-11-21") : null,
+    });
+
+  it("paidCorrectable: Edit payment, then Add correction", () => {
+    const d = details(paidUtilities, "2026-11-21", [], "collecting", false, { canCorrect: true });
+    expect(d.footer).toEqual([
+      { label: "Edit payment", tone: "outline", icon: "pencil", target: { kind: "edit-payment", chargeId: "charge-2" } },
+      { label: "Add correction", tone: "outline", icon: "plus", target: { kind: "add-correction", chargeId: "charge-2" } },
+    ]);
+    expect(d.deleteCorrection).toBeNull();
+  });
+
+  it("offers no Add correction when the charge can't be corrected", () => {
+    expect(labels(details(paidUtilities, "2026-11-21"))).toEqual(["Edit payment"]);
+  });
+
+  it("corrected: the card note and the correction in the Activity, newest first; the stored amount stays", () => {
+    const d = details(paidUtilities, "2026-11-21", [], "collecting", false, {
+      canCorrect: true,
+      corrections: [{ amountCents: -500, createdAt: new Date("2026-11-21T10:00:00+08:00") }],
+    });
+    expect(d.amount).toMatchObject({ value: "$82.46", chip: { label: "Paid" }, note: "Corrected to $77.46 · 1 correction" });
+    expect(d.activity).toEqual([
+      { title: "Correction -$5.00", date: "21 Nov 2026" },
+      { title: "Payment $82.46", date: "06 Oct 2026" },
+    ]);
+  });
+
+  it("counts every correction in the card note", () => {
+    const corrections = [
+      { amountCents: -500, createdAt: new Date("2026-11-21T10:00:00+08:00") },
+      { amountCents: 200, createdAt: new Date("2026-11-22T10:00:00+08:00") },
+    ];
+    expect(details(paidUtilities, "2026-11-22", [], "collecting", false, { corrections }).amount.note).toBe(
+      "Corrected to $79.46 · 2 corrections",
+    );
+  });
+
+  it("correctionRefund: Refunded, what it fixes, no Due, only its refund in the Activity, and Delete correction", () => {
+    const d = details(correction(-500, true), "2026-11-21", [monthly(PERSON_IDS.jordan)], "collecting", false, { fixes: OCT_UTILITIES });
+    expect(d).toMatchObject({
+      title: "Correction · Jordan",
+      amount: { value: "-$5.00", chip: { label: "Refunded", tone: "success" }, note: null },
+      facts: [
+        { kind: "text", label: "Payer", value: "Jordan" },
+        { kind: "text", label: "Payment routing", value: "Direct" },
+        { kind: "text", label: "Fixes", value: "Utilities · Oct 2026" },
+        { kind: "pill", label: "Payment status", badge: { label: "Refunded 21 Nov", tone: "success" } },
+      ],
+      activity: [{ title: "Refund -$5.00", date: "21 Nov 2026" }],
+      footer: [
+        { label: "Delete correction", tone: "outline-danger", icon: "trash", target: { kind: "delete-correction", chargeId: "correction-1" } },
+      ],
+      deleteCorrection: {
+        title: "Delete this correction?",
+        body: "It’s removed from Utilities · Jordan and from History. Its payment is removed too.",
+        confirmLabel: "Delete",
+        cancelLabel: "Keep",
+      },
+    });
+  });
+
+  it("correctionUnpaid: its chip and Due, Mark paid, then Delete correction", () => {
+    const d = details(correction(500, false), "2026-11-21", [], "collecting", true, { fixes: OCT_UTILITIES });
+    expect(d.amount.chip).toEqual({ label: "Not sent", tone: "primary" });
+    expect(d.facts.map((f) => f.label)).toEqual(["Payer", "Payment routing", "Fixes", "Due", "Payment status"]);
+    expect(labels(d)).toEqual(["Mark paid", "Delete correction"]);
+    expect(d.deleteCorrection?.body).toBe("It’s removed from Utilities · Jordan and from History.");
+  });
+
+  it("correctionPaid: Edit payment, then Delete correction, never Add correction", () => {
+    const d = details(correction(500, true), "2026-11-25", [], "collecting", false, { fixes: OCT_UTILITIES, canCorrect: true });
+    expect(labels(d)).toEqual(["Edit payment", "Delete correction"]);
+    expect(d.deleteCorrection?.body).toMatch(/Its payment is removed too.$/);
+  });
+
+  it("gives the owner's own correction no footer and no dialog", () => {
+    const own = { ...correction(-500, true), personId: PERSON_IDS.alex };
+    const d = details(own, "2026-11-21", [], "collecting", false, { fixes: OCT_UTILITIES });
+    expect(d.footer).toEqual([]);
+    expect(d.deleteCorrection).toBeNull();
   });
 });

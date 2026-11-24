@@ -102,6 +102,17 @@ describe("lineLabel", () => {
       "Correction: September utilities",
     );
   });
+
+  it("names a correction from what it fixes, with the custom line label for utilities and aircon", () => {
+    const templates = { ...DEFAULT_MESSAGE_TEMPLATES, lineLabels: { AIRCON: "Aircon" } };
+    const fix = (correctsCategory: "UTILITIES" | "AIRCON" | "ONE_OFF", label: string) =>
+      lineLabel(templates, { category: "CORRECTION", label, correctsCategory, correctsMonth: "2026-10" });
+
+    expect(fix("UTILITIES", "Utilities correction (Oct)")).toBe("Utilities bill correction (Oct)");
+    expect(fix("AIRCON", "Aircon servicing correction (Oct)")).toBe("Aircon correction (Oct)");
+    // A one-off's stored label is already its own label and the month.
+    expect(fix("ONE_OFF", "Fridge repair correction (Oct)")).toBe("Fridge repair correction (Oct)");
+  });
 });
 
 describe("renderMonthlyMessage", () => {

@@ -10,7 +10,13 @@ import {
   type PersonConfig,
 } from "@splithouse/shared";
 import type { ChargeCategory } from "@/generated/prisma/enums";
-import { correctionFields, correctionRefusal, type CorrectionFields, type CorrectionRefusal } from "@/lib/corrections/correction-fields";
+import {
+  correctionFields,
+  correctionRefusal,
+  type CorrectionFields,
+  type CorrectionOriginal,
+  type CorrectionRefusal,
+} from "@/lib/corrections/correction-fields";
 import { viaOf } from "@/lib/household/route-via";
 import type { AddChargeInput, AddChargeProblem } from "./build-add-charge";
 
@@ -65,11 +71,11 @@ const REFUSALS: Record<CorrectionRefusal, string> = {
   unpaid: "Only a paid charge can be corrected.",
 };
 
-function ownerIdOf(input: AddChargeInput): string {
+function ownerIdOf(input: Pick<AddChargeInput, "config">): string {
   return input.config.people.find((p) => p.role === "OWNER")?.personId ?? "";
 }
 
-function personOf(input: AddChargeInput, personId: string): PersonConfig | undefined {
+function personOf(input: Pick<AddChargeInput, "config">, personId: string): PersonConfig | undefined {
   return input.config.people.find((p) => p.personId === personId && p.role !== "OWNER");
 }
 
@@ -178,15 +184,18 @@ function outcomeText(input: AddChargeInput, charge: CorrectableCharge, diff: num
 }
 
 /**
- * Why a charge can't be corrected from this month's sheet, or null when it can. The GET checks a charge it is opened
- * from with it; the save checks the picked one.
+ * Why a charge can't be corrected from the newest month's sheet, or null when it can. The GET checks a charge it is opened
+ * from with it, the save the picked one, and Charge details whether to offer Add correction.
  *
- * @param input - The month, its config and the people.
+ * @param input - The newest opened month's config.
  * @param charge - The charge as read from the database (whether or not it can be corrected), or null when there is none.
  * @returns 404 `no_charge` (no such charge); 409 `is_correction`, `owner_charge`, `not_correctable` or `unpaid`
  * ({@link correctionRefusal}); 404 `no_person` (the person isn't in the month's household); or null.
  */
-export function correctionChargeProblem(input: AddChargeInput, charge: CorrectableCharge | null): AddChargeProblem | null {
+export function correctionChargeProblem(
+  input: Pick<AddChargeInput, "config">,
+  charge: CorrectionOriginal | null,
+): AddChargeProblem | null {
   if (charge === null) return { status: 404, code: "no_charge", message: "That charge doesn’t exist." };
   const refusal = correctionRefusal(charge, ownerIdOf(input));
   if (refusal !== null) return { status: 409, code: refusal, message: REFUSALS[refusal] };

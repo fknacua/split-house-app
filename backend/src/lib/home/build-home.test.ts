@@ -856,3 +856,27 @@ describe("buildHome, a charge added after the send once the bill is due", () => 
     expect(home.footer.map((b) => b.label)).toEqual(["Mark bill paid"]);
   });
 });
+
+describe("buildHome, a refund correction", () => {
+  it("shows Refunded on its row, not Paid", () => {
+    const refund: HomeChargeRow = {
+      id: "refund-jordan",
+      personId: PERSON_IDS.jordan,
+      payViaPersonId: null,
+      category: "CORRECTION",
+      label: "Utilities correction (Oct)",
+      amountCents: -500,
+      dueDate: new Date("2026-11-21"),
+      paidCents: -500,
+      paidOn: new Date("2026-11-21"),
+      createdAt: new Date("2026-11-21T10:00:00+08:00"),
+    };
+    const messages = monthly(PERSON_IDS.priya, PERSON_IDS.jordan);
+    const home = buildHome(
+      input({ status: "collecting", today: "2026-11-21", charges: [...novemberChargesWithBill(), refund], bill: BILL, messages }),
+    );
+    const row = home.rows.find((r) => r.id === "refund-jordan")!;
+    expect(row.badge).toEqual({ label: "Refunded", tone: "success" });
+    expect(row.amount).toBe("-$5.00");
+  });
+});

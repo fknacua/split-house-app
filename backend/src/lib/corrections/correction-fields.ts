@@ -30,6 +30,17 @@ export interface CorrectionFields {
   correctsCategory: CorrectableCategory;
 }
 
+/**
+ * Whether a charge is a refund: a correction below zero, which the user paid back and is saved already paid. It is
+ * history only, never in a message or in Record payment.
+ *
+ * @param charge - The charge's category and amount.
+ * @returns True for a refund.
+ */
+export function isRefund(charge: { category: ChargeCategory; amountCents: number }): boolean {
+  return charge.category === "CORRECTION" && charge.amountCents < 0;
+}
+
 function isCorrectable(category: ChargeCategory): category is CorrectableCategory {
   return (CORRECTABLE_CATEGORIES as readonly ChargeCategory[]).includes(category);
 }

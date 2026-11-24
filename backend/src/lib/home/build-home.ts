@@ -18,6 +18,7 @@ import {
 } from "@splithouse/shared";
 import type { ChargeCategory, MessageKind } from "@/generated/prisma/enums";
 import { billCoverage, coveragePercent } from "@/lib/bill/bill-coverage";
+import { isRefund } from "@/lib/corrections/correction-fields";
 import { billDueBadge, chargeBadge, HOME_BADGES } from "./badges";
 import { chargeActions } from "./charge-actions";
 import { billDueDateKey, chargeDueDate } from "./due-dates";
@@ -173,6 +174,7 @@ function chargeRow(
   // are reviewed. A via row stays Not sent until the payer's message goes out, but has no message.
   const ownMessage = messageUnsent && charge.payViaPersonId === null;
   const badge = chargeBadge({
+    refund: isRefund(charge),
     paid: !unpaid,
     messageUnsent,
     days: dueDate === null ? null : daysUntil(dueDate, input.today),
