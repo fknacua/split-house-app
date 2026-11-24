@@ -262,9 +262,12 @@ model Charge {
   dueDate            DateTime?      @db.Date
   billId             String?
   chargeGroupId      String?
+  // The charge a CORRECTION fixes: always the original, never another correction. It and the two
+  // fields below are required when category is CORRECTION and null otherwise, and copied from that
+  // charge; the charge_correction_fields CHECK (migration charge_corrects_charge) enforces it.
+  correctsChargeId   String?
   correctsMonth      String?
-  // What a CORRECTION fixes (RENT, UTILITIES, ...). Required when category is CORRECTION and
-  // null otherwise; a CHECK constraint in the charge_corrects_category migration enforces it.
+  // What a CORRECTION fixes (UTILITIES, AIRCON or ONE_OFF).
   correctsCategory   ChargeCategory?
   householdVersionId String
   paidCents          Int?
@@ -278,12 +281,16 @@ model Charge {
   bill             Bill?            @relation(fields: [billId], references: [id])
   chargeGroup      ChargeGroup?     @relation(fields: [chargeGroupId], references: [id])
   householdVersion HouseholdVersion @relation(fields: [householdVersionId], references: [id])
+  // NoAction, not Prisma's SetNull: a correction left without its charge would break the CHECK.
+  correctsCharge   Charge?          @relation("ChargeCorrects", fields: [correctsChargeId], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  corrections      Charge[]         @relation("ChargeCorrects")
   messageEvents    MessageEvent[]
 
   @@index([month])
   @@index([personId, month])
   @@index([billId])
   @@index([chargeGroupId])
+  @@index([correctsChargeId])
   @@map("charge")
 }
 
