@@ -6,9 +6,10 @@ import { ConfirmDetailRow, ConfirmDialog, ConfirmExpandRow } from '@/components'
 import type { AddChargeConfirmDialogProps } from '../types';
 
 /**
- * `Confirm` `addCharge`: asked before saving, with no body text. What it’s for, Amount, then `Split per person`
- * (collapsed, opening to each person's amount) or Personal's `Who`, then Due date; every string comes from the
- * server. While saving the action shows its spinner and the dialog can't be left.
+ * `Confirm` `addCharge` or `addCorrection`: asked before saving. A charge has no body text: What it’s for, Amount,
+ * then `Split per person` (collapsed, opening to each person's amount) or Personal's `Who`, then Due date. A
+ * correction says it will be linked to the original, then For, New amount, Outcome and a higher one's Due date.
+ * Every string comes from the server. While saving the action shows its spinner and the dialog can't be left.
  */
 export function AddChargeConfirmDialog({ open, confirm, saving, onConfirm, onGoBack }: AddChargeConfirmDialogProps) {
   // The sheet remounts the dialog for each Save tap, so the split starts collapsed every time.
@@ -21,6 +22,7 @@ export function AddChargeConfirmDialog({ open, confirm, saving, onConfirm, onGoB
       tone="neutral"
       icon={Check}
       title={confirm.title}
+      body={confirm.body ?? undefined}
       details={
         <View className="mt-2 rounded-xl bg-background px-3.5 py-1">
           {confirm.rows.map((row, index) =>

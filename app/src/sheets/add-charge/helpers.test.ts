@@ -1,7 +1,8 @@
 import { describe, expect, it } from 'vitest';
-import type { AddChargeValues } from '@splithouse/shared';
+import type { AddChargeSheet, AddChargeValues } from '@splithouse/shared';
 
 import {
+  correctionPicks,
   fieldErrors,
   isChanged,
   newIdempotencyKey,
@@ -9,6 +10,9 @@ import {
   withCustomAmount,
   withShare,
   withTypedCustom,
+  withCorrectionCharge,
+  withCorrectionMonth,
+  withCorrectionPerson,
   withTypedShares,
 } from './helpers';
 
@@ -128,5 +132,81 @@ describe('withTypedCustom and withTypedShares', () => {
   it('shows the typed values once there are some, empty for anyone left out', () => {
     expect(withTypedCustom(CUSTOM, [{ personId: 'person-sam', amountCents: 100 }]).rows.map((r) => r.amountCents)).toEqual([null, 100]);
     expect(withTypedShares(SHARES, [{ personId: 'person-alex', shares: 2000 }]).rows[0].shares).toBe(2000);
+  });
+});
+
+describe('Correction mode picks', () => {
+  const SELECTS: AddChargeSheet['correction'] = {
+    locked: false,
+    person: { placeholder: 'Select person' },
+    month: { placeholder: 'Select month' },
+    charge: { placeholder: 'Select charge' },
+    people: [
+      {
+        personId: 'sam',
+        name: 'Sam',
+        months: [
+          { month: '2026-10', label: 'Oct 2026', charges: [{ chargeId: 'oct-aircon', label: 'Aircon servicing · $18.33' }] },
+          { month: '2026-09', label: 'Sep 2026', charges: [{ chargeId: 'sep-utilities', label: 'Utilities · $82.46' }] },
+        ],
+      },
+      {
+        personId: 'jordan',
+        name: 'Jordan',
+        months: [{ month: '2026-10', label: 'Oct 2026', charges: [{ chargeId: 'oct-fridge', label: 'Fridge repair · $30.00' }] }],
+      },
+    ],
+  };
+  const PICKED: AddChargeValues = {
+    ...OPENING,
+    mode: 'CORRECTION',
+    correction: { personId: 'sam', month: '2026-09', chargeId: 'sep-utilities', amountCents: 7746, dueDate: '2026-11-24' },
+  };
+
+  it('lists people, then the picked person’s months, then the picked month’s charges', () => {
+    expect(correctionPicks(SELECTS, OPENING.correction)).toEqual({
+      people: [
+        { label: 'Sam', value: 'sam' },
+        { label: 'Jordan', value: 'jordan' },
+      ],
+      months: [],
+      charges: [],
+      labels: { person: '', month: '', charge: '' },
+    });
+    const picks = correctionPicks(SELECTS, PICKED.correction);
+    expect(picks.months).toEqual([
+      { label: 'Oct 2026', value: '2026-10' },
+      { label: 'Sep 2026', value: '2026-09' },
+    ]);
+    expect(picks.charges).toEqual([{ label: 'Utilities · $82.46', value: 'sep-utilities' }]);
+    expect(picks.labels).toEqual({ person: 'Sam', month: 'Sep 2026', charge: 'Utilities · $82.46' });
+  });
+
+  it('a new person starts the month, the charge and the amount again; the due date stays', () => {
+    expect(withCorrectionPerson(PICKED, 'jordan').correction).toEqual({
+      personId: 'jordan',
+      month: null,
+      chargeId: null,
+      amountCents: null,
+      dueDate: '2026-11-24',
+    });
+  });
+
+  it('a new month starts the charge and the amount again', () => {
+    expect(withCorrectionMonth(PICKED, '2026-10').correction).toMatchObject({ personId: 'sam', month: '2026-10', chargeId: null, amountCents: null });
+  });
+
+  it('a new charge starts the amount again, since it is compared with that charge', () => {
+    expect(withCorrectionCharge(PICKED, 'sep-utilities').correction).toMatchObject({ chargeId: 'sep-utilities', amountCents: null });
+  });
+
+  it('an empty pick reads as nothing picked', () => {
+    expect(withCorrectionPerson(PICKED, '').correction.personId).toBeNull();
+    expect(withCorrectionCharge(PICKED, '').correction.chargeId).toBeNull();
+  });
+
+  it('leaves Charge mode’s fields as they are', () => {
+    const charge = { ...PICKED, kind: 'ONE_OFF' as const, label: 'Fridge repair' };
+    expect(withCorrectionMonth(charge, '2026-10')).toMatchObject({ kind: 'ONE_OFF', label: 'Fridge repair' });
   });
 });

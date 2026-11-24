@@ -17,9 +17,10 @@ import { useAddCharge, useAddChargePreview, useAddChargeSheet, useDebouncedValue
 import { queryKeys } from '@/lib';
 import { ApiRequestError } from '@/lib/api';
 import { PREVIEW_DELAY_MS } from '@/screens/household-person';
-import type { AddChargeConfirm, AddChargeKind, AddChargeValues } from '@splithouse/shared';
+import type { AddChargeConfirm, AddChargeKind, AddChargePreview, AddChargeValues } from '@splithouse/shared';
 import { AddChargeConfirmDialog } from './components/add-charge-confirm-dialog';
 import { AddChargeSkeleton } from './components/add-charge-skeleton';
+import { CorrectionFields } from './components/correction-fields';
 import { CustomAmounts } from './components/custom-amounts';
 import { DiscardChargeDialog } from './components/discard-charge-dialog';
 import { ShareFields } from './components/share-fields';
@@ -36,19 +37,29 @@ import {
 } from './helpers';
 import type { AddChargeSheetRef, AddChargeTouched } from './types';
 
+/** Correction mode before its first preview: nothing picked, so nothing past the Selects is enabled. */
+const NO_CORRECTION_PREVIEW: NonNullable<AddChargePreview['correction']> = {
+  corrections: null,
+  outcome: null,
+  amountEnabled: false,
+  dueDateEnabled: false,
+};
+
 /** The backend's own message, when it sent one; the default text covers an unreachable server. */
 const messageOf = (error: Error | null) => (error instanceof ApiRequestError ? error.message : undefined);
 
 /**
- * Add charge (`AddCharge`, Charge mode): an unplanned expense in the newest opened month, opened from Home's header.
- * What it’s for, then (for Other) Label, the Amount, Shared | Personal, Who or the split chips, the Due date, Custom's
- * amount fields (starting from Equal) or Per share's share fields (starting from the household's), and the split
- * preview. `GET /api/add-charge` gives the options and the opening preview; every
- * change after that is previewed by `POST /api/add-charge/preview` (taps at once, typing after a pause), so which
- * fields show, the split, Custom's Alert, Save's label and whether it is enabled are always the server's. The app only
- * keeps the typed values and shows each field's error once it has been left empty.
+ * Add charge (`AddCharge`): an unplanned expense, or a correction to a paid charge, in the newest opened month. From
+ * Home's header it opens on the `Add as` group (`Charge | Correction`) in Charge mode: What it’s for, then (for Other)
+ * Label, the Amount, Shared | Personal, Who or the split chips, the Due date, Custom's amount fields (starting from
+ * Equal) or Per share's share fields (starting from the household's), and the split preview. Correction mode is
+ * {@link CorrectionFields}. From Charge details' Add correction it opens as `Add correction`: no group, Correction mode
+ * with that charge picked and its rows read-only. `GET /api/add-charge` gives the options and the opening preview;
+ * every change after that is previewed by `POST /api/add-charge/preview` (taps at once, typing after a pause), so
+ * which fields show, the split, the Alerts, Save's label and whether it is enabled are always the server's. The app
+ * only keeps the typed values and shows each Charge-mode field's error once it has been left empty.
  *
- * Save asks first (`Confirm` `addCharge`, text from the server), then saves while the dialog shows its spinner, and on
+ * Save asks first (`Confirm` `addCharge` or `addCorrection`, text from the server), then saves while the dialog shows its spinner, and on
  * success closes back to Home. Every Save and Retry from one opening sends the same idempotency key, so a save whose
  * response was lost is never stored twice. A failed save closes the dialog and leaves the sheet open with the danger
  * Alert and Retry, the fields kept; Retry saves without asking again, and any change brings the confirm back. Cancel
@@ -59,6 +70,8 @@ export const AddChargeSheet = forwardRef<AddChargeSheetRef>(function AddChargeSh
   const queryClient = useQueryClient();
   const keyRef = useRef(newIdempotencyKey());
   const [opened, setOpened] = useState(false);
+  // The charge Add correction opened it on; null for Home's Add charge.
+  const [fromChargeId, setFromChargeId] = useState<string | null>(null);
   // Null until the first change: the sheet's opening values are used until then.
   const [values, setValues] = useState<AddChargeValues | null>(null);
   const [touched, setTouched] = useState<AddChargeTouched>(UNTOUCHED);
@@ -71,7 +84,7 @@ export const AddChargeSheet = forwardRef<AddChargeSheetRef>(function AddChargeSh
   const [confirmCount, setConfirmCount] = useState(0);
   const [discardOpen, setDiscardOpen] = useState(false);
 
-  const sheetQuery = useAddChargeSheet(opened);
+  const sheetQuery = useAddChargeSheet(opened, fromChargeId);
   const save = useAddCharge();
   const sheet = sheetQuery.data;
   const opening = sheet?.values ?? null;
@@ -91,8 +104,9 @@ export const AddChargeSheet = forwardRef<AddChargeSheetRef>(function AddChargeSh
   useImperativeHandle(
     ref,
     () => ({
-      open: () => {
+      open: (chargeId?: string) => {
         void queryClient.invalidateQueries({ queryKey: queryKeys.allAddCharge });
+        setFromChargeId(chargeId ?? null);
         keyRef.current = newIdempotencyKey();
         setValues(null);
         setTouched(UNTOUCHED);
@@ -138,16 +152,20 @@ export const AddChargeSheet = forwardRef<AddChargeSheetRef>(function AddChargeSh
     setConfirmOpen(true);
   };
 
-  const errors = fields && preview ? fieldErrors(fields, touched, preview.show) : {};
+  // While a mode switch waits for its preview, each mode shows what it last had: Charge mode the sheet's opening
+  // preview, Correction mode nothing enabled yet.
+  const chargeView = preview && preview.correction === null ? preview : sheet && sheet.preview.correction === null ? sheet.preview : null;
+  const correctionView = preview?.correction ?? NO_CORRECTION_PREVIEW;
+  const errors = fields && chargeView ? fieldErrors(fields, touched, chargeView.show) : {};
   // Once a field is typed in, it shows what was typed straight away, not the last preview's value.
-  const customFields = preview?.custom ? withTypedCustom(preview.custom, fields?.customAmounts ?? []) : null;
-  const shareFields = preview?.shares ? withTypedShares(preview.shares, fields?.shares ?? []) : null;
+  const customFields = chargeView?.custom ? withTypedCustom(chargeView.custom, fields?.customAmounts ?? []) : null;
+  const shareFields = chargeView?.shares ? withTypedShares(chargeView.shares, fields?.shares ?? []) : null;
 
   return (
     <>
       <AppSheet
         ref={sheetRef}
-        title={sheet?.title ?? 'Add charge'}
+        title={sheet?.title ?? (fromChargeId ? 'Add correction' : 'Add charge')}
         subtitle={sheet?.subtitle}
         subtitleLoading={!sheet && !sheetQuery.error}
         actionLabel={preview?.save.label ?? 'Save'}
@@ -162,8 +180,28 @@ export const AddChargeSheet = forwardRef<AddChargeSheetRef>(function AddChargeSh
       >
         {/* A refusal (no month open) says why; an unreachable server shows the app's prompt. */}
         {sheetQuery.error instanceof ApiRequestError ? <Alert variant="danger" message={sheetQuery.error.message} /> : null}
-        {!sheet && !sheetQuery.error ? <AddChargeSkeleton /> : null}
-        {sheet && fields && preview ? (
+        {!sheet && !sheetQuery.error ? <AddChargeSkeleton correction={fromChargeId !== null} /> : null}
+        {sheet && fields && preview && sheet.modes ? (
+          <FormField label={sheet.modes.label} disabled={saving}>
+            <ConnectedButtonGroup
+              label={sheet.modes.label}
+              options={sheet.modes.options}
+              value={fields.mode}
+              onChange={(mode) => change({ ...fields, mode }, true)}
+              disabled={saving}
+            />
+          </FormField>
+        ) : null}
+        {sheet && fields && fields.mode === 'CORRECTION' ? (
+          <CorrectionFields
+            selects={sheet.correction}
+            values={fields}
+            preview={correctionView}
+            disabled={saving}
+            onChange={change}
+          />
+        ) : null}
+        {sheet && fields && chargeView && fields.mode === 'CHARGE' ? (
           <>
             <FormField label="What’s it for" required disabled={saving}>
               <BareSelectField
@@ -175,7 +213,7 @@ export const AddChargeSheet = forwardRef<AddChargeSheetRef>(function AddChargeSh
                 disabled={saving}
               />
             </FormField>
-            {preview.show.label ? (
+            {chargeView.show.label ? (
               <FormField label="Label" required disabled={saving} error={errors.label}>
                 <TextInput
                   accessibilityLabel="Label"
@@ -199,7 +237,7 @@ export const AddChargeSheet = forwardRef<AddChargeSheetRef>(function AddChargeSh
                 disabled={saving}
               />
             </FormField>
-            {preview.show.scope ? (
+            {chargeView.show.scope ? (
               <FormField label="Charge to" disabled={saving}>
                 <ConnectedButtonGroup
                   label="Charge to"
@@ -210,7 +248,7 @@ export const AddChargeSheet = forwardRef<AddChargeSheetRef>(function AddChargeSh
                 />
               </FormField>
             ) : null}
-            {preview.show.who ? (
+            {chargeView.show.who ? (
               <FormField label="Who" required disabled={saving}>
                 <BareSelectField
                   accessibilityLabel="Who"
@@ -222,7 +260,7 @@ export const AddChargeSheet = forwardRef<AddChargeSheetRef>(function AddChargeSh
                 />
               </FormField>
             ) : null}
-            {preview.show.split ? (
+            {chargeView.show.split ? (
               <FormField label="Split" disabled={saving}>
                 <ChipGroup
                   label="Split"
@@ -260,7 +298,7 @@ export const AddChargeSheet = forwardRef<AddChargeSheetRef>(function AddChargeSh
                 onChange={(personId, value) => change(withShare(fields, shareFields.rows, personId, value), false)}
               />
             ) : null}
-            {preview.preview ? <SplitPreview preview={preview.preview} /> : null}
+            {chargeView.preview ? <SplitPreview preview={chargeView.preview} /> : null}
           </>
         ) : null}
       </AppSheet>

@@ -19,6 +19,7 @@ function toRows(charges: EngineCharge[]): HomeChargeRow[] {
     paidCents: null,
     paidOn: null,
     createdAt: new Date("2026-11-01T09:00:00+08:00"),
+    correctsCharge: null,
   }));
 }
 

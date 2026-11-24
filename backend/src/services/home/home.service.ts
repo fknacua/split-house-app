@@ -24,6 +24,8 @@ const CHARGE_SELECT = {
   paidCents: true,
   paidOn: true,
   createdAt: true,
+  // What a correction fixes, for its row's detail line.
+  correctsCharge: { select: { label: true, month: true } },
 } as const;
 
 // The rendered text of a message is never needed on Home.

@@ -45,7 +45,9 @@ export function ChargeDetails() {
           <SkeletonBlock className="h-12 rounded-full" />
         </SubpageFooter>
       ) : null}
-      {data && data.footer.length > 0 ? <ChargeDetailsFooter actions={data.footer} /> : null}
+      {data && data.footer.length > 0 ? (
+        <ChargeDetailsFooter actions={data.footer} chargeId={data.chargeId} deleteCorrection={data.deleteCorrection} />
+      ) : null}
     </Screen>
   );
 }

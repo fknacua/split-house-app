@@ -23,6 +23,7 @@ function toRows(charges: EngineCharge[]): HomeChargeRow[] {
     paidOn: null,
     // Rent, recurring and utilities are added when the month opens and the bill is saved, before any message.
     createdAt: new Date("2026-11-01T09:00:00+08:00"),
+    correctsCharge: null,
   }));
 }
 
@@ -801,6 +802,7 @@ describe("buildHome, collecting with a charge added after the messages went out"
     paidCents: null,
     paidOn: null,
     createdAt: new Date("2026-11-21T10:00:00+08:00"),
+    correctsCharge: null,
   };
   const home = (messages = monthly(PERSON_IDS.priya, PERSON_IDS.jordan)) =>
     buildHome(
@@ -848,6 +850,7 @@ describe("buildHome, a charge added after the send once the bill is due", () => 
       paidCents: null,
       paidOn: null,
       createdAt: new Date("2026-11-21T10:00:00+08:00"),
+      correctsCharge: null,
     };
     const charges = [...novemberChargesWithBill(), fridge];
     const home = buildHome(
@@ -870,6 +873,7 @@ describe("buildHome, a refund correction", () => {
       paidCents: -500,
       paidOn: new Date("2026-11-21"),
       createdAt: new Date("2026-11-21T10:00:00+08:00"),
+      correctsCharge: { label: "Utilities", month: "2026-10" },
     };
     const messages = monthly(PERSON_IDS.priya, PERSON_IDS.jordan);
     const home = buildHome(
@@ -878,5 +882,28 @@ describe("buildHome, a refund correction", () => {
     const row = home.rows.find((r) => r.id === "refund-jordan")!;
     expect(row.badge).toEqual({ label: "Refunded", tone: "success" });
     expect(row.amount).toBe("-$5.00");
+  });
+
+  it("is titled Correction, with only what it fixes and when it was added under it", () => {
+    const refund: HomeChargeRow = {
+      id: "refund-sam",
+      personId: PERSON_IDS.sam,
+      payViaPersonId: PERSON_IDS.priya,
+      category: "CORRECTION",
+      label: "Utilities correction (Sep)",
+      amountCents: -354,
+      dueDate: new Date("2026-11-03"),
+      paidCents: -354,
+      paidOn: new Date("2026-11-03"),
+      createdAt: new Date("2026-11-03T10:00:00+08:00"),
+      correctsCharge: { label: "Utilities", month: "2026-09" },
+    };
+    const home = buildHome(
+      input({ status: "collecting", today: "2026-11-03", charges: [...novemberChargesWithBill(), refund], bill: BILL, messages: monthly(PERSON_IDS.priya) }),
+    );
+    expect(home.rows.find((r) => r.id === "refund-sam")).toMatchObject({
+      title: "Correction · Sam",
+      detail: "Utilities Sep · Added 3 Nov",
+    });
   });
 });

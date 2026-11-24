@@ -1,4 +1,4 @@
-import type { AddChargePreview, AddChargeValues } from '@splithouse/shared';
+import type { AddChargePreview, AddChargeSheet, AddChargeValues } from '@splithouse/shared';
 
 import type { AddChargeTouched } from './types';
 
@@ -123,4 +123,71 @@ export function fieldErrors(
  */
 export function isChanged(values: AddChargeValues, opening: AddChargeValues): boolean {
   return JSON.stringify(values) !== JSON.stringify(opening);
+}
+
+/** Correction mode's Selects as the server sends them. */
+type CorrectionSelects = AddChargeSheet['correction'];
+
+/**
+ * The fields with a person picked in Correction mode: the month, the charge and the amount start again.
+ *
+ * @param values The fields.
+ * @param personId The picked person, or `''` for none.
+ * @returns The new fields.
+ */
+export function withCorrectionPerson(values: AddChargeValues, personId: string): AddChargeValues {
+  const correction = { ...values.correction, personId: personId || null, month: null, chargeId: null, amountCents: null };
+  return { ...values, correction };
+}
+
+/**
+ * The fields with a month picked in Correction mode: the charge and the amount start again.
+ *
+ * @param values The fields.
+ * @param month The picked month, or `''` for none.
+ * @returns The new fields.
+ */
+export function withCorrectionMonth(values: AddChargeValues, month: string): AddChargeValues {
+  return { ...values, correction: { ...values.correction, month: month || null, chargeId: null, amountCents: null } };
+}
+
+/**
+ * The fields with a charge picked in Correction mode: the amount starts again, since it is compared with this one.
+ *
+ * @param values The fields.
+ * @param chargeId The picked charge, or `''` for none.
+ * @returns The new fields.
+ */
+export function withCorrectionCharge(values: AddChargeValues, chargeId: string): AddChargeValues {
+  return { ...values, correction: { ...values.correction, chargeId: chargeId || null, amountCents: null } };
+}
+
+/** The three Selects' options and the picked ones' labels, for the fields as they stand. */
+export interface CorrectionPicks {
+  people: { label: string; value: string }[];
+  /** The picked person's months; empty until a person is picked. */
+  months: { label: string; value: string }[];
+  /** The picked month's charges; empty until a month is picked. */
+  charges: { label: string; value: string }[];
+  /** What the read-only rows show when opened from a charge: the picked person, month and charge. */
+  labels: { person: string; month: string; charge: string };
+}
+
+/**
+ * Correction mode's Select options, each narrowed by the pick above it, and the picked labels.
+ *
+ * @param selects The people, months and charges from the server.
+ * @param correction Correction mode's fields.
+ * @returns The options and labels.
+ */
+export function correctionPicks(selects: CorrectionSelects, correction: AddChargeValues['correction']): CorrectionPicks {
+  const person = selects.people.find((p) => p.personId === correction.personId);
+  const month = person?.months.find((m) => m.month === correction.month);
+  const charge = month?.charges.find((c) => c.chargeId === correction.chargeId);
+  return {
+    people: selects.people.map((p) => ({ label: p.name, value: p.personId })),
+    months: (person?.months ?? []).map((m) => ({ label: m.label, value: m.month })),
+    charges: (month?.charges ?? []).map((c) => ({ label: c.label, value: c.chargeId })),
+    labels: { person: person?.name ?? '', month: month?.label ?? '', charge: charge?.label ?? '' },
+  };
 }

@@ -7,6 +7,7 @@ import {
   formatDateShort,
   formatMonthLabel,
   formatMonthName,
+  formatMonthShort,
   type HomeFooterButton,
   type HomeHero,
   type HomeNextMonthAction,
@@ -52,6 +53,8 @@ export interface HomeChargeRow {
   paidOn: Date | null;
   /** When the charge was added: one added after its payer's monthly message is unsent again. */
   createdAt: Date;
+  /** For a correction, the charge it fixes; null for any other charge. */
+  correctsCharge: { label: string; month: string } | null;
 }
 
 /** A WhatsApp chat opened for a person, as much of it as Home needs. */
@@ -124,7 +127,9 @@ function messageDates(messages: HomeMessage[]): MessageDates {
 
 /**
  * The detail line: a route via someone else, then where the charge stands (`Paid 3 Nov`,
- * `Nudged 2 Nov` or `Sent 2 Nov`). Paying direct is the default, so it is not said.
+ * `Nudged 2 Nov` or `Sent 2 Nov`). Paying direct is the default, so it is not said. A correction
+ * says only what it fixes and when it was added, e.g. `Utilities Sep · Added 3 Nov`; its route and
+ * payment are on Charge details.
  */
 function chargeDetail(
   charge: HomeChargeRow,
@@ -132,6 +137,10 @@ function chargeDetail(
   dates: MessageDates,
   payerId: string,
 ): string | null {
+  if (charge.correctsCharge) {
+    const { label, month } = charge.correctsCharge;
+    return `${label} ${formatMonthShort(month)} · Added ${formatDateShort(dateKeyOf(charge.createdAt))}`;
+  }
   const parts = [routeDetail(charge.payViaPersonId, names), chargeState(charge, dates, payerId)].filter(
     (p) => p !== null,
   );
@@ -187,7 +196,7 @@ function chargeRow(
     row: {
       id: charge.id,
       dueDate,
-      title: `${charge.label} · ${names.get(charge.personId)}`,
+      title: `${charge.category === "CORRECTION" ? "Correction" : charge.label} · ${names.get(charge.personId)}`,
       amount: formatCents(charge.amountCents),
       detail: chargeDetail(charge, names, dates, payerId),
       badge,

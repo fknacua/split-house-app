@@ -29,6 +29,22 @@ export interface ActivityCardProps {
 
 /** Props for {@link ChargeDetailsFooter}. */
 export interface ChargeDetailsFooterProps {
-  /** Nudge or Nudge again, then Mark paid. The footer is not shown when empty. */
+  /** Nudge or Nudge again, then Mark paid; Edit payment and Add correction; Delete correction last. The footer is not shown when empty. */
   actions: HomeAction[];
+  /** The charge the page shows. */
+  chargeId: string;
+  /** The `Delete this correction?` dialog's text; null for any other charge. */
+  deleteCorrection: ChargeDetailsResponse['deleteCorrection'];
+}
+
+/** Props for {@link DeleteCorrectionDialog}. */
+export interface DeleteCorrectionDialogProps {
+  open: boolean;
+  /** The dialog's text from the server. */
+  confirm: NonNullable<ChargeDetailsResponse['deleteCorrection']>;
+  deleting: boolean;
+  /** The failed delete's message; undefined while there is none. */
+  error?: string;
+  onKeep: () => void;
+  onDelete: () => void;
 }
