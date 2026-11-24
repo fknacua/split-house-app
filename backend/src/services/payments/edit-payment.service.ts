@@ -19,6 +19,7 @@ const CHARGE_SELECT = {
   paidCents: true,
   paidOn: true,
   paidByPersonId: true,
+  correctsCharge: { select: { label: true, month: true } },
 } as const;
 
 const PERSON_SELECT = { id: true, name: true, isOwner: true } as const;

@@ -5,6 +5,7 @@ import {
   type EditPaymentSheet,
   type HomeAction,
 } from "@splithouse/shared";
+import { correctionName, type CorrectedCharge } from "@/lib/corrections/correction-name";
 
 /** A charge, as much of it as Edit payment needs. */
 export interface EditPaymentCharge {
@@ -17,6 +18,8 @@ export interface EditPaymentCharge {
   paidCents: number | null;
   paidOn: Date | null;
   paidByPersonId: string | null;
+  /** For a correction, the charge it fixes, so its row reads `Correction · Utilities Sep`; null or left out otherwise. */
+  correctsCharge?: CorrectedCharge | null;
 }
 
 /**
@@ -64,8 +67,9 @@ export function buildEditPayment(
   const payerId = charge.paidByPersonId ?? charge.payViaPersonId ?? charge.personId;
   const person = names.get(charge.personId) ?? "";
   const monthLabel = formatMonthShortLabel(charge.month);
-  const forValue =
-    payerId === charge.personId ? `${charge.label} · ${monthLabel}` : `${charge.label} · ${person} · ${monthLabel}`;
+  // A correction's name already says the month it fixes, so For takes no month of its own.
+  const name = correctionName(charge.correctsCharge);
+  const forValue = [name ?? charge.label, ...(payerId === charge.personId ? [] : [person]), ...(name ? [] : [monthLabel])].join(" · ");
 
   return {
     chargeId: charge.id,
@@ -82,7 +86,7 @@ export function buildEditPayment(
       label: "Remove payment",
       confirm: {
         title: "Remove this payment?",
-        body: `${charge.label} · ${person} will show as unpaid again.`,
+        body: `${name ?? charge.label} · ${person} will show as unpaid again.`,
         confirmLabel: "Remove",
         cancelLabel: "Keep",
       },

@@ -13,6 +13,7 @@ import {
 import type { ChargeCategory } from "@/generated/prisma/enums";
 import { dueInBadge, HOME_BADGES } from "@/lib/home/badges";
 import { chargeDueDate } from "@/lib/home/due-dates";
+import { correctionName, type CorrectedCharge } from "@/lib/corrections/correction-name";
 
 /** A person who may appear in the From list. */
 export interface RecordPaymentPerson {
@@ -32,6 +33,8 @@ export interface RecordPaymentCharge {
   dueDate: Date | null;
   payViaPersonId: string | null;
   paidCents: number | null;
+  /** For a correction, the charge it fixes, so its row reads `Correction · Utilities Sep`; null or left out otherwise. */
+  correctsCharge?: CorrectedCharge | null;
   config: HouseholdConfig;
 }
 
@@ -42,7 +45,7 @@ export interface RecordPaymentInput {
   /** Today's date key in Asia/Singapore. */
   today: string;
   people: RecordPaymentPerson[];
-  /** Unpaid charges in `month` and earlier. Paid ones, credits and later months are left out here too. */
+  /** Unpaid charges in `month` and earlier. Paid ones (refunds among them), charges at $0 or below and later months are left out here too. */
   charges: RecordPaymentCharge[];
 }
 
@@ -72,7 +75,7 @@ const NO_DUE = "9999-12-31";
 /**
  * The charges Record payment can record, grouped under the person who pays each: the person it is
  * collected through, or the person themselves, so Priya's list carries Sam's utilities and Sam's
- * list never does. The owner's own charges, paid charges, credits and later months are left out.
+ * list never does. The owner's own charges, paid charges (refunds among them), charges at $0 or below and later months are left out.
  *
  * @param input - The active month, today, the people and the charges.
  * @returns Each payer's charges: the active month's first, then earlier months', each by due date
@@ -87,7 +90,9 @@ export function payablesByPayer(input: RecordPaymentInput): Map<string, Payable[
     const payerId = charge.payViaPersonId ?? charge.personId;
     if (ownerIds.has(charge.personId) || ownerIds.has(payerId) || !names.has(payerId)) continue;
     const routed = payerId !== charge.personId;
-    const title = [charge.label, ...(routed ? [names.get(charge.personId) ?? ""] : []), formatMonthShort(charge.month)].join(" · ");
+    // A correction's name already says the month it fixes, so it takes no month of its own.
+    const name = correctionName(charge.correctsCharge);
+    const title = [name ?? charge.label, ...(routed ? [names.get(charge.personId) ?? ""] : []), ...(name ? [] : [formatMonthShort(charge.month)])].join(" · ");
     const list = byPayer.get(payerId) ?? [];
     list.push({ charge, payerId, title, dueDate: chargeDueDate(charge.month, charge.config, charge) });
     byPayer.set(payerId, list);

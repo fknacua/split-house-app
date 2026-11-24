@@ -4,7 +4,7 @@ import { PERSON_IDS } from "./household";
 const { alex, priya, sam, jordan } = PERSON_IDS;
 
 /** A person who has left the household: their charges stay, but they aren't in November's config. */
-export const FORMER_TENANT_ID = "person-former";
+const FORMER_TENANT_ID = "person-former";
 
 const paid = (
   id: string,

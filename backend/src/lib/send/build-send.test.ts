@@ -403,3 +403,13 @@ describe("buildSend, monthly, unsent again", () => {
     );
   });
 });
+
+describe("buildSend, a correction's name", () => {
+  it("names it by what it fixes, with no month of its own", () => {
+    const charges = CHARGES.map((c) =>
+      c.id === "jordan-oct-correction" ? { ...c, correctsCharge: { label: "Utilities", month: "2026-09" } } : c,
+    );
+    const sheet = build({ charges }, { personId: jordan });
+    expect(sheet.total?.rows.map((r) => r.title)).toContain("Correction · Utilities Sep");
+  });
+});

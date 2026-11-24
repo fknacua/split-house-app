@@ -83,6 +83,22 @@ describe("buildEditPayment", () => {
   });
 });
 
+describe("buildEditPayment: a correction", () => {
+  it("names it by what it fixes in For and in the Remove payment dialog, with no month of its own", () => {
+    const fix: EditPaymentCharge = {
+      ...JORDAN_RENT,
+      id: "jordan-fix",
+      label: "Utilities correction (Oct)",
+      amountCents: 500,
+      paidCents: 500,
+      correctsCharge: { label: "Utilities", month: "2026-10" },
+    };
+    const sheet = build(fix);
+    expect(sheet.rows[1]).toEqual({ label: "For", value: "Correction · Utilities Oct" });
+    expect(sheet.remove.confirm.body).toBe("Correction · Utilities Oct · Jordan will show as unpaid again.");
+  });
+});
+
 describe("isPaymentEditable", () => {
   it.each([
     ["a paid charge", { amountCents: 95000, paidCents: 95000 }, false, true],

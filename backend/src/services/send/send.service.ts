@@ -18,6 +18,7 @@ const CHARGE_SELECT = {
   correctsCategory: true,
   correctsMonth: true,
   createdAt: true,
+  correctsCharge: { select: { label: true, month: true } },
 } as const;
 
 const MESSAGE_SELECT = { personId: true, kind: true, chargeId: true, openedAt: true } as const;
