@@ -1,17 +1,18 @@
 import { addChargePreviewSchema, addChargeSheetSchema, type AddChargeValues } from "@splithouse/shared";
 import { describe, expect, it } from "vitest";
+import { CORRECTABLE_CHARGES } from "@/lib/fixtures/correctable-charges";
 import { NOV_2026_CONFIG, PERSON_IDS } from "@/lib/fixtures/household";
 import {
   addChargeProblem,
   buildAddChargeCharges,
   buildAddChargePreview,
   buildAddChargeSheet,
-  type AddChargeInput,
 } from "./build-add-charge";
+import { findCorrectable, type CorrectionInput } from "./build-correction";
 
 const { alex, priya, sam, jordan } = PERSON_IDS;
 
-const INPUT: AddChargeInput = {
+const INPUT: CorrectionInput = {
   month: "2026-11",
   config: NOV_2026_CONFIG,
   people: [
@@ -20,9 +21,13 @@ const INPUT: AddChargeInput = {
     { id: sam, name: "Sam", color: "GREEN" },
     { id: jordan, name: "Jordan", color: "PURPLE" },
   ],
+  today: "2026-11-24",
+  charges: CORRECTABLE_CHARGES,
 };
 
 const OPENING: AddChargeValues = {
+  mode: "CHARGE",
+  correction: { personId: null, month: null, chargeId: null, amountCents: null, dueDate: "2026-11-24" },
   kind: null,
   label: "",
   amountCents: null,
@@ -67,6 +72,42 @@ describe("buildAddChargeSheet", () => {
       { personId: sam, name: "Sam" },
       { personId: jordan, name: "Jordan" },
     ]);
+  });
+
+  it("offers the Charge | Correction group and Correction mode's unlocked Selects", () => {
+    const sheet = buildAddChargeSheet(INPUT);
+    expect(sheet.modes).toEqual({
+      label: "Add as",
+      options: [
+        { value: "CHARGE", label: "Charge" },
+        { value: "CORRECTION", label: "Correction" },
+      ],
+    });
+    expect(sheet.correction).toMatchObject({
+      locked: false,
+      person: { placeholder: "Select person" },
+      month: { placeholder: "Select month" },
+      charge: { placeholder: "Select charge" },
+    });
+    expect(sheet.correction.people.map((p) => p.name)).toEqual(["Sam", "Jordan"]);
+    expect(sheet.preview.correction).toBeNull();
+  });
+
+  it("opened from a charge: Add correction, no group, the charge picked and locked, and its preview", () => {
+    const sheet = addChargeSheetSchema.parse(buildAddChargeSheet(INPUT, findCorrectable(INPUT, "oct-utilities-jordan")));
+    expect(sheet).toMatchObject({ title: "Add correction", subtitle: "Nov 2026", modes: null, correction: { locked: true } });
+    expect(sheet.values).toEqual({
+      ...OPENING,
+      mode: "CORRECTION",
+      correction: { personId: jordan, month: "2026-10", chargeId: "oct-utilities-jordan", amountCents: null, dueDate: "2026-11-24" },
+    });
+    expect(sheet.preview.correction).toEqual({
+      current: "Currently $77.46 · after 1 correction",
+      outcome: null,
+      amountEnabled: true,
+      dueDateEnabled: false,
+    });
+    expect(sheet.preview.save).toEqual({ label: "Save", enabled: false });
   });
 });
 
@@ -196,6 +237,7 @@ describe("buildAddChargePreview: the confirm dialog", () => {
   it("shows aircon with its split collapsed under Split per person", () => {
     expect(preview(AIRCON).confirm).toEqual({
       title: "Add this charge?",
+      body: null,
       rows: [
         { label: "What it’s for", value: "Aircon servicing", items: null },
         { label: "Amount", value: "$110.00", items: null },

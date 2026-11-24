@@ -19,6 +19,43 @@ export const ADD_CHARGE_SPLITS = ['EQUAL', 'PER_SHARE', 'CUSTOM'] as const;
 /** How a shared Other charge is split. */
 export type AddChargeSplit = (typeof ADD_CHARGE_SPLITS)[number];
 
+/** What the sheet adds: a charge, or a correction to a paid charge. */
+export const ADD_CHARGE_MODES = ['CHARGE', 'CORRECTION'] as const;
+
+/** What the sheet adds. */
+export type AddChargeMode = (typeof ADD_CHARGE_MODES)[number];
+
+/**
+ * Correction mode's fields as they stand. Person and Month only narrow the Charge list; the charge decides what is
+ * corrected.
+ */
+export const addCorrectionValuesSchema = z.object({
+  /** Null until picked. */
+  personId: z.string().min(1).nullable(),
+  /** Null until picked. */
+  month: monthKey.nullable(),
+  /** The charge to correct, always the original. Null until picked. */
+  chargeId: z.string().min(1).nullable(),
+  /** The correct amount, not the difference: $0 is a full refund. Null while the field is empty. */
+  amountCents: z.number().int().nullable(),
+  /** Today as the sheet opens. Read only for a higher amount; a refund is dated today. */
+  dueDate: dateKey.nullable(),
+});
+
+/** Correction mode's fields as they stand. */
+export type AddCorrectionValues = z.infer<typeof addCorrectionValuesSchema>;
+
+/**
+ * `GET /api/add-charge` query. `chargeId`: the charge `Add correction` was tapped on, so the sheet opens as
+ * `Add correction` with it picked and Person, Month and Charge read-only.
+ */
+export const addChargeQuerySchema = z.object({
+  chargeId: z.string().min(1).optional(),
+});
+
+/** `GET /api/add-charge` query. */
+export type AddChargeQuery = z.infer<typeof addChargeQuerySchema>;
+
 /** One person's typed amount in a Custom split. */
 export const addChargeCustomAmountSchema = z.object({
   personId: z.string().min(1),
@@ -45,6 +82,8 @@ export type AddChargeShare = z.infer<typeof addChargeShareSchema>;
  * are ignored: aircon reads only the amount and due date, and Personal ignores the split.
  */
 export const addChargeValuesSchema = z.object({
+  /** Charge or Correction. Correction mode reads only `correction`; Charge mode ignores it. */
+  mode: z.enum(ADD_CHARGE_MODES),
   /** Null until What's it for is picked. */
   kind: z.enum(ADD_CHARGE_KINDS).nullable(),
   /** Other only. */
@@ -70,6 +109,8 @@ export const addChargeValuesSchema = z.object({
   shares: z.array(addChargeShareSchema),
   /** Null until picked. A past day is allowed. */
   dueDate: dateKey.nullable(),
+  /** Correction mode's fields. */
+  correction: addCorrectionValuesSchema,
 });
 
 /** The Add charge sheet's fields as they stand. */
@@ -87,7 +128,7 @@ export const addChargeRequestSchema = addChargeValuesSchema.extend({
 /** `POST /api/add-charge` body. */
 export type AddChargeRequest = z.infer<typeof addChargeRequestSchema>;
 
-/** `POST /api/add-charge`: what was stored, so the app can refetch the month. */
+/** `POST /api/add-charge`: what was stored, so the app can refetch the month. A correction is one charge in no group. */
 export const addChargeResponseSchema = z.object({
   /** The newest opened month, where the charges landed. */
   month: monthKey,
@@ -152,27 +193,29 @@ export const addChargeConfirmRowSchema = z.object({
 /** One row of the confirm dialog. */
 export type AddChargeConfirmRow = z.infer<typeof addChargeConfirmRowSchema>;
 
-/** The `Add this charge?` dialog. It has no body text. */
+/** The `Add this charge?` or `Add this correction?` dialog. */
 export const addChargeConfirmSchema = z.object({
-  /** `Add this charge?`. */
+  /** `Add this charge?` or `Add this correction?`. */
   title: z.string(),
+  /** `It will be linked to the original charge.` for a correction; null for a charge, which has no body text. */
+  body: z.string().nullable(),
   /**
-   * In order: `What it’s for`, `Amount`, then `Split per person` (shared, with items) or `Who` (Personal), then
-   * `Due date`.
+   * A charge, in order: `What it’s for`, `Amount`, then `Split per person` (shared, with items) or `Who` (Personal),
+   * then `Due date`. A correction: `For`, `Correct amount`, `Outcome`, then `Due date` for a higher one.
    */
   rows: z.array(addChargeConfirmRowSchema).min(1),
-  /** e.g. `Add $X,XXX.XX`. */
+  /** e.g. `Add $X,XXX.XX`, or `Add correction`. */
   confirmLabel: z.string(),
   /** `Go back`. */
   cancelLabel: z.string(),
 });
 
-/** The `Add this charge?` dialog. */
+/** The `Add this charge?` or `Add this correction?` dialog. */
 export type AddChargeConfirm = z.infer<typeof addChargeConfirmSchema>;
 
 /** `POST /api/add-charge/preview`: everything in the sheet that follows from the fields as they stand. */
 export const addChargePreviewSchema = z.object({
-  /** Which fields show, below What's it for, the Amount and the Due date (always shown). */
+  /** Which Charge-mode fields show, below What's it for, the Amount and the Due date (always shown). All false in Correction mode. */
   show: z.object({
     /** Label: Other only. */
     label: z.boolean(),
@@ -183,7 +226,7 @@ export const addChargePreviewSchema = z.object({
     /** The split chips: shared Other only. */
     split: z.boolean(),
   }),
-  /** The split preview; null for Personal, which has none. For Custom it follows the typed amounts, added up or not. */
+  /** The split preview; null for Personal, which has none, and in Correction mode. For Custom it follows the typed amounts, added up or not. */
   preview: z
     .object({
       /** `Split by aircon units` for aircon, `Split preview` otherwise. */
@@ -221,10 +264,23 @@ export const addChargePreviewSchema = z.object({
       alert: z.string().nullable(),
     })
     .nullable(),
+  /** Correction mode's parts; null in Charge mode. */
+  correction: z
+    .object({
+      /** Under the amount: e.g. `Currently $X.XX` or `Currently $X.XX · after 1 correction`; null until a charge is picked. */
+      current: z.string().nullable(),
+      /** The info Alert, e.g. `Refund $X.XX to Sam yourself. This is saved as history.`; null while the amount is empty or unchanged. */
+      outcome: z.string().nullable(),
+      /** The amount can be typed in once a charge is picked. */
+      amountEnabled: z.boolean(),
+      /** Due date is enabled only for an amount higher than the current one. */
+      dueDateEnabled: z.boolean(),
+    })
+    .nullable(),
   save: z.object({
-    /** e.g. `Save $X,XXX.XX` once the amount is above $0, otherwise `Save`. */
+    /** A charge: e.g. `Save $X,XXX.XX` once the amount is above $0, otherwise `Save`. A correction: always `Save`. */
     label: z.string(),
-    /** True once every field the sheet shows is filled in and valid, and Custom adds up. */
+    /** True once every field the sheet shows is filled in and valid, Custom adds up, and a correction's amount has changed. */
     enabled: z.boolean(),
   }),
   /** The confirm dialog; null while Save is disabled. */
@@ -234,11 +290,42 @@ export const addChargePreviewSchema = z.object({
 /** `POST /api/add-charge/preview` response. */
 export type AddChargePreview = z.infer<typeof addChargePreviewSchema>;
 
+/** A Select's placeholder. */
+const placeholderSchema = z.object({ placeholder: z.string() });
+
+/** One paid charge that can be corrected, in the Charge Select. */
+export const addCorrectionChargeOptionSchema = z.object({
+  chargeId: z.string(),
+  /** The charge's label and its current amount (the original plus every correction), e.g. `Utilities · $X.XX`. */
+  label: z.string(),
+});
+
+/** One month in the Month Select, with the person's charges in it that can be corrected. */
+export const addCorrectionMonthOptionSchema = z.object({
+  month: monthKey,
+  /** e.g. `Oct 2026`. */
+  label: z.string(),
+  /** Utilities, then aircon, then one-off charges. */
+  charges: z.array(addCorrectionChargeOptionSchema).min(1),
+});
+
+/** One person in the Person Select, with the months they have a charge in that can be corrected. */
+export const addCorrectionPersonOptionSchema = z.object({
+  personId: z.string(),
+  /** e.g. `Sam`. */
+  name: z.string(),
+  /** Newest first. */
+  months: z.array(addCorrectionMonthOptionSchema).min(1),
+});
+
+/** One person in the Person Select. */
+export type AddCorrectionPersonOption = z.infer<typeof addCorrectionPersonOptionSchema>;
+
 /** `GET /api/add-charge`: the Add charge sheet for the newest opened month, as it opens. */
 export const addChargeSheetSchema = z.object({
-  /** The newest opened month, where the charge lands. */
+  /** The newest opened month, where the charge or correction lands. */
   month: monthKey,
-  /** `Add charge`. */
+  /** `Add charge`, or `Add correction` when opened from a charge. */
   title: z.string(),
   /** e.g. `Nov 2026`. */
   subtitle: z.string(),
@@ -258,7 +345,35 @@ export const addChargeSheetSchema = z.object({
   }),
   /** `Equal`, `Per share` and `Custom`. */
   splits: z.array(addChargeOptionSchema(ADD_CHARGE_SPLITS)).min(1),
-  /** The fields as the sheet opens: nothing picked, Shared, Equal, no due date, no Custom amounts or shares typed. */
+  /** The `Charge | Correction` group; null when opened from a charge, which has no toggle. */
+  modes: z
+    .object({
+      /** `Add as`. */
+      label: z.string(),
+      /** `Charge` and `Correction`. */
+      options: z.array(addChargeOptionSchema(ADD_CHARGE_MODES)).min(1),
+    })
+    .nullable(),
+  /** Correction mode's Selects. */
+  correction: z.object({
+    /** True when opened from a charge: Person, Month and Charge are read-only rows, filled in. */
+    locked: z.boolean(),
+    /** `Select person`. */
+    person: placeholderSchema,
+    /** `Select month`. */
+    month: placeholderSchema,
+    /** `Select charge`. */
+    charge: placeholderSchema,
+    /**
+     * Everyone in the month's household except the owner who has a paid utilities, aircon or one-off charge, in
+     * household order, each with their months and charges.
+     */
+    people: z.array(addCorrectionPersonOptionSchema),
+  }),
+  /**
+   * The fields as the sheet opens: Charge mode with nothing picked, Shared, Equal, no due date, no Custom amounts or
+   * shares typed, and Correction's Due date today. Opened from a charge: Correction mode with that charge picked.
+   */
   values: addChargeValuesSchema,
   /** The preview for `values`, so the sheet renders without a preview call. */
   preview: addChargePreviewSchema,

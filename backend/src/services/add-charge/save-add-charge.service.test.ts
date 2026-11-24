@@ -1,16 +1,22 @@
 import { HOUSEHOLD_SCHEMA_VERSION, type AddChargeRequest } from "@splithouse/shared";
-import { describe, expect, it } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { correctableRows } from "@/lib/fixtures/correctable-charges";
 import { NOV_2026_CONFIG, PERSON_IDS } from "@/lib/fixtures/household";
 import { saveAddCharge, type SaveAddChargeDb, type SaveAddChargeTx } from "./save-add-charge.service";
 
 const { alex, priya, sam, jordan } = PERSON_IDS;
 
 type ChargeRow = Parameters<SaveAddChargeTx["charge"]["createManyAndReturn"]>[0]["data"][number] & { id: string };
+type CorrectionRow = Parameters<SaveAddChargeTx["charge"]["create"]>[0]["data"] & { id: string };
+
+beforeEach(() => vi.stubEnv("DEV_NOW", "2026-11-24T09:00:00+08:00"));
+afterEach(() => vi.unstubAllEnvs());
 
 /** An in-memory database with November open. A failed transaction keeps nothing, as Postgres would. */
 function fakeDb(opts: { open?: boolean; keys?: { key: string; endpoint: string; response: unknown }[] } = {}) {
   const state = {
     charges: [] as ChargeRow[],
+    corrections: [] as CorrectionRow[],
     groups: [] as { id: string; scope: string; splitMethod: string; totalCents: number }[],
     keys: [...(opts.keys ?? [])],
   };
@@ -51,6 +57,12 @@ function fakeDb(opts: { open?: boolean; keys?: { key: string; endpoint: string; 
       },
     },
     charge: {
+      findMany: async ({ where }) => ("id" in where ? correctableRows().filter((c) => c.id === where.id) : correctableRows()),
+      create: async ({ data }) => {
+        const row = { ...data, id: `charge-${++next}` };
+        state.corrections.push(row);
+        return { id: row.id };
+      },
       createManyAndReturn: async ({ data }) => {
         const rows = data.map((d) => ({ ...d, id: `charge-${++next}` }));
         state.charges.push(...rows);
@@ -61,7 +73,7 @@ function fakeDb(opts: { open?: boolean; keys?: { key: string; endpoint: string; 
   const db: SaveAddChargeDb = {
     idempotentRequest: tx.idempotentRequest,
     $transaction: async (fn) => {
-      const before = { charges: [...state.charges], groups: [...state.groups], keys: [...state.keys] };
+      const before = { charges: [...state.charges], corrections: [...state.corrections], groups: [...state.groups], keys: [...state.keys] };
       try {
         return await fn(tx);
       } catch (err) {
@@ -73,8 +85,12 @@ function fakeDb(opts: { open?: boolean; keys?: { key: string; endpoint: string; 
   return { db, state };
 }
 
+const NO_CORRECTION: AddChargeRequest["correction"] = { personId: null, month: null, chargeId: null, amountCents: null, dueDate: "2026-11-24" };
+
 const BASE: AddChargeRequest = {
   idempotencyKey: "key-00000001",
+  mode: "CHARGE",
+  correction: NO_CORRECTION,
   kind: "ONE_OFF",
   label: "Fridge repair",
   amountCents: 12000,
@@ -208,5 +224,75 @@ describe("saveAddCharge", () => {
     await expect(saveAddCharge(db, { ...BASE, dueDate: null })).rejects.toMatchObject({ code: "no_date" });
     await saveAddCharge(db, BASE);
     expect(state.charges).toHaveLength(4);
+  });
+});
+
+describe("saveAddCharge: corrections", () => {
+  const correction = (chargeId: string | null, amountCents: number | null, dueDate: string | null = "2026-11-30"): AddChargeRequest => ({
+    ...BASE,
+    // Charge mode's fields are ignored, however they stand.
+    kind: null,
+    mode: "CORRECTION",
+    correction: { personId: null, month: null, chargeId, amountCents, dueDate },
+  });
+
+  it("saves a refund in the newest month, already paid today by whoever paid the original, linked to it", async () => {
+    const { db, state } = fakeDb();
+    const response = await saveAddCharge(db, correction("sep-utilities-sam", 7746));
+    expect(response).toEqual({ month: "2026-11", chargeGroupId: null, chargeIds: ["charge-1"] });
+    expect(state.charges).toEqual([]);
+    expect(state.groups).toEqual([]);
+    expect(state.corrections).toHaveLength(1);
+    const [row] = state.corrections;
+    expect(row).toMatchObject({
+      id: "charge-1",
+      month: "2026-11",
+      personId: sam,
+      payViaPersonId: priya,
+      category: "CORRECTION",
+      label: "Utilities correction (Sep)",
+      amountCents: -500,
+      householdVersionId: "version-nov",
+      correctsChargeId: "sep-utilities-sam",
+      correctsMonth: "2026-09",
+      correctsCategory: "UTILITIES",
+      paidCents: -500,
+      paidByPersonId: priya,
+    });
+    expect([row.dueDate.toISOString(), row.paidOn?.toISOString()]).toEqual(["2026-11-24T00:00:00.000Z", "2026-11-24T00:00:00.000Z"]);
+  });
+
+  it("saves a higher amount as an unpaid charge due on the picked date", async () => {
+    const { db, state } = fakeDb();
+    await saveAddCharge(db, correction("oct-fridge-jordan", 3500));
+    expect(state.corrections).toMatchObject([
+      { personId: jordan, payViaPersonId: null, amountCents: 500, paidCents: null, paidOn: null, paidByPersonId: null, correctsChargeId: "oct-fridge-jordan" },
+    ]);
+    expect(state.corrections[0].dueDate.toISOString()).toBe("2026-11-30T00:00:00.000Z");
+  });
+
+  it("answers a repeated key with the first response and saves nothing more", async () => {
+    const { db, state } = fakeDb();
+    const first = await saveAddCharge(db, correction("oct-fridge-jordan", 3500));
+    expect(await saveAddCharge(db, correction("oct-fridge-jordan", 9000))).toEqual(first);
+    expect(state.corrections).toHaveLength(1);
+  });
+
+  it.each([
+    ["no charge picked", correction(null, 100), 422, "no_pick"],
+    ["an unknown charge", correction("nope", 100), 404, "no_charge"],
+    ["a correction", correction("oct-correction-jordan", 100), 409, "is_correction"],
+    ["the owner's charge", correction("oct-utilities-alex", 100), 409, "owner_charge"],
+    ["rent", correction("oct-rent-jordan", 100), 409, "not_correctable"],
+    ["an unpaid charge", correction("nov-utilities-jordan", 100), 409, "unpaid"],
+    ["someone no longer in the household", correction("sep-utilities-former", 100), 404, "no_person"],
+    ["no amount", correction("oct-fridge-jordan", null), 422, "no_amount"],
+    ["a negative amount", correction("oct-fridge-jordan", -100), 422, "negative_amount"],
+    ["an unchanged amount", correction("oct-utilities-jordan", 7746), 422, "unchanged"],
+    ["a higher amount with no due date", correction("oct-fridge-jordan", 3500, null), 422, "no_date"],
+  ] as [string, AddChargeRequest, number, string][])("refuses %s, storing nothing", async (_name, request, status, code) => {
+    const { db, state } = fakeDb();
+    await expect(saveAddCharge(db, request)).rejects.toMatchObject({ status, code });
+    expect(state).toMatchObject({ corrections: [], keys: [] });
   });
 });

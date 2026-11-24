@@ -1,6 +1,16 @@
-import { addChargeResponseSchema, parseHouseholdConfig, type AddChargeRequest, type AddChargeResponse } from "@splithouse/shared";
-import { addChargeProblem, buildAddChargeCharges, type AddChargePerson } from "@/lib/add-charge/build-add-charge";
+import {
+  addChargeResponseSchema,
+  parseHouseholdConfig,
+  todayKey,
+  type AddChargeRequest,
+  type AddChargeResponse,
+  type AddChargeValues,
+} from "@splithouse/shared";
+import { addChargeProblem, buildAddChargeCharges, type AddChargeInput, type AddChargePerson } from "@/lib/add-charge/build-add-charge";
+import { addCorrectionProblem, buildCorrectionCharge } from "@/lib/add-charge/build-correction";
 import { ApiError } from "@/lib/api";
+import { now } from "@/lib/now";
+import { readCorrectableCharges, type CorrectableChargeDb } from "@/services/add-charge/add-charge.service";
 import { readMessageTemplates, type MessageTemplatesDb } from "@/services/templates/message-templates.service";
 
 /** What a key is stored under, so a key is never answered with another endpoint's response. */
@@ -21,6 +31,24 @@ interface IdempotentRequestDb {
       select: { endpoint: true; response: true };
     }): Promise<{ endpoint: string; response: unknown } | null>;
   };
+}
+
+/** A correction charge as the save stores it. */
+interface CorrectionChargeData {
+  month: string;
+  personId: string;
+  payViaPersonId: string | null;
+  category: "CORRECTION";
+  label: string;
+  amountCents: number;
+  dueDate: Date;
+  householdVersionId: string;
+  correctsChargeId: string;
+  correctsMonth: string;
+  correctsCategory: "UTILITIES" | "AIRCON" | "ONE_OFF";
+  paidCents: number | null;
+  paidOn: Date | null;
+  paidByPersonId: string | null;
 }
 
 /** The transaction client's slice this service uses, so tests can pass an in-memory fake. */
@@ -44,7 +72,8 @@ export interface SaveAddChargeTx extends IdempotentRequestDb, MessageTemplatesDb
       select: { id: true };
     }): Promise<{ id: string }>;
   };
-  charge: {
+  charge: CorrectableChargeDb["charge"] & {
+    create(args: { data: CorrectionChargeData; select: { id: true } }): Promise<{ id: string }>;
     createManyAndReturn(args: {
       data: {
         month: string;
@@ -84,7 +113,39 @@ async function storedResponse(db: IdempotentRequestDb, key: string): Promise<Add
 }
 
 /**
- * Saves an Add charge charge in the newest opened month, in one transaction: for aircon or a shared Other, a
+ * Stores a correction in the newest opened month: a refund already paid today, or an unpaid extra charge.
+ *
+ * @throws {ApiError} The {@link addCorrectionProblem} for fields that can't be saved.
+ */
+async function saveCorrection(
+  tx: SaveAddChargeTx,
+  input: AddChargeInput,
+  householdVersionId: string,
+  values: AddChargeValues["correction"],
+): Promise<AddChargeResponse> {
+  const [charge = null] = values.chargeId === null ? [] : await readCorrectableCharges(tx, values.chargeId);
+  const problem = addCorrectionProblem(input, values, charge);
+  if (problem) throw new ApiError(problem.status, problem.code, problem.message);
+  // addCorrectionProblem refuses a missing charge.
+  if (charge === null) throw new Error("Correction fields passed the checks with no charge");
+  const correction = buildCorrectionCharge({ ...input, today: todayKey(now()), charges: [charge] }, values, charge);
+  const row = await tx.charge.create({
+    data: {
+      ...correction,
+      month: input.month,
+      category: "CORRECTION",
+      dueDate: new Date(correction.dueDate),
+      paidOn: correction.paidOn === null ? null : new Date(correction.paidOn),
+      householdVersionId,
+    },
+    select: { id: true },
+  });
+  return { month: input.month, chargeGroupId: null, chargeIds: [row.id] };
+}
+
+/**
+ * Saves an Add charge charge, or a correction, in the newest opened month, in one transaction. A correction is one
+ * charge linked to the charge it fixes: a refund saved already paid today, or an unpaid extra charge. A charge: for aircon or a shared Other, a
  * `ChargeGroup` and one charge per person with an amount (the owner's own share included), for Personal one charge.
  * The charges come from the split engine through the same builder as the preview, with the version pinned to the
  * month, its routes, and the due date picked in the sheet; aircon is stored under the message templates' aircon
@@ -94,8 +155,10 @@ async function storedResponse(db: IdempotentRequestDb, key: string): Promise<Add
  * @param db - The Prisma client, or a fake in tests.
  * @param request - The fields and the idempotency key.
  * @returns The month and the stored ids.
- * @throws {ApiError} 422 `no_kind`, `no_label`, `no_amount`, `no_who`, `no_date` or `split_mismatch` for fields that
- * can't be saved; 404 `no_person` for a Personal pick who isn't in the month's household or is the owner; 404
+ * @throws {ApiError} A charge: 422 `no_kind`, `no_label`, `no_amount`, `no_who`, `no_date`, `no_shares` or
+ * `split_mismatch` for fields that can't be saved; 404 `no_person` for a Personal pick who isn't in the month's
+ * household or is the owner. A correction: 422 `no_pick`, `no_amount`, `negative_amount`, `unchanged` or `no_date`;
+ * 404 `no_charge` or `no_person`; 409 `is_correction`, `owner_charge`, `not_correctable` or `unpaid`. Either: 404
  * `no_month` while no month has opened; 409 `key_reused` for a key another endpoint stored.
  */
 export async function saveAddCharge(db: SaveAddChargeDb, request: AddChargeRequest): Promise<AddChargeResponse> {
@@ -114,6 +177,12 @@ export async function saveAddCharge(db: SaveAddChargeDb, request: AddChargeReque
       if (!newest) throw new ApiError(404, "no_month", "No month is open yet.");
       const { schemaVersion, config } = newest.householdVersion;
       const input = { month: newest.month, config: parseHouseholdConfig(schemaVersion, config), people };
+
+      if (values.mode === "CORRECTION") {
+        const response = await saveCorrection(tx, input, newest.householdVersionId, values.correction);
+        await tx.idempotentRequest.create({ data: { key, endpoint: ENDPOINT, response } });
+        return response;
+      }
 
       const problem = addChargeProblem(input, values);
       if (problem) throw new ApiError(problem.status, problem.code, problem.message);
