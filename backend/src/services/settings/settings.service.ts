@@ -1,18 +1,60 @@
-import { addMonths, parseHouseholdConfig, type SettingsResponse } from "@splithouse/shared";
+import {
+  addMonths,
+  parseHouseholdConfig,
+  parseNotificationToggles,
+  type NotificationToggles,
+  type SettingsNotificationSaveRequest,
+  type SettingsResponse,
+} from "@splithouse/shared";
 import { buildSettings } from "@/lib/settings/build-settings";
 import { getActiveMonth, type ActiveMonthDb } from "@/services/months/active-month.service";
 import { readMessageTemplates, type MessageTemplatesDb } from "@/services/templates/message-templates.service";
 
 const VERSION_SELECT = { startsFromMonth: true, schemaVersion: true, config: true } as const;
 
+/** The `Settings` row's id: there is only one. */
+const SETTINGS_ID = "singleton";
+
+/** The slice of the Prisma client the toggle reader uses, so tests can pass an in-memory fake. */
+export interface NotificationTogglesDb {
+  settings: {
+    findUnique(args: {
+      where: { id: typeof SETTINGS_ID };
+      select: { notifications: true };
+    }): Promise<{ notifications: unknown } | null>;
+  };
+}
+
 /** The slice of the Prisma client this service uses, so tests can pass an in-memory fake. */
-export interface SettingsDb extends ActiveMonthDb, MessageTemplatesDb {
+export interface SettingsDb extends ActiveMonthDb, MessageTemplatesDb, NotificationTogglesDb {
   householdVersion: {
     findMany(args: {
       orderBy: { startsFromMonth: "desc" };
       select: typeof VERSION_SELECT;
     }): Promise<{ startsFromMonth: string; schemaVersion: number; config: unknown }[]>;
   };
+}
+
+/** {@link SettingsDb}, and the write that saves the toggles. */
+export interface SettingsSaveDb extends SettingsDb {
+  settings: NotificationTogglesDb["settings"] & {
+    upsert(args: {
+      where: { id: typeof SETTINGS_ID };
+      create: { id: typeof SETTINGS_ID; notifications: NotificationToggles };
+      update: { notifications: NotificationToggles };
+    }): Promise<unknown>;
+  };
+}
+
+/**
+ * Reads the saved notification toggles. Read-only.
+ *
+ * @param db - The Prisma client, or a fake in tests.
+ * @returns Every toggle; with no row yet, or for a toggle never saved, its default.
+ */
+export async function readNotificationToggles(db: NotificationTogglesDb): Promise<NotificationToggles> {
+  const row = await db.settings.findUnique({ where: { id: SETTINGS_ID }, select: { notifications: true } });
+  return parseNotificationToggles(row?.notifications ?? null);
 }
 
 /**
@@ -25,10 +67,11 @@ export interface SettingsDb extends ActiveMonthDb, MessageTemplatesDb {
  * @returns The Settings screen.
  */
 export async function getSettings(db: SettingsDb, email: string): Promise<SettingsResponse> {
-  const [activeMonth, versions, templates] = await Promise.all([
+  const [activeMonth, versions, templates, toggles] = await Promise.all([
     getActiveMonth(db),
     db.householdVersion.findMany({ orderBy: { startsFromMonth: "desc" }, select: VERSION_SELECT }),
     readMessageTemplates(db),
+    readNotificationToggles(db),
   ]);
   const nextMonth = addMonths(activeMonth, 1);
   const version = versions.find((v) => v.startsFromMonth <= nextMonth);
@@ -36,5 +79,29 @@ export async function getSettings(db: SettingsDb, email: string): Promise<Settin
     email,
     config: version ? parseHouseholdConfig(version.schemaVersion, version.config) : null,
     templates,
+    toggles,
   });
+}
+
+/**
+ * Turns one notification toggle on or off, keeping the others as saved, and creates the row on the first save. The
+ * stored value is rewritten whole, so keys the reader doesn't know are dropped. Safe to repeat.
+ *
+ * @param db - The Prisma client, or a fake in tests.
+ * @param email - The signed-in account's email, for the response.
+ * @param save - The toggle and whether it is on.
+ * @returns The Settings screen after the save.
+ */
+export async function saveNotificationToggle(
+  db: SettingsSaveDb,
+  email: string,
+  save: SettingsNotificationSaveRequest,
+): Promise<SettingsResponse> {
+  const notifications = { ...(await readNotificationToggles(db)), [save.toggle]: save.on };
+  await db.settings.upsert({
+    where: { id: SETTINGS_ID },
+    create: { id: SETTINGS_ID, notifications },
+    update: { notifications },
+  });
+  return getSettings(db, email);
 }

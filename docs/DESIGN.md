@@ -88,7 +88,8 @@ Component and props are what to pass to the source file in `docs/design/source/`
 |---|---|---|
 | Sign in · Signed out | `SignIn` | `state=out` |
 | Sign in · Signing in | `SignIn` | `state=signing` |
-| Returning user · Loading your data | `Returning` | defaults |
+| Returning user · Loading your data | `Returning` | `state=loading` |
+| Returning user · Rebuilding reminders | `Returning` | `state=reminders` |
 | Sign in · Sign-in failed | `SignIn` | `state=failed` |
 | Sign in · Account not allowed | `SignIn` | `state=notAllowed` |
 | Sign in · Session ended | `SignIn` | `state=ended` |
@@ -101,7 +102,8 @@ Component and props are what to pass to the source file in `docs/design/source/`
 |---|---|---|
 | First run · Nothing set up | `Welcome` | `state=empty` |
 | First run · Partly set up | `Welcome` | `state=progress` |
-| First run · Turn on reminders | `Welcome` | `state=notifications` |
+| First run · Turn on reminders | `FirstRunReminders` | `state=default` (variants `prompt`, `granted`, `denied`) |
+| First run · Welcome with the Reminders step (six steps) | `WelcomeNotifications` | `state=empty` (variants `started`, `progress`, `optional`, `messagesDone`, `allDone`) |
 
 ### Home — this month (Nov 2026)
 
