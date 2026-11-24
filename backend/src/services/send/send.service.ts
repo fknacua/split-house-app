@@ -15,6 +15,8 @@ const CHARGE_SELECT = {
   dueDate: true,
   payViaPersonId: true,
   paidCents: true,
+  correctsCategory: true,
+  correctsMonth: true,
   createdAt: true,
 } as const;
 

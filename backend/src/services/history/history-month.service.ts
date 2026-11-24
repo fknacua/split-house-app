@@ -31,15 +31,16 @@ export interface HistoryMonthDb extends ActiveMonthDb {
   };
   charge: {
     findMany(args: {
-      where: { month?: string; correctsMonth?: string; person: { isOwner: false } };
+      where: { month?: string; correctsCharge?: { month: string }; person: { isOwner: false } };
       select: typeof CHARGE_SELECT;
     }): Promise<HistoryMonthChargeRow[]>;
   };
 }
 
 /**
- * Reads one past month's bill, its charges and the charges that correct it, and hands them to
- * `buildHistoryMonth`. Read-only: it does not open the month.
+ * Reads one past month's bill, its charges and the corrections linked to them, and hands them to
+ * `buildHistoryMonth`. Read-only: it does not open the month. A deleted correction is gone, so its
+ * banner goes with it.
  *
  * @param db - The Prisma client, or a fake in tests.
  * @param month - The month key, e.g. `2026-10`.
@@ -61,7 +62,7 @@ export async function getHistoryMonth(
       select: CHARGE_SELECT,
     }),
     db.charge.findMany({
-      where: { correctsMonth: month, person: { isOwner: false } },
+      where: { correctsCharge: { month }, person: { isOwner: false } },
       select: CHARGE_SELECT,
     }),
   ]);

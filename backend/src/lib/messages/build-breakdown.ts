@@ -26,6 +26,10 @@ export interface BreakdownCharge {
   dueDate: Date | null;
   payViaPersonId: string | null;
   paidCents: number | null;
+  /** A correction's: what it fixes, for its line label (`lineLabel`). */
+  correctsCategory?: ChargeCategory | null;
+  /** A correction's: the month it fixes. */
+  correctsMonth?: string | null;
 }
 
 /** What `buildBreakdown` reads. */
@@ -119,7 +123,10 @@ function working(input: BreakdownInput, charge: BreakdownCharge): string | null 
 }
 
 /** A charge, as much of it as a section line needs. */
-export type SectionCharge = Pick<BreakdownCharge, "personId" | "month" | "category" | "label" | "amountCents">;
+export type SectionCharge = Pick<
+  BreakdownCharge,
+  "personId" | "month" | "category" | "label" | "amountCents" | "correctsCategory" | "correctsMonth"
+>;
 
 /** What `buildSections` reads. */
 export interface SectionsInput<C extends SectionCharge> {

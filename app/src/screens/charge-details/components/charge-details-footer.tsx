@@ -1,4 +1,4 @@
-import { Bell, Check, Pencil } from 'lucide-react-native';
+import { Bell, Check, Pencil, Plus, Trash2 } from 'lucide-react-native';
 import { useRef } from 'react';
 import { View } from 'react-native';
 
@@ -9,7 +9,7 @@ import { SendMessageSheet, type SendMessageSheetRef } from '@/sheets/send-messag
 import type { HomeTarget } from '@splithouse/shared';
 import type { ChargeDetailsFooterProps } from '../types';
 
-const ICONS = { check: Check, bell: Bell, pencil: Pencil } as const;
+const ICONS = { check: Check, bell: Bell, pencil: Pencil, plus: Plus, trash: Trash2 } as const;
 
 /**
  * The sticky footer, as the server sends it: Nudge or Nudge again above Mark paid on an unpaid charge,

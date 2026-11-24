@@ -81,11 +81,11 @@ function buildPayment(charge: HistoryMonthChargeRow, badge: BadgeContent): Histo
   };
 }
 
-/** The notice on a month that a later `correction` charge fixed. */
+/** The notice on a month that a later `correction` charge fixed: a refund (lower) or a charge (higher). */
 function buildCorrectionBanner(correction: HistoryMonthChargeRow): HistoryBanner {
   const when = formatMonthShort(correction.month);
   const amount = formatCents(Math.abs(correction.amountCents));
-  const kind = correction.amountCents < 0 ? "credit" : "charge";
+  const kind = correction.amountCents < 0 ? "refund" : "charge";
   return {
     tone: "info",
     title: `Corrected in ${when}`,
@@ -105,7 +105,7 @@ function buildCorrectionBanner(correction: HistoryMonthChargeRow): HistoryBanner
  * @param month - The month key, e.g. `2026-11`.
  * @param bill - The month's saved bill.
  * @param charges - Every charge the month holds.
- * @param corrections - Charges, held by later months, that correct this month. Used for banners.
+ * @param corrections - Corrections, held by later months, linked to a charge of this month. Used for banners.
  */
 export function buildHistoryMonth(
   month: string,

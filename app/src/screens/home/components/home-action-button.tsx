@@ -1,4 +1,4 @@
-import { Bell, Check, Pencil, type LucideIcon } from 'lucide-react-native';
+import { Bell, Check, Pencil, Plus, Trash2, type LucideIcon } from 'lucide-react-native';
 
 import { Button } from '@/components';
 import { useOpenTarget } from '../use-open-target';
@@ -8,6 +8,8 @@ const ICONS: Record<NonNullable<HomeActionButtonProps['action']['icon']>, Lucide
   check: Check,
   bell: Bell,
   pencil: Pencil,
+  plus: Plus,
+  trash: Trash2,
 };
 
 /**
