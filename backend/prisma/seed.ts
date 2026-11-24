@@ -16,6 +16,7 @@ import {
 import { BILL_FIXTURE } from "@/lib/fixtures/bill";
 import { generateBillFixturePdf } from "@/lib/fixtures/generate-bill-pdf";
 import { countPdfPages } from "@/services/bill/read-bill.service";
+import { correctionFields, type CorrectionFields } from "@/lib/corrections/correction-fields";
 
 // Fictional household (see docs/SplitHouse — Data Model.md "Fixtures"). Dev
 // branch only: refuses to run against production. Always wipes the domain
@@ -164,8 +165,8 @@ type ChargeInsert = Omit<EngineCharge, "category"> & {
   householdVersionId: string;
   billId?: string;
   chargeGroupId?: string;
-  correctsMonth?: string;
-  correctsCategory?: EngineCharge["category"];
+  /** What a `CORRECTION` fixes, from {@link correctionFields}. */
+  corrects?: CorrectionFields;
   createdAt?: string;
   paidCents?: number;
   paidOn?: string;
@@ -184,8 +185,9 @@ async function insertCharge(c: ChargeInsert) {
       dueDate: c.dueDate ? new Date(c.dueDate) : null,
       billId: c.billId ?? null,
       chargeGroupId: c.chargeGroupId ?? null,
-      correctsMonth: c.correctsMonth ?? null,
-      correctsCategory: c.correctsCategory ?? null,
+      correctsChargeId: c.corrects?.correctsChargeId ?? null,
+      correctsMonth: c.corrects?.correctsMonth ?? null,
+      correctsCategory: c.corrects?.correctsCategory ?? null,
       ...(c.createdAt ? { createdAt: new Date(c.createdAt) } : {}),
       householdVersionId: c.householdVersionId,
       paidCents: c.paidCents ?? null,
@@ -302,6 +304,11 @@ async function seedMonthlyMessage(month: string, personId: string, chargeId: str
   });
 }
 
+/** A person's September utilities charge, the one October's corrections fix. */
+function septemberUtilities(personId: string) {
+  return prisma.charge.findFirstOrThrow({ where: { month: "2026-09", personId, category: "UTILITIES" } });
+}
+
 /**
  * October 2026: one late-paid charge, one unpaid, plus September's correction. Left out of the
  * `uploadOct` scenario, where it is 1 Oct and Home opens October itself.
@@ -337,34 +344,35 @@ async function seedOctober(versionAId: string) {
     },
   });
   // A shortfall found later in Jordan's September utilities, corrected in October.
+  const jordanSepUtilities = await septemberUtilities(PERSON_IDS.jordan);
   await insertCharge({
     personId: PERSON_IDS.jordan,
     category: "CORRECTION",
     label: "Correction: September utilities",
     amountCents: 1500,
     payViaPersonId: null,
-    dueDate: null,
+    dueDate: "2026-10-25", // the same as October's utilities
     month: "2026-10",
-    correctsMonth: "2026-09",
-    correctsCategory: "UTILITIES",
+    corrects: correctionFields(jordanSepUtilities, PERSON_IDS.alex),
     createdAt: "2026-10-05T10:00:00+08:00",
     householdVersionId: versionAId,
   });
-  // Sam overpaid September's utilities by $X,XXX.XX: a credit, added on 2 Oct and paid out on 12 Oct.
-  const samCredit = await insertCharge({
+  // Sam overpaid September's utilities: a refund, added on 2 Oct and saved already paid that day, as a lower
+  // correction is. Sam's utilities go through Priya, so the refund does too and Priya is its payer.
+  const samSepUtilities = await septemberUtilities(PERSON_IDS.sam);
+  const samRefund = await insertCharge({
     personId: PERSON_IDS.sam,
     category: "CORRECTION",
     label: "Correction: September utilities",
     amountCents: -500,
-    payViaPersonId: null,
+    payViaPersonId: samSepUtilities.payViaPersonId,
     dueDate: null,
     month: "2026-10",
-    correctsMonth: "2026-09",
-    correctsCategory: "UTILITIES",
+    corrects: correctionFields(samSepUtilities, PERSON_IDS.alex),
     createdAt: "2026-10-02T10:00:00+08:00",
     householdVersionId: versionAId,
   });
-  await markPaid(samCredit.id, PERSON_IDS.alex, "2026-10-12");
+  await markPaid(samRefund.id, payerFor(samSepUtilities), "2026-10-02");
 }
 
 /**
