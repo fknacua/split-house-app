@@ -7,15 +7,18 @@ import { BottomSheetModalProvider } from '@gorhom/bottom-sheet';
 import { QueryClientProvider } from '@tanstack/react-query';
 
 import { AppProvider, ServerUnreachableProvider, SuccessToastProvider } from '@/components';
-import { useAppFonts, useBootstrap } from '@/hooks';
+import { useAppFonts, useBootstrap, useNotificationSchedule } from '@/hooks';
 import { useAppStateFocus } from '@/lib/focus-manager';
+import { showNotificationsInForeground } from '@/lib/notifications';
 import { queryClient } from '@/lib/query-client';
 import { useSession } from '@/lib/session';
 import { ThemePreferenceProvider, useThemePreference } from '@/lib/theme-preference';
+import { ReturningView } from '@/screens/returning/returning-view';
 import '@/global.css';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 
 SplashScreen.preventAutoHideAsync();
+showNotificationsInForeground();
 
 export default function RootLayout() {
   return (
@@ -28,14 +31,22 @@ export default function RootLayout() {
 /**
  * The session gate: Sign in without a session; with one, Welcome (no tabs) until First run is
  * finished (`setupComplete`, a month is open), then the app. The Household and template editors
- * sit outside both, since Welcome opens them too. Waits for the bootstrap before choosing.
+ * sit outside both, since Welcome opens them too. Waits for the bootstrap before choosing, on the Returning
+ * screen, which also shows `reminders` while a sign-in to a set-up household sets up the reminders.
  */
 function SessionStack() {
   const { pending, signedIn } = useSession();
   const bootstrap = useBootstrap({ enabled: signedIn });
-  if (pending) return null;
-  if (signedIn && !bootstrap.data) return null;
   const setupComplete = bootstrap.data?.setupComplete ?? false;
+  const settingUpReminders = useNotificationSchedule({
+    pending,
+    signedIn,
+    loaded: bootstrap.data !== undefined,
+    setupComplete,
+  });
+  if (pending) return null;
+  if (signedIn && !bootstrap.data) return <ReturningView state="loading" />;
+  if (settingUpReminders) return <ReturningView state="reminders" />;
 
   // Order matters: the first screen whose guard passes is the one shown.
   return (

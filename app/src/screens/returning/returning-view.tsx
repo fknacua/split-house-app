@@ -4,8 +4,8 @@ import { Text, View } from 'react-native';
 import { AppLogo, Card, Icon, Screen, Spinner } from '@/components';
 
 /**
- * The two states of the returning-user loading screen. `Returning.dc.html` draws only
- * `loading`; `reminders` is the next step of the same checklist.
+ * The two states of the returning-user loading screen, as `Returning.dc.html` draws them: `loading` while the
+ * bootstrap loads, then `reminders` while the reminders are set up again.
  */
 export type ReturningState = 'loading' | 'reminders';
 
@@ -56,7 +56,7 @@ function StepMarker({ status }: { status: StepStatus }) {
 /**
  * Loading screen shown after sign-in on a phone that already has household data: a short
  * checklist while the app fetches the household and bills and sets up reminders again. Pure
- * view; the container that drives the steps comes with the bootstrap endpoint (step 3.5).
+ * view; the session gate in `_layout.tsx` picks the state.
  *
  * @param state - Which step is in progress. Defaults to `loading`.
  */

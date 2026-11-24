@@ -77,6 +77,7 @@ import {
   requiredText,
   todayKey,
 } from '@splithouse/shared';
+import { NotificationsTestPanel } from '@/components/dev/notifications-test-panel';
 import { ServerUnreachableError } from '@/lib/api';
 import { type ThemePreference, useThemePreference } from '@/lib/theme-preference';
 
@@ -1413,6 +1414,7 @@ export default function ComponentTestPage() {
           <DialogsDemo />
           <ServerPromptDemo />
           <WhatsAppDemo />
+          <NotificationsTestPanel />
           {showSkeletons ? <SkeletonDemo /> : null}
           <SurfacesDemo />
           <HeadersDemo />
