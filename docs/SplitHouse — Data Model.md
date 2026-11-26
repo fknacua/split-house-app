@@ -76,8 +76,30 @@ For aircon servicing and shared one-offs added from the Add charge sheet (a Pers
 ### MessageEvent
 `id`, `month`, `personId`, `kind` (`MONTHLY` or `NUDGE`), `chargeId` (nullable), `renderedText`, `openedAt`. The app cannot know whether WhatsApp actually sent anything, so this records when the chat was opened.
 
-### Settings
-One row (`id` `singleton`), `notifications` (JSON validated in code), `updatedAt`. `notifications` holds the five toggles: `uploadBill` (Upload the utilities bill), `collectRent` (Collect rent), `payBill` (Pay the utilities bill), `paymentChecks` (Payment checks) and `fyi` (FYI updates). Every toggle is on by default except `fyi`, and with no row yet every toggle takes its default. The reader ignores stored keys it doesn't know (such as an old `savings`) and fills a missing toggle with its default. Theme stays on the device.
+### Notifications (Phase 14, reworked 2026-11-27)
+What reminders exist and what they say is stored in the database, not only in code, so Francis can read them and so times and texts can be made configurable after v1. The server builds the reminder list from these rows and the data; the phone only schedules it. The old `Settings` table, which held only the five toggles, is dropped: its values are carried into `NotificationGroup` when the tables are created (Collect tenant payments is on if either Collect rent or Payment checks was), and theme stays on the device.
+
+**NotificationGroup:** one row per Settings switch. `key` (unique), `label`, `detail` (the helper line under the switch), `enabled`, `sortOrder`, `updatedAt`. Seeded with four rows; every one is on by default except FYI updates.
+
+| `key` | `label` | `detail` | Default |
+| --- | --- | --- | --- |
+| `uploadBill` | Upload utilities bill | 8:00 from the 1st until uploaded | On |
+| `collectPayments` | Collect tenant payments | 8:00 from the day before each due date until paid | On |
+| `payBill` | Pay utilities bill | 8:00 from the day before the due date until paid | On |
+| `fyi` | FYI updates | Unusual bill, aircon servicing due, month settled · silent | Off |
+
+**NotificationType:** one row per notification. `key` (unique), `groupKey` (the `NotificationGroup` it belongs to), `kind` (`deadline`, `dated` or `event`), `rule` (JSON validated in code), `updatedAt`. `rule`'s shape is decided by `kind`, validated with a zod discriminated union in `shared/` (as the household config is):
+- **`deadline`:** `anchor` (which date is the deadline: `upload-day`, `charge-due` or `bill-due`), `time` (`08:00`), and `stages`: `dueTomorrow` (08:00 the day before, once), `dueToday` (08:00 on the deadline, once) and `overdue` (08:00 every day after it, until done). Each stage has its own `channel`, `title` and `body`.
+- **`dated`:** `anchor` (`last-aircon`), `offsetDays`, `time`, `channel`, `title` and `body`. Fires once.
+- **`event`:** `trigger` (`month-settled` or `unusual-bill`), `delay` (`immediate`), `expiresAfterDays` (3), `channel`, `title` and `body`.
+
+Titles and bodies are templates with typed placeholders (`{month}`, `{payer}`, `{amount}` and the like); each `anchor` and `trigger` names the placeholders it fills, and a variant is a separate stage or row, never a condition in the text. Code keeps one small function per `anchor` and per `trigger` (find the date, detect the event) and the placeholder fillers. A test fails when a row has no matching code, when code has no row, or when a template uses a placeholder its anchor or trigger doesn't fill. The seeded rows are `uploadBill`, `collectPayments` and `payBill` (`deadline`), `airconDue` (`dated`, 90 days after the latest `AIRCON` charge, corrections not counted) and `monthSettled` and `unusualBill` (`event`), all in the group of the same name except the last three, which are in `fyi`. Their copy is in the Tech Stack's notifications table.
+
+**NotificationEvent:** one row per event FYI. `id`, `key` (unique), `typeKey`, `params` (JSON: the placeholder values, fixed when the event happens, such as the month, the bill amount and `32% higher`), `status` (`PENDING`, `SCHEDULED` or `EXPIRED`), `createdAt`, `fireAt` (null until scheduled).
+- **Inserted** with `INSERT … ON CONFLICT DO NOTHING` in the same transaction as the write that caused it. The key keeps it to one per event: `settled:{month}:{date}` (the Singapore date, so settling again after being unsettled fires again, at most once a day) and `unusual:{month}`.
+- **`PENDING`** events are in every reminder list, set to fire a few seconds after the phone schedules them. The phone acknowledges only the events it actually scheduled (`POST /api/notifications/ack`), so with the permission off nothing is acknowledged and the event waits for a later refresh.
+- **`SCHEDULED`** (acknowledged) events get their `fireAt` and stay in the list until that time has passed, so a refresh in between doesn't cancel them.
+- **`EXPIRED`:** a `PENDING` event older than `expiresAfterDays` is dropped from the list. Known gap, accepted: the permission turned off after scheduling but before the event fires loses that FYI.
 
 ### Setup
 One row (`id` `singleton`), created on first write: `startMonth` (the month chosen in First run's Start month step, `YYYY-MM`, null until chosen), `doneSteps` (the First run step ids recorded as done) and `updatedAt`. Read only during First run; once a month is open, the first `Month` and the version's `startsFromMonth` hold the start month.

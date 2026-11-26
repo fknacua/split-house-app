@@ -96,24 +96,51 @@ The data model that serves these is in the Data Model doc.
 
 The design calls for three Android channels with their own importance levels, action buttons on some notifications, and a tap that opens a specific screen. A native Expo app can do all three, which a PWA with web push could not.
 
-| Notification | Channel | Trigger | Actions |
+The three channels are Action needed (high importance, heads-up), Reminders (default importance: a sound, no heads-up; first created as Payment checks and renamed, keeping its id) and FYI (low, silent).
+
+Every reminder except the FYIs follows the same three stages, at 08:00 Asia/Singapore time:
+
+| Stage | When | Repeats | Channel |
 | --- | --- | --- | --- |
-| Upload this month's utilities bill | Action needed (heads-up) | 9:00 daily from the 2nd until that month's bill is saved or the month ends | None; a tap opens bill upload |
-| Collect {name}'s rent | Action needed (heads-up) | 9:00 on the last weekday (Monday to Friday; public holidays are not counted) before the 1st, one per tenant whose rent for that month is unpaid | Paid, Nudge |
-| Pay utilities bill: collected $X of $Y | Action needed (heads-up) | 9:00 the day before the bill's due date, while the bill is not marked paid | None; a tap opens Home |
-| Did {name} pay {charge}? | Payment checks | 20:00 on each unpaid charge's due date, for everyone but the owner (refunds are paid already, so never) | Paid, Nudge |
-| Unusual bill, aircon servicing due, month settled | FYI (silent) | When triggered | None |
+| Due tomorrow | 08:00 the day before the deadline | Once | Reminders |
+| Due today | 08:00 on the deadline | Once | Reminders |
+| Overdue | 08:00 every day after the deadline | Daily until done, never stops | Action needed |
 
-Times are Asia/Singapore.
+Four Settings switches, one per group:
 
-What this means for the build, using local notifications scheduled on the phone (to confirm against the plugin's docs):
+| Switch | Default | Deadline | Done when | Tap | Actions |
+| --- | --- | --- | --- | --- | --- |
+| Upload utilities bill | On | The 2nd of the month | The month's bill is saved | Bill upload | None |
+| Collect tenant payments | On | Each charge's due date | The charges are marked paid | Home | Paid, Nudge |
+| Pay utilities bill | On | The bill's due date | The bill is marked paid (Pay bill) | Home | None |
+| FYI updates | Off | Not deadlines (below) | | Home | None |
 
-- **Date-based** notifications are scheduled ahead and recomputed whenever data changes, such as a new bill, a recorded payment or an edited due date.
-- **Event-based** notifications (unusual bill, month settled) come in the schedule only on the day the bill was saved or the month settled, each with a stable id the app records once shown, so a rebuild never shows one twice.
-- **Live amounts** like "collected $X of $Y" are fixed when scheduled, so each recorded payment reschedules that notification.
+The title stays the same at every stage and the body says when (`{month}` is `November`, `{due}` is `2 Dec`):
+
+| Notification | Title | Due tomorrow | Due today | Overdue |
+| --- | --- | --- | --- | --- |
+| Upload | `Upload {month}’s utilities bill` | `It usually lands tomorrow. Tap to upload it once it’s in.` | `It usually lands today. Tap to upload it.` | `Not uploaded yet. Tap to upload it.` |
+| Collect | `Collect {amount} from {payer}` | `{items}. Due tomorrow.` | `{items}. Due today.` | `{items}. Overdue since {due}.` |
+| Pay bill | `Pay utilities bill: collected {collected} of {total}` | `Due tomorrow, {due}.` | `Due today.` | `Overdue since {due}.` |
+
+- **Collect tenant payments** is one reminder per payer, per stage, per morning. A routed charge is folded into its payer's reminder (Tenant 2 paying via Tenant 1 gives one reminder, to collect from Tenant 1). Due tomorrow and due today group the payer's charges due that day; overdue groups all of the payer's overdue charges whatever their due dates, and `{due}` is the earliest. Owner charges and refunds never appear. `{amount}` is the group's total; `{items}` names each charge (`Nov rent`, `Nov Starhub`, `Nov utilities for Sam`, a correction by its short name `Correction · Utilities Oct`), joined with commas and "and"; past three it reads `Dec rent, Dec Starhub and 2 more`.
+- **Pay utilities bill:** `{collected}` is only what the others have paid of their utilities, no more than each charge.
+- **FYI updates** (FYI channel):
+  - `Aircon servicing due?` · `It’s been 3 months since the last one.`: 08:00, 90 days after the latest `AIRCON` charge (corrections don't count); none before the first one. Fires once.
+  - `{month} is settled` · `Everyone has paid and the utilities bill is covered.`: right away, when a write turns a month from not settled to settled. Settling again after being unsettled fires again, at most once a month per day.
+  - `Unusual bill amount` · `{month}’s {amount} bill is {change} than your recent bills.` (`{change}` is `32% higher` or `18% lower`): right away, when a saved bill is unusual by the upload warning's rule (more than 25% from the last three bills' average, either way). Once per month.
+
+The groups, the notifications with their stages, channels and copy, and the event FYIs are rows in the database (`NotificationGroup`, `NotificationType` and `NotificationEvent` in the Data Model), so times and texts can be made configurable after v1.
+
+What this means for the build, using local notifications scheduled on the phone:
+
+- **The server writes the list, the phone schedules it.** `GET /api/notifications/plan` returns each notification's id, channel, title, body, time, actions and tap target, from now to the end of next month (shortened if daily overdue reminders would pass Android's limit on scheduled alarms). The app cancels everything and schedules the list.
+- **Rebuilt** on sign-in, launch, after every write and after a switch change, so the list follows the data and live amounts like "collected $X of $Y" are current each time.
+- **Event FYIs** (settled, unusual bill) are recorded on the server in the same transaction as the write that caused them, and come in the list set to fire a few seconds after the phone schedules them. A local notification fires with no code running, so the server can only know what the phone scheduled, never what it showed: the phone acknowledges (`POST /api/notifications/ack`) only the events it actually scheduled. An acknowledged event stays in the list until its time has passed, so a rebuild in between doesn't cancel it; one never acknowledged expires after 3 days. Known gap, accepted: turning the permission off after an event is scheduled but before it fires loses it.
 - **Permissions:** Android 13 and later asks for notification permission at runtime, and no exact-alarm permission is requested in v1, so reminders may arrive late.
-- **Paid** opens the Record payment sheet with that charge ticked and **Nudge** opens the Send sheet in nudge mode for that charge, so both actions bring the app to the foreground. Nothing is sent or marked paid automatically.
+- **Paid** opens the Record payment sheet with every charge in the reminder ticked and **Nudge** opens the Send sheet in nudge mode with them ticked, so both actions bring the app to the foreground. Nothing is sent or marked paid automatically.
 - **Reschedule on sign-in and launch:** scheduled notifications live on the device and do not carry over to a new phone, so the app rebuilds the schedule on every sign-in and launch. Otherwise a fresh install has no reminders.
+- **After v1:** configurable reminder times, one switch per notification instead of per group, and Pay landlord rent (marking the landlord paid, with the same three stages).
 - **Expo builds:** channels and action buttons likely need a development build rather than Expo Go. Confirm when setting up the project.
 
 ## New phone
