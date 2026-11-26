@@ -18,7 +18,7 @@ import { TotalCard } from './components/total-card';
 import type { SendMessageSheetRef } from './types';
 import { useWhatsappSend } from './use-whatsapp-send';
 
-const CLOSED: SendSheetRequest = { mode: 'monthly', personId: null, chargeId: null, ticked: null };
+const CLOSED: SendSheetRequest = { mode: 'monthly', personId: null, chargeIds: null, ticked: null };
 
 /**
  * Send message (`SendMessageV2`), one sheet in two modes: the monthly message, or a nudge about overdue
@@ -52,7 +52,7 @@ export const SendMessageSheet = forwardRef<SendMessageSheetRef>(function SendMes
         setRequest({
           mode: opening.mode,
           personId: opening.personId ?? null,
-          chargeId: opening.chargeId ?? null,
+          chargeIds: opening.chargeIds ?? null,
           ticked: null,
         });
         whatsapp.reset();
@@ -66,7 +66,7 @@ export const SendMessageSheet = forwardRef<SendMessageSheetRef>(function SendMes
   );
 
   const pickPerson = (personId: string) =>
-    setRequest((r) => (r.personId === personId ? r : { ...r, personId, chargeId: null, ticked: null }));
+    setRequest((r) => (r.personId === personId ? r : { ...r, personId, chargeIds: null, ticked: null }));
 
   const toggleCharge = (chargeId: string) => {
     const rows = data?.charges?.rows ?? [];

@@ -11,13 +11,13 @@ import type {
   SendWhatsappTarget,
 } from '@splithouse/shared';
 
-/** How the Send message sheet opens: the mode, who is picked, and in nudge mode the tapped charge. */
+/** How the Send message sheet opens: the mode, who is picked, and in nudge mode the charges to tick. */
 export interface SendMessageOpening {
   mode: SendMode;
   /** Who is picked in To; left out, nobody is. */
   personId?: string;
-  /** Nudge mode: the tapped charge, ticked as the sheet opens. */
-  chargeId?: string;
+  /** Nudge mode: the charges Nudge opened on (one from Home, a reminder’s from its Nudge), ticked as it opens. */
+  chargeIds?: string[];
 }
 
 /** What a screen can call on a {@link SendMessageSheet} through its ref. */

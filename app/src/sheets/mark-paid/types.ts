@@ -1,9 +1,9 @@
 import type { RecordPaymentConfirm, RecordPaymentSheet } from '@splithouse/shared';
 
-/** How Record payment opens: nobody picked (Home's footer) or on a charge (Mark paid). */
+/** How Record payment opens: nobody picked (Home's footer), or on charges (Mark paid, or a reminder’s Paid). */
 export interface RecordPaymentOpening {
-  /** The charge Mark paid was tapped on: its payer is picked and it is ticked. */
-  chargeId?: string;
+  /** The charges opened on (Mark paid’s one, or a reminder’s): their payer is picked and they are ticked. */
+  chargeIds?: string[];
 }
 
 /** What a screen can call on a {@link RecordPaymentSheet} through its ref. */

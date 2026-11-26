@@ -115,8 +115,8 @@ function assertInToList(input: SendInput, personId: string): void {
  * The Send message sheet for the active month, as it opens.
  *
  * @param db - The Prisma client, or a fake in tests.
- * @param query - The mode, who is picked (none for nobody) and, in nudge mode, the tapped charge.
- * The tapped charge is ticked when it is one of the person's overdue charges; otherwise their
+ * @param query - The mode, who is picked (none for nobody) and, in nudge mode, the charges Nudge
+ * opened on. Those that are the person's overdue charges are ticked; when none is, their
  * earliest-due one is.
  * @returns The sheet.
  * @throws {ApiError} 404 `no_month` when the active month is not open; 404 `no_person` when the
@@ -124,11 +124,11 @@ function assertInToList(input: SendInput, personId: string): void {
  */
 export async function getSendSheet(
   db: SendDb,
-  query: { mode: SendMode; personId?: string; chargeId?: string },
+  query: { mode: SendMode; personId?: string; chargeIds?: string[] },
 ): Promise<SendResponse> {
   const input = await loadSendInput(db, query.mode);
   if (query.personId) assertInToList(input, query.personId);
-  return buildSend(input, { personId: query.personId ?? null, tapped: query.chargeId ?? null });
+  return buildSend(input, { personId: query.personId ?? null, tapped: query.chargeIds ?? null });
 }
 
 /**

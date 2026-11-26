@@ -92,8 +92,20 @@ describe("getSendSheet", () => {
   });
 
   it("ticks the tapped overdue charge in nudge mode", async () => {
-    const sheet = await getSendSheet(fakeDb().db, { mode: "nudge", personId: jordan, chargeId: "jordan-utilities" });
+    const sheet = await getSendSheet(fakeDb().db, { mode: "nudge", personId: jordan, chargeIds: ["jordan-utilities"] });
     expect(sheet.charges?.rows.filter((r) => r.ticked).map((r) => r.chargeId)).toEqual(["jordan-utilities"]);
+  });
+
+  it("ticks every overdue charge a reminder's Nudge opened on, leaving out the rest", async () => {
+    const sheet = await getSendSheet(fakeDb().db, {
+      mode: "nudge",
+      personId: jordan,
+      chargeIds: ["jordan-utilities", "jordan-rent", "priya-rent"],
+    });
+    expect(sheet.charges?.rows.map((r) => [r.chargeId, r.ticked])).toEqual([
+      ["jordan-rent", true],
+      ["jordan-utilities", true],
+    ]);
   });
 
   it("throws 404 no_month when the active month is not open", async () => {

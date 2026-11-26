@@ -44,7 +44,7 @@ export function useOpenTarget() {
         if (!discardDraft.isPending) discardDraft.mutate(target.month);
         return;
       case 'mark-paid':
-        openRecordPayment({ chargeId: target.chargeId });
+        openRecordPayment({ chargeIds: target.chargeIds });
         return;
       case 'record-payment':
         openRecordPayment();
@@ -53,7 +53,7 @@ export function useOpenTarget() {
         openSendMessage({ mode: 'monthly', personId: target.personId });
         return;
       case 'send-nudge':
-        openSendMessage({ mode: 'nudge', personId: target.personId, chargeId: target.chargeId });
+        openSendMessage({ mode: 'nudge', personId: target.personId, chargeIds: target.chargeIds });
         return;
       case 'view-details':
         router.push({ pathname: '/charge/[chargeId]', params: { chargeId: target.chargeId } });

@@ -111,7 +111,7 @@ Four Settings switches, one per group:
 | Switch | Default | Deadline | Done when | Tap | Actions |
 | --- | --- | --- | --- | --- | --- |
 | Upload utilities bill | On | The 2nd of the month | The month's bill is saved | Bill upload | None |
-| Collect tenant payments | On | Each charge's due date | The charges are marked paid | Home | Paid, Nudge |
+| Collect tenant payments | On | Each charge's due date | The charges are marked paid | Home | Paid; Nudge too when overdue |
 | Pay utilities bill | On | The bill's due date | The bill is marked paid (Pay bill) | Home | None |
 | FYI updates | Off | Not deadlines (below) | | Home | None |
 
@@ -138,7 +138,7 @@ What this means for the build, using local notifications scheduled on the phone:
 - **Rebuilt** on sign-in, launch, after every write and after a switch change, so the list follows the data and live amounts like "collected $X of $Y" are current each time.
 - **Event FYIs** (settled, unusual bill) are recorded on the server in the same transaction as the write that caused them (only while FYI updates is on), and come in the list set to fire a few seconds after the phone schedules them. A local notification fires with no code running, so the server can only know what the phone scheduled, never what it showed: the phone acknowledges (`POST /api/notifications/acknowledge`) only the events it actually scheduled, each with the time it was scheduled for. An acknowledged event stays in the list at that time until it has passed, so a rebuild in between doesn't cancel it; one never acknowledged expires after 3 days. Known gap, accepted: turning the permission off after an event is scheduled but before it fires loses it.
 - **Permissions:** Android 13 and later asks for notification permission at runtime, and no exact-alarm permission is requested in v1, so reminders may arrive late.
-- **Paid** opens the Record payment sheet with every charge in the reminder ticked and **Nudge** opens the Send sheet in nudge mode with them ticked, so both actions bring the app to the foreground. Nothing is sent or marked paid automatically.
+- **Paid** opens the Record payment sheet with every charge in the reminder ticked and **Nudge** opens the Send sheet in nudge mode with them ticked, so both actions bring the app to the foreground. Nothing is sent or marked paid automatically. Paid is on every stage. Nudge is only on an overdue reminder, and only once the payer's monthly message for the active month is out and one of its charges is one the nudge sheet lists (the active month's, or an earlier month's correction), as Home's Nudge requires: the nudge sheet lists only overdue charges. A charge paid since the reminder was scheduled is left out when the sheet opens.
 - **Reschedule on sign-in and launch:** scheduled notifications live on the device and do not carry over to a new phone, so the app rebuilds the schedule on every sign-in and launch. Otherwise a fresh install has no reminders.
 - **After v1:** configurable reminder times, one switch per notification instead of per group, and Pay landlord rent (marking the landlord paid, with the same three stages).
 - **Expo builds:** channels and action buttons likely need a development build rather than Expo Go. Confirm when setting up the project.

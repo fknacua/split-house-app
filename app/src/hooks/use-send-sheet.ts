@@ -9,8 +9,8 @@ export interface SendSheetRequest {
   mode: SendMode;
   /** Who is picked in To, or null for nobody. */
   personId: string | null;
-  /** Nudge mode: the tapped charge, ticked as the sheet opens. */
-  chargeId: string | null;
+  /** Nudge mode: the charges Nudge opened on (one from Home, a reminder’s from its Nudge), ticked as it opens. */
+  chargeIds: string[] | null;
   /** Nudge mode: the ticked charges once the user changes them; null for the sheet as it opens. */
   ticked: string[] | null;
 }
@@ -20,12 +20,12 @@ export interface SendSheetRequest {
  * a new person, `GET /api/send`; once ticks change, `POST /api/send/preview` with them. The last
  * sheet stays on screen while the next one loads, so a tick doesn't flash the skeleton.
  *
- * @param request Mode, person, tapped charge and ticks.
+ * @param request Mode, person, charges opened on and ticks.
  * @param enabled False while the sheet is closed.
  */
-export function useSendSheet({ mode, personId, chargeId, ticked }: SendSheetRequest, enabled: boolean) {
+export function useSendSheet({ mode, personId, chargeIds, ticked }: SendSheetRequest, enabled: boolean) {
   return useQuery({
-    queryKey: queryKeys.sendSheet(mode, personId, chargeId, ticked),
+    queryKey: queryKeys.sendSheet(mode, personId, chargeIds, ticked),
     queryFn: () => {
       if (ticked !== null && personId !== null) {
         const body: SendPreviewRequest = { personId, chargeIds: ticked };
@@ -33,7 +33,7 @@ export function useSendSheet({ mode, personId, chargeId, ticked }: SendSheetRequ
       }
       const query = new URLSearchParams({ mode });
       if (personId) query.set('personId', personId);
-      if (chargeId) query.set('chargeId', chargeId);
+      if (chargeIds && chargeIds.length > 0) query.set('chargeIds', chargeIds.join(','));
       return apiFetch<SendResponse>(`/api/send?${query.toString()}`);
     },
     enabled,

@@ -94,6 +94,14 @@ function assertInFromList(byPayer: Map<string, unknown>, personId: string): void
   if (!byPayer.has(personId)) throw new ApiError(404, "no_person", "That person has nothing to pay.");
 }
 
+/** Who pays the charge, when it is in someone's For list; null otherwise. */
+function payerIn(byPayer: Map<string, { charge: { id: string } }[]>, chargeId: string): string | null {
+  for (const [payerId, payables] of byPayer) {
+    if (payables.some((p) => p.charge.id === chargeId)) return payerId;
+  }
+  return null;
+}
+
 /**
  * Finds who pays a charge opened from Mark paid, or says why it can't be recorded.
  *
@@ -106,9 +114,8 @@ async function payerOfCharge(
   byPayer: Map<string, { charge: { id: string } }[]>,
   chargeId: string,
 ): Promise<string> {
-  for (const [payerId, payables] of byPayer) {
-    if (payables.some((p) => p.charge.id === chargeId)) return payerId;
-  }
+  const payerId = payerIn(byPayer, chargeId);
+  if (payerId !== null) return payerId;
   const charge = await db.charge.findUnique({ where: { id: chargeId }, select: { paidCents: true } });
   if (!charge) throw new ApiError(404, "no_charge", "This charge doesn’t exist.");
   if (charge.paidCents !== null) throw new ApiError(409, "already_paid", "This charge is already paid.");
@@ -117,27 +124,32 @@ async function payerOfCharge(
 
 /**
  * The Record payment sheet for the active month, as it opens: with nobody picked, with a person
- * picked and nothing ticked, or from Mark paid with the charge's payer picked and the charge ticked.
+ * picked and nothing ticked, or from Mark paid or a reminder's Paid with the charges' payer picked
+ * and the charges ticked.
  *
  * @param db - The Prisma client, or a fake in tests.
- * @param query - Who is picked and the tapped charge; both optional.
+ * @param query - Who is picked and the charges opened on; both optional. The payer is the first
+ * still-payable charge's; ids not in that payer's For list (paid since, or someone else's) are left
+ * out, so a reminder tapped after part of it was paid still opens.
  * @returns The sheet.
  * @throws {ApiError} 404 `no_month` when the active month is not open; 404 `no_person` when the
- * person isn't in the From list; 404 `no_charge`, 409 `already_paid` or 409 `nothing_to_pay` for a
- * charge that can't be recorded; 409 `not_their_charge` when the charge is paid by someone other
- * than the person given with it.
+ * person isn't in the From list; 404 `no_charge`, 409 `already_paid` or 409 `nothing_to_pay` when no
+ * charge given can be recorded (the first one's reason); 409 `not_their_charge` when the charges are
+ * paid by someone other than the person given with them.
  */
 export async function getRecordPaymentSheet(db: RecordPaymentSheetDb, query: RecordPaymentQuery): Promise<RecordPaymentSheet> {
   const input = await loadInput(db);
   const byPayer = payablesByPayer(input);
   if (query.personId) assertInFromList(byPayer, query.personId);
-  if (!query.chargeId) return buildRecordPayment(input, { personId: query.personId ?? null, ticked: [] });
+  if (!query.chargeIds) return buildRecordPayment(input, { personId: query.personId ?? null, ticked: [] });
 
-  const payerId = await payerOfCharge(db, byPayer, query.chargeId);
+  const firstPayer = query.chargeIds.map((id) => payerIn(byPayer, id)).find((id) => id !== null);
+  const payerId = firstPayer ?? (await payerOfCharge(db, byPayer, query.chargeIds[0]));
   if (query.personId && query.personId !== payerId) {
     throw new ApiError(409, "not_their_charge", "That charge isn’t paid by this person.");
   }
-  return buildRecordPayment(input, { personId: payerId, ticked: [query.chargeId] });
+  const theirs = new Set((byPayer.get(payerId) ?? []).map((p) => p.charge.id));
+  return buildRecordPayment(input, { personId: payerId, ticked: query.chargeIds.filter((id) => theirs.has(id)) });
 }
 
 /**

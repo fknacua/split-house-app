@@ -10,8 +10,11 @@ export type HomeStatus = z.infer<typeof homeStatusSchema>;
 
 /** Where a tap on a row link, a row action or the footer goes. Carries only the ids the target screen needs. */
 export const homeTargetSchema = z.discriminatedUnion('kind', [
-  /** Opens the Send message sheet in nudge mode for the person who pays the charge, with the charge ticked. */
-  z.object({ kind: z.literal('send-nudge'), personId: z.string(), chargeId: z.string() }),
+  /**
+   * Opens the Send message sheet in nudge mode for the person who pays the charges, with them ticked: one charge from
+   * Home and Charge details, every charge of a reminder from its Nudge button.
+   */
+  z.object({ kind: z.literal('send-nudge'), personId: z.string(), chargeIds: z.array(z.string()).min(1) }),
   /**
    * Opens the Send message sheet for the month's monthly messages. `personId` is the first person
    * whose message is not sent yet; without one the sheet opens with nobody picked in To.
@@ -19,7 +22,11 @@ export const homeTargetSchema = z.discriminatedUnion('kind', [
   z.object({ kind: z.literal('send-message'), month: monthKey, personId: z.string().optional() }),
   /** Opens Charge details for one stored charge. */
   z.object({ kind: z.literal('view-details'), chargeId: z.string() }),
-  z.object({ kind: z.literal('mark-paid'), chargeId: z.string() }),
+  /**
+   * Opens Record payment with the charges' payer picked and the charges ticked: one charge from Home and Charge
+   * details, every charge of a reminder from its Paid button.
+   */
+  z.object({ kind: z.literal('mark-paid'), chargeIds: z.array(z.string()).min(1) }),
   /** Opens the Edit payment sheet for one paid charge (Charge details only). */
   z.object({ kind: z.literal('edit-payment'), chargeId: z.string() }),
   /** Opens the Add charge sheet as `Add correction` for one paid charge (Charge details only). */

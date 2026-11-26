@@ -74,8 +74,11 @@ export interface SendInput {
 export interface SendPick {
   /** One of `sendToOptions`'s people, or null for nobody. */
   personId: string | null;
-  /** Nudge mode: the charge that was tapped, ticked when `ticked` is null and it is overdue. */
-  tapped?: string | null;
+  /**
+   * Nudge mode: the charges Nudge opened on (one from Home or Charge details, a reminder's from its Nudge), ticked
+   * when `ticked` is null; those that are not overdue are left out, and with none left the earliest due is ticked.
+   */
+  tapped?: string[] | null;
   /** Nudge mode: the ticked charge ids, from a preview; null for the opening tick. */
   ticked?: string[] | null;
 }
@@ -269,8 +272,9 @@ function monthlyParts(input: SendInput, person: Person, names: Map<string, strin
 /** Nudge mode: the overdue charges with their ticks, the nudges about the ticked ones and the nudge message. */
 function nudgeParts(input: SendInput, person: Person, pick: SendPick, names: Map<string, string>): PickedParts {
   const overdue = overdueCharges(input, person.id);
-  const opening = overdue.find((o) => o.charge.id === pick.tapped) ?? overdue[0];
-  const tickedIds = new Set(pick.ticked ?? (opening ? [opening.charge.id] : []));
+  const tapped = overdue.filter((o) => pick.tapped?.includes(o.charge.id)).map((o) => o.charge.id);
+  const opening = tapped.length > 0 ? tapped : overdue.slice(0, 1).map((o) => o.charge.id);
+  const tickedIds = new Set(pick.ticked ?? opening);
   const ticked = overdue.filter((o) => tickedIds.has(o.charge.id));
   const cents = ticked.reduce((sum, o) => sum + o.charge.amountCents, 0);
   const several = overdue.length > 1;
@@ -337,7 +341,7 @@ function nudgeParts(input: SendInput, person: Person, pick: SendPick, names: Map
  * Builds the Send message sheet (`SendMessageV2`) for the active month, in monthly or nudge mode. With
  * nobody picked it holds only the To list and the footer. Monthly mode shows the person's Total, the
  * dates their message went out and their breakdown; nudge mode shows their overdue charges with the
- * ticked ones (the tapped charge, else the earliest due, when the sheet opens), the dates of nudges
+ * ticked ones (the tapped charges, else the earliest due, when the sheet opens), the dates of nudges
  * about the ticked ones, and the nudge listing them. Send opens WhatsApp and says what to record; it
  * can't be used without a WhatsApp number, before the bill (monthly) or with nothing ticked (nudge).
  *

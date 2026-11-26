@@ -42,5 +42,14 @@ export type PersonColor = z.infer<typeof personColor>;
 /** The colors a tenant can have, in default order: all but Teal, which is only for the owner. */
 export const TENANT_PERSON_COLORS: readonly PersonColor[] = PERSON_COLORS.filter((color) => color !== 'TEAL');
 
+/**
+ * A list of ids in a query string, comma-separated (`a,b`), since a query key carries one value. Parses to the ids,
+ * at least one; empty pieces are dropped.
+ */
+export const idListParam = z
+  .string()
+  .transform((value) => value.split(',').filter((id) => id !== ''))
+  .pipe(z.array(z.string()).min(1));
+
 /** A non-empty label or name after trimming. */
 export const requiredText = z.string().trim().min(1, 'Required');

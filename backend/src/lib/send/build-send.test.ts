@@ -246,7 +246,7 @@ describe("buildSend, nudge", () => {
   const nudge = (pick: SendPick, overrides: Partial<SendInput> = {}) => build({ mode: "nudge", ...overrides }, pick);
 
   it("ticks the tapped charge and lists every overdue one, earliest due first", () => {
-    const sheet = nudge({ personId: jordan, tapped: "jordan-utilities" });
+    const sheet = nudge({ personId: jordan, tapped: ["jordan-utilities"] });
     expect(sheet.title).toBe("Send nudge message");
     expect(sheet.total).toBeNull();
     expect(sheet.charges).toEqual({
@@ -294,7 +294,7 @@ describe("buildSend, nudge", () => {
   });
 
   it("ticks the earliest due when the tapped charge is not one of the overdue ones", () => {
-    for (const tapped of [null, "jordan-nothing", "sam-rent"]) {
+    for (const tapped of [null, [], ["jordan-nothing"], ["sam-rent"]]) {
       const rows = nudge({ personId: jordan, tapped }).charges!.rows;
       expect(rows.filter((r) => r.ticked).map((r) => r.chargeId)).toEqual(["jordan-oct-correction"]);
     }
@@ -310,8 +310,8 @@ describe("buildSend, nudge", () => {
       ],
     });
     expect(sheet.send.label).toBe("Nudge again");
-    expect(nudge({ personId: jordan, tapped: "jordan-aircon" }).history).toBeNull();
-    expect(nudge({ personId: jordan, tapped: "jordan-aircon" }).send.label).toBe("Send on WhatsApp");
+    expect(nudge({ personId: jordan, tapped: ["jordan-aircon"] }).history).toBeNull();
+    expect(nudge({ personId: jordan, tapped: ["jordan-aircon"] }).send.label).toBe("Send on WhatsApp");
   });
 
   it("totals the ticked charges, takes the longest-overdue chip, and nudges about exactly them", () => {

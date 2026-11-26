@@ -68,6 +68,12 @@ function fakeDb(
         })),
     },
     notificationType: { findMany: async () => [...types] as StoredNotificationType[] },
+    messageEvent: {
+      findMany: async (args) => {
+        calls.messaged = args;
+        return [{ personId: PERSON_IDS.jordan }];
+      },
+    },
     notificationEvent: {
       findMany: async (args) => {
         calls.events = args.where;
@@ -105,6 +111,14 @@ describe("getNotificationPlan", () => {
       orderBy: { createdAt: "desc" },
       select: { createdAt: true },
     });
+    // Who has had the active month’s monthly message, so an overdue reminder to them gets Nudge.
+    expect(calls.messaged).toEqual({
+      where: { month: "2026-11", kind: "MONTHLY" },
+      select: { personId: true },
+      distinct: ["personId"],
+    });
+    const overdue = notifications.find((n) => n.id.startsWith("collectPayments:overdue:"));
+    expect(overdue?.actions.map((a) => a.kind)).toEqual(["paid", "nudge"]);
   });
 
   it("follows the saved switches", async () => {

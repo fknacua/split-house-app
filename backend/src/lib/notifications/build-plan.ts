@@ -99,6 +99,10 @@ export interface PlanInput {
   lastAirconAt: Date | null;
   /** The pending and acknowledged event FYIs (settled, unusual bill). */
   events: readonly PlanEvent[];
+  /** The month the app treats as now (`getActiveMonth`), the one the nudge sheet is about. */
+  activeMonth: string;
+  /** The people whose monthly message for {@link PlanInput.activeMonth} has gone out, so they can be nudged. */
+  messagedPersonIds: readonly string[];
 }
 
 /** One reminder a deadline anchor gives for a day and stage, before its text is filled in. */
@@ -120,6 +124,11 @@ interface PlanContext {
   bills: { month: string; due: string; collectedCents: number; totalCents: number }[];
   name: (id: string) => string;
   lastAirconAt: Date | null;
+  /**
+   * Whether an overdue reminder to the payer gets Nudge: their monthly message is out and one of the charges is one
+   * the nudge sheet lists (the active month's, or an earlier month's correction), as Home's Nudge needs.
+   */
+  canNudge: (payerId: string, charges: readonly PlanCharge[]) => boolean;
 }
 
 /** Finds the reminders of one deadline anchor for one morning and stage. */
@@ -199,6 +208,9 @@ function planContext(input: PlanInput): PlanContext {
   const names = new Map(input.people.map((p) => [p.id, p.name]));
   const configs = new Map(input.months.map((m) => [m.month, m.config]));
   const saved = new Set(input.bills.map((b) => b.month));
+  const messaged = new Set(input.messagedPersonIds);
+  const nudgeable = (c: PlanCharge) =>
+    c.month === input.activeMonth || (c.month < input.activeMonth && c.category === "CORRECTION");
 
   const charges = input.unpaidCharges.flatMap((c) => {
     const config = configs.get(c.month);
@@ -225,6 +237,7 @@ function planContext(input: PlanInput): PlanContext {
     bills,
     name: (id) => names.get(id) ?? "Someone",
     lastAirconAt: input.lastAirconAt,
+    canNudge: (payerId, payerCharges) => messaged.has(payerId) && payerCharges.some(nudgeable),
   };
 }
 
@@ -273,8 +286,9 @@ function uploadDay(ctx: PlanContext, day: string, stage: Stage): DeadlineFill[] 
 
 /**
  * Collect: one reminder per payer. Due tomorrow and due today hold the payer's charges due that day; overdue holds
- * every overdue charge of theirs, and `{due}` is the earliest. Paid and Nudge open on the earliest charge (14.9 opens
- * them on all of them).
+ * every overdue charge of theirs, and `{due}` is the earliest. Paid is on every stage; Nudge only on overdue, once
+ * {@link PlanContext.canNudge} allows it, since the nudge sheet lists only overdue charges. Both carry every charge in
+ * the reminder.
  */
 function chargeDue(ctx: PlanContext, day: string, stage: Stage): DeadlineFill[] {
   const byPayer = new Map<string, PlanContext["charges"]>();
@@ -291,6 +305,11 @@ function chargeDue(ctx: PlanContext, day: string, stage: Stage): DeadlineFill[] 
         a.label.localeCompare(b.label),
     );
     const first = sorted[0];
+    const chargeIds = sorted.map((c) => c.id);
+    const actions: NotificationAction[] = [{ kind: "paid", target: { kind: "mark-paid", chargeIds } }];
+    if (stage === "overdue" && ctx.canNudge(payer, sorted)) {
+      actions.push({ kind: "nudge", target: { kind: "send-nudge", personId: payer, chargeIds } });
+    }
     return {
       subject: payer,
       values: {
@@ -300,10 +319,7 @@ function chargeDue(ctx: PlanContext, day: string, stage: Stage): DeadlineFill[] 
         due: formatDateShort(first.due),
       },
       tap: null,
-      actions: [
-        { kind: "paid", target: { kind: "mark-paid", chargeId: first.id } },
-        { kind: "nudge", target: { kind: "send-nudge", personId: payer, chargeId: first.id } },
-      ],
+      actions,
     };
   });
 }

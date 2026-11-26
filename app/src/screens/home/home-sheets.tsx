@@ -12,7 +12,7 @@ interface HomeSheetsValue {
   openAddCharge: () => void;
   /** Opens Mark bill paid for the month. */
   openPayBill: (month: string) => void;
-  /** Opens Record payment: with nobody picked (the footer), or a row's charge ticked (Mark paid). */
+  /** Opens Record payment: with nobody picked (the footer), a row's charge ticked (Mark paid), or a reminder's (Paid). */
   openRecordPayment: (opening?: RecordPaymentOpening) => void;
   /** Opens Send message: the monthly message, or a nudge with the tapped charge ticked. */
   openSendMessage: (opening: SendMessageOpening) => void;

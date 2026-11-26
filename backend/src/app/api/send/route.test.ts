@@ -75,7 +75,7 @@ afterEach(() => vi.unstubAllEnvs());
 describe("GET /api/send", () => {
   it("returns the nudge sheet with the tapped charge ticked, parsing with the shared schema", async () => {
     useNovember();
-    const response = await get(`mode=nudge&personId=${jordan}&chargeId=jordan-utilities`);
+    const response = await get(`mode=nudge&personId=${jordan}&chargeIds=jordan-utilities`);
     expect(response.status).toBe(200);
     const sheet = sendResponseSchema.parse(await response.json());
     expect(sheet).toMatchObject({

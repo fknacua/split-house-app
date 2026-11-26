@@ -102,7 +102,7 @@ describe("buildHome, bill_missing on 1 Nov", () => {
     expect(row.amount).toBe("$950.00");
     expect(row.detail).toBeNull();
     expect(row.actions).toEqual([
-      { label: "Mark paid", tone: "outline", icon: "check", target: { kind: "mark-paid", chargeId: row.id } },
+      { label: "Mark paid", tone: "outline", icon: "check", target: { kind: "mark-paid", chargeIds: [row.id] } },
     ]);
   });
 
@@ -408,9 +408,9 @@ describe("buildHome, collecting on 3 Nov", () => {
         label: "Nudge",
         tone: "warning",
         icon: "bell",
-        target: { kind: "send-nudge", personId: PERSON_IDS.jordan, chargeId: jordanRent.id },
+        target: { kind: "send-nudge", personId: PERSON_IDS.jordan, chargeIds: [jordanRent.id] },
       },
-      { label: "Mark paid", tone: "outline", icon: "check", target: { kind: "mark-paid", chargeId: jordanRent.id } },
+      { label: "Mark paid", tone: "outline", icon: "check", target: { kind: "mark-paid", chargeIds: [jordanRent.id] } },
     ]);
   });
 

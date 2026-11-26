@@ -44,10 +44,10 @@ export function ChargeDetailsFooter({ actions, chargeId, deleteCorrection }: Cha
   const openTarget = (target: HomeTarget) => {
     switch (target.kind) {
       case 'mark-paid':
-        recordPayment.current?.open({ chargeId: target.chargeId });
+        recordPayment.current?.open({ chargeIds: target.chargeIds });
         return;
       case 'send-nudge':
-        sendMessage.current?.open({ mode: 'nudge', personId: target.personId, chargeId: target.chargeId });
+        sendMessage.current?.open({ mode: 'nudge', personId: target.personId, chargeIds: target.chargeIds });
         return;
       case 'edit-payment':
         editPayment.current?.open(target.chargeId);

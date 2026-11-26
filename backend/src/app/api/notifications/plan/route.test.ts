@@ -50,6 +50,7 @@ function useHousehold(months: unknown[], events: unknown[] = []) {
     notificationGroup: { findMany: async () => NOTIFICATION_GROUP_ROWS },
     notificationType: { findMany: async () => NOTIFICATION_TYPE_ROWS },
     notificationEvent: { findMany: async () => events, updateMany: async () => ({ count: 0 }) },
+    messageEvent: { findMany: async () => [] },
   });
 }
 

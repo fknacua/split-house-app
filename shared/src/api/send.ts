@@ -1,5 +1,5 @@
 import { z } from 'zod';
-import { monthKey } from '../schemas/primitives';
+import { idListParam, monthKey } from '../schemas/primitives';
 import { badgeSchema } from './history';
 import { messagePreviewSchema } from './messages';
 
@@ -12,13 +12,14 @@ export type SendMode = z.infer<typeof sendModeSchema>;
 /**
  * `GET /api/send` query. The sheet is always about the active month.
  * - `personId`: who is picked in To; left out, the sheet opens with nobody picked.
- * - `chargeId`: in nudge mode, the overdue charge that was tapped, ticked when the sheet opens. When it is
- *   not one of the person's overdue charges (or left out), their earliest-due overdue charge is ticked.
+ * - `chargeIds`: in nudge mode, comma-separated, the overdue charges Nudge opened on (one from Home or Charge
+ *   details, a reminder's charges from its Nudge), ticked when the sheet opens. Those that are not the person's
+ *   overdue charges are left out; when none is (or it is left out), their earliest-due overdue charge is ticked.
  */
 export const sendQuerySchema = z.object({
   mode: sendModeSchema,
   personId: z.string().min(1).optional(),
-  chargeId: z.string().min(1).optional(),
+  chargeIds: idListParam.optional(),
 });
 
 /** `GET /api/send` query. */
