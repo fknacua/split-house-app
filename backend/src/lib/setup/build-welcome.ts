@@ -40,19 +40,26 @@ const STEPS: Record<SetupStepId, { title: string; detail: string; optional: bool
     optional: true,
     target: { kind: "setup-messages" },
   },
+  reminders: {
+    title: "Reminders",
+    detail: "A heads-up on bill day and when a payment is overdue",
+    optional: true,
+    target: { kind: "setup-reminders" },
+  },
 };
 
 const INTRO_SETUP =
   "Tell the app who lives here and what everyone pays. You only do this once.";
-// Reminders joins this text with its step in Phase 14 (14.7).
-const INTRO_OPTIONAL = "Custom messages are optional. You can change them any time in Settings.";
+const INTRO_OPTIONAL = "Custom messages and reminders are optional. You can change both any time in Settings.";
+const INTRO_REMINDERS = "Reminders are optional. You can change them any time in Settings.";
 const INTRO_ALL_DONE = "Everything is set up. Next, upload your utilities bill if you have one already.";
 
 /**
  * Builds Welcome from the steps done. Rows go in order: done rows reopen, the first not done is current and later
- * rows are disabled. The heading, intro and footer follow the board's states: `empty` (nothing done), `started` and
- * `progress` (some required steps done), `optional` (every required step done), whose `Not now` skips the optional step,
- * and `allDone` (Custom messages done or skipped), whose `Finish setup` is the only way to finish First run.
+ * rows are disabled. The heading, intro and footer follow the board's states (`WelcomeNotifications.dc.html`): `empty`
+ * (nothing done), `started` and `progress` (some required steps done), `optional` (every required step done) and
+ * `messagesDone` (Custom messages done or skipped), whose `Not now` skips the optional step, and `allDone` (Reminders
+ * done or skipped too), whose `Finish setup` is the only way to finish First run.
  *
  * @param done - The done steps.
  * @returns Welcome, ready to render.
@@ -86,7 +93,13 @@ export function buildWelcome(done: readonly SetupStepId[]): SetupResponse {
 
   return {
     heading: allDone ? "You’re all set" : required ? "Your household is set up" : "Set up your household",
-    intro: allDone ? INTRO_ALL_DONE : required ? INTRO_OPTIONAL : INTRO_SETUP,
+    intro: allDone
+      ? INTRO_ALL_DONE
+      : !required
+        ? INTRO_SETUP
+        : current === "reminders"
+          ? INTRO_REMINDERS
+          : INTRO_OPTIONAL,
     progress:
       doneCount === 0
         ? null

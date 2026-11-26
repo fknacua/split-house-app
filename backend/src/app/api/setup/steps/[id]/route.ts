@@ -5,9 +5,9 @@ import { markSetupStep } from "@/services/setup/setup.service";
 
 type Context = { params: Promise<{ id: string }> };
 
-/** Marks People or Custom messages done, from its page's Save. */
+/** Marks People, Custom messages or Reminders done, from its page's Save (Reminders: `Done`). */
 export const POST = route<Context>(async (request, { params }) => {
   await requireSession(request);
-  const step = parsePathParam((await params).id, setupMarkableStepSchema, "Step must be people or messages.");
+  const step = parsePathParam((await params).id, setupMarkableStepSchema, "Step must be people, messages or reminders.");
   return Response.json(await markSetupStep(prisma, step));
 });

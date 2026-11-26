@@ -9,11 +9,12 @@ const ROW_WIDTHS: [`${number}%`, `${number}%`][] = [
   ['30%', '76%'],
   ['50%', '68%'],
   ['56%', '74%'],
+  ['34%', '72%'],
 ];
 
 /**
  * Welcome while `GET /api/setup` loads (not drawn; approved by Francis 2026-11-08): the real logo,
- * blocks for the heading and the intro's two lines, the steps card with five rows of a round dot
+ * blocks for the heading and the intro's two lines, the steps card with six rows of a round dot
  * and two lines, and a 48px pill in the footer where the main button goes.
  */
 export function WelcomeSkeleton() {

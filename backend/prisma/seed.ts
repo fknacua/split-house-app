@@ -73,6 +73,8 @@ const SCENARIOS = {
   firstRunRequired: { devNow: "2026-11-08T09:00:00+08:00" },
   // As firstRunRequired, plus Jordan’s custom Monthly breakdown template (Custom messages `custom`, 11.7).
   firstRunCustom: { devNow: "2026-11-08T09:00:00+08:00" },
+  // As firstRunCustom, with Custom messages saved: Welcome's `messagesDone`, Reminders next (14.11).
+  firstRunMessagesDone: { devNow: "2026-11-08T09:00:00+08:00" },
   firstRunAllDone: { devNow: "2026-11-08T09:00:00+08:00" },
 } as const;
 
@@ -89,11 +91,12 @@ const FIRST_RUN_STEPS: Partial<Record<keyof typeof SCENARIOS, string[]>> = {
   firstRunProgress: ["startMonth", "rentAndRooms", "people"],
   firstRunRequired: ["startMonth", "rentAndRooms", "people", "householdSplits"],
   firstRunCustom: ["startMonth", "rentAndRooms", "people", "householdSplits"],
-  firstRunAllDone: ["startMonth", "rentAndRooms", "people", "householdSplits", "messages"],
+  firstRunMessagesDone: ["startMonth", "rentAndRooms", "people", "householdSplits", "messages"],
+  firstRunAllDone: ["startMonth", "rentAndRooms", "people", "householdSplits", "messages", "reminders"],
 };
 
 /** The First run scenarios with Jordan’s custom Monthly breakdown template. Custom messages is only saved with one. */
-const FIRST_RUN_CUSTOM: readonly ScenarioName[] = ["firstRunCustom", "firstRunAllDone"];
+const FIRST_RUN_CUSTOM: readonly ScenarioName[] = ["firstRunCustom", "firstRunMessagesDone", "firstRunAllDone"];
 
 /** The start month saved in every First run scenario past `firstRunEmpty`: this month. */
 const FIRST_RUN_START_MONTH = "2026-11";

@@ -4,8 +4,10 @@ import type { PlannedNotification } from '@splithouse/shared';
 
 import { apiFetch } from '@/lib/api';
 import {
+  askForNotifications,
   askForNotificationsIfNeverAsked,
   cancelNotificationSchedule,
+  permissionOf,
   rebuildNotificationSchedule,
   scheduledTime,
   scheduleNotificationPlan,
@@ -223,5 +225,24 @@ describe('askForNotificationsIfNeverAsked', () => {
     Object.assign(permission, { granted: false, status: 'denied', canAskAgain: false });
     expect(await askForNotificationsIfNeverAsked()).toBe(false);
     expect(calls).toEqual(['channels']);
+  });
+});
+
+describe('permissionOf', () => {
+  it.each([
+    [{ granted: true, status: 'granted', canAskAgain: true }, 'granted'],
+    [{ granted: false, status: 'undetermined', canAskAgain: true }, 'undetermined'],
+    [{ granted: false, status: 'denied', canAskAgain: true }, 'denied'],
+    [{ granted: false, status: 'undetermined', canAskAgain: false }, 'denied'],
+  ] as const)('reads %o as %s', (response, expected) => {
+    expect(permissionOf(response as Parameters<typeof permissionOf>[0])).toBe(expected);
+  });
+});
+
+describe('askForNotifications', () => {
+  it('sets up the channels, then shows the dialog', async () => {
+    Object.assign(permission, { granted: false, status: 'undetermined', canAskAgain: true });
+    expect(await askForNotifications()).toBe('granted');
+    expect(calls).toEqual(['channels', 'request']);
   });
 });

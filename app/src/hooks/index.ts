@@ -26,6 +26,7 @@ export * from './use-edit-payment';
 export * from './use-edit-payment-sheet';
 export * from './use-finish-setup';
 export * from './use-mark-setup-step';
+export * from './use-notification-permission';
 export * from './use-notifications-blocked';
 export * from './use-notification-schedule';
 export * from './use-skip-setup-step';

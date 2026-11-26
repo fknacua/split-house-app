@@ -13,7 +13,7 @@ export interface SetupTargetActions {
 }
 
 /**
- * Opens a Welcome target. Start month, People and Custom messages open their pages; Rent & rooms and Household splits
+ * Opens a Welcome target. Start month, People, Custom messages and Reminders open their pages; Rent & rooms and Household splits
  * open their Household editors, which answer in first-setup mode. Each goes back to Welcome on save or Back.
  *
  * @param actions - What to run for `skip-step` and `finish`.
@@ -38,6 +38,9 @@ export function useOpenSetupTarget({ onSkip, onFinish }: SetupTargetActions): Op
           return;
         case 'setup-messages':
           router.push('/setup/messages');
+          return;
+        case 'setup-reminders':
+          router.push('/setup/reminders');
           return;
         case 'skip-step':
           onSkip(target.step);

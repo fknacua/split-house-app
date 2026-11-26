@@ -3,16 +3,17 @@ import { doneStepsOf, requiredStepsDone, requireStepsBefore } from "./steps";
 
 describe("doneStepsOf", () => {
   it("keeps known steps in step order, once each", () => {
-    expect(doneStepsOf(["people", "startMonth", "reminders", "people", "rentAndRooms"])).toEqual([
+    expect(doneStepsOf(["people", "reminders", "startMonth", "retiredStep", "people", "rentAndRooms"])).toEqual([
       "startMonth",
       "rentAndRooms",
       "people",
+      "reminders",
     ]);
   });
 });
 
 describe("requiredStepsDone", () => {
-  it("needs the four required steps, not Custom messages", () => {
+  it("needs the four required steps, not Custom messages or Reminders", () => {
     expect(requiredStepsDone(["startMonth", "rentAndRooms", "people"])).toBe(false);
     expect(requiredStepsDone(["startMonth", "rentAndRooms", "people", "householdSplits"])).toBe(true);
   });
@@ -28,11 +29,23 @@ describe("requireStepsBefore", () => {
     ["people", ["startMonth"], "rooms_first", "Save Rent & rooms first."],
     ["householdSplits", ["startMonth", "rentAndRooms"], "people_first", "Save people first."],
     ["messages", ["startMonth", "rentAndRooms", "people"], "splits_first", "Save Household splits first."],
+    [
+      "reminders",
+      ["startMonth", "rentAndRooms", "people", "householdSplits"],
+      "messages_first",
+      "Save or skip Custom messages first.",
+    ],
   ] as const)("refuses %s with the first earlier step not done", (step, done, code, message) => {
     expect(() => requireStepsBefore(step, done)).toThrow(expect.objectContaining({ status: 409, code, message }));
   });
 
   it("allows Custom messages once the four required steps are done", () => {
     expect(() => requireStepsBefore("messages", ["startMonth", "rentAndRooms", "people", "householdSplits"])).not.toThrow();
+  });
+
+  it("allows Reminders once Custom messages is done or skipped", () => {
+    expect(() =>
+      requireStepsBefore("reminders", ["startMonth", "rentAndRooms", "people", "householdSplits", "messages"]),
+    ).not.toThrow();
   });
 });

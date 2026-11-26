@@ -1,7 +1,7 @@
 import { SETUP_STEP_IDS, type SetupStepId } from "@splithouse/shared";
 import { ApiError } from "@/lib/api";
 
-/** The steps First run needs before it can finish. Custom messages is optional. */
+/** The steps First run needs before it can finish. Custom messages and Reminders are optional. */
 export const REQUIRED_STEPS: readonly SetupStepId[] = ["startMonth", "rentAndRooms", "people", "householdSplits"];
 
 /** The 409 for each step an edit is refused for, when it is the first one not done. */
@@ -10,7 +10,8 @@ const NOT_DONE: Record<SetupStepId, { code: string; message: string }> = {
   rentAndRooms: { code: "rooms_first", message: "Save Rent & rooms first." },
   people: { code: "people_first", message: "Save people first." },
   householdSplits: { code: "splits_first", message: "Save Household splits first." },
-  messages: { code: "messages_first", message: "Save Custom messages first." },
+  messages: { code: "messages_first", message: "Save or skip Custom messages first." },
+  reminders: { code: "reminders_first", message: "Finish or skip Reminders first." },
 };
 
 /**
@@ -39,8 +40,8 @@ export function requiredStepsDone(done: readonly SetupStepId[]): boolean {
  *
  * @param step - The step being worked on.
  * @param done - The done steps.
- * @throws {ApiError} 409 for the first earlier step not done: `start_month_first`, `rooms_first`, `people_first` or
- * `splits_first`.
+ * @throws {ApiError} 409 for the first earlier step not done: `start_month_first`, `rooms_first`, `people_first`,
+ * `splits_first` or, for Reminders, `messages_first`.
  */
 export function requireStepsBefore(step: SetupStepId, done: readonly SetupStepId[]): void {
   const missing = SETUP_STEP_IDS.slice(0, SETUP_STEP_IDS.indexOf(step)).find((id) => !done.includes(id));

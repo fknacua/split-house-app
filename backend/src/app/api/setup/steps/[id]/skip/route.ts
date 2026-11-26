@@ -5,9 +5,9 @@ import { skipSetupStep } from "@/services/setup/setup.service";
 
 type Context = { params: Promise<{ id: string }> };
 
-/** Skips Custom messages with `Not now`: it counts as done, and Welcome moves to the next step. */
+/** Skips Custom messages or Reminders with `Not now`: it counts as done, and Welcome moves to the next step. */
 export const POST = route<Context>(async (request, { params }) => {
   await requireSession(request);
-  const step = parsePathParam((await params).id, setupSkippableStepSchema, "Step must be messages.");
+  const step = parsePathParam((await params).id, setupSkippableStepSchema, "Step must be messages or reminders.");
   return Response.json(await skipSetupStep(prisma, step));
 });

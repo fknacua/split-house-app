@@ -3,20 +3,26 @@ import { monthKey } from '../schemas/primitives';
 import { householdActionSchema, householdPersonSchema } from './household';
 import { settingsMessageRowSchema } from './settings';
 
-/** First run's steps, in the order of `Welcome.dc.html`. Reminders joins in Phase 14. */
-export const SETUP_STEP_IDS = ['startMonth', 'rentAndRooms', 'people', 'householdSplits', 'messages'] as const;
+/** First run's steps, in the order of `WelcomeNotifications.dc.html`. Custom messages and Reminders are optional. */
+export const SETUP_STEP_IDS = ['startMonth', 'rentAndRooms', 'people', 'householdSplits', 'messages', 'reminders'] as const;
 
 /** One of {@link SETUP_STEP_IDS}. */
 export type SetupStepId = (typeof SETUP_STEP_IDS)[number];
 
-/** The steps `POST /api/setup/steps/:id` marks. The others are marked by their own saves. */
-export const setupMarkableStepSchema = z.enum(['people', 'messages']);
+/**
+ * The steps `POST /api/setup/steps/:id` marks. The others are marked by their own saves. Reminders is marked by its
+ * page's `Done` once the phone allows notifications; the server can't see the permission, so it doesn't check it.
+ */
+export const setupMarkableStepSchema = z.enum(['people', 'messages', 'reminders']);
 
 /** One of the steps `POST /api/setup/steps/:id` marks. */
 export type SetupMarkableStep = z.infer<typeof setupMarkableStepSchema>;
 
-/** The optional steps `POST /api/setup/steps/:id/skip` skips with `Not now`. A skipped step counts as done. */
-export const setupSkippableStepSchema = z.enum(['messages']);
+/**
+ * The optional steps `POST /api/setup/steps/:id/skip` skips with `Not now` (and, for Reminders, the blocked page's
+ * `Continue`). A skipped step counts as done.
+ */
+export const setupSkippableStepSchema = z.enum(['messages', 'reminders']);
 
 /** One of the steps `POST /api/setup/steps/:id/skip` skips. */
 export type SetupSkippableStep = z.infer<typeof setupSkippableStepSchema>;
@@ -28,6 +34,8 @@ export const setupTargetSchema = z.discriminatedUnion('kind', [
   z.object({ kind: z.literal('setup-people') }),
   z.object({ kind: z.literal('edit-splits') }),
   z.object({ kind: z.literal('setup-messages') }),
+  /** The Reminders page. Its state (not asked, allowed, blocked) comes from the phone's permission, not the server. */
+  z.object({ kind: z.literal('setup-reminders') }),
   /** Calls `POST /api/setup/steps/:id/skip`, which counts the optional step done; Welcome moves to the next step. */
   z.object({ kind: z.literal('skip-step'), step: setupSkippableStepSchema }),
   /** Calls `POST /api/setup/finish`, which opens the start month; the app then goes to Home. */
@@ -82,7 +90,7 @@ export const setupResponseSchema = z.object({
   /** Null until a step is done. */
   progress: z
     .object({
-      /** e.g. `1 of 5 steps done`, or `All steps done`. */
+      /** e.g. `1 of 6 steps done`, or `All steps done`. */
       text: z.string(),
       /** e.g. `Optional steps included`, shown on the right; null for none. */
       note: z.string().nullable(),

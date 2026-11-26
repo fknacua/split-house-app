@@ -123,7 +123,7 @@ describe("GET /api/setup", () => {
     expect(response.status).toBe(200);
     const body = setupResponseSchema.parse(await response.json());
     expect(body.heading).toBe("Set up your household");
-    expect(body.rows.map((r) => r.state)).toEqual(["current", "disabled", "disabled", "disabled", "disabled"]);
+    expect(body.rows.map((r) => r.state)).toEqual(["current", "disabled", "disabled", "disabled", "disabled", "disabled"]);
   });
 
   it("follows the recorded steps", async () => {
@@ -244,6 +244,17 @@ describe("POST /api/setup/steps/:id", () => {
     await expectError(await MARK(post("/steps/messages"), step("messages")), 409, "splits_first");
   });
 
+  it("marks Reminders done from its Done, once Custom messages is done or skipped", async () => {
+    useDb({ setup: { startMonth: null, doneSteps: [...REQUIRED, "messages"] } });
+    const body = setupSaveResponseSchema.parse(await (await MARK(post("/steps/reminders"), step("reminders"))).json());
+    expect(body.doneSteps).toEqual([...REQUIRED, "messages", "reminders"]);
+  });
+
+  it("answers 409 messages_first for Reminders before Custom messages is done or skipped", async () => {
+    useDb({ setup: { startMonth: null, doneSteps: REQUIRED } });
+    await expectError(await MARK(post("/steps/reminders"), step("reminders")), 409, "messages_first");
+  });
+
   it("answers 400 for a step its own save marks", async () => {
     useDb();
     await expectError(await MARK(post("/steps/rentAndRooms"), step("rentAndRooms")), 400, "invalid_request");
@@ -256,13 +267,25 @@ describe("POST /api/setup/steps/:id", () => {
 });
 
 describe("POST /api/setup/steps/:id/skip", () => {
-  it("counts Custom messages done with no custom template, so Welcome moves to allDone", async () => {
+  it("counts Custom messages done with no custom template, so Welcome moves to Reminders", async () => {
     useDb({ setup: { startMonth: "2026-11", doneSteps: REQUIRED } });
     const response = await SKIP(post("/steps/messages/skip"), step("messages"));
     expect(response.status).toBe(200);
     expect(setupSaveResponseSchema.parse(await response.json()).doneSteps).toEqual([...REQUIRED, "messages"]);
     const welcome = setupResponseSchema.parse(await (await GET(get(""), undefined)).json());
+    expect(welcome.primary).toEqual({ label: "Continue: Reminders", target: { kind: "setup-reminders" } });
+    expect(welcome.secondary).toEqual({ label: "Not now", target: { kind: "skip-step", step: "reminders" } });
+    expect(state.months).toEqual([]);
+  });
+
+  it("counts Reminders done, so Welcome moves to allDone without finishing", async () => {
+    useDb({ setup: { startMonth: "2026-11", doneSteps: [...REQUIRED, "messages"] } });
+    const response = await SKIP(post("/steps/reminders/skip"), step("reminders"));
+    expect(response.status).toBe(200);
+    expect(setupSaveResponseSchema.parse(await response.json()).doneSteps).toEqual([...REQUIRED, "messages", "reminders"]);
+    const welcome = setupResponseSchema.parse(await (await GET(get(""), undefined)).json());
     expect(welcome.primary).toEqual({ label: "Finish setup", target: { kind: "finish" } });
+    expect(welcome.secondary).toBeNull();
     expect(state.months).toEqual([]);
   });
 
