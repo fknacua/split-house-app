@@ -50,6 +50,44 @@ export async function notificationsAllowed(): Promise<boolean> {
   return (await Notifications.getPermissionsAsync()).granted;
 }
 
+/** What the phone says about this app's notifications: allowed, not asked yet, or blocked (denied, or not askable). */
+export type NotificationPermission = 'granted' | 'undetermined' | 'denied';
+
+/**
+ * Reads a permission response as one of {@link NotificationPermission}. A permission the OS will no longer ask for
+ * counts as blocked, since only system settings can change it.
+ *
+ * @param response - What `getPermissionsAsync` or `requestPermissionsAsync` answered.
+ * @returns The permission.
+ */
+export function permissionOf(
+  response: Pick<Notifications.NotificationPermissionsStatus, 'granted' | 'status' | 'canAskAgain'>,
+): NotificationPermission {
+  if (response.granted) return 'granted';
+  return response.status === 'undetermined' && response.canAskAgain ? 'undetermined' : 'denied';
+}
+
+/**
+ * Reads the phone's notification permission, without asking.
+ *
+ * @returns The permission.
+ */
+export async function notificationPermission(): Promise<NotificationPermission> {
+  return permissionOf(await Notifications.getPermissionsAsync());
+}
+
+/**
+ * Shows the OS permission dialog, from First run's `Allow notifications`. Sets up the channels first, since Android 13
+ * and later needs one before it shows the dialog. Once the user has answered for good, the OS shows nothing and the
+ * answer stands.
+ *
+ * @returns The permission afterwards.
+ */
+export async function askForNotifications(): Promise<NotificationPermission> {
+  await setUpNotificationChannels();
+  return permissionOf(await Notifications.requestPermissionsAsync());
+}
+
 /**
  * Shows the OS permission dialog on a phone where it was never shown (a new phone or a reinstall). Does nothing once
  * the user has answered, so a denied permission is only changed in system settings. Sets up the channels first, since

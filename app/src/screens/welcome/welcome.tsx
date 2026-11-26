@@ -11,7 +11,8 @@ import { WelcomeSkeleton } from './components/welcome-skeleton';
 import { useOpenSetupTarget } from './use-open-setup-target';
 
 /**
- * First run's step page (`Welcome.dc.html`: `empty`, `started`, `progress`, `optional`, `allDone`).
+ * First run's step page (`WelcomeNotifications.dc.html`: `empty`, `started`, `progress`, `optional`, `messagesDone`,
+ * `allDone`).
  * Everything shown comes from `GET /api/setup`; the app only renders it and opens the targets. `Not now` skips the
  * optional step and Welcome moves on; only `Finish setup` finishes First run, and the session gate then opens Home.
  * The session gate shows this screen, with no tabs, until a month is open.

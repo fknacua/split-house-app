@@ -111,8 +111,9 @@ export async function saveSetupStartMonth(db: SetupSaveDb, { month }: SetupStart
 }
 
 /**
- * Marks People or Custom messages done, from their pages' Save. The steps before it must be done, People needs
- * someone besides the owner, and Custom messages a custom template (the page's Save is disabled until then).
+ * Marks People, Custom messages or Reminders done, from their pages' Save (Reminders' `Done`). The steps before it must
+ * be done, People needs someone besides the owner, and Custom messages a custom template (the page's Save is disabled
+ * until then). Reminders has no check of its own: the permission it waits for lives on the phone.
  *
  * @param db - The Prisma client, or a fake in tests.
  * @param step - The step.
@@ -136,7 +137,8 @@ export async function markSetupStep(db: SetupMarkDb, step: SetupMarkableStep): P
 }
 
 /**
- * Skips an optional step with `Not now`, on Welcome or on the step's page. A skipped step counts as done, so Welcome
+ * Skips an optional step with `Not now`, on Welcome or on the step's page (or the blocked Reminders page's
+ * `Continue`). A skipped step counts as done, so Welcome
  * moves to the next step, and to `allDone` after the last; only `Finish setup` finishes First run. Skipping a step
  * already done changes nothing.
  *

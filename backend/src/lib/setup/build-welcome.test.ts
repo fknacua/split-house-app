@@ -19,6 +19,7 @@ describe("buildWelcome", () => {
       ["3", "People", false],
       ["4", "Household splits", false],
       ["5", "Custom messages", true],
+      ["6", "Reminders", true],
     ]);
     expect(welcome.rows.map((r) => r.detail)).toEqual([
       "Choose the first month you want to track",
@@ -26,16 +27,17 @@ describe("buildWelcome", () => {
       "Add your fellow tenants and their information",
       "How you split household charges",
       "Personalize your messages for each tenant if you wish",
+      "A heads-up on bill day and when a payment is overdue",
     ]);
-    expect(states([])).toEqual(["current", "disabled", "disabled", "disabled", "disabled"]);
+    expect(states([])).toEqual(["current", "disabled", "disabled", "disabled", "disabled", "disabled"]);
     expect(welcome.primary).toEqual({ label: "Start with the start month", target: { kind: "start-month" } });
     expect(welcome.secondary).toBeNull();
   });
 
-  it("draws `started`: one of five done, Continue to Rent & rooms", () => {
+  it("draws `started`: one of six done, Continue to Rent & rooms", () => {
     const welcome = buildWelcome(["startMonth"]);
     expect(welcome.progress).toEqual({
-      text: "1 of 5 steps done",
+      text: "1 of 6 steps done",
       note: null,
       done: 1,
       segments: [
@@ -44,9 +46,10 @@ describe("buildWelcome", () => {
         { optional: false, done: false },
         { optional: false, done: false },
         { optional: true, done: false },
+        { optional: true, done: false },
       ],
     });
-    expect(states(["startMonth"])).toEqual(["done", "current", "disabled", "disabled", "disabled"]);
+    expect(states(["startMonth"])).toEqual(["done", "current", "disabled", "disabled", "disabled", "disabled"]);
     expect(welcome.primary).toEqual({ label: "Continue: Rent & rooms", target: { kind: "edit-home" } });
     expect(welcome.secondary).toBeNull();
   });
@@ -54,25 +57,36 @@ describe("buildWelcome", () => {
   it("draws `progress`: three done, Continue to Household splits", () => {
     const welcome = buildWelcome(["startMonth", "rentAndRooms", "people"]);
     expect(welcome.heading).toBe("Set up your household");
-    expect(welcome.progress?.text).toBe("3 of 5 steps done");
+    expect(welcome.progress?.text).toBe("3 of 6 steps done");
     expect(welcome.primary).toEqual({ label: "Continue: Household splits", target: { kind: "edit-splits" } });
   });
 
   it("draws `optional`: the required steps done, Continue to Custom messages or skip it with Not now", () => {
     const welcome = setupResponseSchema.parse(buildWelcome(REQUIRED));
     expect(welcome.heading).toBe("Your household is set up");
-    expect(welcome.intro).toBe("Custom messages are optional. You can change them any time in Settings.");
-    expect(welcome.progress?.text).toBe("4 of 5 steps done");
-    expect(states(REQUIRED)).toEqual(["done", "done", "done", "done", "current"]);
+    expect(welcome.intro).toBe("Custom messages and reminders are optional. You can change both any time in Settings.");
+    expect(welcome.progress?.text).toBe("4 of 6 steps done");
+    expect(states(REQUIRED)).toEqual(["done", "done", "done", "done", "current", "disabled"]);
     expect(welcome.primary).toEqual({ label: "Continue: Custom messages", target: { kind: "setup-messages" } });
     expect(welcome.secondary).toEqual({ label: "Not now", target: { kind: "skip-step", step: "messages" } });
   });
 
+  it("draws `messagesDone`: Continue to Reminders or skip it with Not now", () => {
+    const done: SetupStepId[] = [...REQUIRED, "messages"];
+    const welcome = setupResponseSchema.parse(buildWelcome(done));
+    expect(welcome.heading).toBe("Your household is set up");
+    expect(welcome.intro).toBe("Reminders are optional. You can change them any time in Settings.");
+    expect(welcome.progress).toMatchObject({ text: "5 of 6 steps done", note: null, done: 5 });
+    expect(states(done)).toEqual(["done", "done", "done", "done", "done", "current"]);
+    expect(welcome.primary).toEqual({ label: "Continue: Reminders", target: { kind: "setup-reminders" } });
+    expect(welcome.secondary).toEqual({ label: "Not now", target: { kind: "skip-step", step: "reminders" } });
+  });
+
   it("draws `allDone`: Finish setup, with no link under it", () => {
-    const welcome = setupResponseSchema.parse(buildWelcome([...REQUIRED, "messages"]));
+    const welcome = setupResponseSchema.parse(buildWelcome([...REQUIRED, "messages", "reminders"]));
     expect(welcome.heading).toBe("You’re all set");
     expect(welcome.intro).toBe("Everything is set up. Next, upload your utilities bill if you have one already.");
-    expect(welcome.progress).toMatchObject({ text: "All steps done", note: "Optional steps included", done: 5 });
+    expect(welcome.progress).toMatchObject({ text: "All steps done", note: "Optional steps included", done: 6 });
     expect(welcome.progress?.segments.every((s) => s.done)).toBe(true);
     expect(welcome.rows.every((r) => r.state === "done")).toBe(true);
     expect(welcome.primary).toEqual({ label: "Finish setup", target: { kind: "finish" } });
@@ -86,6 +100,7 @@ describe("buildWelcome", () => {
       "setup-people",
       "edit-splits",
       "setup-messages",
+      "setup-reminders",
     ]);
   });
 });

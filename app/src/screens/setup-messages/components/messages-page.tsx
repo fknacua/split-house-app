@@ -12,7 +12,7 @@ import type { MessagesPageProps } from '../types';
  * The `FirstRunMessages` board (`empty`, `custom`): Settings' two template rows, each opening its landing page, and
  * the note. `Save` marks the step and goes back to Welcome. `Not now` skips the step (it counts as done) and
  * goes back with no custom template; otherwise it asks first (`Confirm` `skipMessages`), and `Discard templates`
- * discards them, skips the step and goes back. Welcome then shows `allDone`. A failed mark or skip shows above the
+ * discards them, skips the step and goes back. Welcome then moves to Reminders. A failed mark or skip shows above the
  * buttons, as on People; a failed discard shows in the dialog.
  */
 export function MessagesPage({ page }: MessagesPageProps) {
