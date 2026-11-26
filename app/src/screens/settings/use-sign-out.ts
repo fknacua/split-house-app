@@ -3,10 +3,11 @@ import { GoogleSignin } from '@react-native-google-signin/google-signin';
 import { useQueryClient } from '@tanstack/react-query';
 
 import { authClient } from '@/lib/auth-client';
+import { cancelNotificationSchedule } from '@/lib/notifications';
 
 /**
  * Signs out: the session, then the cached data, then the Google account, so the next sign-in shows the account
- * picker. The session gate then routes to Sign in.
+ * picker, and cancels the phone's scheduled reminders. The session gate then routes to Sign in.
  *
  * @returns `signOut` to call, and `signingOut` while it runs. Calls while it runs do nothing.
  */
@@ -22,6 +23,7 @@ export function useSignOut() {
       await authClient.signOut().catch(() => {});
       queryClient.clear();
       await GoogleSignin.signOut().catch(() => {});
+      await cancelNotificationSchedule().catch(() => {});
       authClient.$store.notify('$sessionSignal');
     } finally {
       setSigningOut(false);

@@ -5,6 +5,7 @@ import type { PlannedNotification } from '@splithouse/shared';
 import { apiFetch } from '@/lib/api';
 import {
   askForNotificationsIfNeverAsked,
+  cancelNotificationSchedule,
   rebuildNotificationSchedule,
   scheduledTime,
   scheduleNotificationPlan,
@@ -180,6 +181,34 @@ describe('rebuildNotificationSchedule', () => {
     fetchQuery.mockRejectedValueOnce(new Error("Can't reach the server."));
     await expect(rebuildNotificationSchedule()).rejects.toThrow("Can't reach the server.");
     expect(calls).toEqual([]);
+  });
+});
+
+describe('cancelNotificationSchedule', () => {
+  it('cancels everything', async () => {
+    await cancelNotificationSchedule();
+    expect(calls).toEqual(['cancel']);
+  });
+
+  it('lets a running rebuild finish first, so nothing is scheduled after the cancel', async () => {
+    let release: () => void = () => {};
+    fetchQuery.mockImplementationOnce(
+      () => new Promise((resolve) => (release = () => resolve({ notifications: [UPLOAD] }))),
+    );
+    const rebuild = rebuildNotificationSchedule();
+    const cancel = cancelNotificationSchedule();
+    release();
+    await Promise.all([rebuild, cancel]);
+    expect(calls).toEqual(['channels', 'cancel', 'schedule upload:2026-12-02', 'cancel']);
+  });
+
+  it('still cancels when the running rebuild fails', async () => {
+    fetchQuery.mockRejectedValueOnce(new Error("Can't reach the server."));
+    const rebuild = rebuildNotificationSchedule();
+    const failed = expect(rebuild).rejects.toThrow("Can't reach the server.");
+    await cancelNotificationSchedule();
+    await failed;
+    expect(calls).toEqual(['cancel']);
   });
 });
 
