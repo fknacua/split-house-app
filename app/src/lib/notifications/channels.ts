@@ -18,14 +18,31 @@ export const NOTIFICATION_CHANNELS: Readonly<Record<NotificationChannel, Channel
   fyi: { name: 'FYI', importance: Notifications.AndroidImportance.LOW },
 };
 
+/** The category of a notification with Paid and Nudge buttons (Collect rent, Payment checks). */
+export const PAID_NUDGE_CATEGORY = 'paid-nudge';
+
+/**
+ * Registers the Paid and Nudge buttons. The category is shared; each button's target comes from the pressed
+ * notification's own `data.actions`. Both buttons bring the app to the foreground and send or mark nothing.
+ *
+ * @returns Once the category is registered.
+ */
+export async function setUpNotificationCategories(): Promise<void> {
+  await Notifications.setNotificationCategoryAsync(PAID_NUDGE_CATEGORY, [
+    { identifier: 'paid', buttonTitle: 'Paid', options: { opensAppToForeground: true } },
+    { identifier: 'nudge', buttonTitle: 'Nudge', options: { opensAppToForeground: true } },
+  ]);
+}
+
 /**
  * Creates the three channels, or updates their names. Android keeps a channel's importance once it exists, so
  * changing it means a new channel id. Safe to call on every launch. Android 13 and later needs a channel before it
- * shows the permission dialog.
+ * shows the permission dialog. Also registers the action-button category.
  *
- * @returns Once every channel is set.
+ * @returns Once every channel and the category are set.
  */
 export async function setUpNotificationChannels(): Promise<void> {
+  await setUpNotificationCategories();
   if (Platform.OS !== 'android') return;
   await Promise.all(
     Object.entries(NOTIFICATION_CHANNELS).map(([id, channel]) =>

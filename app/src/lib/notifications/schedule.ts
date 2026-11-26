@@ -4,7 +4,7 @@ import type { NotificationPlanResponse, PlannedNotification } from '@splithouse/
 import { apiFetch } from '@/lib/api';
 import { queryClient } from '@/lib/query-client';
 import { queryKeys } from '@/lib/query-keys';
-import { setUpNotificationChannels } from './channels';
+import { PAID_NUDGE_CATEGORY, setUpNotificationChannels } from './channels';
 
 /** What a scheduled notification carries besides its text, read back when it is tapped (14.3, 14.4). */
 export type NotificationData = Pick<PlannedNotification, 'id' | 'channel' | 'tap' | 'actions'>;
@@ -27,7 +27,12 @@ export function notificationContent(notification: PlannedNotification): Notifica
     tap: notification.tap,
     actions: notification.actions,
   };
-  return { title: notification.title, body: notification.body, data };
+  return {
+    title: notification.title,
+    body: notification.body,
+    data,
+    ...(notification.actions.length > 0 ? { categoryIdentifier: PAID_NUDGE_CATEGORY } : {}),
+  };
 }
 
 /**

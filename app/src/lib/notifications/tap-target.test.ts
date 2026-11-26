@@ -1,6 +1,7 @@
 import { describe, expect, it, vi } from 'vitest';
 
 import {
+  actionRequestFromData,
   setPendingTapRequest,
   subscribePendingTapRequest,
   takePendingTapRequest,
@@ -36,5 +37,26 @@ describe('pending tap request', () => {
     setPendingTapRequest({ target: null });
     expect(listener).toHaveBeenCalledTimes(1);
     takePendingTapRequest();
+  });
+});
+
+describe('actionRequestFromData', () => {
+  const data = {
+    actions: [
+      { kind: 'paid', target: { kind: 'mark-paid', chargeId: 'c1' } },
+      { kind: 'nudge', target: { kind: 'send-nudge', personId: 'p1', chargeId: 'c1' } },
+    ],
+  };
+
+  it('finds the target of the pressed button', () => {
+    expect(actionRequestFromData(data, 'paid')).toEqual({ target: { kind: 'mark-paid', chargeId: 'c1' } });
+    expect(actionRequestFromData(data, 'nudge')?.target?.kind).toBe('send-nudge');
+  });
+
+  it('gives null for an unknown button or odd data', () => {
+    expect(actionRequestFromData(data, 'dismiss')).toBeNull();
+    expect(actionRequestFromData({ actions: [] }, 'paid')).toBeNull();
+    expect(actionRequestFromData({ actions: 'x' }, 'paid')).toBeNull();
+    expect(actionRequestFromData(undefined, 'paid')).toBeNull();
   });
 });

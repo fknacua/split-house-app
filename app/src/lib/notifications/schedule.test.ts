@@ -27,6 +27,7 @@ vi.mock('expo-notifications', () => ({
   }),
 }));
 vi.mock('./channels', () => ({
+  PAID_NUDGE_CATEGORY: 'paid-nudge',
   setUpNotificationChannels: vi.fn(async () => {
     calls.push('channels');
   }),
@@ -74,6 +75,7 @@ describe('scheduleNotificationPlan', () => {
         title: CHECK.title,
         body: CHECK.body,
         data: { id: CHECK.id, channel: 'checks', tap: null, actions: CHECK.actions },
+        categoryIdentifier: 'paid-nudge',
       },
       trigger: { type: 'date', date: new Date('2026-11-07T12:00:00Z'), channelId: 'checks' },
     });
