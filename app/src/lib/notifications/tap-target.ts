@@ -1,4 +1,4 @@
-import { homeTargetSchema, type HomeTarget } from '@splithouse/shared';
+import { homeTargetSchema, notificationActionSchema, type HomeTarget } from '@splithouse/shared';
 
 /** What a tap on a notification asks for: the screen or sheet to open, or null for plain Home. */
 export interface TapRequest {
@@ -15,6 +15,23 @@ export interface TapRequest {
 export function tapRequestFromData(data: Record<string, unknown> | null | undefined): TapRequest {
   const parsed = homeTargetSchema.safeParse(data?.tap);
   return { target: parsed.success ? parsed.data : null };
+}
+
+/**
+ * Reads where a pressed action button (Paid or Nudge) should go, from the `actions` the scheduler stored. A button the
+ * notification doesn't carry, or odd data, gives null, and the press does nothing.
+ *
+ * @param data - The notification's `content.data`.
+ * @param actionIdentifier - The pressed button's id, which is its `kind` (`paid` or `nudge`).
+ * @returns The request to open, or null when the notification has no such action.
+ */
+export function actionRequestFromData(
+  data: Record<string, unknown> | null | undefined,
+  actionIdentifier: string,
+): TapRequest | null {
+  const parsed = notificationActionSchema.array().safeParse(data?.actions);
+  const action = parsed.success ? parsed.data.find((a) => a.kind === actionIdentifier) : undefined;
+  return action ? { target: action.target } : null;
 }
 
 let pending: TapRequest | null = null;
