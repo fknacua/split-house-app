@@ -4,7 +4,7 @@ import { prisma } from "@/lib/prisma";
 import { getRecordPaymentSheet } from "@/services/payments/record-payment.service";
 import { saveRecordPayment } from "@/services/payments/save-record-payment.service";
 
-/** The Record payment sheet for the active month: `?personId=&chargeId=`, both optional. */
+/** The Record payment sheet for the active month: `?personId=&chargeIds=a,b`, both optional. */
 export const GET = route(async (request) => {
   await requireSession(request);
   const query = parseQuery(request, recordPaymentQuerySchema);

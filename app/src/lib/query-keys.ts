@@ -59,22 +59,22 @@ export const queryKeys = {
   /**
    * The Record payment sheet, by who is picked and what is ticked.
    * @param personId Who is picked, or null for nobody.
-   * @param chargeId The charge Mark paid was tapped on, or null.
+   * @param chargeIds The charges Mark paid or a reminder’s Paid opened on, or null.
    * @param ticked The ticked charge ids from a preview, or null for the sheet as it opens.
    */
-  recordPaymentSheet: (personId: string | null, chargeId: string | null, ticked: string[] | null) =>
-    ['record-payment', personId, chargeId, ticked] as const,
+  recordPaymentSheet: (personId: string | null, chargeIds: string[] | null, ticked: string[] | null) =>
+    ['record-payment', personId, chargeIds, ticked] as const,
   /** Every Send message sheet. The prefix of `sendSheet`, so a recorded send refreshes the open one. */
   allSendSheets: ['send'] as const,
   /**
    * The Send message sheet, by who is picked and what is ticked.
    * @param mode `monthly` or `nudge`.
    * @param personId Who is picked, or null for nobody.
-   * @param chargeId The tapped charge (nudge), or null.
+   * @param chargeIds The charges Nudge opened on (nudge), or null.
    * @param ticked The ticked charge ids from a preview, or null for the sheet as it opens.
    */
-  sendSheet: (mode: string, personId: string | null, chargeId: string | null, ticked: string[] | null) =>
-    ['send', mode, personId, chargeId, ticked] as const,
+  sendSheet: (mode: string, personId: string | null, chargeIds: string[] | null, ticked: string[] | null) =>
+    ['send', mode, personId, chargeIds, ticked] as const,
   /** Every month of the Household screen. The prefix of `household`, so an edit refreshes them all. */
   allHousehold: ['household'] as const,
   /** @param month `YYYY-MM` key of the month picked in "Showing:", or null for the active month. */

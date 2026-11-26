@@ -1,16 +1,18 @@
 import { z } from 'zod';
-import { dateKey, monthKey } from '../schemas/primitives';
+import { dateKey, idListParam, monthKey } from '../schemas/primitives';
 import { badgeSchema } from './history';
 
 /**
  * `GET /api/record-payment` query. The sheet is always about the active month.
  * - `personId`: who is picked in From, with nothing ticked; left out, nobody is picked.
- * - `chargeId`: the charge Mark paid was tapped on. Its payer (the person it is collected through, or
- *   the person themselves) is picked and the charge is ticked. Given with `personId`, the two must match.
+ * - `chargeIds`: comma-separated, the charges Mark paid (one) or a reminder's Paid (its charges) opened on. The
+ *   first one's payer (the person it is collected through, or the person themselves) is picked, and those of the
+ *   ids in the payer's For list are ticked; the rest (paid since, or someone else's) are left out. Given with
+ *   `personId`, the first one's payer must match.
  */
 export const recordPaymentQuerySchema = z.object({
   personId: z.string().min(1).optional(),
-  chargeId: z.string().min(1).optional(),
+  chargeIds: idListParam.optional(),
 });
 
 /** `GET /api/record-payment` query. */

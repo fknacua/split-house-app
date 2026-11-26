@@ -1,4 +1,4 @@
-import { currentMonth } from "@/lib/month";
+import { activeMonthOf } from "@/lib/month";
 
 /** The slice of the Prisma client this service uses, so tests can pass an in-memory fake. */
 export interface ActiveMonthDb {
@@ -17,6 +17,5 @@ export interface ActiveMonthDb {
  */
 export async function getActiveMonth(db: ActiveMonthDb): Promise<string> {
   const newest = await db.month.findFirst({ orderBy: { month: "desc" }, select: { month: true } });
-  const calendar = currentMonth();
-  return newest && newest.month > calendar ? newest.month : calendar;
+  return activeMonthOf(newest ? [newest.month] : []);
 }

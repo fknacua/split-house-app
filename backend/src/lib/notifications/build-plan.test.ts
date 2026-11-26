@@ -82,6 +82,8 @@ const plan = (over: Partial<PlanInput>) =>
     bills: [paidBill("2026-10"), paidBill("2026-11")],
     lastAirconAt: null,
     events: [],
+    activeMonth: "2026-11",
+    messagedPersonIds: [PERSON_IDS.jordan, PERSON_IDS.priya, PERSON_IDS.sam],
     ...over,
   });
 
@@ -244,10 +246,28 @@ describe("buildNotificationPlan", () => {
       ]);
       expect(planned).toHaveLength(14);
       expect(planned[0].tap).toBeNull();
-      expect(planned[0].actions).toEqual([
-        { kind: "paid", target: { kind: "mark-paid", chargeId: "util-jordan" } },
-        { kind: "nudge", target: { kind: "send-nudge", personId: PERSON_IDS.jordan, chargeId: "util-jordan" } },
+      // Nudge only once it is overdue: the nudge sheet lists overdue charges only.
+      const paid = { kind: "paid", target: { kind: "mark-paid", chargeIds: ["util-jordan"] } };
+      expect(planned[0].actions).toEqual([paid]);
+      expect(planned[1].actions).toEqual([paid]);
+      expect(planned[2].actions).toEqual([
+        paid,
+        { kind: "nudge", target: { kind: "send-nudge", personId: PERSON_IDS.jordan, chargeIds: ["util-jordan"] } },
       ]);
+    });
+
+    it("leaves Nudge off an overdue reminder before the payer's monthly message, or with nothing the sheet lists", () => {
+      const now = new Date("2026-11-10T10:00:00+08:00");
+      const nudges = (over: Partial<PlanInput>) =>
+        plan({ now, switches: only("collectPayments"), ...over })[0].actions.map((a) => a.kind);
+      expect(nudges({ unpaidCharges: [charge({ id: "util-jordan" })] })).toEqual(["paid", "nudge"]);
+      expect(nudges({ unpaidCharges: [charge({ id: "util-jordan" })], messagedPersonIds: [] })).toEqual(["paid"]);
+      // An earlier month's charge that is not a correction isn't in the nudge sheet; a correction is.
+      const october = { month: "2026-10", dueDate: new Date("2026-10-04") };
+      expect(nudges({ unpaidCharges: [charge({ id: "oct-util", ...october })] })).toEqual(["paid"]);
+      expect(
+        nudges({ unpaidCharges: [charge({ id: "oct-fix", ...october, category: "CORRECTION", label: "Correction" })] }),
+      ).toEqual(["paid", "nudge"]);
     });
 
     it("groups a payer's charges due the same day, with a routed charge in its payer's reminder", () => {
@@ -267,8 +287,7 @@ describe("buildNotificationPlan", () => {
         "Nov rent, Nov utilities for Sam and Nov Starhub. Due tomorrow.",
       ]);
       expect(tomorrow.actions.map((a) => a.target)).toEqual([
-        { kind: "mark-paid", chargeId: "rent-priya" },
-        { kind: "send-nudge", personId: PERSON_IDS.priya, chargeId: "rent-priya" },
+        { kind: "mark-paid", chargeIds: ["rent-priya", "util-sam", "starhub"] },
       ]);
     });
 
@@ -302,7 +321,10 @@ describe("buildNotificationPlan", () => {
         "Collect $1,032.46 from Jordan",
         "Nov rent and Nov utilities. Overdue since 1 Nov.",
       ]);
-      expect(overdue.actions[0].target).toEqual({ kind: "mark-paid", chargeId: "rent-jordan" });
+      expect(overdue.actions.map((a) => a.target)).toEqual([
+        { kind: "mark-paid", chargeIds: ["rent-jordan", "util-jordan"] },
+        { kind: "send-nudge", personId: PERSON_IDS.jordan, chargeIds: ["rent-jordan", "util-jordan"] },
+      ]);
     });
 
     it("keeps each stage its own reminder on the same morning", () => {

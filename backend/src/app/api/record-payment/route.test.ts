@@ -78,19 +78,26 @@ afterEach(() => vi.unstubAllEnvs());
 describe("GET /api/record-payment", () => {
   it("returns the sheet with Mark paid's charge ticked, parsing with the shared schema", async () => {
     useNovember();
-    const response = await get("chargeId=jordan-rent");
+    const response = await get("chargeIds=jordan-rent");
     expect(response.status).toBe(200);
     const sheet = recordPaymentSheetSchema.parse(await response.json());
     expect(sheet.from.personId).toBe(jordan);
     expect(sheet.record).toEqual({ label: "Record $950.00", request: { personId: jordan, chargeIds: ["jordan-rent"] } });
   });
 
+  it("ticks every charge of a comma-separated list", async () => {
+    useNovember();
+    const sheet = recordPaymentSheetSchema.parse(await (await get("chargeIds=jordan-utilities,jordan-rent")).json());
+    expect(sheet.record.request).toEqual({ personId: jordan, chargeIds: ["jordan-rent", "jordan-utilities"] });
+  });
+
   it.each([
+    ["an empty charge list", "chargeIds=,", true, 400, "invalid_request"],
     ["an empty person id", "personId=", true, 400, "invalid_request"],
     ["a month that isn't open", "", false, 404, "no_month"],
     ["the owner", `personId=${alex}`, true, 404, "no_person"],
-    ["an unknown charge", "chargeId=nope", true, 404, "no_charge"],
-    ["someone else's charge", `personId=${jordan}&chargeId=priya-rent`, true, 409, "not_their_charge"],
+    ["an unknown charge", "chargeIds=nope", true, 404, "no_charge"],
+    ["someone else's charge", `personId=${jordan}&chargeIds=priya-rent`, true, 409, "not_their_charge"],
   ])("refuses %s", async (_, query, open, status, code) => {
     useNovember(open);
     expect(await errorOf(await get(query))).toEqual({ status, code });

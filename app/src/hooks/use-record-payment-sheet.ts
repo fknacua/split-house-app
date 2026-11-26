@@ -8,8 +8,8 @@ import type { RecordPaymentPreviewRequest, RecordPaymentSheet } from '@splithous
 export interface RecordPaymentSheetRequest {
   /** Who is picked in From, or null for nobody. */
   personId: string | null;
-  /** The charge Mark paid was tapped on, ticked as the sheet opens; null otherwise. */
-  chargeId: string | null;
+  /** The charges Mark paid (one) or a reminder’s Paid (its charges) opened on, ticked as the sheet opens; else null. */
+  chargeIds: string[] | null;
   /** The ticked charges once the user changes them; null for the sheet as it opens. */
   ticked: string[] | null;
 }
@@ -19,12 +19,12 @@ export interface RecordPaymentSheetRequest {
  * a new person, `GET /api/record-payment`; once ticks change, `POST /api/record-payment/preview` with
  * them. The last sheet stays on screen while the next one loads, so a tick doesn't flash the skeleton.
  *
- * @param request Person, tapped charge and ticks.
+ * @param request Person, charges opened on and ticks.
  * @param enabled False while the sheet is closed.
  */
-export function useRecordPaymentSheet({ personId, chargeId, ticked }: RecordPaymentSheetRequest, enabled: boolean) {
+export function useRecordPaymentSheet({ personId, chargeIds, ticked }: RecordPaymentSheetRequest, enabled: boolean) {
   return useQuery({
-    queryKey: queryKeys.recordPaymentSheet(personId, chargeId, ticked),
+    queryKey: queryKeys.recordPaymentSheet(personId, chargeIds, ticked),
     queryFn: () => {
       if (ticked !== null && personId !== null) {
         const body: RecordPaymentPreviewRequest = { personId, chargeIds: ticked };
@@ -32,7 +32,7 @@ export function useRecordPaymentSheet({ personId, chargeId, ticked }: RecordPaym
       }
       const query = new URLSearchParams();
       if (personId) query.set('personId', personId);
-      if (chargeId) query.set('chargeId', chargeId);
+      if (chargeIds && chargeIds.length > 0) query.set('chargeIds', chargeIds.join(','));
       const search = query.toString();
       return apiFetch<RecordPaymentSheet>(search ? `/api/record-payment?${search}` : '/api/record-payment');
     },

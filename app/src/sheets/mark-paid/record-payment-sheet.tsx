@@ -17,7 +17,7 @@ import { SettledCard } from './components/settled-card';
 import { toggleAllTicked, toggleTicked } from './helpers';
 import type { RecordPaymentSheetRef } from './types';
 
-const CLOSED: RecordPaymentSheetRequest = { personId: null, chargeId: null, ticked: null };
+const CLOSED: RecordPaymentSheetRequest = { personId: null, chargeIds: null, ticked: null };
 
 /**
  * Record payment (`RecordPayment`): one person's payment for one or more of their unpaid charges,
@@ -59,7 +59,7 @@ export const RecordPaymentSheet = forwardRef<RecordPaymentSheetRef>(function Rec
     () => ({
       open: (opening = {}) => {
         void queryClient.invalidateQueries({ queryKey: queryKeys.allRecordPaymentSheets });
-        setRequest({ personId: null, chargeId: opening.chargeId ?? null, ticked: null });
+        setRequest({ personId: null, chargeIds: opening.chargeIds ?? null, ticked: null });
         setPaidOn(null);
         setDirty(false);
         setConfirmOpen(false);
@@ -81,12 +81,12 @@ export const RecordPaymentSheet = forwardRef<RecordPaymentSheetRef>(function Rec
   };
 
   const pickPerson = (personId: string) => {
-    if (personId !== data?.from.personId) change({ personId, chargeId: null, ticked: null });
+    if (personId !== data?.from.personId) change({ personId, chargeIds: null, ticked: null });
   };
 
   const tick = (ticked: string[]) => {
     const personId = data?.from.personId;
-    if (personId) change({ personId, chargeId: null, ticked });
+    if (personId) change({ personId, chargeIds: null, ticked });
   };
 
   const pickDay = (key: string) => {

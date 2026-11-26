@@ -13,7 +13,7 @@ describe('tapRequestFromData', () => {
     expect(tapRequestFromData({ tap: { kind: 'bill-upload', month: '2026-12' } })).toEqual({
       target: { kind: 'bill-upload', month: '2026-12' },
     });
-    expect(tapRequestFromData({ tap: { kind: 'mark-paid', chargeId: 'c1' } }).target?.kind).toBe('mark-paid');
+    expect(tapRequestFromData({ tap: { kind: 'mark-paid', chargeIds: ['c1'] } }).target?.kind).toBe('mark-paid');
   });
 
   it('falls back to Home for a null, missing or invalid target', () => {
@@ -43,13 +43,13 @@ describe('pending tap request', () => {
 describe('actionRequestFromData', () => {
   const data = {
     actions: [
-      { kind: 'paid', target: { kind: 'mark-paid', chargeId: 'c1' } },
-      { kind: 'nudge', target: { kind: 'send-nudge', personId: 'p1', chargeId: 'c1' } },
+      { kind: 'paid', target: { kind: 'mark-paid', chargeIds: ['c1'] } },
+      { kind: 'nudge', target: { kind: 'send-nudge', personId: 'p1', chargeIds: ['c1', 'c2'] } },
     ],
   };
 
   it('finds the target of the pressed button', () => {
-    expect(actionRequestFromData(data, 'paid')).toEqual({ target: { kind: 'mark-paid', chargeId: 'c1' } });
+    expect(actionRequestFromData(data, 'paid')).toEqual({ target: { kind: 'mark-paid', chargeIds: ['c1'] } });
     expect(actionRequestFromData(data, 'nudge')?.target?.kind).toBe('send-nudge');
   });
 

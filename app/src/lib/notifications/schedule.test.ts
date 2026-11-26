@@ -2,7 +2,13 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 import * as Notifications from 'expo-notifications';
 import type { PlannedNotification } from '@splithouse/shared';
 
-import { askForNotificationsIfNeverAsked, rebuildNotificationSchedule, scheduleNotificationPlan } from './schedule';
+import { apiFetch } from '@/lib/api';
+import {
+  askForNotificationsIfNeverAsked,
+  rebuildNotificationSchedule,
+  scheduledTime,
+  scheduleNotificationPlan,
+} from './schedule';
 
 // Shared with the mock factories, which vitest hoists above the imports.
 const { calls, permission, fetchQuery } = vi.hoisted(() => ({
@@ -43,8 +49,8 @@ const CHECK: PlannedNotification = {
   at: '2026-11-07T20:00:00+08:00',
   tap: null,
   actions: [
-    { kind: 'paid', target: { kind: 'mark-paid', chargeId: 'util-sam' } },
-    { kind: 'nudge', target: { kind: 'send-nudge', personId: 'person-priya', chargeId: 'util-sam' } },
+    { kind: 'paid', target: { kind: 'mark-paid', chargeIds: ['util-sam', 'rent-priya'] } },
+    { kind: 'nudge', target: { kind: 'send-nudge', personId: 'person-priya', chargeIds: ['util-sam', 'rent-priya'] } },
   ],
   acknowledge: false,
 };
@@ -60,11 +66,27 @@ const UPLOAD: PlannedNotification = {
   acknowledge: false,
 };
 
+const NOW = new Date('2026-11-29T10:00:00+08:00').getTime();
+
+/** A settled FYI the phone hasn't scheduled yet, due 5 seconds after the list was built. */
+const SETTLED: PlannedNotification = {
+  id: 'settled:2026-11:2026-11-29',
+  channel: 'fyi',
+  title: 'November is settled',
+  body: 'Everyone has paid and the utilities bill is covered.',
+  at: '2026-11-29T10:00:05+08:00',
+  tap: null,
+  actions: [],
+  acknowledge: true,
+};
+
 beforeEach(() => {
   calls.length = 0;
   Object.assign(permission, { granted: true, status: 'granted', canAskAgain: true });
   vi.mocked(Notifications.scheduleNotificationAsync).mockClear();
+  vi.mocked(apiFetch).mockReset();
   fetchQuery.mockReset();
+  vi.useRealTimers();
 });
 
 describe('scheduleNotificationPlan', () => {
@@ -83,10 +105,28 @@ describe('scheduleNotificationPlan', () => {
     });
   });
 
-  it('only cancels while notifications are not allowed', async () => {
+  it('only cancels while notifications are not allowed, so no event FYI is reported scheduled', async () => {
     Object.assign(permission, { granted: false, status: 'denied' });
-    await scheduleNotificationPlan([CHECK]);
+    expect(await scheduleNotificationPlan([CHECK, SETTLED])).toEqual([]);
     expect(calls).toEqual(['channels', 'cancel']);
+  });
+
+  it('returns only the event FYIs to acknowledge, with the time each was scheduled for', async () => {
+    vi.useFakeTimers({ now: NOW });
+    expect(await scheduleNotificationPlan([CHECK, SETTLED, UPLOAD])).toEqual([
+      { id: SETTLED.id, at: '2026-11-29T02:00:05.000Z' },
+    ]);
+  });
+});
+
+describe('scheduledTime', () => {
+  it('keeps a reminder at its time', () => {
+    expect(scheduledTime(UPLOAD, NOW)).toEqual(new Date(UPLOAD.at));
+  });
+
+  it('fires an event FYI at its time, or 5 seconds from now when that has passed', () => {
+    expect(scheduledTime(SETTLED, NOW)).toEqual(new Date('2026-11-29T10:00:05+08:00'));
+    expect(scheduledTime(SETTLED, NOW + 60_000)).toEqual(new Date('2026-11-29T10:01:05+08:00'));
   });
 });
 
@@ -110,6 +150,30 @@ describe('rebuildNotificationSchedule', () => {
       'cancel',
       'schedule upload:2026-12-02',
     ]);
+  });
+
+  it('acknowledges the event FYIs it scheduled, after scheduling them', async () => {
+    vi.useFakeTimers({ now: NOW });
+    fetchQuery.mockResolvedValueOnce({ notifications: [SETTLED, UPLOAD] });
+    vi.mocked(apiFetch).mockImplementation(async () => {
+      calls.push('acknowledge');
+      return { acknowledged: [SETTLED.id] };
+    });
+    await rebuildNotificationSchedule();
+    expect(calls).toEqual(['channels', 'cancel', `schedule ${SETTLED.id}`, 'schedule upload:2026-12-02', 'acknowledge']);
+    expect(apiFetch).toHaveBeenCalledWith('/api/notifications/acknowledge', {
+      method: 'POST',
+      body: { events: [{ id: SETTLED.id, at: '2026-11-29T02:00:05.000Z' }] },
+    });
+  });
+
+  it('acknowledges nothing when nothing was scheduled to acknowledge', async () => {
+    fetchQuery.mockResolvedValueOnce({ notifications: [UPLOAD] });
+    await rebuildNotificationSchedule();
+    Object.assign(permission, { granted: false, status: 'denied' });
+    fetchQuery.mockResolvedValueOnce({ notifications: [SETTLED] });
+    await rebuildNotificationSchedule();
+    expect(apiFetch).not.toHaveBeenCalled();
   });
 
   it('keeps what was scheduled when the plan cannot be fetched', async () => {

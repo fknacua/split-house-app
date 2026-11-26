@@ -32,7 +32,11 @@ export const plannedNotificationSchema = z.object({
   at: z.iso.datetime({ offset: true }),
   /** Where a tap opens, or null for Home. */
   tap: homeTargetSchema.nullable(),
-  /** Paid then Nudge on Collect tenant payments; empty otherwise. */
+  /**
+   * Collect tenant payments: Paid, with Nudge after it on an overdue reminder once the payer's monthly message is out
+   * (the nudge sheet lists only overdue charges, and only after that message). Both carry every charge in the
+   * reminder. Empty otherwise.
+   */
   actions: z.array(notificationActionSchema),
   /**
    * True for an event FYI the phone hasn't scheduled yet (`at` is a few seconds after the list was built): once it is

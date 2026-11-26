@@ -80,13 +80,21 @@ describe("getRecordPaymentSheet", () => {
   });
 
   it("from Mark paid, picks the person who collects the charge and ticks it", async () => {
-    const sheet = await getRecordPaymentSheet(fakeDb().db, { chargeId: "sam-utilities" });
+    const sheet = await getRecordPaymentSheet(fakeDb().db, { chargeIds: ["sam-utilities"] });
     expect(sheet.from.personId).toBe(priya);
     expect(sheet.for.rows.filter((r) => r.ticked).map((r) => r.chargeId)).toEqual(["sam-utilities"]);
   });
 
+  it("from a reminder's Paid, ticks every charge still in the payer's list", async () => {
+    const sheet = await getRecordPaymentSheet(fakeDb().db, {
+      chargeIds: ["jordan-paid", "jordan-utilities", "jordan-rent", "priya-rent"],
+    });
+    expect(sheet.from.personId).toBe(jordan);
+    expect(sheet.record.request).toEqual({ personId: jordan, chargeIds: ["jordan-rent", "jordan-utilities"] });
+  });
+
   it("accepts the person with their own charge", async () => {
-    const sheet = await getRecordPaymentSheet(fakeDb().db, { personId: priya, chargeId: "sam-utilities" });
+    const sheet = await getRecordPaymentSheet(fakeDb().db, { personId: priya, chargeIds: ["sam-utilities"] });
     expect(sheet.record.request).toEqual({ personId: priya, chargeIds: ["sam-utilities"] });
   });
 
@@ -99,10 +107,10 @@ describe("getRecordPaymentSheet", () => {
     ["the month isn't open", { open: false }, {}, 404, "no_month"],
     ["the person has nothing to pay", {}, { personId: sam }, 404, "no_person"],
     ["the person is the owner", {}, { personId: alex }, 404, "no_person"],
-    ["the charge doesn't exist", {}, { chargeId: "nope" }, 404, "no_charge"],
-    ["the charge is already paid", {}, { chargeId: "jordan-paid" }, 409, "already_paid"],
-    ["the charge has nothing to record", {}, { chargeId: "alex-rent" }, 409, "nothing_to_pay"],
-    ["the charge is someone else's", {}, { personId: jordan, chargeId: "priya-rent" }, 409, "not_their_charge"],
+    ["the charge doesn't exist", {}, { chargeIds: ["nope"] }, 404, "no_charge"],
+    ["the charge is already paid", {}, { chargeIds: ["jordan-paid"] }, 409, "already_paid"],
+    ["the charge has nothing to record", {}, { chargeIds: ["alex-rent"] }, 409, "nothing_to_pay"],
+    ["the charge is someone else's", {}, { personId: jordan, chargeIds: ["priya-rent"] }, 409, "not_their_charge"],
   ])("refuses when %s", async (_, options, query, status, code) => {
     await expect(getRecordPaymentSheet(fakeDb(options).db, query)).rejects.toMatchObject({ status, code });
   });

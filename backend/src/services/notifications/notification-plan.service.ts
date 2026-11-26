@@ -3,6 +3,7 @@ import type { ChargeCategory } from "@/generated/prisma/enums";
 import { buildNotificationPlan, uploadMonths, type PlanCharge, type PlanPerson } from "@/lib/notifications/build-plan";
 import { expiredEventIds, notificationEventParamsSchema, type PlanEvent } from "@/lib/notifications/events";
 import { notificationGroupSwitches } from "@/lib/notifications/groups";
+import { activeMonthOf } from "@/lib/month";
 import { now } from "@/lib/now";
 import { getNotificationGroups, type NotificationGroupsDb } from "@/services/notifications/notification-groups.service";
 import { getNotificationTypes, type NotificationTypesDb } from "@/services/notifications/notification-types.service";
@@ -92,6 +93,13 @@ export interface NotificationPlanDb extends NotificationGroupsDb, NotificationTy
       select: typeof BILL_SELECT;
     }): Promise<BillRow[]>;
   };
+  messageEvent: {
+    findMany(args: {
+      where: { month: string; kind: "MONTHLY" };
+      select: { personId: true };
+      distinct: ["personId"];
+    }): Promise<{ personId: string }[]>;
+  };
   notificationEvent: {
     findMany(args: { where: EventWhere; select: typeof EVENT_SELECT }): Promise<EventRow[]>;
     updateMany(args: {
@@ -112,8 +120,8 @@ function planEvent(row: EventRow): PlanEvent[] {
  * Reads what the notifications need and builds the list the phone schedules: every opened month with its config, the
  * people, every unpaid charge of someone other than the owner, the bills not marked paid and the saved bills of the
  * months the upload reminder covers, when the latest aircon charge was added, the pending and acknowledged event FYIs,
- * the notification types and the switches. It opens no month, so a month not opened yet is planned from the date
- * alone. Its one write marks a pending event past its type's `expiresAfterDays` as expired, so it leaves for good.
+ * the notification types, the switches, and who has had the active month's monthly message (for Nudge). It opens no
+ * month, so a month not opened yet is planned from the date alone. Its one write marks a pending event past its type's `expiresAfterDays` as expired, so it leaves for good.
  *
  * @param db - The Prisma client, or a fake in tests.
  * @returns The list for the next 14 days; empty until First run has finished.
@@ -122,7 +130,8 @@ function planEvent(row: EventRow): PlanEvent[] {
 export async function getNotificationPlan(db: NotificationPlanDb): Promise<NotificationPlanResponse> {
   const at = now();
   const months = await db.month.findMany({ select: MONTH_SELECT });
-  const [people, unpaidCharges, bills, lastAircon, eventRows, groups, types] = await Promise.all([
+  const activeMonth = activeMonthOf(months.map((m) => m.month), at);
+  const [people, unpaidCharges, bills, lastAircon, eventRows, groups, types, messaged] = await Promise.all([
     db.person.findMany({ select: { id: true, name: true, isOwner: true } }),
     db.charge.findMany({
       where: { paidCents: null, amountCents: { gt: 0 }, person: { isOwner: false } },
@@ -139,6 +148,11 @@ export async function getNotificationPlan(db: NotificationPlanDb): Promise<Notif
     }),
     getNotificationGroups(db),
     getNotificationTypes(db),
+    db.messageEvent.findMany({
+      where: { month: activeMonth, kind: "MONTHLY" },
+      select: { personId: true },
+      distinct: ["personId"],
+    }),
   ]);
 
   const events = eventRows.flatMap(planEvent);
@@ -164,6 +178,8 @@ export async function getNotificationPlan(db: NotificationPlanDb): Promise<Notif
       bills: bills.map(({ charges, ...bill }) => ({ ...bill, utilities: charges })),
       lastAirconAt: lastAircon?.createdAt ?? null,
       events,
+      activeMonth,
+      messagedPersonIds: messaged.map((m) => m.personId),
     }),
   };
 }
