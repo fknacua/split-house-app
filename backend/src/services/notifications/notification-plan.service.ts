@@ -3,7 +3,8 @@ import type { ChargeCategory } from "@/generated/prisma/enums";
 import { currentMonth } from "@/lib/month";
 import { buildNotificationPlan, type PlanCharge, type PlanPerson } from "@/lib/notifications/build-plan";
 import { now } from "@/lib/now";
-import { readNotificationToggles, type NotificationTogglesDb } from "@/services/settings/settings.service";
+import { notificationGroupSwitches } from "@/lib/notifications/groups";
+import { getNotificationGroups, type NotificationGroupsDb } from "@/services/notifications/notification-groups.service";
 
 const MONTH_SELECT = { month: true, householdVersion: { select: { schemaVersion: true, config: true } } } as const;
 
@@ -37,7 +38,7 @@ interface BillRow {
 }
 
 /** The slice of the Prisma client this service uses, so tests can pass an in-memory fake. */
-export interface NotificationPlanDb extends NotificationTogglesDb {
+export interface NotificationPlanDb extends NotificationGroupsDb {
   month: {
     findMany(args: {
       select: typeof MONTH_SELECT;
@@ -63,15 +64,15 @@ export interface NotificationPlanDb extends NotificationTogglesDb {
 /**
  * Reads what the notifications need and builds the plan the phone schedules: every opened month with its config, the
  * people, every unpaid charge of someone other than the owner, the bills not marked paid and this calendar month's
- * and next month's bills, and the toggles. Read-only: it opens no month, so a month not opened yet is planned from the
- * date alone.
+ * and next month's bills, and the notification switches. Read-only: it opens no month, so a month not opened yet is
+ * planned from the date alone.
  *
  * @param db - The Prisma client, or a fake in tests.
  * @returns The plan from now to the end of next month; empty until First run has finished.
  */
 export async function getNotificationPlan(db: NotificationPlanDb): Promise<NotificationPlanResponse> {
   const calendar = currentMonth();
-  const [months, people, unpaidCharges, bills, toggles] = await Promise.all([
+  const [months, people, unpaidCharges, bills, groups] = await Promise.all([
     db.month.findMany({ select: MONTH_SELECT }),
     db.person.findMany({ select: { id: true, name: true, isOwner: true } }),
     db.charge.findMany({
@@ -82,13 +83,13 @@ export async function getNotificationPlan(db: NotificationPlanDb): Promise<Notif
       where: { OR: [{ paidCents: null }, { month: { in: [calendar, addMonths(calendar, 1)] } }] },
       select: BILL_SELECT,
     }),
-    readNotificationToggles(db),
+    getNotificationGroups(db),
   ]);
 
   return {
     notifications: buildNotificationPlan({
       now: now(),
-      toggles,
+      switches: notificationGroupSwitches(groups),
       people,
       months: months.map((m) => ({
         month: m.month,

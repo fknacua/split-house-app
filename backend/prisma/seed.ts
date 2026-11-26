@@ -17,6 +17,7 @@ import { BILL_FIXTURE } from "@/lib/fixtures/bill";
 import { generateBillFixturePdf } from "@/lib/fixtures/generate-bill-pdf";
 import { countPdfPages } from "@/services/bill/read-bill.service";
 import { correctionFields, type CorrectionFields } from "@/lib/corrections/correction-fields";
+import { NOTIFICATION_GROUP_ROWS, NOTIFICATION_TYPE_ROWS } from "@/lib/notifications/rows";
 
 // Fictional household (see docs/SplitHouse — Data Model.md "Fixtures"). Dev
 // branch only: refuses to run against production. Always wipes the domain
@@ -141,8 +142,20 @@ async function wipeDomainTables() {
   await prisma.householdVersion.deleteMany();
   await prisma.messageTemplates.deleteMany();
   await prisma.person.deleteMany();
-  await prisma.settings.deleteMany();
+  await resetNotificationRows();
   await prisma.setup.deleteMany();
+}
+
+/**
+ * Clears the event FYIs and puts the notification switches and types back as the migration seeds them, so a reset
+ * starts with the default switches.
+ */
+async function resetNotificationRows() {
+  await prisma.notificationEvent.deleteMany();
+  await prisma.notificationType.deleteMany();
+  await prisma.notificationGroup.deleteMany();
+  await prisma.notificationGroup.createMany({ data: [...NOTIFICATION_GROUP_ROWS] });
+  await prisma.notificationType.createMany({ data: [...NOTIFICATION_TYPE_ROWS] });
 }
 
 async function seedPeople() {

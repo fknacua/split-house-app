@@ -21,6 +21,6 @@ export * from './lib/date';
 export * from './lib/money';
 export * from './lib/month';
 export * from './schemas/household-config';
+export * from './schemas/notifications';
 export * from './schemas/primitives';
-export * from './schemas/settings';
 

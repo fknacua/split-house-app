@@ -1,13 +1,6 @@
 import { z } from 'zod';
+import { notificationChannelSchema } from '../schemas/notifications';
 import { homeTargetSchema } from './home';
-
-/**
- * The three Android channels: `action` (Action needed, heads-up), `checks` (Payment checks) and `fyi` (FYI, silent).
- */
-export const notificationChannelSchema = z.enum(['action', 'checks', 'fyi']);
-
-/** One of the three Android channels. */
-export type NotificationChannel = z.infer<typeof notificationChannelSchema>;
 
 /** A button on a notification. Each brings the app to the foreground on its target; nothing is sent or marked. */
 export const notificationActionSchema = z.object({

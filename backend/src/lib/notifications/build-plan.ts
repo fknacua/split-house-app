@@ -8,7 +8,7 @@ import {
   type HomeTarget,
   type HouseholdConfig,
   type NotificationAction,
-  type NotificationToggles,
+  type NotificationGroupSwitches,
   type PlannedNotification,
 } from "@splithouse/shared";
 import type { ChargeCategory } from "@/generated/prisma/enums";
@@ -69,7 +69,8 @@ export interface PlanBill {
 export interface PlanInput {
   /** The moment the plan is built; nothing at or before it is planned. */
   now: Date;
-  toggles: NotificationToggles;
+  /** Whether each Settings switch is on. Until 14.7, Collect rent and Payment checks follow Collect tenant payments. */
+  switches: NotificationGroupSwitches;
   people: PlanPerson[];
   /** Every opened month. With none, First run hasn't finished and nothing is planned. */
   months: PlanMonth[];
@@ -80,11 +81,11 @@ export interface PlanInput {
 }
 
 /**
- * Builds the four dated notifications from now to the end of next month, following the toggles: Upload the utilities
+ * Builds the four dated notifications from now to the end of next month, following the switches: Upload the utilities
  * bill, Collect rent, Pay the utilities bill and Payment checks. Times are Asia/Singapore. Only charges of someone
  * other than the owner above zero count, so a refund never appears. Pure.
  *
- * @param input - The moment, the toggles and the data.
+ * @param input - The moment, the switches and the data.
  * @returns The notifications in time order (then by id), each with a stable id.
  */
 export function buildNotificationPlan(input: PlanInput): PlannedNotification[] {
@@ -99,10 +100,10 @@ export function buildNotificationPlan(input: PlanInput): PlannedNotification[] {
   const name = (id: string) => names.get(id) ?? "Someone";
 
   const planned: PlannedNotification[] = [];
-  if (input.toggles.uploadBill) planned.push(...uploadReminders(calendar, input.bills));
-  if (input.toggles.collectRent) planned.push(...collectRent(charges, name));
-  if (input.toggles.payBill) planned.push(...payBill(input.bills, configs, owners));
-  if (input.toggles.paymentChecks) planned.push(...paymentChecks(charges, configs, name));
+  if (input.switches.uploadBill) planned.push(...uploadReminders(calendar, input.bills));
+  if (input.switches.collectPayments) planned.push(...collectRent(charges, name));
+  if (input.switches.payBill) planned.push(...payBill(input.bills, configs, owners));
+  if (input.switches.collectPayments) planned.push(...paymentChecks(charges, configs, name));
 
   return planned
     .filter((n) => {

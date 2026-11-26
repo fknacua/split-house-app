@@ -9,6 +9,7 @@ vi.mock("@/lib/prisma", () => ({ prisma: {} }));
 import { HOUSEHOLD_SCHEMA_VERSION, settingsResponseSchema } from "@splithouse/shared";
 import { ApiError, requireSession } from "@/lib/api";
 import { NOV_2026_CONFIG } from "@/lib/fixtures/household";
+import { NOTIFICATION_GROUP_ROWS } from "@/lib/notifications/rows";
 import { prisma } from "@/lib/prisma";
 import { GET } from "./route";
 
@@ -20,7 +21,7 @@ function useHousehold(versions: { startsFromMonth: string; schemaVersion: number
     messageTemplates: { findUnique: async () => null },
     month: { findFirst: async () => ({ month: "2026-11" }) },
     householdVersion: { findMany: async () => versions },
-    settings: { findUnique: async () => null },
+    notificationGroup: { findMany: async () => NOTIFICATION_GROUP_ROWS },
   });
 }
 
@@ -31,12 +32,13 @@ beforeEach(() => {
 afterEach(() => vi.unstubAllEnvs());
 
 describe("GET /api/settings", () => {
-  it("returns the signed-in email and the Messages rows, parsing with the shared schema", async () => {
+  it("returns the signed-in email, the Messages rows and the switches, parsing with the shared schema", async () => {
     const response = await GET(request(), undefined);
     expect(response.status).toBe(200);
     const body = settingsResponseSchema.parse(await response.json());
     expect(body.email).toBe("owner@example.com");
     expect(body.messages.map((m) => m.kind)).toEqual(["MONTHLY", "NUDGE"]);
+    expect(body.notifications.map((n) => n.group)).toEqual(["uploadBill", "collectPayments", "payBill", "fyi"]);
   });
 
   it("answers before first run, parsing with the shared schema", async () => {

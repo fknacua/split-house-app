@@ -9,6 +9,7 @@ vi.mock("@/lib/prisma", () => ({ prisma: {} }));
 import { HOUSEHOLD_SCHEMA_VERSION, notificationPlanResponseSchema } from "@splithouse/shared";
 import { ApiError, requireSession } from "@/lib/api";
 import { NOV_2026_CONFIG, PERSON_IDS } from "@/lib/fixtures/household";
+import { NOTIFICATION_GROUP_ROWS } from "@/lib/notifications/rows";
 import { prisma } from "@/lib/prisma";
 import { GET } from "./route";
 
@@ -45,7 +46,7 @@ function useHousehold(months: unknown[]) {
         { month: "2026-11", currentChargesCents: 41230, dueDate: null, paidCents: null, charges: [] },
       ],
     },
-    settings: { findUnique: async () => null },
+    notificationGroup: { findMany: async () => NOTIFICATION_GROUP_ROWS },
   });
 }
 

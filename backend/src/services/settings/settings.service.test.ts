@@ -1,8 +1,10 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { DEFAULT_NOTIFICATION_TOGGLES, HOUSEHOLD_SCHEMA_VERSION, type HouseholdConfig } from "@splithouse/shared";
+import { HOUSEHOLD_SCHEMA_VERSION, type HouseholdConfig } from "@splithouse/shared";
 import { NOV_2026_CONFIG, PERSON_IDS } from "@/lib/fixtures/household";
 import { DEFAULT_MESSAGE_TEMPLATES } from "@/lib/messages/default-templates";
-import { getSettings, saveNotificationToggle, type SettingsDb, type SettingsSaveDb } from "./settings.service";
+import type { StoredNotificationGroup } from "@/lib/notifications/groups";
+import { NOTIFICATION_GROUP_ROWS } from "@/lib/notifications/rows";
+import { getSettings, saveNotificationSwitch, type SettingsDb, type SettingsSaveDb } from "./settings.service";
 
 const EMAIL = "owner@example.com";
 
@@ -28,7 +30,7 @@ function fakeDb(versions: ReturnType<typeof version>[], templates: unknown = nul
     messageTemplates: { findUnique: async () => (templates ? { templates } : null) },
     month: { findFirst: async () => ({ month: "2026-11" }) },
     householdVersion: { findMany: async () => versions },
-    settings: { findUnique: async () => null },
+    notificationGroup: { findMany: async () => NOTIFICATION_GROUP_ROWS.map((g) => ({ ...g })) },
   };
 }
 
@@ -70,18 +72,19 @@ describe("getSettings", () => {
   });
 });
 
-/** A household with the Nov 2026 version and a `Settings` row that holds `stored`, or none while it is null. */
-function fakeSaveDb(stored: unknown) {
-  const row = { notifications: stored };
+/** A household with the Nov 2026 version and the given `NotificationGroup` rows, which saves write into. */
+function fakeSaveDb(stored: StoredNotificationGroup[] = NOTIFICATION_GROUP_ROWS.map((g) => ({ ...g }))) {
   const upserts: unknown[] = [];
   const db: SettingsSaveDb = {
     ...fakeDb([version("2026-11", NOV_2026_CONFIG)]),
-    settings: {
-      findUnique: async () => (row.notifications === null ? null : row),
+    notificationGroup: {
+      findMany: async () => stored,
       upsert: async (args) => {
         upserts.push(args);
-        row.notifications = row.notifications === null ? args.create.notifications : args.update.notifications;
-        return row;
+        const row = stored.find((g) => g.key === args.where.key);
+        if (row) Object.assign(row, args.update);
+        else stored.push(args.create);
+        return {};
       },
     },
   };
@@ -89,38 +92,44 @@ function fakeSaveDb(stored: unknown) {
 }
 
 describe("getSettings notifications", () => {
-  it("shows the defaults with no row yet", async () => {
+  it("shows the seeded switches", async () => {
     const settings = await getSettings(fakeDb([version("2026-11", NOV_2026_CONFIG)]), EMAIL);
-    expect(settings.notifications.map((n) => [n.toggle, n.on])).toEqual(
-      Object.entries(DEFAULT_NOTIFICATION_TOGGLES),
-    );
+    expect(settings.notifications.map((n) => [n.group, n.on])).toEqual([
+      ["uploadBill", true],
+      ["collectPayments", true],
+      ["payBill", true],
+      ["fyi", false],
+    ]);
   });
 });
 
-describe("saveNotificationToggle", () => {
-  it("creates the row on the first save, with the defaults and the one toggle changed", async () => {
-    const { db, upserts } = fakeSaveDb(null);
-    const settings = await saveNotificationToggle(db, EMAIL, { toggle: "fyi", on: true });
+describe("saveNotificationSwitch", () => {
+  it("saves one switch and answers with the Settings screen", async () => {
+    const { db, upserts } = fakeSaveDb();
+    const settings = await saveNotificationSwitch(db, EMAIL, { group: "fyi", on: true });
     expect(upserts).toEqual([
-      {
-        where: { id: "singleton" },
-        create: { id: "singleton", notifications: { ...DEFAULT_NOTIFICATION_TOGGLES, fyi: true } },
-        update: { notifications: { ...DEFAULT_NOTIFICATION_TOGGLES, fyi: true } },
-      },
+      { where: { key: "fyi" }, create: { ...NOTIFICATION_GROUP_ROWS[3], enabled: true }, update: { enabled: true } },
     ]);
-    expect(settings.notifications.find((n) => n.toggle === "fyi")?.on).toBe(true);
+    expect(settings.notifications.map((n) => n.on)).toEqual([true, true, true, true]);
   });
 
-  it("keeps the other saved toggles and drops keys the reader doesn't know", async () => {
-    const { db } = fakeSaveDb({ ...DEFAULT_NOTIFICATION_TOGGLES, uploadBill: false, savings: true });
-    const settings = await saveNotificationToggle(db, EMAIL, { toggle: "collectRent", on: false });
-    expect(settings.notifications.map((n) => n.on)).toEqual([false, false, true, true, false]);
+  it("keeps the other saved switches", async () => {
+    const { db } = fakeSaveDb();
+    await saveNotificationSwitch(db, EMAIL, { group: "uploadBill", on: false });
+    const settings = await saveNotificationSwitch(db, EMAIL, { group: "payBill", on: false });
+    expect(settings.notifications.map((n) => n.on)).toEqual([false, true, false, false]);
+  });
+
+  it("creates a switch's row when it is missing", async () => {
+    const { db } = fakeSaveDb([]);
+    const settings = await saveNotificationSwitch(db, EMAIL, { group: "collectPayments", on: false });
+    expect(settings.notifications.map((n) => n.on)).toEqual([true, false, true, false]);
   });
 
   it("is safe to repeat", async () => {
-    const { db } = fakeSaveDb(null);
-    await saveNotificationToggle(db, EMAIL, { toggle: "payBill", on: false });
-    const settings = await saveNotificationToggle(db, EMAIL, { toggle: "payBill", on: false });
-    expect(settings.notifications.find((n) => n.toggle === "payBill")?.on).toBe(false);
+    const { db } = fakeSaveDb();
+    await saveNotificationSwitch(db, EMAIL, { group: "payBill", on: false });
+    const settings = await saveNotificationSwitch(db, EMAIL, { group: "payBill", on: false });
+    expect(settings.notifications.find((n) => n.group === "payBill")?.on).toBe(false);
   });
 });
