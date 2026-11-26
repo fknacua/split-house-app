@@ -2,6 +2,7 @@ import { HOUSEHOLD_SCHEMA_VERSION, type AddChargeRequest } from "@splithouse/sha
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { correctableRows } from "@/lib/fixtures/correctable-charges";
 import { NOV_2026_CONFIG, PERSON_IDS } from "@/lib/fixtures/household";
+import { fakeEventTables } from "@/lib/fixtures/notification-events";
 import { saveAddCharge, type SaveAddChargeDb, type SaveAddChargeTx } from "./save-add-charge.service";
 
 const { alex, priya, sam, jordan } = PERSON_IDS;
@@ -13,7 +14,8 @@ beforeEach(() => vi.stubEnv("DEV_NOW", "2026-11-24T09:00:00+08:00"));
 afterEach(() => vi.unstubAllEnvs());
 
 /** An in-memory database with November open. A failed transaction keeps nothing, as Postgres would. */
-function fakeDb(opts: { open?: boolean; keys?: { key: string; endpoint: string; response: unknown }[] } = {}) {
+function fakeDb(opts: { open?: boolean; fyi?: boolean; keys?: { key: string; endpoint: string; response: unknown }[] } = {}) {
+  const events = fakeEventTables({ fyi: opts.fyi });
   const state = {
     charges: [] as ChargeRow[],
     corrections: [] as CorrectionRow[],
@@ -22,6 +24,9 @@ function fakeDb(opts: { open?: boolean; keys?: { key: string; endpoint: string; 
   };
   let next = 0;
   const tx: SaveAddChargeTx = {
+    ...events.tables,
+    // November is settled before the save: its bill is paid and nothing is owed.
+    bill: { findMany: async () => [{ month: "2026-11", paidCents: 41230 }] },
     idempotentRequest: {
       findUnique: async ({ where }) => state.keys.find((k) => k.key === where.key) ?? null,
       create: async ({ data }) => {
@@ -57,6 +62,7 @@ function fakeDb(opts: { open?: boolean; keys?: { key: string; endpoint: string; 
       },
     },
     charge: {
+      count: async () => state.charges.filter((c) => c.personId !== alex).length + state.corrections.filter((c) => c.paidCents === null).length,
       findMany: async ({ where }) => ("id" in where ? correctableRows().filter((c) => c.id === where.id) : correctableRows()),
       create: async ({ data }) => {
         const row = { ...data, id: `charge-${++next}` };
@@ -82,7 +88,7 @@ function fakeDb(opts: { open?: boolean; keys?: { key: string; endpoint: string; 
       }
     },
   };
-  return { db, state };
+  return { db, state, events: events.stored };
 }
 
 const NO_CORRECTION: AddChargeRequest["correction"] = { personId: null, month: null, chargeId: null, amountCents: null, dueDate: "2026-11-24" };
@@ -103,6 +109,12 @@ const BASE: AddChargeRequest = {
 };
 
 describe("saveAddCharge", () => {
+  it("records no settled FYI: a new charge only unsettles the month", async () => {
+    const { db, events } = fakeDb({ fyi: true });
+    await saveAddCharge(db, BASE);
+    expect(events).toEqual([]);
+  });
+
   it("saves a shared Other as a group and one charge per person, the owner included, in the newest month", async () => {
     const { db, state } = fakeDb();
     const response = await saveAddCharge(db, BASE);

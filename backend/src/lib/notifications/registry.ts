@@ -25,7 +25,7 @@ export const NOTIFICATION_ANCHORS: Readonly<Record<DeadlineAnchor | DatedAnchor,
 
 /**
  * Every event the code can detect, keyed so a new trigger in the shared schema doesn't compile until it is added here.
- * The detection on each write joins these entries in 14.8.
+ * `EVENT_DRAFTS` in `events.ts` turns each into its stored event.
  */
 export const NOTIFICATION_TRIGGERS: Readonly<Record<EventTrigger, NotificationSource>> = {
   /** A month turning settled: `{month}`, e.g. `November`. */

@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { buildUnusualBillWarning } from "./unusual-bill";
+import { buildUnusualBillWarning, unusualBillChange } from "./unusual-bill";
 
 // An average of $X,XXX.XX.
 const RECENT = [38000, 40000, 42000];
@@ -36,5 +36,14 @@ describe("buildUnusualBillWarning", () => {
     expect(buildUnusualBillWarning(60000, [])).toBeNull();
     expect(buildUnusualBillWarning(null, RECENT)).toBeNull();
     expect(buildUnusualBillWarning(0, RECENT)).toBeNull();
+  });
+});
+
+describe("unusualBillChange", () => {
+  it("gives the gap and its direction, for the FYI as for the warning", () => {
+    expect(unusualBillChange(56000, RECENT)).toEqual({ percent: 40, direction: "higher" });
+    expect(unusualBillChange(24000, RECENT)).toEqual({ percent: 40, direction: "lower" });
+    expect(unusualBillChange(50000, RECENT)).toBeNull();
+    expect(unusualBillChange(60000, [])).toBeNull();
   });
 });

@@ -8,6 +8,7 @@ vi.mock("@/lib/prisma", () => ({ prisma: {} }));
 
 import { editPaymentResponseSchema, editPaymentSheetSchema } from "@splithouse/shared";
 import { PERSON_IDS } from "@/lib/fixtures/household";
+import { fakeEventTables } from "@/lib/fixtures/notification-events";
 import { prisma } from "@/lib/prisma";
 import { DELETE, GET, PATCH } from "./route";
 
@@ -45,6 +46,8 @@ function useCharges() {
     { id: jordan, name: "Jordan", isOwner: false },
   ];
   Object.assign(prisma, {
+    ...fakeEventTables().tables,
+    $transaction: (fn: (tx: unknown) => unknown) => fn(prisma),
     person: { findMany: async () => people },
     charge: {
       findUnique: async ({ where }: { where: { id: string } }) => rows.find((r) => r.id === where.id) ?? null,

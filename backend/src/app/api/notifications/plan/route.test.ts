@@ -9,14 +9,14 @@ vi.mock("@/lib/prisma", () => ({ prisma: {} }));
 import { HOUSEHOLD_SCHEMA_VERSION, notificationPlanResponseSchema } from "@splithouse/shared";
 import { ApiError, requireSession } from "@/lib/api";
 import { NOV_2026_CONFIG, PERSON_IDS } from "@/lib/fixtures/household";
-import { NOTIFICATION_GROUP_ROWS } from "@/lib/notifications/rows";
+import { NOTIFICATION_GROUP_ROWS, NOTIFICATION_TYPE_ROWS } from "@/lib/notifications/rows";
 import { prisma } from "@/lib/prisma";
 import { GET } from "./route";
 
 const request = () => new Request("http://localhost/api/notifications/plan");
 
 /** Points the mocked Prisma client at November with Sam's unpaid utilities, paid through Priya, and its bill. */
-function useHousehold(months: unknown[]) {
+function useHousehold(months: unknown[], events: unknown[] = []) {
   Object.assign(prisma, {
     month: { findMany: async () => months },
     person: {
@@ -40,6 +40,7 @@ function useHousehold(months: unknown[]) {
           correctsCharge: null,
         },
       ],
+      findFirst: async () => null,
     },
     bill: {
       findMany: async () => [
@@ -47,6 +48,8 @@ function useHousehold(months: unknown[]) {
       ],
     },
     notificationGroup: { findMany: async () => NOTIFICATION_GROUP_ROWS },
+    notificationType: { findMany: async () => NOTIFICATION_TYPE_ROWS },
+    notificationEvent: { findMany: async () => events, updateMany: async () => ({ count: 0 }) },
   });
 }
 
@@ -61,12 +64,39 @@ describe("GET /api/notifications/plan", () => {
     const response = await GET(request(), undefined);
     expect(response.status).toBe(200);
     const { notifications } = notificationPlanResponseSchema.parse(await response.json());
+    const collect = `collectPayments:dueToday:${PERSON_IDS.priya}:2026-11-07`;
     expect(notifications.map((n) => n.id)).toEqual(
-      expect.arrayContaining(["check:util-sam", "pay-bill:2026-11", "upload:2026-12-02"]),
+      expect.arrayContaining([collect, "payBill:dueToday:2026-11:2026-11-16"]),
     );
-    expect(notifications.find((n) => n.id === "check:util-sam")?.title).toBe(
-      "Did Priya pay Nov utilities for Sam ($82.46)?",
+    const today = notifications.find((n) => n.id === collect);
+    expect([today?.title, today?.body]).toEqual(["Collect $82.46 from Priya", "Nov utilities for Sam. Due today."]);
+  });
+
+  it("returns a pending event FYI to acknowledge, parsing with the shared schema", async () => {
+    useHousehold(
+      [{ month: "2026-11", householdVersion: { schemaVersion: HOUSEHOLD_SCHEMA_VERSION, config: NOV_2026_CONFIG } }],
+      [
+        {
+          id: "e1",
+          key: "settled:2026-11:2026-11-03",
+          typeKey: "monthSettled",
+          params: { month: "November" },
+          status: "PENDING",
+          createdAt: new Date("2026-11-03T09:59:00+08:00"),
+          fireAt: null,
+        },
+      ],
     );
+    Object.assign(prisma, {
+      notificationGroup: { findMany: async () => NOTIFICATION_GROUP_ROWS.map((g) => ({ ...g, enabled: true })) },
+    });
+    const { notifications } = notificationPlanResponseSchema.parse(await (await GET(request(), undefined)).json());
+    expect(notifications[0]).toMatchObject({
+      id: "settled:2026-11:2026-11-03",
+      title: "November is settled",
+      at: "2026-11-03T10:00:05+08:00",
+      acknowledge: true,
+    });
   });
 
   it("answers an empty plan before First run, parsing with the shared schema", async () => {

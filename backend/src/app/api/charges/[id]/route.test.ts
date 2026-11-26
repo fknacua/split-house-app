@@ -7,6 +7,7 @@ vi.mock("@/lib/api", async (importOriginal) => ({
 vi.mock("@/lib/prisma", () => ({ prisma: {} }));
 
 import { deleteCorrectionResponseSchema } from "@splithouse/shared";
+import { fakeEventTables } from "@/lib/fixtures/notification-events";
 import { prisma } from "@/lib/prisma";
 import { DELETE } from "./route";
 
@@ -24,6 +25,8 @@ function useCharges() {
     { id: "nov-refund-jordan", month: "2026-11", category: "CORRECTION", correctsMonth: "2026-10" },
   ];
   Object.assign(prisma, {
+    ...fakeEventTables().tables,
+    $transaction: (fn: (tx: unknown) => unknown) => fn(prisma),
     charge: {
       findUnique: async ({ where }: { where: { id: string } }) => rows.find((r) => r.id === where.id) ?? null,
       delete: async ({ where }: { where: { id: string } }) => {

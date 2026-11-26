@@ -8,6 +8,7 @@ vi.mock("@/lib/prisma", () => ({ prisma: {} }));
 
 import { HOUSEHOLD_SCHEMA_VERSION, recordPaymentResponseSchema, recordPaymentSheetSchema } from "@splithouse/shared";
 import { NOV_2026_CONFIG, PERSON_IDS } from "@/lib/fixtures/household";
+import { fakeEventTables } from "@/lib/fixtures/notification-events";
 import { prisma } from "@/lib/prisma";
 import { POST as PREVIEW } from "./preview/route";
 import { GET, POST } from "./route";
@@ -57,7 +58,8 @@ function useNovember(open = true) {
       },
     },
   };
-  Object.assign(prisma, { ...client, $transaction: async (fn: (tx: typeof client) => unknown) => fn(client) });
+  const tx = { ...client, ...fakeEventTables().tables };
+  Object.assign(prisma, { ...tx, $transaction: async (fn: (t: typeof tx) => unknown) => fn(tx) });
 }
 
 const get = (query: string) => GET(new Request(`http://localhost/api/record-payment?${query}`), undefined);

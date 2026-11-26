@@ -13,6 +13,7 @@ import {
   markBillPaidResponseSchema,
 } from "@splithouse/shared";
 import { NOV_2026_CONFIG, PERSON_IDS } from "@/lib/fixtures/household";
+import { fakeEventTables } from "@/lib/fixtures/notification-events";
 import { prisma } from "@/lib/prisma";
 import { GET as getBill, POST as saveBill } from "./route";
 import { GET as getBillFile } from "./file/route";
@@ -241,6 +242,8 @@ describe("POST /api/months/:month/bill/paid", () => {
 
   it("returns the month, parsing with the shared schema", async () => {
     Object.assign(prisma, {
+      ...fakeEventTables().tables,
+      $transaction: (fn: (tx: unknown) => unknown) => fn(prisma),
       bill: { findUnique: async () => ({ paidCents: null }), updateMany: async () => ({ count: 1 }) },
     });
     const response = await post("2026-11", { paidCents: 41230, paidOn: "2026-10-30" });

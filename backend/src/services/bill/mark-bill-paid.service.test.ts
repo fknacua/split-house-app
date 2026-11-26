@@ -1,19 +1,32 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { fakeEventTables } from "@/lib/fixtures/notification-events";
 import { markBillPaid, type MarkBillPaidDb } from "./mark-bill-paid.service";
 
-/** A November bill, unpaid or paid; records the update it gets. */
-function fakeDb(bill: { paidCents: number | null } | null) {
+/**
+ * A November bill, unpaid or paid, with `unpaid` charges of others left; records the update it gets and the events
+ * stored.
+ */
+function fakeDb(bill: { paidCents: number | null } | null, { fyi = false, unpaid = 0 } = {}) {
   const updates: unknown[] = [];
+  const events = fakeEventTables({ fyi });
   const db: MarkBillPaidDb = {
-    bill: {
-      findUnique: async () => bill,
-      updateMany: async (args) => {
-        updates.push(args);
-        return { count: bill && bill.paidCents === null ? 1 : 0 };
-      },
-    },
+    $transaction: (fn) =>
+      fn({
+        ...events.tables,
+        bill: {
+          findUnique: async () => bill,
+          findMany: async () => (bill ? [{ month: "2026-11", paidCents: bill.paidCents }] : []),
+          updateMany: async (args) => {
+            updates.push(args);
+            if (!bill || bill.paidCents !== null) return { count: 0 };
+            bill.paidCents = args.data.paidCents;
+            return { count: 1 };
+          },
+        },
+        charge: { count: async () => unpaid },
+      }),
   };
-  return { db, updates };
+  return { db, updates, events: events.stored };
 }
 
 describe("markBillPaid", () => {
@@ -26,6 +39,20 @@ describe("markBillPaid", () => {
     expect(updates).toEqual([
       { where: { month: "2026-11", paidCents: null }, data: { paidCents: 41000, paidOn: new Date("2026-11-16") } },
     ]);
+  });
+
+  it("records the settled FYI when everyone has paid already, with FYI updates on", async () => {
+    const settles = fakeDb({ paidCents: null }, { fyi: true });
+    await markBillPaid(settles.db, "2026-11", { paidCents: 41230, paidOn: "2026-11-16" });
+    expect(settles.events.map((e) => e.key)).toEqual(["settled:2026-11:2026-11-16"]);
+
+    const stillOwed = fakeDb({ paidCents: null }, { fyi: true, unpaid: 1 });
+    await markBillPaid(stillOwed.db, "2026-11", { paidCents: 41230, paidOn: "2026-11-16" });
+    expect(stillOwed.events).toEqual([]);
+
+    const off = fakeDb({ paidCents: null });
+    await markBillPaid(off.db, "2026-11", { paidCents: 41230, paidOn: "2026-11-16" });
+    expect(off.events).toEqual([]);
   });
 
   it("answers 400 for a day after today", async () => {

@@ -1,6 +1,7 @@
 import { todayKey, type RecordPaymentRequest, type RecordPaymentResponse } from "@splithouse/shared";
 import { ApiError } from "@/lib/api";
 import { now } from "@/lib/now";
+import { beginSettledCheck, type SettledEventsTx } from "@/services/notifications/notification-events.service";
 
 const CHARGE_SELECT = {
   id: true,
@@ -22,11 +23,11 @@ interface SaveChargeRow {
 }
 
 /** The transaction client's slice this service uses, so tests can pass an in-memory fake. */
-export interface SaveRecordPaymentTx {
+export interface SaveRecordPaymentTx extends SettledEventsTx {
   person: {
     findUnique(args: { where: { id: string }; select: { isOwner: true } }): Promise<{ isOwner: boolean } | null>;
   };
-  charge: {
+  charge: SettledEventsTx["charge"] & {
     findMany(args: { where: { id: { in: string[] } }; select: typeof CHARGE_SELECT }): Promise<SaveChargeRow[]>;
     updateMany(args: {
       where: { id: string; paidCents: null };
@@ -61,7 +62,8 @@ function assertPayable(charge: SaveChargeRow, personId: string): void {
  * Records a payment from one person for one or more charges, each paid in full (its own amount),
  * in one transaction: if any charge is refused, none is paid. The payer is stored as the From
  * person, who is the person each charge is collected through, or its own person. A charge in an
- * earlier month can get its payment late; a paid charge is never changed here.
+ * earlier month can get its payment late; a paid charge is never changed here. A month the payment settles records
+ * its settled FYI in the same transaction.
  *
  * @param db - The Prisma client, or a fake in tests.
  * @param values - The From person, the ticked charge ids (repeats count once) and the day.
@@ -87,6 +89,7 @@ export async function saveRecordPayment(
     if (charges.length !== chargeIds.length) throw new ApiError(404, "no_charge", "One of these charges doesn’t exist.");
     for (const charge of charges) assertPayable(charge, personId);
 
+    const settled = await beginSettledCheck(tx, charges.map((c) => c.month));
     for (const charge of charges) {
       // Only an unpaid charge is updated, so a save that loses a race pays nothing.
       const { count } = await tx.charge.updateMany({
@@ -95,6 +98,7 @@ export async function saveRecordPayment(
       });
       if (count === 0) throw new ApiError(409, "already_paid", "One of these charges is already paid.");
     }
+    await settled.finish();
     const months = [...new Set(charges.map((c) => c.month))].sort().reverse();
     return { personId, chargeIds, months };
   });

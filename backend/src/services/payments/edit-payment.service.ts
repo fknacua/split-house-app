@@ -8,6 +8,7 @@ import {
 import { ApiError } from "@/lib/api";
 import { buildEditPayment, isPaymentEditable, type EditPaymentCharge } from "@/lib/payments/build-edit-payment";
 import { now } from "@/lib/now";
+import { beginSettledCheck, type SettledEventsTx } from "@/services/notifications/notification-events.service";
 
 const CHARGE_SELECT = {
   id: true,
@@ -36,6 +37,18 @@ export interface EditPaymentDb {
   };
   person: {
     findMany(args: { select: typeof PERSON_SELECT }): Promise<{ id: string; name: string; isOwner: boolean }[]>;
+  };
+  $transaction<T>(fn: (tx: RemovePaymentTx) => Promise<T>): Promise<T>;
+}
+
+/** The transaction client's slice removing a payment uses, so tests can pass an in-memory fake. */
+export interface RemovePaymentTx extends SettledEventsTx {
+  charge: SettledEventsTx["charge"] & {
+    update(args: {
+      where: { id: string };
+      data: { paidCents: null; paidOn: null; paidByPersonId: null };
+      select: typeof CHARGE_SELECT;
+    }): Promise<EditPaymentCharge>;
   };
 }
 
@@ -117,10 +130,15 @@ export async function removePayment(db: EditPaymentDb, chargeId: string): Promis
   const { charge, isOwner } = await load(db, chargeId);
   if (charge.paidCents === null && !isOwner && charge.amountCents > 0) return responseOf(charge);
   if (!isPaymentEditable(charge, isOwner)) throw NOT_PAID();
-  const updated = await db.charge.update({
-    where: { id: chargeId },
-    data: { paidCents: null, paidOn: null, paidByPersonId: null },
-    select: CHARGE_SELECT,
+  return db.$transaction(async (tx) => {
+    // Removing a payment can only unsettle the month today; the check keeps every settling write alike.
+    const settled = await beginSettledCheck(tx, [charge.month]);
+    const updated = await tx.charge.update({
+      where: { id: chargeId },
+      data: { paidCents: null, paidOn: null, paidByPersonId: null },
+      select: CHARGE_SELECT,
+    });
+    await settled.finish();
+    return responseOf(updated);
   });
-  return responseOf(updated);
 }

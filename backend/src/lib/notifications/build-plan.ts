@@ -1,10 +1,15 @@
 import {
-  addMonths,
   currentMonth,
+  dateKeyOf,
   formatCents,
   formatDateShort,
   formatMonthName,
   formatMonthShort,
+  todayKey,
+  type DatedAnchor,
+  type DatedRule,
+  type DeadlineAnchor,
+  type DeadlineRule,
   type HomeTarget,
   type HouseholdConfig,
   type NotificationAction,
@@ -14,19 +19,29 @@ import {
 import type { ChargeCategory } from "@/generated/prisma/enums";
 import { correctionName, type CorrectedCharge } from "@/lib/corrections/correction-name";
 import { billDueDateKey, chargeDueDate } from "@/lib/home/due-dates";
+import { eventNotifications, type PlanEvent } from "./events";
+import type { NotificationTypeRow } from "./rows";
 
-/** Morning reminders (upload, collect rent, pay bill) go out at 9:00 Singapore time. */
-const MORNING = "09:00:00";
+/**
+ * How far ahead the list goes. Android allows an app 500 scheduled alarms, and daily overdue reminders over a longer
+ * window could pass it; every launch and every write rebuilds the list, so it refills as days pass.
+ */
+export const PLAN_WINDOW_DAYS = 14;
 
-/** Payment checks go out at 20:00 on the due date: Home's note says "tonight" (deviation R4). */
-const EVENING = "20:00:00";
+/** The three stages of a deadline, in the order they come. */
+const STAGES = ["dueTomorrow", "dueToday", "overdue"] as const;
 
-/** The upload reminder's text: one body, the shade's (deviation R1). */
-const UPLOAD_TITLE = "Upload this month’s utilities bill";
-const UPLOAD_BODY = "It usually lands around the 2nd. Tap to upload it.";
+/** One stage of a deadline: the day before it, the day itself, or any day after it. */
+type Stage = (typeof STAGES)[number];
 
-/** Categories a payment check names by their label in lower case (`Nov utilities`); others keep it as written. */
+/** Categories a reminder names by their label in lower case (`Nov utilities`); others keep it as written. */
 const LOWER_CASE_LABELS: ReadonlySet<ChargeCategory> = new Set(["RENT", "UTILITIES", "AIRCON"]);
+
+/** The order a payer's charges are named in, after their due dates. */
+const CATEGORY_ORDER: readonly ChargeCategory[] = ["RENT", "UTILITIES", "AIRCON", "RECURRING", "ONE_OFF", "CORRECTION"];
+
+/** How many charges a reminder names before it counts the rest (`… and 2 more`). */
+const MAX_NAMED_ITEMS = 3;
 
 /** Someone in the household, as much as the plan needs. */
 export interface PlanPerson {
@@ -69,197 +84,289 @@ export interface PlanBill {
 export interface PlanInput {
   /** The moment the plan is built; nothing at or before it is planned. */
   now: Date;
-  /** Whether each Settings switch is on. Until 14.7, Collect rent and Payment checks follow Collect tenant payments. */
+  /** Whether each Settings switch is on. */
   switches: NotificationGroupSwitches;
+  /** The notification types, as stored. */
+  types: readonly NotificationTypeRow[];
   people: PlanPerson[];
   /** Every opened month. With none, First run hasn't finished and nothing is planned. */
   months: PlanMonth[];
   /** Every unpaid charge, of any month. */
   unpaidCharges: PlanCharge[];
-  /** Every bill not marked paid, and the bills of this calendar month and next if saved. */
+  /** Every bill not marked paid, and the saved bills of every month in {@link uploadMonths}. */
   bills: PlanBill[];
+  /** When the latest aircon charge was added (corrections don't count), or null before the first one. */
+  lastAirconAt: Date | null;
+  /** The pending and acknowledged event FYIs (settled, unusual bill). */
+  events: readonly PlanEvent[];
+}
+
+/** One reminder a deadline anchor gives for a day and stage, before its text is filled in. */
+interface DeadlineFill {
+  /** What the reminder is about, unique for the anchor on that day and stage: a month, or a payer's id. */
+  subject: string;
+  values: Record<string, string>;
+  tap: HomeTarget | null;
+  actions: NotificationAction[];
+}
+
+/** What every anchor reads, worked out once per plan. */
+interface PlanContext {
+  /** The months the upload reminder covers, with whether each has a saved bill. */
+  uploads: { month: string; saved: boolean }[];
+  /** Unpaid charges of someone other than the owner, above zero, with their due dates; others are left out. */
+  charges: (PlanCharge & { due: string })[];
+  /** Unpaid bills with their due dates, and what the others have paid of their utilities. */
+  bills: { month: string; due: string; collectedCents: number; totalCents: number }[];
+  name: (id: string) => string;
+  lastAirconAt: Date | null;
+}
+
+/** Finds the reminders of one deadline anchor for one morning and stage. */
+type DeadlinePlanner = (ctx: PlanContext, day: string, stage: Stage) => DeadlineFill[];
+
+/** Finds the one day a dated notification fires, or null when there isn't one. */
+type DatedPlanner = (ctx: PlanContext, rule: DatedRule) => string | null;
+
+/** One function per deadline anchor, keyed so a new anchor doesn't compile until it has one. */
+const DEADLINE_PLANNERS: Readonly<Record<DeadlineAnchor, DeadlinePlanner>> = {
+  "upload-day": uploadDay,
+  "charge-due": chargeDue,
+  "bill-due": billDue,
+};
+
+/** One function per dated anchor, keyed so a new anchor doesn't compile until it has one. */
+const DATED_PLANNERS: Readonly<Record<DatedAnchor, DatedPlanner>> = {
+  "last-aircon": (ctx, rule) => (ctx.lastAirconAt ? addDays(dateKeyOf(ctx.lastAirconAt), rule.offsetDays) : null),
+};
+
+/**
+ * The months the upload reminder covers: every opened month, this calendar month and the month the window ends in,
+ * none before the first opened month (First run's start month). The service reads the saved bills of these months.
+ *
+ * @param now - The moment the plan is built.
+ * @param openedMonths - Every opened month, `YYYY-MM`.
+ * @returns The months in order, each once; empty with no month opened.
+ */
+export function uploadMonths(now: Date, openedMonths: readonly string[]): string[] {
+  if (openedMonths.length === 0) return [];
+  const first = [...openedMonths].sort()[0];
+  const last = currentMonth(new Date(now.getTime() + PLAN_WINDOW_DAYS * 86_400_000));
+  const months = new Set([...openedMonths, currentMonth(now), last]);
+  return [...months].filter((m) => m >= first).sort();
 }
 
 /**
- * Builds the four dated notifications from now to the end of next month, following the switches: Upload the utilities
- * bill, Collect rent, Pay the utilities bill and Payment checks. Times are Asia/Singapore. Only charges of someone
- * other than the owner above zero count, so a refund never appears. Pure.
+ * Builds the reminders for the next {@link PLAN_WINDOW_DAYS} days from the notification types, following the
+ * switches. A deadline gives three stages at its time: due tomorrow (the day before), due today and overdue (every day
+ * after, until done). Upload the utilities bill is due on the 2nd until the month's bill is saved, Collect tenant
+ * payments on each charge's due date (one reminder per payer, per stage, per morning; a routed charge is in its
+ * payer's) until it is paid, and Pay utilities bill on the bill's due date until it is marked paid. Aircon servicing
+ * due fires once, its offset after the latest aircon charge was added. Only charges of someone other than the owner
+ * above zero count, so a refund never appears. The event FYIs come from {@link eventNotifications}. Times are
+ * Asia/Singapore. Pure.
  *
- * @param input - The moment, the switches and the data.
- * @returns The notifications in time order (then by id), each with a stable id.
+ * @param input - The moment, the switches, the types, the data and the events.
+ * @returns The notifications in time order (then by id), each with an id that is stable across rebuilds.
  */
 export function buildNotificationPlan(input: PlanInput): PlannedNotification[] {
   if (input.months.length === 0) return [];
 
-  const calendar = currentMonth(input.now);
-  const end = new Date(`${addMonths(calendar, 2)}-01T00:00:00+08:00`);
-  const owners = new Set(input.people.filter((p) => p.isOwner).map((p) => p.id));
-  const names = new Map(input.people.map((p) => [p.id, p.name]));
-  const configs = new Map(input.months.map((m) => [m.month, m.config]));
-  const charges = input.unpaidCharges.filter((c) => !owners.has(c.personId) && c.amountCents > 0);
-  const name = (id: string) => names.get(id) ?? "Someone";
+  const end = new Date(input.now.getTime() + PLAN_WINDOW_DAYS * 86_400_000);
+  const days = daysBetween(todayKey(input.now), todayKey(end));
+  const ctx = planContext(input);
 
-  const planned: PlannedNotification[] = [];
-  if (input.switches.uploadBill) planned.push(...uploadReminders(calendar, input.bills));
-  if (input.switches.collectPayments) planned.push(...collectRent(charges, name));
-  if (input.switches.payBill) planned.push(...payBill(input.bills, configs, owners));
-  if (input.switches.collectPayments) planned.push(...paymentChecks(charges, configs, name));
+  const planned = input.types
+    .filter((type) => input.switches[type.groupKey])
+    .flatMap((type): PlannedNotification[] => {
+      if (type.kind === "deadline") return deadlineReminders(type.key, type.rule, ctx, days);
+      if (type.kind === "dated") return datedReminder(type.key, type.rule, ctx);
+      return [];
+    });
+  const events = eventNotifications(input.now, input.switches, input.types, input.events);
 
-  return planned
+  return [...planned, ...events]
     .filter((n) => {
-      const at = new Date(n.at);
-      return at > input.now && at < end;
+      const time = new Date(n.at);
+      return time > input.now && time < end;
     })
     .sort((a, b) => new Date(a.at).getTime() - new Date(b.at).getTime() || a.id.localeCompare(b.id));
 }
 
-/** 9:00 daily from the 2nd to the month's end, for this calendar month and next, unless its bill is saved. */
-function uploadReminders(calendar: string, bills: PlanBill[]): PlannedNotification[] {
-  const saved = new Set(bills.map((b) => b.month));
-  return [calendar, addMonths(calendar, 1)]
-    .filter((month) => !saved.has(month))
-    .flatMap((month) =>
-      daysOf(month)
-        .filter((day) => day >= `${month}-02`)
-        .map((day) => ({
-          id: `upload:${day}`,
-          channel: "action" as const,
-          title: UPLOAD_TITLE,
-          body: UPLOAD_BODY,
-          at: at(day, MORNING),
-          tap: { kind: "bill-upload" as const, month },
-          actions: [],
-        })),
-    );
-}
+/** Works out what the anchors read, once. */
+function planContext(input: PlanInput): PlanContext {
+  const owners = new Set(input.people.filter((p) => p.isOwner).map((p) => p.id));
+  const names = new Map(input.people.map((p) => [p.id, p.name]));
+  const configs = new Map(input.months.map((m) => [m.month, m.config]));
+  const saved = new Set(input.bills.map((b) => b.month));
 
-/** 9:00 on the last weekday of the rent's month, one per unpaid rent charge. */
-function collectRent(charges: PlanCharge[], name: (id: string) => string): PlannedNotification[] {
-  return charges
-    .filter((c) => c.category === "RENT")
-    .map((c) => {
-      const day = lastWeekdayOf(c.month);
-      const whose = name(c.personId);
-      const friday = weekdayOf(day) === 5 ? " Weekend transfers can be slow." : "";
-      return {
-        id: `rent:${c.id}`,
-        channel: "action" as const,
-        title: c.payViaPersonId ? `Collect ${whose}’s rent from ${name(c.payViaPersonId)}` : `Collect ${whose}’s rent`,
-        body: `Their ${formatMonthName(c.month)} rent of ${formatCents(c.amountCents)} is still unpaid.${friday}`,
-        at: at(day, MORNING),
-        tap: null,
-        actions: paidAndNudge(c),
-      };
-    });
-}
-
-/** 9:00 the day before each unpaid bill's due date, with what the others have paid of their utilities. */
-function payBill(bills: PlanBill[], configs: Map<string, HouseholdConfig>, owners: Set<string>): PlannedNotification[] {
-  return bills.flatMap((bill) => {
-    const config = configs.get(bill.month);
-    if (bill.paidCents !== null || !config) return [];
-    const due = billDueDateKey(bill.month, config, bill.dueDate);
-    if (!due) return [];
-    const collected = bill.utilities
-      .filter((c) => !owners.has(c.personId) && c.paidCents !== null)
-      .reduce((sum, c) => sum + Math.min(c.paidCents ?? 0, c.amountCents), 0);
-    return [
-      {
-        id: `pay-bill:${bill.month}`,
-        channel: "action" as const,
-        title: `Pay utilities bill: collected ${formatCents(collected)} of ${formatCents(bill.currentChargesCents)}`,
-        body: `Due ${formatDateShort(due)}.`,
-        at: at(addDays(due, -1), MORNING),
-        tap: null,
-        actions: [],
-      },
-    ];
-  });
-}
-
-/** 20:00 on each unpaid charge's due date, naming the payer and, for a routed charge, whose it is. */
-function paymentChecks(
-  charges: PlanCharge[],
-  configs: Map<string, HouseholdConfig>,
-  name: (id: string) => string,
-): PlannedNotification[] {
-  return charges.flatMap((c) => {
+  const charges = input.unpaidCharges.flatMap((c) => {
     const config = configs.get(c.month);
     const due = config ? chargeDueDate(c.month, config, c) : null;
-    if (!due) return [];
-    const payer = name(c.payViaPersonId ?? c.personId);
-    const forWhom = c.payViaPersonId ? ` for ${name(c.personId)}` : "";
-    return [
-      {
-        id: `check:${c.id}`,
-        channel: "checks" as const,
-        title: `Did ${payer} pay ${checkName(c)}${forWhom} (${formatCents(c.amountCents)})?`,
-        body: "Due today.",
-        at: at(due, EVENING),
-        tap: null,
-        actions: paidAndNudge(c),
-      },
-    ];
+    return !owners.has(c.personId) && c.amountCents > 0 && due ? [{ ...c, due }] : [];
   });
+
+  const bills = input.bills.flatMap((bill) => {
+    const config = configs.get(bill.month);
+    const due = config && bill.paidCents === null ? billDueDateKey(bill.month, config, bill.dueDate) : null;
+    if (!due) return [];
+    const collectedCents = bill.utilities
+      .filter((c) => !owners.has(c.personId) && c.paidCents !== null)
+      .reduce((sum, c) => sum + Math.min(c.paidCents ?? 0, c.amountCents), 0);
+    return [{ month: bill.month, due, collectedCents, totalCents: bill.currentChargesCents }];
+  });
+
+  return {
+    uploads: uploadMonths(input.now, input.months.map((m) => m.month)).map((month) => ({
+      month,
+      saved: saved.has(month),
+    })),
+    charges,
+    bills,
+    name: (id) => names.get(id) ?? "Someone",
+    lastAirconAt: input.lastAirconAt,
+  };
+}
+
+/** Every reminder of a deadline type, for each morning and stage in the window. */
+function deadlineReminders(key: string, rule: DeadlineRule, ctx: PlanContext, days: string[]): PlannedNotification[] {
+  const planner = DEADLINE_PLANNERS[rule.anchor];
+  return days.flatMap((day) =>
+    STAGES.flatMap((stage) =>
+      planner(ctx, day, stage).map((fill) => ({
+        id: `${key}:${stage}:${fill.subject}:${day}`,
+        ...text(rule.stages[stage], fill.values),
+        at: at(day, rule.time),
+        tap: fill.tap,
+        actions: fill.actions,
+        acknowledge: false,
+      })),
+    ),
+  );
+}
+
+/** A dated type's one notification, on the day its anchor gives; none when there is no such day. */
+function datedReminder(key: string, rule: DatedRule, ctx: PlanContext): PlannedNotification[] {
+  const day = DATED_PLANNERS[rule.anchor](ctx, rule);
+  if (!day) return [];
+  return [{ id: `${key}:${day}`, ...text(rule, {}), at: at(day, rule.time), tap: null, actions: [], acknowledge: false }];
+}
+
+/** Whether a reminder on `day` is in `stage` for a deadline on `deadline`. */
+function inStage(day: string, deadline: string, stage: Stage): boolean {
+  if (stage === "dueTomorrow") return addDays(day, 1) === deadline;
+  if (stage === "dueToday") return day === deadline;
+  return day > deadline;
+}
+
+/** Upload: due on the 2nd of each covered month whose bill isn't saved. Tapping opens Bill upload for that month. */
+function uploadDay(ctx: PlanContext, day: string, stage: Stage): DeadlineFill[] {
+  return ctx.uploads
+    .filter((u) => !u.saved && inStage(day, `${u.month}-02`, stage))
+    .map((u): DeadlineFill => ({
+      subject: u.month,
+      values: { month: formatMonthName(u.month) },
+      tap: { kind: "bill-upload", month: u.month },
+      actions: [],
+    }));
 }
 
 /**
- * How a payment check names a charge: `Nov utilities`, `Nov Starhub`, or a correction's short name
- * (`Correction · Utilities Sep`), which already says its month.
+ * Collect: one reminder per payer. Due tomorrow and due today hold the payer's charges due that day; overdue holds
+ * every overdue charge of theirs, and `{due}` is the earliest. Paid and Nudge open on the earliest charge (14.9 opens
+ * them on all of them).
  */
-function checkName(charge: PlanCharge): string {
+function chargeDue(ctx: PlanContext, day: string, stage: Stage): DeadlineFill[] {
+  const byPayer = new Map<string, PlanContext["charges"]>();
+  for (const c of ctx.charges.filter((c) => inStage(day, c.due, stage))) {
+    const payer = c.payViaPersonId ?? c.personId;
+    byPayer.set(payer, [...(byPayer.get(payer) ?? []), c]);
+  }
+  return [...byPayer].map(([payer, charges]): DeadlineFill => {
+    const sorted = [...charges].sort(
+      (a, b) =>
+        a.due.localeCompare(b.due) ||
+        CATEGORY_ORDER.indexOf(a.category) - CATEGORY_ORDER.indexOf(b.category) ||
+        a.month.localeCompare(b.month) ||
+        a.label.localeCompare(b.label),
+    );
+    const first = sorted[0];
+    return {
+      subject: payer,
+      values: {
+        payer: ctx.name(payer),
+        amount: formatCents(sorted.reduce((sum, c) => sum + c.amountCents, 0)),
+        items: listItems(sorted.map((c) => itemName(c, ctx.name))),
+        due: formatDateShort(first.due),
+      },
+      tap: null,
+      actions: [
+        { kind: "paid", target: { kind: "mark-paid", chargeId: first.id } },
+        { kind: "nudge", target: { kind: "send-nudge", personId: payer, chargeId: first.id } },
+      ],
+    };
+  });
+}
+
+/** Pay bill: due on each unpaid bill's due date, with what the others have paid of their utilities. */
+function billDue(ctx: PlanContext, day: string, stage: Stage): DeadlineFill[] {
+  return ctx.bills
+    .filter((b) => inStage(day, b.due, stage))
+    .map((b): DeadlineFill => ({
+      subject: b.month,
+      values: {
+        collected: formatCents(b.collectedCents),
+        total: formatCents(b.totalCents),
+        due: formatDateShort(b.due),
+      },
+      tap: null,
+      actions: [],
+    }));
+}
+
+/**
+ * How a reminder names a charge: `Nov rent`, `Nov Starhub`, a routed one with whose it is (`Nov utilities for Sam`),
+ * or a correction by its short name (`Correction · Utilities Oct`), which already says its month.
+ */
+function itemName(charge: PlanCharge, name: (id: string) => string): string {
+  const forWhom = charge.payViaPersonId ? ` for ${name(charge.personId)}` : "";
   const correction = correctionName(charge.correctsCharge);
-  if (correction) return correction;
+  if (correction) return `${correction}${forWhom}`;
   const label = LOWER_CASE_LABELS.has(charge.category) ? charge.label.toLowerCase() : charge.label;
-  return `${formatMonthShort(charge.month)} ${label}`;
+  return `${formatMonthShort(charge.month)} ${label}${forWhom}`;
 }
 
-/** Paid opens Record payment with the charge ticked; Nudge opens the Send sheet for whoever pays it. */
-function paidAndNudge(charge: PlanCharge): NotificationAction[] {
-  const paid: HomeTarget = { kind: "mark-paid", chargeId: charge.id };
-  const nudge: HomeTarget = {
-    kind: "send-nudge",
-    personId: charge.payViaPersonId ?? charge.personId,
-    chargeId: charge.id,
-  };
-  return [
-    { kind: "paid", target: paid },
-    { kind: "nudge", target: nudge },
-  ];
+/** Names joined with commas and "and"; past three, the first two and how many more (`a, b and 2 more`). */
+function listItems(names: string[]): string {
+  if (names.length > MAX_NAMED_ITEMS) return `${names.slice(0, 2).join(", ")} and ${names.length - 2} more`;
+  if (names.length === 1) return names[0];
+  return `${names.slice(0, -1).join(", ")} and ${names[names.length - 1]}`;
 }
 
-/** A date key and a time as an ISO string with the Singapore offset. */
+/** A text's channel, and its title and body with the placeholders filled in. */
+function text(
+  template: { channel: PlannedNotification["channel"]; title: string; body: string },
+  values: Record<string, string>,
+): Pick<PlannedNotification, "channel" | "title" | "body"> {
+  const fill = (s: string) => s.replace(/\{(\w+)\}/g, (match, key: string) => values[key] ?? match);
+  return { channel: template.channel, title: fill(template.title), body: fill(template.body) };
+}
+
+/** A date key and an `HH:mm` time as an ISO string with the Singapore offset. */
 function at(day: string, time: string): string {
-  return `${day}T${time}+08:00`;
+  return `${day}T${time}:00+08:00`;
 }
 
-/** Every date key of a month, in order. */
-function daysOf(month: string): string[] {
-  const [year, monthIndex] = month.split("-").map(Number);
-  const count = new Date(Date.UTC(year, monthIndex, 0)).getUTCDate();
-  return Array.from({ length: count }, (_, i) => `${month}-${String(i + 1).padStart(2, "0")}`);
-}
-
-/** The last Monday to Friday of a month; public holidays are not counted. */
-function lastWeekdayOf(month: string): string {
-  const days = daysOf(month);
-  return days.findLast((day) => weekdayOf(day) >= 1 && weekdayOf(day) <= 5) ?? days[days.length - 1];
-}
-
-/** The day of the week of a date key, 0 for Sunday to 6 for Saturday. */
-function weekdayOf(day: string): number {
-  return toUtc(day).getUTCDay();
+/** Every date key from `start` to `end`, both included. */
+function daysBetween(start: string, end: string): string[] {
+  const days: string[] = [];
+  for (let day = start; day <= end; day = addDays(day, 1)) days.push(day);
+  return days;
 }
 
 /** A date key moved by some days. */
 function addDays(day: string, delta: number): string {
-  const date = toUtc(day);
-  date.setUTCDate(date.getUTCDate() + delta);
-  return date.toISOString().slice(0, 10);
-}
-
-/** A date key as midnight UTC, for calendar arithmetic only. */
-function toUtc(day: string): Date {
   const [year, month, date] = day.split("-").map(Number);
-  return new Date(Date.UTC(year, month - 1, date));
+  const moved = new Date(Date.UTC(year, month - 1, date + delta));
+  return moved.toISOString().slice(0, 10);
 }
