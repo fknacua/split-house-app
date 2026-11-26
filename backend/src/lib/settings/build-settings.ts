@@ -1,26 +1,16 @@
 import type {
   HouseholdConfig,
   MessageTemplates,
-  NotificationToggle,
-  NotificationToggles,
   SettingsMessageRow,
   SettingsNotificationRow,
   SettingsResponse,
 } from "@splithouse/shared";
+import type { NotificationGroupRow } from "@/lib/notifications/rows";
 import { TEMPLATE_NAMES } from "@/lib/templates/template-text";
 
 const MESSAGE_ROWS: readonly Pick<SettingsMessageRow, "kind" | "name" | "description">[] = [
   { kind: "MONTHLY", name: TEMPLATE_NAMES.MONTHLY, description: "Sent when the month’s charges are ready" },
   { kind: "NUDGE", name: TEMPLATE_NAMES.NUDGE, description: "Sent when a payment is overdue" },
-];
-
-// The boards' wording (FirstRunReminders, Settings), with `Collect rent` for every tenant (deviation R3).
-const NOTIFICATION_ROWS: readonly { toggle: NotificationToggle; name: string; detail: string }[] = [
-  { toggle: "uploadBill", name: "Upload the utilities bill", detail: "Around the 2nd, daily until uploaded" },
-  { toggle: "collectRent", name: "Collect rent", detail: "Last working day before the 1st, if unpaid" },
-  { toggle: "payBill", name: "Pay the utilities bill", detail: "Before the bill’s due date, with what’s collected" },
-  { toggle: "paymentChecks", name: "Payment checks", detail: "On each due date, if still unpaid" },
-  { toggle: "fyi", name: "FYI updates", detail: "Unusual bill, aircon servicing due, month settled · silent" },
 ];
 
 /**
@@ -43,31 +33,31 @@ export function buildMessageRows(config: HouseholdConfig | null, templates: Mess
 }
 
 /**
- * The notification toggle rows, as Settings and First run's Reminders page show them.
+ * The notification switch rows, as Settings and First run's Reminders page show them.
  *
- * @param toggles - The saved toggles.
- * @returns The five rows in the boards' order, each with its name, detail and whether it is on.
+ * @param groups - The four switches, in their saved order.
+ * @returns One row per switch, with its label, helper line and whether it is on.
  */
-export function buildNotificationRows(toggles: NotificationToggles): SettingsNotificationRow[] {
-  return NOTIFICATION_ROWS.map((row) => ({ ...row, on: toggles[row.toggle] }));
+export function buildNotificationRows(groups: readonly NotificationGroupRow[]): SettingsNotificationRow[] {
+  return groups.map((g) => ({ group: g.key, name: g.label, detail: g.detail, on: g.enabled }));
 }
 
 /**
  * The Settings screen, display-ready.
  *
  * @param input - The signed-in email, the config whose people count, or null before first run, the wording and the
- *   saved notification toggles. A custom template for someone who has left isn't counted.
+ *   notification switches. A custom template for someone who has left isn't counted.
  * @returns The response for `GET /api/settings`.
  */
 export function buildSettings(input: {
   email: string;
   config: HouseholdConfig | null;
   templates: MessageTemplates;
-  toggles: NotificationToggles;
+  groups: readonly NotificationGroupRow[];
 }): SettingsResponse {
   return {
     email: input.email,
     messages: buildMessageRows(input.config, input.templates),
-    notifications: buildNotificationRows(input.toggles),
+    notifications: buildNotificationRows(input.groups),
   };
 }

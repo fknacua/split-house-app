@@ -1,6 +1,7 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { HOUSEHOLD_SCHEMA_VERSION } from "@splithouse/shared";
 import { NOV_2026_CONFIG, PERSON_IDS } from "@/lib/fixtures/household";
+import { NOTIFICATION_GROUP_ROWS } from "@/lib/notifications/rows";
 import { getNotificationPlan, type NotificationPlanDb } from "./notification-plan.service";
 
 const NOV = { month: "2026-11", householdVersion: { schemaVersion: HOUSEHOLD_SCHEMA_VERSION, config: NOV_2026_CONFIG } };
@@ -17,8 +18,8 @@ const RENT = {
   correctsCharge: null,
 };
 
-/** A household with the given opened months, Jordan's unpaid rent, no bills and the given stored toggles. */
-function fakeDb(months: (typeof NOV)[], toggles: unknown = null) {
+/** A household with the given opened months, Jordan's unpaid rent, no bills, and the seeded switches but `off`. */
+function fakeDb(months: (typeof NOV)[], off: string[] = []) {
   const calls: Record<string, unknown> = {};
   const db: NotificationPlanDb = {
     month: { findMany: async () => months },
@@ -40,7 +41,10 @@ function fakeDb(months: (typeof NOV)[], toggles: unknown = null) {
         return [];
       },
     },
-    settings: { findUnique: async () => (toggles === null ? null : { notifications: toggles }) },
+    notificationGroup: {
+      findMany: async () =>
+        NOTIFICATION_GROUP_ROWS.map((g) => ({ ...g, enabled: g.enabled && !off.includes(g.key) })),
+    },
   };
   return { db, calls };
 }
@@ -49,7 +53,7 @@ beforeEach(() => vi.stubEnv("DEV_NOW", "2026-11-25T10:00:00+08:00"));
 afterEach(() => vi.unstubAllEnvs());
 
 describe("getNotificationPlan", () => {
-  it("plans from the stored data with the default toggles", async () => {
+  it("plans from the stored data with the seeded switches", async () => {
     const { db, calls } = fakeDb([NOV]);
     const { notifications } = await getNotificationPlan(db);
     expect(notifications.find((n) => n.id === "rent:rent-jordan")?.title).toBe("Collect Jordan’s rent");
@@ -59,8 +63,8 @@ describe("getNotificationPlan", () => {
     expect(calls.bill).toEqual({ OR: [{ paidCents: null }, { month: { in: ["2026-11", "2026-12"] } }] });
   });
 
-  it("follows the saved toggles", async () => {
-    const { db } = fakeDb([NOV], { uploadBill: false, collectRent: true });
+  it("follows the saved switches", async () => {
+    const { db } = fakeDb([NOV], ["uploadBill"]);
     const { notifications } = await getNotificationPlan(db);
     expect(notifications.map((n) => n.id)).toEqual(["rent:rent-jordan"]);
   });

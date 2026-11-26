@@ -1,5 +1,5 @@
 import { z } from 'zod';
-import { notificationToggle } from '../schemas/settings';
+import { notificationGroupKeySchema } from '../schemas/notifications';
 
 /**
  * One row of the Message templates card, on Settings and on First run's Custom messages: a template, when it is sent,
@@ -21,14 +21,17 @@ export const settingsMessageRowSchema = z.object({
 /** One row of the Messages card on Settings. */
 export type SettingsMessageRow = z.infer<typeof settingsMessageRowSchema>;
 
-/** One row of the Notifications card, on Settings and on First run's Reminders page: a toggle and its Switch. */
+/**
+ * One row of the Notifications card, on Settings and on First run's Reminders page: a group of notifications and its
+ * Switch, from its `NotificationGroup` row.
+ */
 export const settingsNotificationRowSchema = z.object({
-  toggle: notificationToggle,
-  /** e.g. `Upload the utilities bill`. */
+  group: notificationGroupKeySchema,
+  /** e.g. `Upload utilities bill`. */
   name: z.string(),
-  /** e.g. `Around the 2nd, daily until uploaded`. */
+  /** e.g. `8:00 from the 1st until uploaded`. */
   detail: z.string(),
-  /** Whether the toggle is saved on. The app shows it off and disabled while notifications are blocked. */
+  /** Whether the switch is saved on. The app shows it off and disabled while notifications are blocked. */
   on: z.boolean(),
 });
 
@@ -40,7 +43,7 @@ export const settingsResponseSchema = z.object({
   /** The signed-in account, shown on the Account card. */
   email: z.string(),
   messages: z.array(settingsMessageRowSchema),
-  /** The five toggles, in the order the boards list them. */
+  /** The four switches, in their saved order. */
   notifications: z.array(settingsNotificationRowSchema),
 });
 
@@ -48,13 +51,13 @@ export const settingsResponseSchema = z.object({
 export type SettingsResponse = z.infer<typeof settingsResponseSchema>;
 
 /**
- * `PUT /api/settings/notifications`: turns one toggle on or off, leaving the others as saved. Answers with the
+ * `PUT /api/settings/notifications`: turns one switch on or off, leaving the others as saved. Answers with the
  * {@link SettingsResponse}.
  */
 export const settingsNotificationSaveRequestSchema = z.object({
-  toggle: notificationToggle,
+  group: notificationGroupKeySchema,
   on: z.boolean(),
 });
 
-/** `PUT /api/settings/notifications`: turns one toggle on or off. */
+/** `PUT /api/settings/notifications`: turns one switch on or off. */
 export type SettingsNotificationSaveRequest = z.infer<typeof settingsNotificationSaveRequestSchema>;

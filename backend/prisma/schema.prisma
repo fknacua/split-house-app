@@ -311,13 +311,61 @@ model MessageEvent {
   @@map("message_event")
 }
 
-// Single row (id is always "singleton"): notification toggles per channel and type.
-model Settings {
-  id            String   @id @default("singleton")
-  notifications Json
-  updatedAt     DateTime @updatedAt
+// One row per Settings switch (Data Model "Notifications"). `key` is one of the shared
+// NOTIFICATION_GROUP_KEYS; seeded by migration `notifications`.
+model NotificationGroup {
+  key       String   @id
+  label     String
+  // The helper line under the switch.
+  detail    String
+  enabled   Boolean
+  sortOrder Int
+  updatedAt DateTime @updatedAt
 
-  @@map("settings")
+  types NotificationType[]
+
+  @@map("notification_group")
+}
+
+// One row per notification. `kind` (`deadline`, `dated` or `event`) decides the shape of `rule`,
+// read with the shared `parseNotificationTypeRule`. Seeded by migration `notifications`.
+model NotificationType {
+  key       String   @id
+  groupKey  String
+  kind      String
+  rule      Json
+  updatedAt DateTime @updatedAt
+
+  group  NotificationGroup   @relation(fields: [groupKey], references: [key])
+  events NotificationEvent[]
+
+  @@index([groupKey])
+  @@map("notification_type")
+}
+
+enum NotificationEventStatus {
+  PENDING
+  SCHEDULED
+  EXPIRED
+}
+
+// One row per event FYI (settled, unusual bill), inserted with ON CONFLICT DO NOTHING in the
+// write that caused it. `key` keeps it to one per event, e.g. `settled:2026-11:2026-11-29`.
+model NotificationEvent {
+  id        String                  @id @default(cuid())
+  key       String                  @unique
+  typeKey   String
+  // The placeholder values, fixed when the event happens (the month, the bill amount, `32% higher`).
+  params    Json
+  status    NotificationEventStatus @default(PENDING)
+  createdAt DateTime                @default(now())
+  // Null until the phone acknowledges scheduling it.
+  fireAt    DateTime?
+
+  type NotificationType @relation(fields: [typeKey], references: [key])
+
+  @@index([status])
+  @@map("notification_event")
 }
 
 model MessageTemplates {

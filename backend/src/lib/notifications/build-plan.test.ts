@@ -1,5 +1,9 @@
 import { describe, expect, it } from "vitest";
-import { DEFAULT_NOTIFICATION_TOGGLES, plannedNotificationSchema, type NotificationToggles } from "@splithouse/shared";
+import {
+  plannedNotificationSchema,
+  type NotificationGroupKey,
+  type NotificationGroupSwitches,
+} from "@splithouse/shared";
 import { NOV_2026_CONFIG, PERSON_IDS, VERSION_A_CONFIG } from "@/lib/fixtures/household";
 import { buildNotificationPlan, type PlanBill, type PlanCharge, type PlanInput } from "./build-plan";
 
@@ -15,14 +19,13 @@ const MONTHS = [
   { month: "2026-11", config: NOV_2026_CONFIG },
 ];
 
-/** Only the given toggle on, so each table looks at one kind of notification. */
-const only = (toggle: keyof NotificationToggles): NotificationToggles => ({
+/** Only the given switch on, so each table looks at one kind of notification. */
+const only = (key: NotificationGroupKey): NotificationGroupSwitches => ({
   uploadBill: false,
-  collectRent: false,
+  collectPayments: false,
   payBill: false,
-  paymentChecks: false,
   fyi: false,
-  [toggle]: true,
+  [key]: true,
 });
 
 /** An unpaid Nov charge of Jordan's, due 4 Nov, with the given changes. */
@@ -55,7 +58,7 @@ const NOV_BILL: PlanBill = {
 const plan = (over: Partial<PlanInput>) =>
   buildNotificationPlan({
     now: new Date("2026-11-25T10:00:00+08:00"),
-    toggles: DEFAULT_NOTIFICATION_TOGGLES,
+    switches: { uploadBill: true, collectPayments: true, payBill: true, fyi: false },
     people: PEOPLE,
     months: MONTHS,
     unpaidCharges: [],
@@ -77,7 +80,7 @@ describe("buildNotificationPlan", () => {
 
   describe("Upload the utilities bill", () => {
     it("is planned at 9:00 every day from tomorrow to the end of next month while neither bill is saved", () => {
-      const planned = plan({ toggles: only("uploadBill") });
+      const planned = plan({ switches: only("uploadBill") });
       expect(planned.map((n) => n.at)).toHaveLength(5 + 30);
       expect(planned[0]).toEqual({
         id: "upload:2026-11-26",
@@ -92,14 +95,14 @@ describe("buildNotificationPlan", () => {
     });
 
     it("starts on the 2nd, and plans next month from the date alone", () => {
-      const planned = plan({ now: new Date("2026-11-01T08:00:00+08:00"), toggles: only("uploadBill") });
+      const planned = plan({ now: new Date("2026-11-01T08:00:00+08:00"), switches: only("uploadBill") });
       expect(planned[0].id).toBe("upload:2026-11-02");
       expect(planned.find((n) => n.id === "upload:2026-12-01")).toBeUndefined();
       expect(planned.find((n) => n.id === "upload:2026-12-02")?.tap).toEqual({ kind: "bill-upload", month: "2026-12" });
     });
 
     it("stops for a month whose bill is saved", () => {
-      const planned = plan({ toggles: only("uploadBill"), bills: [NOV_BILL] });
+      const planned = plan({ switches: only("uploadBill"), bills: [NOV_BILL] });
       expect(planned).toHaveLength(30);
       expect(planned.every((n) => n.id.startsWith("upload:2026-12-"))).toBe(true);
     });
@@ -108,7 +111,7 @@ describe("buildNotificationPlan", () => {
   describe("Collect rent", () => {
     it("is planned at 9:00 on the month's last weekday, one per tenant with Paid and Nudge", () => {
       const planned = plan({
-        toggles: only("collectRent"),
+        switches: only("collectPayments"),
         unpaidCharges: [charge({ id: "rent-jordan", category: "RENT", label: "Rent", amountCents: 95000 })],
       });
       expect(planned).toEqual([
@@ -130,7 +133,7 @@ describe("buildNotificationPlan", () => {
     it("adds the weekend line on a Friday, skipping the weekend after it", () => {
       const [rent] = plan({
         now: new Date("2026-10-20T10:00:00+08:00"),
-        toggles: only("collectRent"),
+        switches: only("collectPayments"),
         unpaidCharges: [charge({ id: "rent-oct", month: "2026-10", category: "RENT", label: "Rent", amountCents: 92000 })],
       });
       expect(rent.at).toBe("2026-10-30T09:00:00+08:00");
@@ -139,7 +142,7 @@ describe("buildNotificationPlan", () => {
 
     it("names who it is collected from when the rent is paid through someone", () => {
       const [rent] = plan({
-        toggles: only("collectRent"),
+        switches: only("collectPayments"),
         unpaidCharges: [
           charge({ id: "rent-sam", personId: PERSON_IDS.sam, payViaPersonId: PERSON_IDS.priya, category: "RENT", label: "Rent" }),
         ],
@@ -151,7 +154,7 @@ describe("buildNotificationPlan", () => {
     it("leaves out the owner's rent and a day already past", () => {
       expect(
         plan({
-          toggles: only("collectRent"),
+          switches: only("collectPayments"),
           unpaidCharges: [
             charge({ id: "rent-alex", personId: PERSON_IDS.alex, category: "RENT", label: "Rent" }),
             charge({ id: "rent-oct", month: "2026-10", category: "RENT", label: "Rent" }),
@@ -171,7 +174,7 @@ describe("buildNotificationPlan", () => {
           u.personId === PERSON_IDS.jordan ? { ...u, paidCents: 8246 } : u.personId === PERSON_IDS.alex ? { ...u, paidCents: 12369 } : u,
         ),
       };
-      expect(plan({ now, toggles: only("payBill"), bills: [bill] })).toEqual([
+      expect(plan({ now, switches: only("payBill"), bills: [bill] })).toEqual([
         {
           id: "pay-bill:2026-11",
           channel: "action",
@@ -190,23 +193,26 @@ describe("buildNotificationPlan", () => {
         dueDate: new Date("2026-11-20"),
         utilities: NOV_BILL.utilities.map((u) => (u.personId === PERSON_IDS.sam ? { ...u, paidCents: 9000 } : u)),
       };
-      const [payBill] = plan({ now, toggles: only("payBill"), bills: [bill] });
+      const [payBill] = plan({ now, switches: only("payBill"), bills: [bill] });
       expect(payBill.title).toBe("Pay utilities bill: collected $82.46 of $412.30");
       expect(payBill.at).toBe("2026-11-19T09:00:00+08:00");
     });
 
     it("is not planned once the bill is marked paid", () => {
-      expect(plan({ now, toggles: only("payBill"), bills: [{ ...NOV_BILL, paidCents: 41230 }] })).toEqual([]);
+      expect(plan({ now, switches: only("payBill"), bills: [{ ...NOV_BILL, paidCents: 41230 }] })).toEqual([]);
     });
   });
 
   describe("Payment checks", () => {
     const now = new Date("2026-11-03T10:00:00+08:00");
+    // Collect rent shares the switch until 14.7, so keep to the payment checks.
     const titles = (unpaidCharges: PlanCharge[]) =>
-      plan({ now, toggles: only("paymentChecks"), unpaidCharges }).map((n) => [n.title, n.at]);
+      plan({ now, switches: only("collectPayments"), unpaidCharges })
+        .filter((n) => n.id.startsWith("check:"))
+        .map((n) => [n.title, n.at]);
 
     it("is planned at 20:00 on the due date, with Paid and Nudge", () => {
-      expect(plan({ now, toggles: only("paymentChecks"), unpaidCharges: [charge({ id: "util-jordan" })] })).toEqual([
+      expect(plan({ now, switches: only("collectPayments"), unpaidCharges: [charge({ id: "util-jordan" })] })).toEqual([
         {
           id: "check:util-jordan",
           channel: "checks",
@@ -248,7 +254,7 @@ describe("buildNotificationPlan", () => {
     it("names the payer of a routed charge, on the payer's due day when it has no date of its own", () => {
       const [check] = plan({
         now,
-        toggles: only("paymentChecks"),
+        switches: only("collectPayments"),
         unpaidCharges: [charge({ id: "util-sam", personId: PERSON_IDS.sam, payViaPersonId: PERSON_IDS.priya, dueDate: null })],
       });
       expect([check.title, check.at]).toEqual(["Did Priya pay Nov utilities for Sam ($82.46)?", "2026-11-07T20:00:00+08:00"]);
@@ -269,18 +275,18 @@ describe("buildNotificationPlan", () => {
 
     it("still checks today until 20:00", () => {
       const evening = new Date("2026-11-04T19:59:00+08:00");
-      expect(plan({ now: evening, toggles: only("paymentChecks"), unpaidCharges: [charge({ id: "c" })] })).toHaveLength(1);
+      expect(plan({ now: evening, switches: only("collectPayments"), unpaidCharges: [charge({ id: "c" })] })).toHaveLength(1);
       const late = new Date("2026-11-04T20:00:00+08:00");
-      expect(plan({ now: late, toggles: only("paymentChecks"), unpaidCharges: [charge({ id: "c" })] })).toEqual([]);
+      expect(plan({ now: late, switches: only("collectPayments"), unpaidCharges: [charge({ id: "c" })] })).toEqual([]);
     });
   });
 
-  it("plans nothing with every toggle off", () => {
-    const off = { uploadBill: false, collectRent: false, payBill: false, paymentChecks: false, fyi: false };
+  it("plans nothing with every switch off", () => {
+    const off = { uploadBill: false, collectPayments: false, payBill: false, fyi: false };
     expect(
       plan({
         now: new Date("2026-11-03T10:00:00+08:00"),
-        toggles: off,
+        switches: off,
         unpaidCharges: [charge({ id: "c", category: "RENT", label: "Rent" })],
         bills: [NOV_BILL],
       }),

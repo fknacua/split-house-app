@@ -9,12 +9,14 @@ vi.mock("@/lib/prisma", () => ({ prisma: {} }));
 import { HOUSEHOLD_SCHEMA_VERSION, settingsResponseSchema } from "@splithouse/shared";
 import { ApiError, requireSession } from "@/lib/api";
 import { NOV_2026_CONFIG } from "@/lib/fixtures/household";
+import type { StoredNotificationGroup } from "@/lib/notifications/groups";
+import { NOTIFICATION_GROUP_ROWS } from "@/lib/notifications/rows";
 import { prisma } from "@/lib/prisma";
 import { PUT } from "./route";
 
-/** Points the mocked Prisma client at the Nov 2026 household with no `Settings` row yet. */
+/** Points the mocked Prisma client at the Nov 2026 household with the seeded switches, which saves write into. */
 function useHousehold() {
-  let stored: unknown = null;
+  const stored: StoredNotificationGroup[] = NOTIFICATION_GROUP_ROWS.map((g) => ({ ...g }));
   Object.assign(prisma, {
     messageTemplates: { findUnique: async () => null },
     month: { findFirst: async () => ({ month: "2026-11" }) },
@@ -23,10 +25,10 @@ function useHousehold() {
         { startsFromMonth: "2026-11", schemaVersion: HOUSEHOLD_SCHEMA_VERSION, config: NOV_2026_CONFIG },
       ],
     },
-    settings: {
-      findUnique: async () => (stored === null ? null : { notifications: stored }),
-      upsert: async (args: { create: { notifications: unknown } }) => {
-        stored = args.create.notifications;
+    notificationGroup: {
+      findMany: async () => stored,
+      upsert: async (args: { where: { key: string }; update: { enabled: boolean } }) => {
+        Object.assign(stored.find((g) => g.key === args.where.key) ?? {}, args.update);
         return {};
       },
     },
@@ -40,23 +42,25 @@ const put = (body: unknown) =>
   );
 
 describe("PUT /api/settings/notifications", () => {
-  it("saves one toggle, answering with the Settings screen that parses with the shared schema", async () => {
+  it("saves one switch, answering with the Settings screen that parses with the shared schema", async () => {
     useHousehold();
-    const response = await put({ toggle: "fyi", on: true });
+    const response = await put({ group: "fyi", on: true });
     expect(response.status).toBe(200);
     const body = settingsResponseSchema.parse(await response.json());
-    expect(body.notifications.find((n) => n.toggle === "fyi")?.on).toBe(true);
+    expect(body.notifications.find((n) => n.group === "fyi")?.on).toBe(true);
   });
 
-  it("answers 400 invalid_request for an unknown toggle", async () => {
+  it("answers 400 invalid_request for a retired or unknown switch", async () => {
     useHousehold();
-    const response = await put({ toggle: "savings", on: true });
-    expect(response.status).toBe(400);
-    expect(((await response.json()) as { error: { code: string } }).error.code).toBe("invalid_request");
+    for (const group of ["collectRent", "paymentChecks", "savings"]) {
+      const response = await put({ group, on: true });
+      expect(response.status).toBe(400);
+      expect(((await response.json()) as { error: { code: string } }).error.code).toBe("invalid_request");
+    }
   });
 
   it("answers 401 without a session", async () => {
     vi.mocked(requireSession).mockRejectedValueOnce(new ApiError(401, "unauthorized", "Sign in required."));
-    expect((await put({ toggle: "fyi", on: true })).status).toBe(401);
+    expect((await put({ group: "fyi", on: true })).status).toBe(401);
   });
 });

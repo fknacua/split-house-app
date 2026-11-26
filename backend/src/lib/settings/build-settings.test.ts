@@ -1,12 +1,12 @@
 import { describe, expect, it } from "vitest";
 import {
-  DEFAULT_NOTIFICATION_TOGGLES,
   settingsResponseSchema,
   type HouseholdConfig,
   type MessageTemplates,
 } from "@splithouse/shared";
 import { NOV_2026_CONFIG, PERSON_IDS } from "@/lib/fixtures/household";
 import { DEFAULT_MESSAGE_TEMPLATES } from "@/lib/messages/default-templates";
+import { NOTIFICATION_GROUP_ROWS } from "@/lib/notifications/rows";
 import { buildNotificationRows, buildSettings } from "./build-settings";
 
 const EMAIL = "owner@example.com";
@@ -16,7 +16,7 @@ const details = (overrides: MessageTemplates["overrides"], config: HouseholdConf
     email: EMAIL,
     config,
     templates: { ...DEFAULT_MESSAGE_TEMPLATES, overrides },
-    toggles: DEFAULT_NOTIFICATION_TOGGLES,
+    groups: NOTIFICATION_GROUP_ROWS,
   }).messages.map((m) => m.detail);
 
 describe("buildSettings", () => {
@@ -25,9 +25,9 @@ describe("buildSettings", () => {
       email: EMAIL,
       config: NOV_2026_CONFIG,
       templates: DEFAULT_MESSAGE_TEMPLATES,
-      toggles: DEFAULT_NOTIFICATION_TOGGLES,
+      groups: NOTIFICATION_GROUP_ROWS,
     });
-    expect(settings.notifications).toHaveLength(5);
+    expect(settings.notifications).toHaveLength(4);
     expect(settings.email).toBe(EMAIL);
     expect(settings.messages.map((m) => [m.kind, m.name])).toEqual([
       ["MONTHLY", "Monthly breakdown"],
@@ -41,7 +41,7 @@ describe("buildSettings", () => {
       email: EMAIL,
       config: NOV_2026_CONFIG,
       templates: { ...DEFAULT_MESSAGE_TEMPLATES, overrides: [{ personId: PERSON_IDS.jordan, kind: "MONTHLY", text: "Hi" }] },
-      toggles: DEFAULT_NOTIFICATION_TOGGLES,
+      groups: NOTIFICATION_GROUP_ROWS,
     }).messages;
     expect(rows.map((m) => [m.description, m.tone])).toEqual([
       ["Sent when the month’s charges are ready", "success"],
@@ -76,18 +76,23 @@ describe("buildSettings", () => {
 });
 
 describe("buildNotificationRows", () => {
-  it("lists the five toggles in the boards' order with their wording", () => {
-    expect(buildNotificationRows(DEFAULT_NOTIFICATION_TOGGLES).map((r) => [r.toggle, r.name, r.detail])).toEqual([
-      ["uploadBill", "Upload the utilities bill", "Around the 2nd, daily until uploaded"],
-      ["collectRent", "Collect rent", "Last working day before the 1st, if unpaid"],
-      ["payBill", "Pay the utilities bill", "Before the bill’s due date, with what’s collected"],
-      ["paymentChecks", "Payment checks", "On each due date, if still unpaid"],
-      ["fyi", "FYI updates", "Unusual bill, aircon servicing due, month settled · silent"],
+  it("lists the switches in the order given, with their label and helper line", () => {
+    expect(buildNotificationRows(NOTIFICATION_GROUP_ROWS).map((r) => [r.group, r.name, r.detail, r.on])).toEqual([
+      ["uploadBill", "Upload utilities bill", "8:00 from the 1st until uploaded", true],
+      ["collectPayments", "Collect tenant payments", "8:00 from the day before each due date until paid", true],
+      ["payBill", "Pay utilities bill", "8:00 from the day before the due date until paid", true],
+      ["fyi", "FYI updates", "Unusual bill, aircon servicing due, month settled · silent", false],
     ]);
   });
 
-  it("shows each toggle as saved", () => {
-    const rows = buildNotificationRows({ ...DEFAULT_NOTIFICATION_TOGGLES, payBill: false, fyi: true });
-    expect(rows.map((r) => r.on)).toEqual([true, true, false, true, true]);
+  it("shows each switch as saved, with the stored wording", () => {
+    const rows = buildNotificationRows([
+      { ...NOTIFICATION_GROUP_ROWS[2], enabled: false },
+      { ...NOTIFICATION_GROUP_ROWS[3], label: "Updates", enabled: true },
+    ]);
+    expect(rows.map((r) => [r.group, r.name, r.on])).toEqual([
+      ["payBill", "Pay utilities bill", false],
+      ["fyi", "Updates", true],
+    ]);
   });
 });
