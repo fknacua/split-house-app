@@ -160,6 +160,17 @@ export function rebuildNotificationSchedule(): Promise<void> {
 }
 
 /**
+ * Cancels every notification scheduled on the phone, for Sign out. A rebuild still running finishes first (its
+ * outcome is ignored), so it can't schedule again after the cancel.
+ *
+ * @returns Once nothing is scheduled.
+ */
+export async function cancelNotificationSchedule(): Promise<void> {
+  if (running) await running.catch(() => {});
+  await Notifications.cancelAllScheduledNotificationsAsync();
+}
+
+/**
  * Dev only: schedules one notification of the plan to fire soon, with its real channel, text and targets, under a
  * test id so the next rebuild cancels it.
  *
