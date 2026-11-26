@@ -46,6 +46,7 @@ const CHECK: PlannedNotification = {
     { kind: 'paid', target: { kind: 'mark-paid', chargeId: 'util-sam' } },
     { kind: 'nudge', target: { kind: 'send-nudge', personId: 'person-priya', chargeId: 'util-sam' } },
   ],
+  acknowledge: false,
 };
 
 const UPLOAD: PlannedNotification = {
@@ -56,6 +57,7 @@ const UPLOAD: PlannedNotification = {
   at: '2026-12-02T09:00:00+08:00',
   tap: { kind: 'bill-upload', month: '2026-12' },
   actions: [],
+  acknowledge: false,
 };
 
 beforeEach(() => {

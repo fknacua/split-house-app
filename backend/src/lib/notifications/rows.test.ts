@@ -80,7 +80,7 @@ describe("rows match code", () => {
   });
 
   it("every anchor and trigger in code has a row", () => {
-    const used = NOTIFICATION_TYPE_ROWS.map((t) => (t.kind === "event" ? t.rule.trigger : t.rule.anchor));
+    const used: string[] = NOTIFICATION_TYPE_ROWS.map((t) => (t.kind === "event" ? t.rule.trigger : t.rule.anchor));
     expect([...Object.keys(NOTIFICATION_ANCHORS), ...Object.keys(NOTIFICATION_TRIGGERS)].filter((k) => !used.includes(k)))
       .toEqual([]);
   });

@@ -188,7 +188,7 @@ export function NotificationsTestPanel() {
       {plan.isError ? <Alert variant="danger" title="Couldn’t load the plan" message={plan.error.message} /> : null}
       {plan.data ? (
         <Text className="font-manrope-medium text-caption text-on-surface-variant">
-          {notifications.length} in the plan, from now to the end of next month.
+          {notifications.length} in the plan, for the next 14 days.
         </Text>
       ) : null}
       {rows.map((notification) => (

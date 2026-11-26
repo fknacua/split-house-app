@@ -9,6 +9,7 @@ vi.mock("@/lib/prisma", () => ({ prisma: {} }));
 import { addChargePreviewSchema, addChargeResponseSchema, addChargeSheetSchema, HOUSEHOLD_SCHEMA_VERSION } from "@splithouse/shared";
 import { correctableRows } from "@/lib/fixtures/correctable-charges";
 import { NOV_2026_CONFIG, PERSON_IDS } from "@/lib/fixtures/household";
+import { fakeEventTables } from "@/lib/fixtures/notification-events";
 import { prisma } from "@/lib/prisma";
 import { POST as PREVIEW } from "./preview/route";
 import { GET, POST } from "./route";
@@ -54,7 +55,8 @@ function useNovember(open = true) {
       createManyAndReturn: async ({ data }: { data: unknown[] }) => data.map(() => ({ id: `charge-${++next}` })),
     },
   };
-  Object.assign(prisma, { ...client, $transaction: async (fn: (tx: typeof client) => unknown) => fn(client) });
+  const tx = { ...client, ...fakeEventTables().tables };
+  Object.assign(prisma, { ...tx, $transaction: async (fn: (t: typeof tx) => unknown) => fn(tx) });
   return { keys };
 }
 

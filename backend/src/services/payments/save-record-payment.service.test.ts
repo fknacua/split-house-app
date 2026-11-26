@@ -1,6 +1,7 @@
 import { recordPaymentResponseSchema, type RecordPaymentRequest } from "@splithouse/shared";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { PERSON_IDS } from "@/lib/fixtures/household";
+import { fakeEventTables } from "@/lib/fixtures/notification-events";
 import { saveRecordPayment, type SaveRecordPaymentDb } from "./save-record-payment.service";
 
 const { alex, priya, sam, jordan } = PERSON_IDS;
@@ -27,18 +28,27 @@ const ROWS: Row[] = [
  * A database whose transaction works on a copy of the rows and keeps the copy only when the callback
  * succeeds, as a rollback would. `stolen` charges are paid by someone else just before the update.
  */
-function fakeDb({ stolen = [] as string[] } = {}) {
+function fakeDb({ stolen = [] as string[], fyi = false } = {}) {
   let rows = ROWS.map((r) => ({ ...r, paidOn: null as Date | null, paidByPersonId: null as string | null }));
+  const events = fakeEventTables({ fyi });
+  // October's bill is marked paid, November's isn't.
+  const bills = [
+    { month: "2026-10", paidCents: 41230 },
+    { month: "2026-11", paidCents: null },
+  ];
   const db: SaveRecordPaymentDb = {
     $transaction: async (fn) => {
       const copy = rows.map((r) => ({ ...r }));
       const result = await fn({
+        ...events.tables,
+        bill: { findMany: async ({ where }) => bills.filter((b) => where.month.in.includes(b.month)) },
         person: {
           findUnique: async ({ where }) =>
             ([alex, priya, sam, jordan] as string[]).includes(where.id) ? { isOwner: where.id === alex } : null,
         },
         charge: {
           findMany: async ({ where }) => copy.filter((r) => where.id.in.includes(r.id)),
+          count: async ({ where }) => copy.filter((r) => r.month === where.month && r.paidCents === null).length,
           updateMany: async ({ where, data }) => {
             const target = copy.find((r) => r.id === where.id && r.paidCents === null && !stolen.includes(r.id));
             if (!target) return { count: 0 };
@@ -51,7 +61,7 @@ function fakeDb({ stolen = [] as string[] } = {}) {
       return result;
     },
   };
-  return { db, rows: () => rows };
+  return { db, rows: () => rows, events: events.stored };
 }
 
 const save = (db: SaveRecordPaymentDb, values: Partial<RecordPaymentRequest>) =>
@@ -72,6 +82,17 @@ describe("saveRecordPayment", () => {
       ["jordan-rent", 95000, "2026-11-02", jordan],
       ["jordan-oct-rent", 95000, "2026-11-02", jordan],
     ]);
+  });
+
+  it("records the settled FYI of a month the payment settles, with FYI updates on, and only then", async () => {
+    const on = fakeDb({ fyi: true });
+    await save(on.db, { chargeIds: ["jordan-oct-rent", "jordan-rent"] });
+    // October's last charge is paid and its bill is; November still has unpaid charges and an unpaid bill.
+    expect(on.events.map((e) => e.key)).toEqual(["settled:2026-10:2026-11-03"]);
+
+    const off = fakeDb();
+    await save(off.db, { chargeIds: ["jordan-oct-rent"] });
+    expect(off.events).toEqual([]);
   });
 
   it("records a collected charge as paid by the person who collects it", async () => {

@@ -11,6 +11,7 @@ import { addCorrectionProblem, buildCorrectionCharge } from "@/lib/add-charge/bu
 import { ApiError } from "@/lib/api";
 import { now } from "@/lib/now";
 import { readCorrectableCharges, type CorrectableChargeDb } from "@/services/add-charge/add-charge.service";
+import { beginSettledCheck, type SettledEventsTx } from "@/services/notifications/notification-events.service";
 import { readMessageTemplates, type MessageTemplatesDb } from "@/services/templates/message-templates.service";
 
 /** What a key is stored under, so a key is never answered with another endpoint's response. */
@@ -52,7 +53,7 @@ interface CorrectionChargeData {
 }
 
 /** The transaction client's slice this service uses, so tests can pass an in-memory fake. */
-export interface SaveAddChargeTx extends IdempotentRequestDb, MessageTemplatesDb {
+export interface SaveAddChargeTx extends IdempotentRequestDb, MessageTemplatesDb, SettledEventsTx {
   idempotentRequest: IdempotentRequestDb["idempotentRequest"] & {
     create(args: { data: { key: string; endpoint: string; response: AddChargeResponse } }): Promise<unknown>;
   };
@@ -72,7 +73,7 @@ export interface SaveAddChargeTx extends IdempotentRequestDb, MessageTemplatesDb
       select: { id: true };
     }): Promise<{ id: string }>;
   };
-  charge: CorrectableChargeDb["charge"] & {
+  charge: CorrectableChargeDb["charge"] & SettledEventsTx["charge"] & {
     create(args: { data: CorrectionChargeData; select: { id: true } }): Promise<{ id: string }>;
     createManyAndReturn(args: {
       data: {
@@ -177,9 +178,12 @@ export async function saveAddCharge(db: SaveAddChargeDb, request: AddChargeReque
       if (!newest) throw new ApiError(404, "no_month", "No month is open yet.");
       const { schemaVersion, config } = newest.householdVersion;
       const input = { month: newest.month, config: parseHouseholdConfig(schemaVersion, config), people };
+      // A new charge can only unsettle the month today; the check keeps every settling write alike.
+      const settled = await beginSettledCheck(tx, [newest.month]);
 
       if (values.mode === "CORRECTION") {
         const response = await saveCorrection(tx, input, newest.householdVersionId, values.correction);
+        await settled.finish();
         await tx.idempotentRequest.create({ data: { key, endpoint: ENDPOINT, response } });
         return response;
       }
@@ -218,6 +222,7 @@ export async function saveAddCharge(db: SaveAddChargeDb, request: AddChargeReque
       });
 
       const response: AddChargeResponse = { month: newest.month, chargeGroupId: group?.id ?? null, chargeIds: rows.map((r) => r.id) };
+      await settled.finish();
       await tx.idempotentRequest.create({ data: { key, endpoint: ENDPOINT, response } });
       return response;
     });

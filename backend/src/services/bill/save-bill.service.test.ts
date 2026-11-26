@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import { HOUSEHOLD_SCHEMA_VERSION, saveBillResponseSchema, type SaveBillRequest } from "@splithouse/shared";
 import { ApiError } from "@/lib/api";
 import { NOV_2026_CONFIG } from "@/lib/fixtures/household";
+import { fakeEventTables } from "@/lib/fixtures/notification-events";
 import { buildUtilitiesCharges } from "@/lib/split/engine";
 import { saveBill, type SaveBillDb, type SaveBillTx } from "./save-bill.service";
 
@@ -20,7 +21,8 @@ const VALUES: SaveBillRequest = {
 const PDF = new TextEncoder().encode("%PDF-1.4 sample");
 
 /** November is open on version B with a parsed draft waiting; the flags take pieces away. */
-function fakeDb({ hasDraft = true, hasBill = false, open = true } = {}) {
+function fakeDb({ hasDraft = true, hasBill = false, open = true, fyi = false } = {}) {
+  const events = fakeEventTables({ fyi });
   const state = {
     draft: hasDraft ? { filename: "Utilities_Bill_Nov2026.pdf", bytes: PDF, parseOk: true } : null,
     bill: null as Record<string, unknown> | null,
@@ -28,6 +30,7 @@ function fakeDb({ hasDraft = true, hasBill = false, open = true } = {}) {
     charges: [] as Record<string, unknown>[],
   };
   const tx: SaveBillTx = {
+    ...events.tables,
     messageTemplates: { findUnique: async () => null },
     billDraft: {
       findUnique: async () => state.draft,
@@ -37,6 +40,8 @@ function fakeDb({ hasDraft = true, hasBill = false, open = true } = {}) {
     },
     bill: {
       findUnique: async () => (hasBill ? { id: "bill-old" } : null),
+      // October's, September's and August's bills, averaging $300.00.
+      findMany: async () => [{ currentChargesCents: 30000 }, { currentChargesCents: 29000 }, { currentChargesCents: 31000 }],
       create: async ({ data }) => {
         state.bill = data;
         return { id: "bill-1" };
@@ -65,7 +70,7 @@ function fakeDb({ hasDraft = true, hasBill = false, open = true } = {}) {
     },
   };
   const db: SaveBillDb = { $transaction: (fn) => fn(tx) };
-  return { db, state };
+  return { db, state, events: events.stored };
 }
 
 async function expectApiError(promise: Promise<unknown>, status: number, code: string) {
@@ -75,6 +80,22 @@ async function expectApiError(promise: Promise<unknown>, status: number, code: s
 }
 
 describe("saveBill", () => {
+  it("records the Unusual bill amount FYI for a bill far from the recent ones, with FYI updates on, and only then", async () => {
+    const on = fakeDb({ fyi: true });
+    await saveBill(on.db, "2026-11", VALUES);
+    expect(on.events).toEqual([
+      {
+        key: "unusual:2026-11",
+        typeKey: "unusualBill",
+        params: { month: "November", amount: "$412.30", change: "37% higher" },
+      },
+    ]);
+
+    const off = fakeDb();
+    await saveBill(off.db, "2026-11", VALUES);
+    expect(off.events).toEqual([]);
+  });
+
   it("moves the draft into the bill and its file, creates the utilities charges and deletes the draft", async () => {
     const { db, state } = fakeDb();
     const response = await saveBill(db, "2026-11", VALUES);

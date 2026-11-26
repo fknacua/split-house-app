@@ -7,12 +7,13 @@ import {
 import { ApiError } from "@/lib/api";
 import { checkBill } from "@/lib/bill/check-bill";
 import { buildUtilitiesCharges } from "@/lib/split/engine";
+import { recordUnusualBill, type UnusualBillEventsTx } from "@/services/notifications/notification-events.service";
 import { readMessageTemplates, type MessageTemplatesDb } from "@/services/templates/message-templates.service";
 import { postgresBillFileStore, type BillFileDb } from "./bill-file-store.service";
 import { countPdfPages } from "./read-bill.service";
 
 /** The slice of a Prisma transaction client saving a bill uses, so tests can pass an in-memory fake. */
-export interface SaveBillTx extends BillFileDb, MessageTemplatesDb {
+export interface SaveBillTx extends BillFileDb, MessageTemplatesDb, UnusualBillEventsTx {
   billDraft: {
     findUnique(args: {
       where: { month: string };
@@ -20,7 +21,7 @@ export interface SaveBillTx extends BillFileDb, MessageTemplatesDb {
     }): Promise<{ filename: string; bytes: Uint8Array<ArrayBuffer>; parseOk: boolean } | null>;
     deleteMany(args: { where: { month: { lte: string } } }): Promise<unknown>;
   };
-  bill: {
+  bill: UnusualBillEventsTx["bill"] & {
     findUnique(args: { where: { month: string }; select: { id: true } }): Promise<{ id: string } | null>;
     create(args: {
       data: {
@@ -75,7 +76,8 @@ function isUniqueViolation(err: unknown): boolean {
  * Saves the month's bill from its draft, in one transaction: the reviewed values become the
  * `Bill`, the draft's PDF its `BillFile`, the split engine creates each person's utilities
  * charge from Current Charges and the month's pinned household version, and the draft (with any
- * left for earlier months) is deleted. The month then shows as `unsent` on Home.
+ * left for earlier months) is deleted. The month then shows as `unsent` on Home. A bill that is unusual by the upload
+ * warning's rule records its Unusual bill amount FYI in the same transaction.
  *
  * @param db - The Prisma client, or a fake in tests.
  * @param month - `YYYY-MM`, the month the upload started from.
@@ -144,6 +146,7 @@ export async function saveBill(db: SaveBillDb, month: string, values: SaveBillRe
         })),
       });
       await tx.billDraft.deleteMany({ where: { month: { lte: month } } });
+      await recordUnusualBill(tx, month, values.currentChargesCents);
       return { month };
     });
   } catch (err) {
