@@ -54,3 +54,4 @@ export * from './use-share-bill';
 export * from './use-start-next-month';
 export * from './use-unsaved-guard';
 export * from './use-upload-bill-draft';
+export * from './use-notification-taps';

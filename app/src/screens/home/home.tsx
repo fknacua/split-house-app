@@ -17,6 +17,7 @@ import { HomeHeaderSkeleton } from './components/home-header-skeleton';
 import { HomeHero } from './components/home-hero';
 import { HomeNextMonthFooter } from './components/home-next-month-footer';
 import { HomeSkeleton } from './components/home-skeleton';
+import { HomeTapOpener } from './components/home-tap-opener';
 import { HomeSheetsProvider } from './home-sheets';
 
 // How far the hero scrolls before the compact summary pins under the header.
@@ -37,6 +38,7 @@ export function Home() {
 
   return (
     <HomeSheetsProvider>
+      <HomeTapOpener />
       <Screen>
         {data ? <PageHeader title={data.monthName} trailing={<HomeAddChargeButton />} /> : <HomeHeaderSkeleton />}
         <View className="relative min-h-0 flex-1">

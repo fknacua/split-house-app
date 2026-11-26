@@ -7,7 +7,7 @@ import { BottomSheetModalProvider } from '@gorhom/bottom-sheet';
 import { QueryClientProvider } from '@tanstack/react-query';
 
 import { AppProvider, ServerUnreachableProvider, SuccessToastProvider } from '@/components';
-import { useAppFonts, useBootstrap, useNotificationSchedule } from '@/hooks';
+import { useAppFonts, useBootstrap, useNotificationSchedule, useNotificationTaps } from '@/hooks';
 import { useAppStateFocus } from '@/lib/focus-manager';
 import { showNotificationsInForeground } from '@/lib/notifications';
 import { queryClient } from '@/lib/query-client';
@@ -44,6 +44,7 @@ function SessionStack() {
     loaded: bootstrap.data !== undefined,
     setupComplete,
   });
+  useNotificationTaps(signedIn && setupComplete && !settingUpReminders);
   if (pending) return null;
   if (signedIn && !bootstrap.data) return <ReturningView state="loading" />;
   if (settingUpReminders) return <ReturningView state="reminders" />;
