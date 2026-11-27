@@ -1,0 +1,136 @@
+name: Backup
+
+# Weekly encrypted dump of the production database to the R2 bucket.
+# Setup and secrets: Account Setup Guide, sections 8 and 9. Restore: backend/README.md.
+on:
+  schedule:
+    # Sundays 18:00 UTC (Mondays 02:00 Singapore time). GitHub may start it a little late.
+    - cron: "0 18 * * 0"
+  workflow_dispatch:
+
+# Never two backups at once, and never cancel one halfway.
+concurrency:
+  group: backup
+  cancel-in-progress: false
+
+# The job reads no repository content.
+permissions: {}
+
+defaults:
+  run:
+    # Explicit bash so every step runs with -e and pipefail.
+    shell: bash
+
+jobs:
+  backup:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    env:
+      # Must be at least the server's major version (Neon production runs Postgres 18).
+      PG_MAJOR: "18"
+      KEEP: "8"
+      PREFIX: db/
+      AWS_ACCESS_KEY_ID: ${{ secrets.BACKUP_ACCESS_KEY_ID }}
+      AWS_SECRET_ACCESS_KEY: ${{ secrets.BACKUP_SECRET_ACCESS_KEY }}
+      # R2 needs a region value but ignores it.
+      AWS_DEFAULT_REGION: auto
+      BACKUP_ENDPOINT: ${{ secrets.BACKUP_ENDPOINT }}
+      BACKUP_BUCKET: ${{ secrets.BACKUP_BUCKET }}
+    steps:
+      - name: Check the secrets are set
+        env:
+          NEON_DIRECT_URL: ${{ secrets.NEON_DIRECT_URL }}
+          BACKUP_PASSPHRASE: ${{ secrets.BACKUP_PASSPHRASE }}
+        run: |
+          missing=0
+          for name in NEON_DIRECT_URL BACKUP_PASSPHRASE BACKUP_BUCKET BACKUP_ENDPOINT AWS_ACCESS_KEY_ID AWS_SECRET_ACCESS_KEY; do
+            if [ -z "${!name}" ]; then
+              echo "::error::Secret for $name is empty or missing."
+              missing=1
+            fi
+          done
+          exit "$missing"
+
+      # The runner's own Postgres client is older than the server, and pg_dump refuses a newer server.
+      - name: Install the Postgres client
+        run: |
+          keyring=/usr/share/postgresql-common/pgdg/apt.postgresql.org.asc
+          sudo install -d /usr/share/postgresql-common/pgdg
+          sudo curl --fail --silent --show-error -o "$keyring" https://www.postgresql.org/media/keys/ACCC4CF8.asc
+          # Stop unless the key is the PostgreSQL signing key.
+          key_info=$(gpg --show-keys --with-colons "$keyring")
+          grep -q '^fpr:::::::::B97B0AFCAA1A47F044F244A07FCC7D46ACCC4CF8:$' <<< "$key_info"
+          . /etc/os-release
+          printf 'Types: deb\nURIs: https://apt.postgresql.org/pub/repos/apt\nSuites: %s-pgdg\nComponents: main\nSigned-By: %s\n' \
+            "$VERSION_CODENAME" "$keyring" | sudo tee /etc/apt/sources.list.d/pgdg.sources > /dev/null
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq "postgresql-client-$PG_MAJOR" > /dev/null
+          echo "/usr/lib/postgresql/$PG_MAJOR/bin" >> "$GITHUB_PATH"
+
+      - name: Tool versions
+        run: |
+          pg_dump --version
+          gpg --version | head -n 1
+          aws --version
+
+      # The plain dump only exists on this throwaway runner, which is deleted after the job.
+      - name: Dump, check and encrypt
+        env:
+          NEON_DIRECT_URL: ${{ secrets.NEON_DIRECT_URL }}
+          BACKUP_PASSPHRASE: ${{ secrets.BACKUP_PASSPHRASE }}
+          # The free database may be asleep; give it time to wake.
+          PGCONNECT_TIMEOUT: "60"
+        run: |
+          umask 077
+          name="split-house-$(date -u +%Y-%m-%dT%H%M%SZ).dump.gpg"
+          plain="$RUNNER_TEMP/backup.dump"
+          enc="$RUNNER_TEMP/$name"
+
+          pg_dump --format=custom --no-password --dbname="$NEON_DIRECT_URL" --file="$plain"
+          # A dump that can't be listed can't be restored.
+          pg_restore --list "$plain" > /dev/null
+
+          # The custom format is already compressed. The passphrase goes in on a file descriptor, never as an argument.
+          gpg --batch --yes --quiet --pinentry-mode loopback --passphrase-fd 3 \
+            --symmetric --cipher-algo AES256 --compress-algo none \
+            --output "$enc" "$plain" 3< <(printf '%s' "$BACKUP_PASSPHRASE")
+          rm -f "$plain"
+
+          # Prove the encrypted file opens with the passphrase and still holds a valid dump.
+          gpg --batch --quiet --pinentry-mode loopback --passphrase-fd 3 --decrypt "$enc" 3< <(printf '%s' "$BACKUP_PASSPHRASE") \
+            | pg_restore --list > /dev/null
+
+          echo "BACKUP_NAME=$name" >> "$GITHUB_ENV"
+          echo "Encrypted dump: $name ($(stat -c %s "$enc") bytes)"
+
+      - name: Upload
+        run: |
+          aws s3 cp "$RUNNER_TEMP/$BACKUP_NAME" "s3://$BACKUP_BUCKET/$PREFIX$BACKUP_NAME" \
+            --endpoint-url "$BACKUP_ENDPOINT" --only-show-errors
+          aws s3api head-object --bucket "$BACKUP_BUCKET" --key "$PREFIX$BACKUP_NAME" \
+            --endpoint-url "$BACKUP_ENDPOINT" > /dev/null
+          rm -f "$RUNNER_TEMP/$BACKUP_NAME"
+          echo "Uploaded $PREFIX$BACKUP_NAME"
+
+      # Runs only after a successful upload, so a failing job never deletes the last good backups.
+      - name: Keep the newest ${{ env.KEEP }}
+        run: |
+          # Names start with a UTC timestamp, so name order is age order.
+          # Captured first so a failed listing fails the step.
+          listing=$(aws s3api list-objects-v2 --bucket "$BACKUP_BUCKET" --prefix "$PREFIX" \
+            --endpoint-url "$BACKUP_ENDPOINT" --query 'Contents[].Key' --output text)
+          mapfile -t keys < <(tr '\t' '\n' <<< "$listing" | grep -v -e '^None$' -e '^$' | sort)
+          if ! grep -qxF "$PREFIX$BACKUP_NAME" <<< "$(printf '%s\n' "${keys[@]}")"; then
+            echo "::error::The new backup is missing from the listing, so nothing was deleted."
+            exit 1
+          fi
+          count=${#keys[@]}
+          if [ "$count" -le "$KEEP" ]; then
+            echo "$count backups stored; nothing to delete."
+            exit 0
+          fi
+          for key in "${keys[@]:0:count-KEEP}"; do
+            aws s3 rm "s3://$BACKUP_BUCKET/$key" --endpoint-url "$BACKUP_ENDPOINT" --only-show-errors
+            echo "Deleted $key"
+          done
+          echo "Kept the newest $KEEP of $count."
