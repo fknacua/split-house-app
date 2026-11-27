@@ -1,18 +1,23 @@
 import { homeTargetSchema, notificationActionSchema, type HomeTarget } from '@splithouse/shared';
 
+import type { NotificationData } from './schedule';
+
+/** A notification's `content.data` as read back: the keys the scheduler stored, each still unchecked. */
+type StoredData = Partial<Record<keyof NotificationData, unknown>>;
+
 /** What a tap on a notification asks for: the screen or sheet to open, or null for plain Home. */
 export interface TapRequest {
   target: HomeTarget | null;
 }
 
 /**
- * Reads where a tap on a notification should go from the `data` the scheduler stored (`NotificationData`). Anything
- * missing or not a valid target falls back to Home, so an old or odd notification still opens the app.
+ * Reads where a tap on a notification should go from the `data` the scheduler stored. Anything missing
+ * or not a valid target falls back to Home, so an old or odd notification still opens the app.
  *
  * @param data - The notification's `content.data`.
  * @returns The request to open.
  */
-export function tapRequestFromData(data: Record<string, unknown> | null | undefined): TapRequest {
+export function tapRequestFromData(data: StoredData | null | undefined): TapRequest {
   const parsed = homeTargetSchema.safeParse(data?.tap);
   return { target: parsed.success ? parsed.data : null };
 }
@@ -26,7 +31,7 @@ export function tapRequestFromData(data: Record<string, unknown> | null | undefi
  * @returns The request to open, or null when the notification has no such action.
  */
 export function actionRequestFromData(
-  data: Record<string, unknown> | null | undefined,
+  data: StoredData | null | undefined,
   actionIdentifier: string,
 ): TapRequest | null {
   const parsed = notificationActionSchema.array().safeParse(data?.actions);

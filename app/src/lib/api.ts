@@ -2,7 +2,7 @@ import { authClient, BACKEND_URL } from '@/lib/auth-client';
 import type { ApiErrorBody } from '@splithouse/shared';
 
 /** Requests give up after this long (covers a Neon cold start). */
-export const REQUEST_TIMEOUT_MS = 20_000;
+const REQUEST_TIMEOUT_MS = 20_000;
 
 /** Statuses a gateway returns while the backend or database is starting or down. */
 const UNREACHABLE_STATUSES = [502, 503, 504];

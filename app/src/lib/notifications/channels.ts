@@ -27,7 +27,7 @@ export const PAID_NUDGE_CATEGORY = 'paid-nudge';
  *
  * @returns Once the category is registered.
  */
-export async function setUpNotificationCategories(): Promise<void> {
+async function setUpNotificationCategories(): Promise<void> {
   await Notifications.setNotificationCategoryAsync(PAID_NUDGE_CATEGORY, [
     { identifier: 'paid', buttonTitle: 'Paid', options: { opensAppToForeground: true } },
     { identifier: 'nudge', buttonTitle: 'Nudge', options: { opensAppToForeground: true } },

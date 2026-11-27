@@ -14,7 +14,7 @@ import {
   parseShortDisplayMonth,
 } from './month';
 
-describe('isMonthKey', () => {
+describe('isValidMonthKey', () => {
   it.each([
     ['2026-11', true],
     ['2026-01', true],
