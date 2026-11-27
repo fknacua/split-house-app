@@ -2,6 +2,7 @@ import { RefreshControl, ScrollView } from 'react-native';
 
 import { Alert, PageHeader, Screen } from '@/components';
 import { useHistory, usePullToRefresh } from '@/hooks';
+import { HistoryEmpty } from './components/history-empty';
 import { HistoryGroupSection } from './components/history-group-section';
 import { HistorySkeleton } from './components/history-skeleton';
 
@@ -22,6 +23,7 @@ export function History() {
       >
         {isPending ? <HistorySkeleton /> : null}
         {error ? <Alert variant="danger" message={error.message} /> : null}
+        {data && !error && data.groups.length === 0 ? <HistoryEmpty /> : null}
         {data?.groups.map((group) => (
           <HistoryGroupSection key={group.year} group={group} />
         ))}

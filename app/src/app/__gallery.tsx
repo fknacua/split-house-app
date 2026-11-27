@@ -2,7 +2,8 @@ import { Redirect } from 'expo-router';
 import { useEffect, useState } from 'react';
 import { View } from 'react-native';
 
-import { ConnectedButtonGroup, ServerErrorDialog } from '@/components';
+import { ConnectedButtonGroup, PageHeader, Screen, ServerErrorDialog } from '@/components';
+import { HistoryEmpty } from '@/screens/history/components/history-empty';
 import { ReturningView, type ReturningState } from '@/screens/returning/returning-view';
 import { SignInView, type SignInState } from '@/screens/sign-in/sign-in-view';
 
@@ -10,6 +11,7 @@ const SCREENS = [
   { label: 'Sign in', value: 'sign-in' },
   { label: 'Returning', value: 'returning' },
   { label: 'Server', value: 'server-error' },
+  { label: 'History', value: 'history-empty' },
 ] as const;
 
 const SIGN_IN_STATES = [
@@ -96,6 +98,12 @@ export default function Gallery() {
       </View>
       {screen === 'sign-in' ? <SignInView state={signIn} onSignIn={() => {}} /> : null}
       {screen === 'returning' ? <ReturningView state={returning} /> : null}
+      {screen === 'history-empty' ? (
+        <Screen>
+          <PageHeader title="History" />
+          <HistoryEmpty />
+        </Screen>
+      ) : null}
       <ServerErrorDialog
         open={screen === 'server-error' && serverError !== 'closed'}
         retrying={serverError === 'retrying'}
