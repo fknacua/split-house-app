@@ -388,22 +388,22 @@ describe("buildNotificationPlan", () => {
           "payBill:dueTomorrow:2026-11:2026-11-15",
           "2026-11-15T08:00",
           "checks",
-          "Pay utilities bill: collected $206.15 of $412.30",
-          "Due tomorrow, 16 Nov.",
+          "Pay November’s utilities bill",
+          "Collected $206.15 of $412.30. Due tomorrow, 16 Nov.",
         ],
         [
           "payBill:dueToday:2026-11:2026-11-16",
           "2026-11-16T08:00",
           "checks",
-          "Pay utilities bill: collected $206.15 of $412.30",
-          "Due today.",
+          "Pay November’s utilities bill",
+          "Collected $206.15 of $412.30. Due today.",
         ],
         [
           "payBill:overdue:2026-11:2026-11-17",
           "2026-11-17T08:00",
           "action",
-          "Pay utilities bill: collected $206.15 of $412.30",
-          "Overdue since 16 Nov.",
+          "Pay November’s utilities bill",
+          "Collected $206.15 of $412.30. Overdue since 16 Nov.",
         ],
       ]);
     });
@@ -414,7 +414,8 @@ describe("buildNotificationPlan", () => {
         switches: only("payBill"),
         bills: [paidBill("2026-10"), { ...NOV_BILL, dueDate: new Date("2026-11-20") }],
       });
-      expect([first.id, first.body]).toEqual(["payBill:dueTomorrow:2026-11:2026-11-19", "Due tomorrow, 20 Nov."]);
+      expect(first.id).toBe("payBill:dueTomorrow:2026-11:2026-11-19");
+      expect(first.body).toMatch(/^Collected \$[\d,.]+ of \$[\d,.]+\. Due tomorrow, 20 Nov\.$/);
     });
 
     it("is not planned once the bill is marked paid", () => {

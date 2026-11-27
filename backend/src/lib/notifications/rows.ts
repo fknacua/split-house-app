@@ -50,7 +50,8 @@ export const NOTIFICATION_GROUP_ROWS: readonly NotificationGroupRow[] = [
 ];
 
 /**
- * The six notifications as seeded by migration `notifications`, with the Tech Stack's copy (deviations R10 to R15).
+ * The six notifications as seeded by migration `notifications` and updated by `pay_bill_month`, with the Tech Stack's copy
+ * (deviations R10 to R16).
  * Due tomorrow and due today use the Reminders channel (`checks`), overdue Action needed, the FYIs FYI. The migration
  * holds the same rows; `rows.test.ts` fails when they drift.
  */
@@ -105,14 +106,18 @@ export const NOTIFICATION_TYPE_ROWS: readonly NotificationTypeRow[] = [
       stages: {
         dueTomorrow: {
           channel: "checks",
-          title: "Pay utilities bill: collected {collected} of {total}",
-          body: "Due tomorrow, {due}.",
+          title: "Pay {month}’s utilities bill",
+          body: "Collected {collected} of {total}. Due tomorrow, {due}.",
         },
-        dueToday: { channel: "checks", title: "Pay utilities bill: collected {collected} of {total}", body: "Due today." },
+        dueToday: {
+          channel: "checks",
+          title: "Pay {month}’s utilities bill",
+          body: "Collected {collected} of {total}. Due today.",
+        },
         overdue: {
           channel: "action",
-          title: "Pay utilities bill: collected {collected} of {total}",
-          body: "Overdue since {due}.",
+          title: "Pay {month}’s utilities bill",
+          body: "Collected {collected} of {total}. Overdue since {due}.",
         },
       },
     },
