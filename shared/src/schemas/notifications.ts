@@ -52,9 +52,6 @@ export const notificationTextSchema = z.object({
   body: z.string().min(1),
 });
 
-/** What one notification shows and where. */
-export type NotificationText = z.infer<typeof notificationTextSchema>;
-
 /**
  * A `deadline` rule: three stages at `time`, due tomorrow (the day before, once), due today (once) and overdue (every
  * day after, until done).
@@ -106,9 +103,6 @@ export const notificationTypeRuleSchema = z.discriminatedUnion('kind', [
 
 /** A `NotificationType` row's `kind` and `rule` together. */
 export type NotificationTypeRule = z.infer<typeof notificationTypeRuleSchema>;
-
-/** A notification type's kind: `deadline`, `dated` or `event`. */
-export type NotificationKind = NotificationTypeRule['kind'];
 
 /**
  * Reads a `NotificationType` row's stored `kind` and `rule`.
