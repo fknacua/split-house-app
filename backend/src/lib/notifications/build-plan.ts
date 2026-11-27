@@ -331,6 +331,7 @@ function billDue(ctx: PlanContext, day: string, stage: Stage): DeadlineFill[] {
     .map((b): DeadlineFill => ({
       subject: b.month,
       values: {
+        month: formatMonthName(b.month),
         collected: formatCents(b.collectedCents),
         total: formatCents(b.totalCents),
         due: formatDateShort(b.due),

@@ -1,4 +1,4 @@
-import { readFileSync } from "node:fs";
+import { readdirSync, readFileSync } from "node:fs";
 import { fileURLToPath } from "node:url";
 import { describe, expect, it } from "vitest";
 import {
@@ -17,10 +17,14 @@ import {
 } from "./registry";
 import { NOTIFICATION_GROUP_ROWS, NOTIFICATION_TYPE_ROWS } from "./rows";
 
-const MIGRATION = readFileSync(
-  fileURLToPath(new URL("../../../prisma/migrations/20261127120000_notifications/migration.sql", import.meta.url)),
-  "utf8",
-);
+const MIGRATIONS_DIR = fileURLToPath(new URL("../../../prisma/migrations/", import.meta.url));
+const MIGRATION = readFileSync(`${MIGRATIONS_DIR}20261127120000_notifications/migration.sql`, "utf8");
+
+/** Every migration after the one that inserts the rows, in the order they apply. */
+const LATER_MIGRATIONS = readdirSync(MIGRATIONS_DIR)
+  .filter((name) => name > "20261127120000_notifications" && name !== "migration_lock.toml")
+  .sort()
+  .map((name) => readFileSync(`${MIGRATIONS_DIR}${name}/migration.sql`, "utf8"));
 
 /** The group rows the migration inserts, read from its `VALUES` lines. */
 function migrationGroups() {
@@ -34,10 +38,20 @@ function migrationGroups() {
   }));
 }
 
-/** The type rows the migration inserts, read from its `VALUES` lines. */
+/** The type rows the migrations leave: the first one's `VALUES` lines, then each later rule `UPDATE` in order. */
 function migrationTypes() {
   const rows = MIGRATION.matchAll(/^\s+\('(\w+)', '(\w+)', '(\w+)', '([^']+)'::jsonb, CURRENT_TIMESTAMP\)/gm);
-  return [...rows].map(([, key, groupKey, kind, rule]) => ({ key, groupKey, kind, rule: JSON.parse(rule) }));
+  const types = [...rows].map(([, key, groupKey, kind, rule]) => ({ key, groupKey, kind, rule: JSON.parse(rule) }));
+  for (const sql of LATER_MIGRATIONS) {
+    const updates = sql.matchAll(
+      /^UPDATE "notification_type" SET "rule" = '([^']+)'::jsonb, "updatedAt" = CURRENT_TIMESTAMP WHERE "key" = '(\w+)';/gm,
+    );
+    for (const [, rule, key] of updates) {
+      const type = types.find((t) => t.key === key);
+      if (type) type.rule = JSON.parse(rule);
+    }
+  }
+  return types;
 }
 
 describe("the seeded notification rows", () => {

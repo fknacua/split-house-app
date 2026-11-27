@@ -121,7 +121,7 @@ The title stays the same at every stage and the body says when (`{month}` is `No
 | --- | --- | --- | --- | --- |
 | Upload | `Upload {month}’s utilities bill` | `It usually lands tomorrow. Tap to upload it once it’s in.` | `It usually lands today. Tap to upload it.` | `Not uploaded yet. Tap to upload it.` |
 | Collect | `Collect {amount} from {payer}` | `{items}. Due tomorrow.` | `{items}. Due today.` | `{items}. Overdue since {due}.` |
-| Pay bill | `Pay utilities bill: collected {collected} of {total}` | `Due tomorrow, {due}.` | `Due today.` | `Overdue since {due}.` |
+| Pay bill | `Pay {month}’s utilities bill` | `Collected {collected} of {total}. Due tomorrow, {due}.` | `Collected {collected} of {total}. Due today.` | `Collected {collected} of {total}. Overdue since {due}.` |
 
 - **Collect tenant payments** is one reminder per payer, per stage, per morning. A routed charge is folded into its payer's reminder (Tenant 2 paying via Tenant 1 gives one reminder, to collect from Tenant 1). Due tomorrow and due today group the payer's charges due that day; overdue groups all of the payer's overdue charges whatever their due dates, and `{due}` is the earliest. Owner charges and refunds never appear. `{amount}` is the group's total; `{items}` names each charge (`Nov rent`, `Nov Starhub`, `Nov utilities for Sam`, a correction by its short name `Correction · Utilities Oct`), joined with commas and "and"; past three it reads `Dec rent, Dec Starhub and 2 more`.
 - **Pay utilities bill:** `{collected}` is only what the others have paid of their utilities, no more than each charge.

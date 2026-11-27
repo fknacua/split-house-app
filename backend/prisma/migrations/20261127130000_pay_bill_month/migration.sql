@@ -1,0 +1,3 @@
+-- Pay utilities bill names the bill's month in its title, so October's and November's reminders can be told apart, and
+-- moves the collected amount into the body, so the title fits on one line.
+UPDATE "notification_type" SET "rule" = '{"anchor":"bill-due","time":"08:00","stages":{"dueTomorrow":{"channel":"checks","title":"Pay {month}’s utilities bill","body":"Collected {collected} of {total}. Due tomorrow, {due}."},"dueToday":{"channel":"checks","title":"Pay {month}’s utilities bill","body":"Collected {collected} of {total}. Due today."},"overdue":{"channel":"action","title":"Pay {month}’s utilities bill","body":"Collected {collected} of {total}. Overdue since {due}."}}}'::jsonb, "updatedAt" = CURRENT_TIMESTAMP WHERE "key" = 'payBill';

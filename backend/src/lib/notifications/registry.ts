@@ -17,8 +17,8 @@ export const NOTIFICATION_ANCHORS: Readonly<Record<DeadlineAnchor | DatedAnchor,
    * charges named) and `{due}` (the earliest due date, e.g. `2 Dec`).
    */
   "charge-due": { placeholders: ["payer", "amount", "items", "due"] },
-  /** The bill's due date: `{collected}` of `{total}`, and `{due}`. */
-  "bill-due": { placeholders: ["collected", "total", "due"] },
+  /** The bill's due date: `{month}` the bill is for (e.g. `November`), `{collected}` of `{total}`, and `{due}`. */
+  "bill-due": { placeholders: ["month", "collected", "total", "due"] },
   /** The latest aircon charge's date. Fills nothing. */
   "last-aircon": { placeholders: [] },
 };
