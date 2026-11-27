@@ -94,11 +94,12 @@ jobs:
           gpg --batch --yes --quiet --pinentry-mode loopback --passphrase-fd 3 \
             --symmetric --cipher-algo AES256 --compress-algo none \
             --output "$enc" "$plain" 3< <(printf '%s' "$BACKUP_PASSPHRASE")
-          rm -f "$plain"
 
-          # Prove the encrypted file opens with the passphrase and still holds a valid dump.
+          # Prove the encrypted file decrypts with the passphrase to exactly the dump checked above.
+          # cmp reads the whole stream; pg_restore --list stops early and breaks the pipe.
           gpg --batch --quiet --pinentry-mode loopback --passphrase-fd 3 --decrypt "$enc" 3< <(printf '%s' "$BACKUP_PASSPHRASE") \
-            | pg_restore --list > /dev/null
+            | cmp --silent - "$plain"
+          rm -f "$plain"
 
           echo "BACKUP_NAME=$name" >> "$GITHUB_ENV"
           echo "Encrypted dump: $name ($(stat -c %s "$enc") bytes)"
