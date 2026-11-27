@@ -174,7 +174,10 @@ jobs:
           RESTORE_TARGET_URL: ${{ secrets.RESTORE_TARGET_URL }}
         run: |
           q() { psql -X -q -t -A -v ON_ERROR_STOP=1 --dbname="$RESTORE_TARGET_URL" -c "$1"; }
-          mapfile -t ids < <(q "select id from bill_file order by id")
+          # Tables are named with their schema, since the target's search_path may leave out public.
+          # The list is captured first so a failed query fails the step.
+          id_list=$(q "select id from public.bill_file order by id")
+          mapfile -t ids < <(grep -v '^$' <<< "$id_list" || true)
           total=${#ids[@]}
           if [ "$total" -eq 0 ]; then
             echo "No bill files stored, so there is nothing to check."
@@ -184,8 +187,9 @@ jobs:
           n=0
           for id in "${ids[@]}"; do
             n=$((n + 1))
-            q "select encode(bytes, 'base64') from bill_file where id = '$id'" | base64 -d > "$RUNNER_TEMP/bill.pdf"
-            IFS='|' read -r stored_size stored_pages <<< "$(q "select \"sizeBytes\", coalesce(\"pageCount\"::text, '') from bill_file where id = '$id'")"
+            q "select encode(bytes, 'base64') from public.bill_file where id = '$id'" | base64 -d > "$RUNNER_TEMP/bill.pdf"
+            meta=$(q "select \"sizeBytes\", coalesce(\"pageCount\"::text, '') from public.bill_file where id = '$id'")
+            IFS='|' read -r stored_size stored_pages <<< "$meta"
             size=$(stat -c %s "$RUNNER_TEMP/bill.pdf")
             if pages=$(pdfinfo "$RUNNER_TEMP/bill.pdf" 2> /dev/null | awk '/^Pages:/ { print $2 }') && [ -n "$pages" ]; then
               note="opens, $pages page(s)"
