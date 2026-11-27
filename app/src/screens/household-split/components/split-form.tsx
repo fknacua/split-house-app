@@ -4,6 +4,7 @@ import { useForm, useWatch } from 'react-hook-form';
 import { KeyboardAvoidingView, ScrollView, View } from 'react-native';
 
 import { Alert, Button, ConfirmDialog, Screen, SubpageFooter, SubpageHeader } from '@/components';
+import { useFocusChain } from '@/hooks';
 import { DatedHeading } from '@/screens/household-landlord';
 import { EditSaveActions, EditSummaryCard, useEditFlow } from '@/screens/household-person';
 import { hasSplitChanges, toSplitEdit, toSplitFormValues, type SplitFormValues } from '../helpers';
@@ -32,6 +33,22 @@ export function SplitForm({ form }: SplitFormProps) {
   const hasFieldErrors = Object.keys(errors).some((key) => key !== 'form');
   // With no primary tenant there is nothing to split, so the cards have no control.
   const people = opened.splitTitle && opened.primary ? { title: opened.splitTitle, owner: opened.owner, primary: opened.primary } : null;
+  // The keyboard's next key, card by card as drawn: Rent's percents, Utilities' tenant shares, total and counts, then
+  // Aircon's counts. The fields are not react-hook-form fields, so the chain holds their refs. No split without people.
+  const chain = useFocusChain([
+    people && 'rent.owner',
+    people && 'rent.primary',
+    ...opened.values.tenantShares.map((tenant) => `tenant.${tenant.personId}`),
+    'totalShares',
+    people && 'utilities.owner',
+    people && 'utilities.primary',
+    people && 'aircon.owner',
+    people && 'aircon.primary',
+  ]);
+  const splitFocus = (card: 'rent' | 'utilities' | 'aircon') => ({
+    owner: chain.field(`${card}.owner`),
+    primary: chain.field(`${card}.primary`),
+  });
 
   return (
     <Screen>
@@ -56,6 +73,7 @@ export function SplitForm({ form }: SplitFormProps) {
                     amount={amounts.rent}
                     error={errors.rentPrimaryBps}
                     warning={warnings.rentPrimaryBps}
+                    focus={splitFocus('rent')}
                   />
                 ) : null
               }
@@ -81,6 +99,7 @@ export function SplitForm({ form }: SplitFormProps) {
                     error={errors.utilitiesPrimaryShares}
                     warning={warnings.utilitiesPrimaryShares}
                     dimmed={!!errors.leftToSplit}
+                    focus={splitFocus('utilities')}
                   />
                 ) : null
               }
@@ -96,6 +115,7 @@ export function SplitForm({ form }: SplitFormProps) {
                     onChange={(shares) => setValue(`tenantShares.${index}.utilityShares`, shares)}
                     error={errors[key]}
                     warning={warnings[key]}
+                    focus={chain.field(`tenant.${tenant.personId}`)}
                   />
                 );
               })}
@@ -105,6 +125,7 @@ export function SplitForm({ form }: SplitFormProps) {
                 value={values.totalShares}
                 onChange={(shares) => setValue('totalShares', shares)}
                 error={errors.totalShares}
+                focus={chain.field('totalShares')}
               />
             </SplitCard>
             <SplitCard
@@ -123,6 +144,7 @@ export function SplitForm({ form }: SplitFormProps) {
                     onChange={(units) => setValue('airconPrimaryUnits', units)}
                     error={errors.airconPrimaryUnits}
                     warning={warnings.airconPrimaryUnits}
+                    focus={splitFocus('aircon')}
                   />
                 ) : null
               }

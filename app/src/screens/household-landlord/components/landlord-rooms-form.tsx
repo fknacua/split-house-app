@@ -1,6 +1,6 @@
 import { Plus, Undo } from 'lucide-react-native';
 import { useRef, useState } from 'react';
-import { useFieldArray, useForm, useWatch } from 'react-hook-form';
+import { type FieldPath, FormProvider, useFieldArray, useForm, useWatch } from 'react-hook-form';
 import { KeyboardAvoidingView, ScrollView, View } from 'react-native';
 
 import {
@@ -13,9 +13,10 @@ import {
   SubpageHeader,
 } from '@/components';
 import { useKeepFocusedInputVisible } from '@/hooks';
+import { fieldOrder } from '@/lib';
 import { EditSaveActions, EditSummaryCard, useEditFlow } from '@/screens/household-person';
 import { hasHomeChanges, toHomeEdit, toHomeFormValues, type HomeFormValues } from '../helpers';
-import type { LandlordRoomsFormProps } from '../types';
+import type { LandlordRoomsFormProps, RoomCardProps } from '../types';
 import { AddRoomSheet } from './add-room-sheet';
 import { DatedHeading } from './dated-heading';
 import { LandlordFields } from './landlord-fields';
@@ -23,6 +24,13 @@ import { RemovedRoomCard } from './removed-room-card';
 import { RoomCard } from './room-card';
 
 const ROOM_ORDER = ['MASTER', 'TENANT', 'COMMON'] as const;
+
+/** One room card's text fields top to bottom: name, rent (tenant rooms only), then aircon units. */
+function roomFields(path: RoomCardProps['path'], roomType: RoomCardProps['roomType']): FieldPath<HomeFormValues>[] {
+  return roomType === 'TENANT'
+    ? [`${path}.name`, `${path}.rentCents`, `${path}.airconUnits`]
+    : [`${path}.name`, `${path}.airconUnits`];
+}
 
 /**
  * The `LandlordRooms` board: a Landlord card, one card per room by type and Add room, all saved together from next
@@ -32,9 +40,23 @@ const ROOM_ORDER = ['MASTER', 'TENANT', 'COMMON'] as const;
 export function LandlordRoomsForm({ form }: LandlordRoomsFormProps) {
   // The refetch after a save changes the response while the screen is closing, so the form keeps what it opened on.
   const [opened] = useState(form);
-  const { control, setValue } = useForm<HomeFormValues>({ defaultValues: toHomeFormValues(opened) });
+  const methods = useForm<HomeFormValues>({ defaultValues: toHomeFormValues(opened) });
+  const { control, setValue } = methods;
   const { fields: newRooms, append, remove } = useFieldArray({ control, name: 'newRooms' });
   const values = useWatch({ control }) as HomeFormValues;
+  // The keyboard's next key, in the order the cards are drawn: the Rent card, then each room by type, saved rooms
+  // before new ones. A removed room's card has no fields, so it is skipped.
+  const next = fieldOrder<FieldPath<HomeFormValues>>([
+    'landlordRentCents',
+    'landlordDueDay',
+    'billDueDay',
+    ...ROOM_ORDER.flatMap((type) => [
+      ...opened.rooms.flatMap((room, index) =>
+        room.roomType === type && !values.rooms[index]?.removed ? roomFields(`rooms.${index}`, type) : []
+      ),
+      ...newRooms.flatMap((room, index) => (room.roomType === type ? roomFields(`newRooms.${index}`, type) : [])),
+    ]),
+  ]);
   const dirty = hasHomeChanges(values, opened);
   const flow = useEditFlow(toHomeEdit(values), dirty);
   const { errors, warnings, guard } = flow;
@@ -63,6 +85,7 @@ export function LandlordRoomsForm({ form }: LandlordRoomsFormProps) {
           errors={errors}
           warnings={warnings}
           onRemove={room.canRemove ? () => setValue(`rooms.${index}.removed`, true) : null}
+          next={next}
         />
       );
     });
@@ -88,6 +111,7 @@ export function LandlordRoomsForm({ form }: LandlordRoomsFormProps) {
             errors={errors}
             warnings={warnings}
             onRemove={seeded.canRemove ? () => remove(index) : null}
+            next={next}
           />
         );
       }
@@ -106,6 +130,7 @@ export function LandlordRoomsForm({ form }: LandlordRoomsFormProps) {
           errors={errors}
           warnings={warnings}
           onRemove={() => remove(index)}
+          next={next}
         />
       );
     });
@@ -120,17 +145,19 @@ export function LandlordRoomsForm({ form }: LandlordRoomsFormProps) {
           keyboardShouldPersistTaps="handled"
           contentContainerClassName="gap-3 px-4 pb-4 pt-2"
         >
-          <View pointerEvents={flow.saving ? 'none' : 'auto'} className="gap-3">
-            <DatedHeading title={opened.datedTitle} note={opened.pendingNote} />
-            <LandlordFields control={control} errors={errors} />
-            {ROOM_ORDER.map((type) => (
-              <View key={type} className="gap-3">
-                {savedCards(type)}
-                {newCards(type)}
-              </View>
-            ))}
-            <Button label="Add room" variant="outline" icon={Plus} onPress={() => sheetRef.current?.open()} />
-          </View>
+          <FormProvider {...methods}>
+            <View pointerEvents={flow.saving ? 'none' : 'auto'} className="gap-3">
+              <DatedHeading title={opened.datedTitle} note={opened.pendingNote} />
+              <LandlordFields control={control} errors={errors} next={next} />
+              {ROOM_ORDER.map((type) => (
+                <View key={type} className="gap-3">
+                  {savedCards(type)}
+                  {newCards(type)}
+                </View>
+              ))}
+              <Button label="Add room" variant="outline" icon={Plus} onPress={() => sheetRef.current?.open()} />
+            </View>
+          </FormProvider>
         </ScrollView>
       </KeyboardAvoidingView>
       <SubpageFooter>

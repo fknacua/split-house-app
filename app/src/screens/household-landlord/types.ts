@@ -1,5 +1,6 @@
-import type { Control } from 'react-hook-form';
+import type { Control, FieldPath } from 'react-hook-form';
 
+import type { NextField } from '@/lib';
 import type { BadgeContent, HouseholdHomeFormResponse } from '@splithouse/shared';
 import type { HomeFormValues, NewRoomFormValues } from './helpers';
 
@@ -22,6 +23,8 @@ export interface LandlordFieldsProps {
   control: Control<HomeFormValues>;
   /** The server's messages, by request field name. */
   errors: Record<string, string>;
+  /** The form's keyboard "next" chain. */
+  next: NextField<FieldPath<HomeFormValues>>;
 }
 
 /** Props for {@link RoomCard}. */
@@ -43,6 +46,8 @@ export interface RoomCardProps {
   warnings: Record<string, string>;
   /** Tapped on Remove room. Null means the room has no such button. */
   onRemove: (() => void) | null;
+  /** The form's keyboard "next" chain. */
+  next: NextField<FieldPath<HomeFormValues>>;
 }
 
 /** Props for {@link ReadOnlyField}. */

@@ -23,6 +23,12 @@ export interface FieldControlProps<T extends FieldValues> {
   warning?: string;
   disabled?: boolean;
   className?: string;
+  /**
+   * The text field the keyboard's `next` key moves to. Left out, the key shows `done`. Needs the
+   * form inside react-hook-form's `FormProvider`, which supplies `setFocus`. Build it with
+   * `fieldOrder` from `@/lib`, so each form lists its text fields once.
+   */
+  next?: FieldPath<T>;
 }
 
 /**
@@ -38,6 +44,8 @@ export interface FieldBinding<V = string> {
   invalid: boolean;
   warned: boolean;
   disabled?: boolean;
+  /** Moves focus to the field's `next`; unset when the field has none. */
+  onNext?: () => void;
 }
 
 /** Props of the render-prop `FieldControl`: the form binding plus the bare input to render. */
@@ -58,6 +66,11 @@ export interface StandaloneFieldProps<V = string> {
   disabled?: boolean;
   /** Accessibility label, for when the input is used without a visible label. */
   accessibilityLabel?: string;
+  /**
+   * Called by the keyboard's `next` key. A text input that reads it shows `next` and keeps the
+   * keyboard up while it is set, and `done` otherwise.
+   */
+  onNext?: () => void;
   fieldControlProps?: never;
 }
 
@@ -74,6 +87,7 @@ export interface FormControlledFieldProps<T extends FieldValues> {
   warned?: never;
   disabled?: never;
   accessibilityLabel?: never;
+  onNext?: never;
 }
 
 /**

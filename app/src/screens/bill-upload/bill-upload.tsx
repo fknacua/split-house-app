@@ -2,7 +2,7 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import { useFocusEffect, useLocalSearchParams, useRouter } from 'expo-router';
 import { FileText, Trash2, TriangleAlert } from 'lucide-react-native';
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { useForm, useWatch } from 'react-hook-form';
+import { FormProvider, useForm, useWatch } from 'react-hook-form';
 import { BackHandler, KeyboardAvoidingView, ScrollView } from 'react-native';
 
 import { Button, ConfirmDialog, Screen, SubpageFooter, SubpageHeader } from '@/components';
@@ -85,16 +85,17 @@ export function BillUpload() {
   // What "Save with warnings?" is asking about: the request to save and the warnings to list; null while closed.
   const [confirming, setConfirming] = useState<{ request: SaveBillRequest; warnings: string[] } | null>(null);
   // Checked as it changes, so clearing Current Charges turns the field red straight away.
+  const methods = useForm<ReviewFormValues>({
+    resolver: zodResolver(reviewFormSchema),
+    mode: 'onChange',
+  });
   const {
     control,
     handleSubmit,
     reset,
     trigger,
     formState: { isValid, isSubmitting },
-  } = useForm<ReviewFormValues>({
-    resolver: zodResolver(reviewFormSchema),
-    mode: 'onChange',
-  });
+  } = methods;
   // The server's checks run once typing pauses; Save checks them again.
   const values = useWatch({ control });
   const checkRequest = useDebouncedValue(
@@ -297,14 +298,16 @@ export function BillUpload() {
           {step === 'failed' && draft ? <FailedStep draft={draft} /> : null}
           {reading ? <ReviewSkeleton filename={filename} /> : null}
           {step === 'review' && draft ? (
-            <ReviewForm
-              draft={draft}
-              control={control}
-              onChooseAnother={choosePdf}
-              blockers={blockers}
-              linesNote={check?.linesNote ?? null}
-              saveError={messageOf(save.error)}
-            />
+            <FormProvider {...methods}>
+              <ReviewForm
+                draft={draft}
+                control={control}
+                onChooseAnother={choosePdf}
+                blockers={blockers}
+                linesNote={check?.linesNote ?? null}
+                saveError={messageOf(save.error)}
+              />
+            </FormProvider>
           ) : null}
         </ScrollView>
       </KeyboardAvoidingView>

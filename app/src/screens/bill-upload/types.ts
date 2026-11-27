@@ -1,5 +1,6 @@
-import type { Control } from 'react-hook-form';
+import type { Control, FieldPath } from 'react-hook-form';
 
+import type { NextField } from '@/lib';
 import type { BillBlocker, BillDraftResponse, BillLinesNote } from '@splithouse/shared';
 import type { PickedPdfProblem, ReviewFormValues } from './helpers';
 
@@ -61,4 +62,6 @@ export interface LineRowProps {
   /** The line's name as it is now, for the remove button's label. */
   label: string;
   onRemove: () => void;
+  /** The form's keyboard "next" chain, which lists every line's amount; the row skips it while Add shows instead. */
+  next: NextField<FieldPath<ReviewFormValues>>;
 }

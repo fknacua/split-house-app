@@ -13,7 +13,7 @@ const SLIDER_STEP_PERCENT = 10;
  * The Rent split control: a slider in 10% steps on a track in the two people's colors, and a percent field for each
  * that updates the other, so they always add to 100%. Either can be at 0, with a warning. Amounts come from the server.
  */
-export function SplitControl({ title, cardTitle, owner, primary, bps, savedBps, onChange, amount, error, warning }: SplitControlProps) {
+export function SplitControl({ title, cardTitle, owner, primary, bps, savedBps, onChange, amount, error, warning, focus }: SplitControlProps) {
   const ownerPercent = ownerPercentOf(bps);
   const primaryPercent = primaryPercentOf(bps);
   return (
@@ -32,6 +32,7 @@ export function SplitControl({ title, cardTitle, owner, primary, bps, savedBps, 
           kind="whole"
           suffix="%"
           name={owner.name}
+          focus={focus.owner}
           color={owner.color}
           value={ownerPercent}
           onChange={(percent) => onChange(bpsFromOwnerPercent(percent))}
@@ -43,6 +44,7 @@ export function SplitControl({ title, cardTitle, owner, primary, bps, savedBps, 
           kind="whole"
           suffix="%"
           name={primary.name}
+          focus={focus.primary}
           color={primary.color}
           value={primaryPercent}
           onChange={(percent) => onChange(bpsFromPrimaryPercent(percent))}

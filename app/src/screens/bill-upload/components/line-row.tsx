@@ -14,7 +14,7 @@ import { AddAmountButton } from './add-amount-button';
  * once revealed, even if left empty. A line that had an amount keeps its field when the amount is
  * cleared, so the field is never swapped out while it is being typed in.
  */
-export function LineRow({ control, index, label, onRemove }: LineRowProps) {
+export function LineRow({ control, index, label, onRemove, next }: LineRowProps) {
   const name = label.trim() || 'line';
   const cents = useWatch({ control, name: `lines.${index}.cents` });
   // Whether the bill named this line but gave it no amount, fixed when the row appears. A row the
@@ -36,13 +36,26 @@ export function LineRow({ control, index, label, onRemove }: LineRowProps) {
       <View className="flex-row items-start gap-2">
         <TextInput
           placeholder="Field"
-          fieldControlProps={{ control, name: `lines.${index}.label`, label: 'Field', className: 'min-w-0 flex-1' }}
+          fieldControlProps={{
+            control,
+            name: `lines.${index}.label`,
+            // While Add shows in place of the amount, next goes past it to what follows.
+            next: next(showField ? `lines.${index}.label` : `lines.${index}.cents`),
+            label: 'Field',
+            className: 'min-w-0 flex-1',
+          }}
         />
         {showField ? (
           <MoneyInput
             ref={amountRef}
             placeholder="0.00"
-            fieldControlProps={{ control, name: `lines.${index}.cents`, label: 'Amount', className: 'w-28' }}
+            fieldControlProps={{
+              control,
+              name: `lines.${index}.cents`,
+              next: next(`lines.${index}.cents`),
+              label: 'Amount',
+              className: 'w-28',
+            }}
           />
         ) : (
           <View className="w-28 gap-1.5">

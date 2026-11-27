@@ -1,7 +1,7 @@
 import { zodResolver } from '@hookform/resolvers/zod';
 import { Undo } from 'lucide-react-native';
 import { useState } from 'react';
-import { useForm, useWatch } from 'react-hook-form';
+import { type FieldPath, FormProvider, useForm, useWatch } from 'react-hook-form';
 import { KeyboardAvoidingView, ScrollView, View } from 'react-native';
 
 import {
@@ -15,6 +15,7 @@ import {
   SubpageHeader,
   TextInput,
 } from '@/components';
+import { fieldOrder } from '@/lib';
 import {
   hasUnpickedRoute,
   hasUnsavedChanges,
@@ -41,155 +42,171 @@ import { RouteField } from './route-field';
  * month it was showing, with a toast. Leaving with unsaved changes asks first. "Remove from household" opens its dialog.
  */
 export function PersonForm({ form }: PersonFormProps) {
-  const {
-    control,
-    formState: { isValid },
-  } = useForm<PersonFormValues>({
+  const methods = useForm<PersonFormValues>({
     resolver: zodResolver(personFormSchema),
     mode: 'onChange',
     defaultValues: toPersonFormValues(form),
   });
+  const {
+    control,
+    formState: { isValid },
+  } = methods;
 
   const values = useWatch({ control }) as PersonFormValues;
   const dirty = hasUnsavedChanges(values, form);
   const flow = useEditFlow(toHouseholdEdit(values, form), dirty);
   const { errors, guard } = flow;
   const [removing, setRemoving] = useState(false);
+  // The keyboard's next key: the text fields top to bottom. Only a tenant has the deposit.
+  const next = fieldOrder<FieldPath<PersonFormValues>>([
+    'name',
+    'whatsapp',
+    'rentDueDay',
+    'utilitiesDueDay',
+    form.values.depositCents !== null && 'depositCents',
+  ]);
 
   return (
-    <Screen>
-      <SubpageHeader title={form.title} onBack={guard.requestLeave} />
-      {/* Edge-to-edge Android does not resize for the keyboard, so the padding keeps the focused field in view. */}
-      <KeyboardAvoidingView behavior="padding" className="flex-1">
-        <ScrollView keyboardShouldPersistTaps="handled" contentContainerClassName="gap-4 px-4 pb-4 pt-2">
-          <View pointerEvents={flow.saving ? 'none' : 'auto'} className="gap-4">
-            <FormSection title="Saved right away" separated={false}>
-              <TextInput
-                fieldControlProps={{
-                  control,
-                  name: 'name',
-                  label: 'Name (used in messages)',
-                  required: true,
-                  error: errors.name,
-                }}
-              />
-              <PhoneInput
-                fieldControlProps={{
-                  control,
-                  name: 'whatsapp',
-                  label: 'WhatsApp (optional)',
-                  error: errors.whatsappE164,
-                }}
-              />
-              <ColorField control={control} swatches={form.swatches} fallbackName={form.colorName} />
-            </FormSection>
-
-            {form.room.length > 0 ? (
-              <FormSection title="Room" separated>
-                <RoomFacts facts={form.room} />
-                <LandlordRoomsLink label="Change on Rent & rooms" />
+    <FormProvider {...methods}>
+      <Screen>
+        <SubpageHeader title={form.title} onBack={guard.requestLeave} />
+        {/* Edge-to-edge Android does not resize for the keyboard, so the padding keeps the focused field in view. */}
+        <KeyboardAvoidingView behavior="padding" className="flex-1">
+          <ScrollView keyboardShouldPersistTaps="handled" contentContainerClassName="gap-4 px-4 pb-4 pt-2">
+            <View pointerEvents={flow.saving ? 'none' : 'auto'} className="gap-4">
+              <FormSection title="Saved right away" separated={false}>
+                <TextInput
+                  fieldControlProps={{
+                    control,
+                    name: 'name',
+                    next: next('name'),
+                    label: 'Name (used in messages)',
+                    required: true,
+                    error: errors.name,
+                  }}
+                />
+                <PhoneInput
+                  fieldControlProps={{
+                    control,
+                    name: 'whatsapp',
+                    next: next('whatsapp'),
+                    label: 'WhatsApp (optional)',
+                    error: errors.whatsappE164,
+                  }}
+                />
+                <ColorField control={control} swatches={form.swatches} fallbackName={form.colorName} />
               </FormSection>
-            ) : null}
-
-            <FormSection title={form.datedTitle} note={form.pendingNote} separated>
-              <View className="flex-row items-start gap-3">
-                <CountInput
-                  kind="day"
-                  placeholder="Day, e.g. 1st"
-                  fieldControlProps={{
-                    control,
-                    name: 'rentDueDay',
-                    label: 'Rent due',
-                    required: true,
-                    error: errors.rentDueDay,
-                    className: 'min-w-0 flex-1',
-                  }}
-                />
-                <CountInput
-                  kind="day"
-                  placeholder="Day, e.g. 4th"
-                  fieldControlProps={{
-                    control,
-                    name: 'utilitiesDueDay',
-                    label: 'Utilities due',
-                    required: true,
-                    error: errors.utilitiesDueDay,
-                    className: 'min-w-0 flex-1',
-                  }}
-                />
-              </View>
-              {form.values.depositCents !== null ? (
-                <>
-                  <View className="flex-row items-start gap-3">
-                    <MoneyInput
-                      placeholder="None"
-                      fieldControlProps={{
-                        control,
-                        name: 'depositCents',
-                        label: 'Deposit held (SGD)',
-                        error: errors.depositCents,
-                        className: 'min-w-0 flex-1',
-                      }}
-                    />
-                    <View className="flex-1" />
-                  </View>
-                  <RouteField
-                    control={control}
-                    name="rentVia"
-                    label="Rent paid"
-                    options={form.sentViaOptions}
-                    error={errors.rentViaPersonId}
-                  />
-                  <RouteField
-                    control={control}
-                    name="utilitiesVia"
-                    label="Utilities paid"
-                    options={form.sentViaOptions}
-                    error={errors.utilitiesViaPersonId}
-                  />
-                </>
+  
+              {form.room.length > 0 ? (
+                <FormSection title="Room" separated>
+                  <RoomFacts facts={form.room} />
+                  <LandlordRoomsLink label="Change on Rent & rooms" />
+                </FormSection>
               ) : null}
-            </FormSection>
-          </View>
-        </ScrollView>
-      </KeyboardAvoidingView>
-      <SubpageFooter>
-        <EditSummaryCard groups={flow.groups} loading={dirty && !flow.answered && !flow.previewFailed} />
-        <EditSaveActions flow={flow} disabled={!isValid || hasUnpickedRoute(values)} />
-        {form.secondaryAction.kind === 'remove-person' ? (
-          <Button
-            label={form.secondaryAction.label}
-            variant="ghost-danger"
-            disabled={flow.saving}
-            onPress={() => setRemoving(true)}
-          />
-        ) : (
-          <Button
-            label={form.secondaryAction.label}
-            variant="ghost"
-            disabled={flow.saving}
-            onPress={guard.requestLeave}
-          />
-        )}
-      </SubpageFooter>
-      <ConfirmDialog
-        open={guard.asking}
-        icon={Undo}
-        title="Discard changes?"
-        body={`Your edits to ${form.viewTitle} haven’t been saved. If you leave now, they’ll be lost.`}
-        cancelLabel="Keep editing"
-        onCancel={guard.keepEditing}
-        confirmLabel="Discard"
-        onConfirm={guard.discard}
-      />
-      {form.removeDialog ? (
-        <RemovePersonDialog
-          open={removing}
-          personId={form.personId}
-          dialog={form.removeDialog}
-          onClose={() => setRemoving(false)}
+  
+              <FormSection title={form.datedTitle} note={form.pendingNote} separated>
+                <View className="flex-row items-start gap-3">
+                  <CountInput
+                    kind="day"
+                    placeholder="Day, e.g. 1st"
+                    fieldControlProps={{
+                      control,
+                      name: 'rentDueDay',
+                      next: next('rentDueDay'),
+                      label: 'Rent due',
+                      required: true,
+                      error: errors.rentDueDay,
+                      className: 'min-w-0 flex-1',
+                    }}
+                  />
+                  <CountInput
+                    kind="day"
+                    placeholder="Day, e.g. 4th"
+                    fieldControlProps={{
+                      control,
+                      name: 'utilitiesDueDay',
+                      next: next('utilitiesDueDay'),
+                      label: 'Utilities due',
+                      required: true,
+                      error: errors.utilitiesDueDay,
+                      className: 'min-w-0 flex-1',
+                    }}
+                  />
+                </View>
+                {form.values.depositCents !== null ? (
+                  <>
+                    <View className="flex-row items-start gap-3">
+                      <MoneyInput
+                        placeholder="None"
+                        fieldControlProps={{
+                          control,
+                          name: 'depositCents',
+                          next: next('depositCents'),
+                          label: 'Deposit held (SGD)',
+                          error: errors.depositCents,
+                          className: 'min-w-0 flex-1',
+                        }}
+                      />
+                      <View className="flex-1" />
+                    </View>
+                    <RouteField
+                      control={control}
+                      name="rentVia"
+                      label="Rent paid"
+                      options={form.sentViaOptions}
+                      error={errors.rentViaPersonId}
+                    />
+                    <RouteField
+                      control={control}
+                      name="utilitiesVia"
+                      label="Utilities paid"
+                      options={form.sentViaOptions}
+                      error={errors.utilitiesViaPersonId}
+                    />
+                  </>
+                ) : null}
+              </FormSection>
+            </View>
+          </ScrollView>
+        </KeyboardAvoidingView>
+        <SubpageFooter>
+          <EditSummaryCard groups={flow.groups} loading={dirty && !flow.answered && !flow.previewFailed} />
+          <EditSaveActions flow={flow} disabled={!isValid || hasUnpickedRoute(values)} />
+          {form.secondaryAction.kind === 'remove-person' ? (
+            <Button
+              label={form.secondaryAction.label}
+              variant="ghost-danger"
+              disabled={flow.saving}
+              onPress={() => setRemoving(true)}
+            />
+          ) : (
+            <Button
+              label={form.secondaryAction.label}
+              variant="ghost"
+              disabled={flow.saving}
+              onPress={guard.requestLeave}
+            />
+          )}
+        </SubpageFooter>
+        <ConfirmDialog
+          open={guard.asking}
+          icon={Undo}
+          title="Discard changes?"
+          body={`Your edits to ${form.viewTitle} haven’t been saved. If you leave now, they’ll be lost.`}
+          cancelLabel="Keep editing"
+          onCancel={guard.keepEditing}
+          confirmLabel="Discard"
+          onConfirm={guard.discard}
         />
-      ) : null}
-    </Screen>
+        {form.removeDialog ? (
+          <RemovePersonDialog
+            open={removing}
+            personId={form.personId}
+            dialog={form.removeDialog}
+            onClose={() => setRemoving(false)}
+          />
+        ) : null}
+      </Screen>
+    </FormProvider>
   );
 }

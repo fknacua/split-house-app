@@ -8,7 +8,7 @@ import type { CustomAmountsProps } from '../types';
  * server (`Sam · via Priya`), starting from the Equal split, and the warning Alert while they don't add up to the
  * total. The split preview follows under them (V66).
  */
-export function CustomAmounts({ custom, disabled, onChange }: CustomAmountsProps) {
+export function CustomAmounts({ custom, disabled, onChange, focus }: CustomAmountsProps) {
   return (
     <View className="gap-2.5">
       <Text className="font-manrope-bold text-label text-on-surface">{custom.heading}</Text>
@@ -16,6 +16,7 @@ export function CustomAmounts({ custom, disabled, onChange }: CustomAmountsProps
         <View key={row.personId} className="gap-1.5">
           <Text className="font-manrope-semibold text-caption text-on-surface-variant">{row.label}</Text>
           <MoneyInput
+            {...focus(row.personId)}
             accessibilityLabel={`Amount for ${row.label}`}
             placeholder="0.00"
             value={row.amountCents}
