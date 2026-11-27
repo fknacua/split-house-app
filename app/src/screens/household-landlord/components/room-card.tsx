@@ -21,6 +21,7 @@ export function RoomCard({
   errors,
   warnings,
   onRemove,
+  next,
 }: RoomCardProps) {
   const rentKey = `${errorKey}.rentCents`;
   const units = (
@@ -30,6 +31,7 @@ export function RoomCard({
       fieldControlProps={{
         control,
         name: `${path}.airconUnits`,
+        next: next(`${path}.airconUnits`),
         label: 'Aircon units',
         required: true,
         error: errors[`${errorKey}.airconUnits`],
@@ -50,6 +52,7 @@ export function RoomCard({
         fieldControlProps={{
           control,
           name: `${path}.name`,
+          next: next(`${path}.name`),
           label: 'Room name',
           required: true,
           error: errors[`${errorKey}.name`],
@@ -72,6 +75,7 @@ export function RoomCard({
             fieldControlProps={{
               control,
               name: `${path}.rentCents`,
+              next: next(`${path}.rentCents`),
               label: 'Rent (SGD)',
               required: true,
               error: errors[rentKey],

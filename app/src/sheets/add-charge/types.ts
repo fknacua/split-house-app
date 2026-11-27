@@ -1,3 +1,4 @@
+import type { FocusChainField } from '@/hooks';
 import type { AddChargeConfirm, AddChargePreview, AddChargeSheet, AddChargeValues } from '@splithouse/shared';
 
 /** What a screen can call on an {@link AddChargeSheet} through its ref. */
@@ -29,6 +30,8 @@ export interface CustomAmountsProps {
   custom: NonNullable<AddChargePreview['custom']>;
   disabled: boolean;
   onChange: (personId: string, amountCents: number | null) => void;
+  /** The sheet's keyboard "next" chain, for one person's field. */
+  focus: (personId: string) => FocusChainField;
 }
 
 /** Props for {@link ShareFields}. */
@@ -37,6 +40,8 @@ export interface ShareFieldsProps {
   shares: NonNullable<AddChargePreview['shares']>;
   disabled: boolean;
   onChange: (personId: string, shares: number | null) => void;
+  /** The sheet's keyboard "next" chain, for one person's field. */
+  focus: (personId: string) => FocusChainField;
 }
 
 /** Props for {@link AddChargeConfirmDialog}. */

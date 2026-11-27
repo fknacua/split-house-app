@@ -1,7 +1,7 @@
 import { zodResolver } from '@hookform/resolvers/zod';
 import { Undo } from 'lucide-react-native';
 import { useMemo, useState } from 'react';
-import { useForm, useWatch } from 'react-hook-form';
+import { type FieldPath, FormProvider, useForm, useWatch } from 'react-hook-form';
 import { KeyboardAvoidingView, ScrollView, View } from 'react-native';
 
 import {
@@ -15,6 +15,7 @@ import {
   SubpageHeader,
   TextInput,
 } from '@/components';
+import { fieldOrder } from '@/lib';
 import {
   addPersonFormSchemaFor,
   hasAddPersonInput,
@@ -48,144 +49,162 @@ import { RouteField } from './route-field';
 export function AddPersonForm({ form: opened }: AddPersonFormProps) {
   const [form] = useState(opened);
   const resolver = useMemo(() => zodResolver(addPersonFormSchemaFor(form.rooms)), [form.rooms]);
-  const {
-    control,
-    formState: { isValid },
-  } = useForm<PersonFormValues>({
+  const methods = useForm<PersonFormValues>({
     resolver,
     mode: 'onChange',
     defaultValues: toAddPersonFormValues(form),
   });
+  const {
+    control,
+    formState: { isValid },
+  } = methods;
 
   const values = useWatch({ control }) as PersonFormValues;
   const primary = isPrimaryRoom(form.rooms, values.roomId);
   const flow = useEditFlow(toAddPersonEdit(values, primary), hasAddPersonInput(values, form));
   const { errors, guard } = flow;
+  // The keyboard's next key: the text fields top to bottom. The primary tenant has no shares or deposit.
+  const next = fieldOrder<FieldPath<PersonFormValues>>([
+    'name',
+    'whatsapp',
+    'rentDueDay',
+    'utilitiesDueDay',
+    !primary && 'utilityShares',
+    !primary && 'depositCents',
+  ]);
 
   return (
-    <Screen>
-      <SubpageHeader title={form.title} subtitle={form.sub} onBack={guard.requestLeave} />
-      {/* Edge-to-edge Android does not resize for the keyboard, so the padding keeps the focused field in view. */}
-      <KeyboardAvoidingView behavior="padding" className="flex-1">
-        <ScrollView keyboardShouldPersistTaps="handled" contentContainerClassName="gap-4 px-4 pb-4 pt-2">
-          <View pointerEvents={flow.saving ? 'none' : 'auto'} className="gap-4">
-            <FormSection title="Details" separated={false}>
-              <TextInput
-                placeholder="e.g. first name"
-                fieldControlProps={{
-                  control,
-                  name: 'name',
-                  label: 'Name (used in messages)',
-                  required: true,
-                  error: errors.name,
-                }}
-              />
-              <PhoneInput
-                fieldControlProps={{
-                  control,
-                  name: 'whatsapp',
-                  label: 'WhatsApp (optional)',
-                  error: errors.whatsappE164,
-                }}
-              />
-              <ColorField control={control} swatches={form.swatches} fallbackName={form.colorName} />
-            </FormSection>
-
-            <FormSection title="Room" separated>
-              <RoomField control={control} rooms={form.rooms} error={errors.roomId} />
-            </FormSection>
-
-            <FormSection title={form.datedTitle} separated>
-              <View className="flex-row items-start gap-3">
-                <CountInput
-                  kind="day"
-                  placeholder="Day, e.g. 1st"
+    <FormProvider {...methods}>
+      <Screen>
+        <SubpageHeader title={form.title} subtitle={form.sub} onBack={guard.requestLeave} />
+        {/* Edge-to-edge Android does not resize for the keyboard, so the padding keeps the focused field in view. */}
+        <KeyboardAvoidingView behavior="padding" className="flex-1">
+          <ScrollView keyboardShouldPersistTaps="handled" contentContainerClassName="gap-4 px-4 pb-4 pt-2">
+            <View pointerEvents={flow.saving ? 'none' : 'auto'} className="gap-4">
+              <FormSection title="Details" separated={false}>
+                <TextInput
+                  placeholder="e.g. first name"
                   fieldControlProps={{
                     control,
-                    name: 'rentDueDay',
-                    label: 'Rent due',
+                    name: 'name',
+                    next: next('name'),
+                    label: 'Name (used in messages)',
                     required: true,
-                    error: errors.rentDueDay,
-                    className: 'min-w-0 flex-1',
+                    error: errors.name,
                   }}
                 />
-                <CountInput
-                  kind="day"
-                  placeholder="Day, e.g. 4th"
+                <PhoneInput
                   fieldControlProps={{
                     control,
-                    name: 'utilitiesDueDay',
-                    label: 'Utilities due',
-                    required: true,
-                    error: errors.utilitiesDueDay,
-                    className: 'min-w-0 flex-1',
+                    name: 'whatsapp',
+                    next: next('whatsapp'),
+                    label: 'WhatsApp (optional)',
+                    error: errors.whatsappE164,
                   }}
                 />
-              </View>
-              {primary ? null : (
-                <>
-                  <View className="flex-row items-start gap-3">
-                    <CountInput
-                      kind="shares"
-                      placeholder="e.g. 1"
-                      fieldControlProps={{
-                        control,
-                        name: 'utilityShares',
-                        label: 'Utility shares',
-                        required: true,
-                        error: errors.utilityShares,
-                        className: 'min-w-0 flex-1',
-                      }}
-                    />
-                    <MoneyInput
-                      placeholder="Optional"
-                      fieldControlProps={{
-                        control,
-                        name: 'depositCents',
-                        label: 'Deposit held (SGD)',
-                        error: errors.depositCents,
-                        className: 'min-w-0 flex-1',
-                      }}
-                    />
-                  </View>
-                  <RouteField
-                    control={control}
-                    name="rentVia"
-                    label="Rent paid"
-                    options={form.sentViaOptions}
-                    error={errors.rentViaPersonId}
+                <ColorField control={control} swatches={form.swatches} fallbackName={form.colorName} />
+              </FormSection>
+  
+              <FormSection title="Room" separated>
+                <RoomField control={control} rooms={form.rooms} error={errors.roomId} />
+              </FormSection>
+  
+              <FormSection title={form.datedTitle} separated>
+                <View className="flex-row items-start gap-3">
+                  <CountInput
+                    kind="day"
+                    placeholder="Day, e.g. 1st"
+                    fieldControlProps={{
+                      control,
+                      name: 'rentDueDay',
+                      next: next('rentDueDay'),
+                      label: 'Rent due',
+                      required: true,
+                      error: errors.rentDueDay,
+                      className: 'min-w-0 flex-1',
+                    }}
                   />
-                  <RouteField
-                    control={control}
-                    name="utilitiesVia"
-                    label="Utilities paid"
-                    options={form.sentViaOptions}
-                    error={errors.utilitiesViaPersonId}
+                  <CountInput
+                    kind="day"
+                    placeholder="Day, e.g. 4th"
+                    fieldControlProps={{
+                      control,
+                      name: 'utilitiesDueDay',
+                      next: next('utilitiesDueDay'),
+                      label: 'Utilities due',
+                      required: true,
+                      error: errors.utilitiesDueDay,
+                      className: 'min-w-0 flex-1',
+                    }}
                   />
-                </>
-              )}
-            </FormSection>
-          </View>
-        </ScrollView>
-      </KeyboardAvoidingView>
-      <SubpageFooter>
-        <EditSaveActions
-          flow={flow}
-          label={form.saveLabel}
-          disabled={!isValid || hasUnpickedRoute(values, primary)}
+                </View>
+                {primary ? null : (
+                  <>
+                    <View className="flex-row items-start gap-3">
+                      <CountInput
+                        kind="shares"
+                        placeholder="e.g. 1"
+                        fieldControlProps={{
+                          control,
+                          name: 'utilityShares',
+                          next: next('utilityShares'),
+                          label: 'Utility shares',
+                          required: true,
+                          error: errors.utilityShares,
+                          className: 'min-w-0 flex-1',
+                        }}
+                      />
+                      <MoneyInput
+                        placeholder="Optional"
+                        fieldControlProps={{
+                          control,
+                          name: 'depositCents',
+                          next: next('depositCents'),
+                          label: 'Deposit held (SGD)',
+                          error: errors.depositCents,
+                          className: 'min-w-0 flex-1',
+                        }}
+                      />
+                    </View>
+                    <RouteField
+                      control={control}
+                      name="rentVia"
+                      label="Rent paid"
+                      options={form.sentViaOptions}
+                      error={errors.rentViaPersonId}
+                    />
+                    <RouteField
+                      control={control}
+                      name="utilitiesVia"
+                      label="Utilities paid"
+                      options={form.sentViaOptions}
+                      error={errors.utilitiesViaPersonId}
+                    />
+                  </>
+                )}
+              </FormSection>
+            </View>
+          </ScrollView>
+        </KeyboardAvoidingView>
+        <SubpageFooter>
+          <EditSaveActions
+            flow={flow}
+            label={form.saveLabel}
+            disabled={!isValid || hasUnpickedRoute(values, primary)}
+          />
+          <Button label="Cancel" variant="ghost" disabled={flow.saving} onPress={guard.requestLeave} />
+        </SubpageFooter>
+        <ConfirmDialog
+          open={guard.asking}
+          icon={Undo}
+          title="Discard changes?"
+          body="This person hasn’t been saved. If you leave now, what you entered will be lost."
+          cancelLabel="Keep editing"
+          onCancel={guard.keepEditing}
+          confirmLabel="Discard"
+          onConfirm={guard.discard}
         />
-        <Button label="Cancel" variant="ghost" disabled={flow.saving} onPress={guard.requestLeave} />
-      </SubpageFooter>
-      <ConfirmDialog
-        open={guard.asking}
-        icon={Undo}
-        title="Discard changes?"
-        body="This person hasn’t been saved. If you leave now, what you entered will be lost."
-        cancelLabel="Keep editing"
-        onCancel={guard.keepEditing}
-        confirmLabel="Discard"
-        onConfirm={guard.discard}
-      />
-    </Screen>
+      </Screen>
+    </FormProvider>
   );
 }

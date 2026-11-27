@@ -3,7 +3,7 @@ import { X } from 'lucide-react-native';
 import { View } from 'react-native';
 
 import { Button } from '@/components/button';
-import { type BareInputProps, withFormControlledFieldOf } from '@/components/form-field/';
+import { type BareInputProps, nextKeyProps, withFormControlledFieldOf } from '@/components/form-field/';
 import {
   Input as NativeInput,
   InputField as NativeInputField,
@@ -43,6 +43,7 @@ const BareMoneyInput = forwardRef<
     placeholder = '$0.00',
     allowNegative,
     clearable = false,
+    onNext,
   },
   ref
 ) {
@@ -98,6 +99,7 @@ const BareMoneyInput = forwardRef<
             setDraft(null);
             onBlur?.();
           }}
+          {...nextKeyProps(onNext)}
         />
         {clearable && shown !== '' && !disabled ? (
           <NativeInputSlot
@@ -125,7 +127,9 @@ const BareMoneyInput = forwardRef<
  *
  * @param value - Amount in integer cents, or `null` when empty (standalone only).
  * @param onChange - Called with the cents, or `null` while the text is not an amount (standalone only).
- * @param fieldControlProps - Binds the input to a form field (form-controlled only).
+ * @param onNext - Called by the keyboard's `next` key; left out, the key shows `done` (standalone only).
+ * @param fieldControlProps - Binds the input to a form field (form-controlled only). Its `next`
+ * names the field the keyboard's `next` key moves to.
  * @param placeholder - Shown while empty. Defaults to `$0.00`.
  * @param allowNegative - Shows a +/- button for negative amounts, like correction charges.
  * @param clearable - Shows an × button that empties the field. Defaults to `false`.

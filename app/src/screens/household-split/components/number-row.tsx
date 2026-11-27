@@ -6,7 +6,7 @@ import type { NumberRowProps } from '../types';
 import { FieldMessage } from './field-message';
 
 /** A shares input on the Utilities card, with its label beside it as drawn and its message under it, on the right. */
-export function NumberRow({ label, color, value, onChange, error, warning }: NumberRowProps) {
+export function NumberRow({ label, color, value, onChange, error, warning, focus }: NumberRowProps) {
   return (
     <View className="gap-1">
       <View className="min-h-12 flex-row items-center gap-2.5">
@@ -14,6 +14,7 @@ export function NumberRow({ label, color, value, onChange, error, warning }: Num
         <Text className="min-w-0 flex-1 font-manrope-semibold text-body text-on-surface">{label}</Text>
         <View className="w-32">
           <CountInput
+            {...focus}
             kind="shares"
             placeholder="0"
             alignRight

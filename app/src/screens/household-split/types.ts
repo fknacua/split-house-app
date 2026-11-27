@@ -1,5 +1,6 @@
 import type { ReactNode } from 'react';
 
+import type { FocusChainField } from '@/hooks';
 import type {
   HouseholdSplitAmount,
   HouseholdSplitCountAmount,
@@ -48,6 +49,8 @@ export interface NumberRowProps {
   onChange: (value: number | null) => void;
   error?: string;
   warning?: string;
+  /** The form's keyboard "next" chain, for this input. */
+  focus: FocusChainField;
 }
 
 /** Props for {@link FieldMessage}. */
@@ -77,6 +80,8 @@ export interface SplitControlProps {
   error?: string;
   /** Someone is at 0, which still allows Save. */
   warning?: string;
+  /** The form's keyboard "next" chain, for each person's field. */
+  focus: { owner: FocusChainField; primary: FocusChainField };
 }
 
 /** Props for {@link CountSplitControl}. */
@@ -99,6 +104,8 @@ export interface CountSplitControlProps {
   warning?: string;
   /** Nothing is left to split, so the control is dimmed. */
   dimmed?: boolean;
+  /** The form's keyboard "next" chain, for each person's field. */
+  focus: { owner: FocusChainField; primary: FocusChainField };
 }
 
 /** Props for {@link SplitField}. */
@@ -116,4 +123,6 @@ export interface SplitFieldProps {
   invalid: boolean;
   /** Draws the amber border, for the person at 0. */
   warned: boolean;
+  /** The form's keyboard "next" chain, for this input. */
+  focus: FocusChainField;
 }

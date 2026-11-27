@@ -1,6 +1,6 @@
 import { type ComponentRef, forwardRef } from 'react';
 
-import { withFormControlledField, BareInputProps } from '@/components/form-field/';
+import { withFormControlledField, BareInputProps, nextKeyProps } from '@/components/form-field/';
 import { Input as NativeInput, InputField as NativeInputField } from '@/components/ui/input';
 
 /** Country code the input shows while it is empty. */
@@ -22,7 +22,7 @@ const BarePhoneInput = forwardRef<
   ComponentRef<typeof NativeInputField>,
   BareInputProps & PhoneInputOwnProps
 >(function BarePhoneInput(
-  { value, onChange, onBlur, accessibilityLabel, invalid, disabled, placeholder },
+  { value, onChange, onBlur, accessibilityLabel, invalid, disabled, placeholder, onNext },
   ref
 ) {
   return (
@@ -38,6 +38,7 @@ const BarePhoneInput = forwardRef<
         className={disabled ? 'text-on-disabled' : undefined}
         onChangeText={(text) => onChange(cleanPhone(text))}
         onBlur={onBlur}
+        {...nextKeyProps(onNext)}
       />
     </NativeInput>
   );
@@ -51,6 +52,8 @@ const BarePhoneInput = forwardRef<
  *
  * @param value - Current number, or an empty string (standalone only).
  * @param onChange - Called with the cleaned number (standalone only).
- * @param fieldControlProps - Binds the input to a form field (form-controlled only).
+ * @param onNext - Called by the keyboard's `next` key; left out, the key shows `done` (standalone only).
+ * @param fieldControlProps - Binds the input to a form field (form-controlled only). Its `next`
+ * names the field the keyboard's `next` key moves to.
  */
 export const PhoneInput = withFormControlledField(BarePhoneInput);

@@ -1,5 +1,5 @@
 import { forwardRef, useImperativeHandle, useRef } from 'react';
-import { useForm, useWatch } from 'react-hook-form';
+import { FormProvider, useForm, useWatch } from 'react-hook-form';
 
 import {
   Alert,
@@ -12,6 +12,7 @@ import {
   useSuccessToast,
 } from '@/components';
 import { useDebouncedValue, useHouseholdEditPreview, useSaveHouseholdEdit } from '@/hooks';
+import { fieldOrder } from '@/lib';
 import { EditSummaryCard, PREVIEW_DELAY_MS, requestMessage } from '@/screens/household-person';
 import { toRecurringEdit, toRecurringValues, type RecurringFormValues } from '../helpers';
 import type { RecurringSheetProps } from '../types';
@@ -33,7 +34,9 @@ export const RecurringSheet = forwardRef<AppSheetRef, RecurringSheetProps>(funct
 
   const showToast = useSuccessToast();
   const save = useSaveHouseholdEdit();
-  const { control } = useForm<RecurringFormValues>({ defaultValues: toRecurringValues(charge) });
+  const methods = useForm<RecurringFormValues>({ defaultValues: toRecurringValues(charge) });
+  const { control } = methods;
+  const next = fieldOrder<keyof RecurringFormValues>(['label', 'amountCents']);
   const values = useWatch({ control }) as RecurringFormValues;
 
   const edit = toRecurringEdit(values, charge?.chargeId ?? null);
@@ -79,28 +82,30 @@ export const RecurringSheet = forwardRef<AppSheetRef, RecurringSheetProps>(funct
       }
       onClose={onClose}
     >
-      <TextInput
-        placeholder="e.g. Internet"
-        fieldControlProps={{ control, name: 'label', label: 'Label', required: true, error: errors.label }}
-      />
-      <MoneyInput
-        placeholder="0.00"
-        fieldControlProps={{ control, name: 'amountCents', label: 'Amount (SGD)', required: true, error: errors.amountCents }}
-      />
-      <SelectField
-        placeholder="Choose someone"
-        options={sheet.people.map((person) => ({ label: person.name, value: person.personId }))}
-        fieldControlProps={{ control, name: 'personId', label: 'Who', required: true, error: errors.personId }}
-      />
-      <MonthPicker
-        sheetTitle="End month"
-        months={sheet.endMonths}
-        placeholder="No end month"
-        clearable
-        fieldControlProps={{ control, name: 'endMonth', label: 'End month (optional)', error: errors.endMonth }}
-      />
-      {notice ? <Alert variant="danger" message={notice} /> : null}
-      <EditSummaryCard groups={preview.data?.groups ?? []} loading={charge !== null && isDirty && !answered && !preview.isError} />
+      <FormProvider {...methods}>
+        <TextInput
+          placeholder="e.g. Internet"
+          fieldControlProps={{ control, name: 'label', next: next('label'), label: 'Label', required: true, error: errors.label }}
+        />
+        <MoneyInput
+          placeholder="0.00"
+          fieldControlProps={{ control, name: 'amountCents', label: 'Amount (SGD)', required: true, error: errors.amountCents }}
+        />
+        <SelectField
+          placeholder="Choose someone"
+          options={sheet.people.map((person) => ({ label: person.name, value: person.personId }))}
+          fieldControlProps={{ control, name: 'personId', label: 'Who', required: true, error: errors.personId }}
+        />
+        <MonthPicker
+          sheetTitle="End month"
+          months={sheet.endMonths}
+          placeholder="No end month"
+          clearable
+          fieldControlProps={{ control, name: 'endMonth', label: 'End month (optional)', error: errors.endMonth }}
+        />
+        {notice ? <Alert variant="danger" message={notice} /> : null}
+        <EditSummaryCard groups={preview.data?.groups ?? []} loading={charge !== null && isDirty && !answered && !preview.isError} />
+      </FormProvider>
     </AppSheet>
   );
 });

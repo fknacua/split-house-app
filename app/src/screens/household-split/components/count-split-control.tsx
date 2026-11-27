@@ -23,6 +23,7 @@ export function CountSplitControl({
   error,
   warning,
   dimmed,
+  focus,
 }: CountSplitControlProps) {
   const shown = shownCounts(typed, counts);
   const range = sliderRangeOf(counts.left);
@@ -57,6 +58,7 @@ export function CountSplitControl({
           kind="shares"
           suffix={unit}
           name={owner.name}
+          focus={focus.owner}
           color={owner.color}
           value={shown.owner}
           onChange={(count) => onChange(primaryCountFromOwner(count, counts.left))}
@@ -67,6 +69,7 @@ export function CountSplitControl({
           kind="shares"
           suffix={unit}
           name={primary.name}
+          focus={focus.primary}
           color={primary.color}
           value={shown.primary}
           onChange={onChange}

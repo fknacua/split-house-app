@@ -1,10 +1,11 @@
 import { forwardRef, useImperativeHandle, useRef, useState } from 'react';
-import { useForm, useWatch } from 'react-hook-form';
+import { type FieldPath, FormProvider, useForm, useWatch } from 'react-hook-form';
 import { Text, View } from 'react-native';
 
 import { AppSheet, type AppSheetRef, TextInput, useSuccessToast } from '@/components';
 import { MessageSection } from '@/components/message-preview/message-section';
 import { useSaveTemplateLabels } from '@/hooks';
+import { fieldOrder } from '@/lib';
 import { sectionLabelOf, toSectionLabels } from '../helpers';
 import type { SectionLabels, SectionLabelsSheetProps } from '../types';
 
@@ -28,7 +29,9 @@ export const SectionLabelsSheet = forwardRef<AppSheetRef, SectionLabelsSheetProp
   const showToast = useSuccessToast();
   // The block the sheet opened on: a save refetches `block` while the sheet is closing.
   const [opened, setOpened] = useState(block);
-  const { control, reset } = useForm<SectionLabelsFormValues>({ defaultValues: { labels: toSectionLabels(block) } });
+  const methods = useForm<SectionLabelsFormValues>({ defaultValues: { labels: toSectionLabels(block) } });
+  const { control, reset } = methods;
+  const next = fieldOrder<FieldPath<SectionLabelsFormValues>>(opened.rows.map((row) => `labels.${row.personId}` as const));
   const saved = toSectionLabels(opened);
   const draft = (useWatch({ control, name: 'labels' }) ?? saved) as SectionLabels;
   const changed = opened.rows.some((row) => (draft[row.personId] ?? '') !== (saved[row.personId] ?? ''));
@@ -71,13 +74,21 @@ export const SectionLabelsSheet = forwardRef<AppSheetRef, SectionLabelsSheetProp
       failed={save.isError}
       disabled={!changed}
     >
-      {opened.rows.map((row) => (
-        <TextInput
-          key={row.personId}
-          placeholder={row.placeholder}
-          fieldControlProps={{ control, name: `labels.${row.personId}`, label: row.label, disabled: save.isPending }}
-        />
-      ))}
+      <FormProvider {...methods}>
+        {opened.rows.map((row) => (
+          <TextInput
+            key={row.personId}
+            placeholder={row.placeholder}
+            fieldControlProps={{
+              control,
+              name: `labels.${row.personId}`,
+              next: next(`labels.${row.personId}`),
+              label: row.label,
+              disabled: save.isPending,
+            }}
+          />
+        ))}
+      </FormProvider>
       <View className="gap-2">
         <Text className="px-1 font-manrope-bold text-label text-on-surface">Preview</Text>
         <View className="gap-1.5 rounded-xl bg-container px-3.5 py-3">

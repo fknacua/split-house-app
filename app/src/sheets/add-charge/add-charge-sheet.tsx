@@ -13,7 +13,7 @@ import {
   TextInput,
   type AppSheetRef,
 } from '@/components';
-import { useAddCharge, useAddChargePreview, useAddChargeSheet, useDebouncedValue } from '@/hooks';
+import { useAddCharge, useAddChargePreview, useAddChargeSheet, useDebouncedValue, useFocusChain } from '@/hooks';
 import { queryKeys } from '@/lib';
 import { ApiRequestError } from '@/lib/api';
 import { PREVIEW_DELAY_MS } from '@/screens/household-person';
@@ -160,6 +160,14 @@ export const AddChargeSheet = forwardRef<AddChargeSheetRef>(function AddChargeSh
   // Once a field is typed in, it shows what was typed straight away, not the last preview's value.
   const customFields = chargeView?.custom ? withTypedCustom(chargeView.custom, fields?.customAmounts ?? []) : null;
   const shareFields = chargeView?.shares ? withTypedShares(chargeView.shares, fields?.shares ?? []) : null;
+  // The keyboard's next key, Charge mode only (Correction mode has one text field): Label when shown, Amount, then
+  // Custom's or Per share's fields. The selects and the date are not text fields.
+  const chain = useFocusChain([
+    chargeView?.show.label && 'label',
+    'amount',
+    ...(customFields?.rows ?? []).map((row) => `custom.${row.personId}`),
+    ...(shareFields?.rows ?? []).map((row) => `share.${row.personId}`),
+  ]);
 
   return (
     <>
@@ -216,6 +224,7 @@ export const AddChargeSheet = forwardRef<AddChargeSheetRef>(function AddChargeSh
             {chargeView.show.label ? (
               <FormField label="Label" required disabled={saving} error={errors.label}>
                 <TextInput
+                  {...chain.field('label')}
                   accessibilityLabel="Label"
                   placeholder="e.g. Fridge repair"
                   value={fields.label}
@@ -228,6 +237,7 @@ export const AddChargeSheet = forwardRef<AddChargeSheetRef>(function AddChargeSh
             ) : null}
             <FormField label="Amount (SGD)" required disabled={saving} error={errors.amount}>
               <MoneyInput
+                {...chain.field('amount')}
                 accessibilityLabel="Amount (SGD)"
                 placeholder="Enter amount"
                 value={fields.amountCents}
@@ -289,6 +299,7 @@ export const AddChargeSheet = forwardRef<AddChargeSheetRef>(function AddChargeSh
                 custom={customFields}
                 disabled={saving}
                 onChange={(personId, cents) => change(withCustomAmount(fields, customFields.rows, personId, cents), false)}
+                focus={(personId) => chain.field(`custom.${personId}`)}
               />
             ) : null}
             {shareFields ? (
@@ -296,6 +307,7 @@ export const AddChargeSheet = forwardRef<AddChargeSheetRef>(function AddChargeSh
                 shares={shareFields}
                 disabled={saving}
                 onChange={(personId, value) => change(withShare(fields, shareFields.rows, personId, value), false)}
+                focus={(personId) => chain.field(`share.${personId}`)}
               />
             ) : null}
             {chargeView.preview ? <SplitPreview preview={chargeView.preview} /> : null}

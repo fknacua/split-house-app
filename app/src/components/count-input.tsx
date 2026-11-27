@@ -1,7 +1,7 @@
 import { type ComponentRef, forwardRef, useState } from 'react';
 import { type KeyboardTypeOptions, Text } from 'react-native';
 
-import { type BareInputProps, withFormControlledFieldOf } from '@/components/form-field/';
+import { type BareInputProps, nextKeyProps, withFormControlledFieldOf } from '@/components/form-field/';
 import { Input as NativeInput, InputField as NativeInputField } from '@/components/ui/input';
 import { parseShareInput, sanitizeShareInput, sharesToInputText } from '@/lib/share-input';
 import { formatDayOrdinal } from '@splithouse/shared';
@@ -72,7 +72,7 @@ const BareCountInput = forwardRef<
   ComponentRef<typeof NativeInputField>,
   BareInputProps<number | null> & CountInputOwnProps
 >(function BareCountInput(
-  { value, onChange, onBlur, accessibilityLabel, invalid, warned, disabled, kind, placeholder, suffix, alignRight },
+  { value, onChange, onBlur, accessibilityLabel, invalid, warned, disabled, kind, placeholder, suffix, alignRight, onNext },
   ref,
 ) {
   const { keyboardType, maxLength, clean, read, editText, shownText } = KINDS[kind];
@@ -101,6 +101,7 @@ const BareCountInput = forwardRef<
           setDraft(null);
           onBlur?.();
         }}
+        {...nextKeyProps(onNext)}
       />
       {suffix ? <Text className="font-manrope-medium text-field text-on-surface-variant">{suffix}</Text> : null}
     </NativeInput>
@@ -118,7 +119,9 @@ const BareCountInput = forwardRef<
  * @param alignRight - Lines the text up on the right.
  * @param value - The number, or `null` when empty (standalone only).
  * @param onChange - Called with the number, or `null` while the text is empty (standalone only).
- * @param fieldControlProps - Binds the input to a form field (form-controlled only).
+ * @param onNext - Called by the keyboard's `next` key; left out, the key shows `done` (standalone only).
+ * @param fieldControlProps - Binds the input to a form field (form-controlled only). Its `next`
+ * names the field the keyboard's `next` key moves to.
  */
 export const CountInput = withFormControlledFieldOf<
   CountInputOwnProps,

@@ -1,5 +1,5 @@
 import { forwardRef, useImperativeHandle, useRef } from 'react';
-import { useForm, useWatch } from 'react-hook-form';
+import { FormProvider, useForm, useWatch } from 'react-hook-form';
 import { Text, View } from 'react-native';
 
 import {
@@ -11,6 +11,7 @@ import {
   MoneyInput,
   TextInput,
 } from '@/components';
+import { fieldOrder } from '@/lib';
 import { EMPTY_NEW_ROOM, isNewRoomFilled, type NewRoomFormValues } from '../helpers';
 import type { AddRoomSheetProps } from '../types';
 
@@ -20,9 +21,11 @@ import type { AddRoomSheetProps } from '../types';
  */
 export const AddRoomSheet = forwardRef<AppSheetRef, AddRoomSheetProps>(function AddRoomSheet({ types, onAdd }, ref) {
   const sheetRef = useRef<AppSheetRef>(null);
-  const { control, reset, setValue } = useForm<NewRoomFormValues>({ defaultValues: EMPTY_NEW_ROOM });
+  const methods = useForm<NewRoomFormValues>({ defaultValues: EMPTY_NEW_ROOM });
+  const { control, reset, setValue } = methods;
   const values = useWatch({ control }) as NewRoomFormValues;
   const isTenantRoom = values.roomType === 'TENANT';
+  const next = fieldOrder<keyof NewRoomFormValues>(['name', isTenantRoom && 'rentCents', 'airconUnits']);
 
   useImperativeHandle(
     ref,
@@ -48,35 +51,44 @@ export const AddRoomSheet = forwardRef<AppSheetRef, AddRoomSheetProps>(function 
         sheetRef.current?.close();
       }}
     >
-      <View className="gap-1.5">
-        <Text className="font-manrope-bold text-label text-on-surface">Type</Text>
-        <ConnectedButtonGroup
-          label="Room type"
-          value={values.roomType}
-          onChange={(roomType) => setValue('roomType', roomType)}
-          options={types.map((type) => ({ label: type.title, value: type.roomType }))}
-        />
-      </View>
-      <TextInput
-        placeholder={isTenantRoom ? 'e.g. Room 4' : 'e.g. Study'}
-        fieldControlProps={{ control, name: 'name', label: 'Room name', required: true }}
-      />
-      <View className="flex-row items-start gap-3">
-        {isTenantRoom ? (
-          <MoneyInput
-            placeholder="0.00"
-            fieldControlProps={{ control, name: 'rentCents', label: 'Rent (SGD)', required: true, className: 'min-w-0 flex-1' }}
+      <FormProvider {...methods}>
+        <View className="gap-1.5">
+          <Text className="font-manrope-bold text-label text-on-surface">Type</Text>
+          <ConnectedButtonGroup
+            label="Room type"
+            value={values.roomType}
+            onChange={(roomType) => setValue('roomType', roomType)}
+            options={types.map((type) => ({ label: type.title, value: type.roomType }))}
           />
-        ) : null}
-        <CountInput
-          kind="whole"
-          placeholder="0"
-          fieldControlProps={{ control, name: 'airconUnits', label: 'Aircon units', required: true, className: 'min-w-0 flex-1' }}
+        </View>
+        <TextInput
+          placeholder={isTenantRoom ? 'e.g. Room 4' : 'e.g. Study'}
+          fieldControlProps={{ control, name: 'name', next: next('name'), label: 'Room name', required: true }}
         />
-      </View>
-      {isTenantRoom ? (
-        <Checkbox control={control} name="includeInTotal" label="Include in total" className="-mt-2 self-end" />
-      ) : null}
+        <View className="flex-row items-start gap-3">
+          {isTenantRoom ? (
+            <MoneyInput
+              placeholder="0.00"
+              fieldControlProps={{
+                control,
+                name: 'rentCents',
+                next: next('rentCents'),
+                label: 'Rent (SGD)',
+                required: true,
+                className: 'min-w-0 flex-1',
+              }}
+            />
+          ) : null}
+          <CountInput
+            kind="whole"
+            placeholder="0"
+            fieldControlProps={{ control, name: 'airconUnits', label: 'Aircon units', required: true, className: 'min-w-0 flex-1' }}
+          />
+        </View>
+        {isTenantRoom ? (
+          <Checkbox control={control} name="includeInTotal" label="Include in total" className="-mt-2 self-end" />
+        ) : null}
+      </FormProvider>
     </AppSheet>
   );
 });

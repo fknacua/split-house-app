@@ -1,11 +1,12 @@
 import { zodResolver } from '@hookform/resolvers/zod';
 import { Link } from 'lucide-react-native';
 import { forwardRef, useImperativeHandle, useRef, useState } from 'react';
-import { useForm, useWatch } from 'react-hook-form';
+import { type FieldPath, FormProvider, useForm, useWatch } from 'react-hook-form';
 import { Text, View } from 'react-native';
 
 import { AppSheet, type AppSheetRef, Icon, TextInput, useSuccessToast } from '@/components';
 import { useSaveTemplateLabels } from '@/hooks';
+import { fieldOrder } from '@/lib';
 import { templateLabelsSaveRequestSchema, type TemplateLabelsSaveRequest } from '@splithouse/shared';
 import { hasLabelsChanges, toLabelsFormValues, type LabelsFormValues } from '../helpers';
 import type { LineLabelsSheetProps } from '../types';
@@ -24,16 +25,18 @@ export const LineLabelsSheet = forwardRef<AppSheetRef, LineLabelsSheetProps>(fun
   const showToast = useSuccessToast();
   // The labels the sheet opened on: a save refetches `labels` while the sheet is closing.
   const [opened, setOpened] = useState(labels);
-  const {
-    control,
-    reset,
-    formState: { isValid },
-  } = useForm<LabelsFormValues, unknown, TemplateLabelsSaveRequest>({
+  const methods = useForm<LabelsFormValues, unknown, TemplateLabelsSaveRequest>({
     defaultValues: toLabelsFormValues(labels),
     resolver: zodResolver(templateLabelsSaveRequestSchema),
     mode: 'onChange',
   });
+  const {
+    control,
+    reset,
+    formState: { isValid },
+  } = methods;
   const values = useWatch({ control }) as LabelsFormValues;
+  const next = fieldOrder<FieldPath<LabelsFormValues>>(opened.rows.map((row) => `lineLabels.${row.type}` as const));
 
   useImperativeHandle(
     ref,
@@ -74,12 +77,20 @@ export const LineLabelsSheet = forwardRef<AppSheetRef, LineLabelsSheetProps>(fun
         <Icon as={Link} size={12} className="text-on-surface-variant" />
         <Text className="font-manrope-semibold text-caption text-on-surface-variant">{opened.sharedNote}</Text>
       </View>
-      {opened.rows.map((row) => (
-        <TextInput
-          key={row.type}
-          fieldControlProps={{ control, name: `lineLabels.${row.type}`, label: row.label, disabled: save.isPending }}
-        />
-      ))}
+      <FormProvider {...methods}>
+        {opened.rows.map((row) => (
+          <TextInput
+            key={row.type}
+            fieldControlProps={{
+              control,
+              name: `lineLabels.${row.type}`,
+              next: next(`lineLabels.${row.type}`),
+              label: row.label,
+              disabled: save.isPending,
+            }}
+          />
+        ))}
+      </FormProvider>
     </AppSheet>
   );
 });

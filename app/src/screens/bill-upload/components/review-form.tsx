@@ -1,9 +1,11 @@
 import { Plus, RefreshCw } from 'lucide-react-native';
-import { useFieldArray, useWatch } from 'react-hook-form';
+import { type FieldPath, useFieldArray, useWatch } from 'react-hook-form';
 import { Text, View } from 'react-native';
 
 import { Alert, Button, Card, DateField, DateRangeField, EmptyBox, FileCard, MoneyInput, TextInput } from '@/components';
+import { fieldOrder } from '@/lib';
 import type { BillBlocker } from '@splithouse/shared';
+import type { ReviewFormValues } from '../helpers';
 import type { ReviewFormProps } from '../types';
 import { LineRow } from './line-row';
 import { SubtotalRow } from './subtotal-row';
@@ -21,6 +23,12 @@ export function ReviewForm({ draft, control, onChooseAnother, blockers, linesNot
   const blockerOn = (field: BillBlocker['field']) => blockers.find((blocker) => blocker.field === field);
   // The `unread` board: the server could not read the bill and the user said it is the right one.
   const typed = !draft.readOk;
+  // The keyboard's next key: Current Charges, Bill month, then each line's name and amount. The dates are pickers.
+  const next = fieldOrder<FieldPath<ReviewFormValues>>([
+    'currentChargesCents',
+    'billMonth',
+    ...fields.flatMap((_, index) => [`lines.${index}.label`, `lines.${index}.cents`] as const),
+  ]);
 
   return (
     <>
@@ -48,6 +56,7 @@ export function ReviewForm({ draft, control, onChooseAnother, blockers, linesNot
           fieldControlProps={{
             control,
             name: 'currentChargesCents',
+            next: next('currentChargesCents'),
             label: 'Current Charges (SGD)',
             required: true,
           }}
@@ -62,6 +71,7 @@ export function ReviewForm({ draft, control, onChooseAnother, blockers, linesNot
             fieldControlProps={{
               control,
               name: 'billMonth',
+              next: next('billMonth'),
               label: 'Bill month',
               required: true,
               error: blockerOn('billMonth')?.fieldMessage,
@@ -113,6 +123,7 @@ export function ReviewForm({ draft, control, onChooseAnother, blockers, linesNot
                   index={index}
                   label={lines[index]?.label ?? ''}
                   onRemove={() => remove(index)}
+                  next={next}
                 />
               ))}
             </View>
