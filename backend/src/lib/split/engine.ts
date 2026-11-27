@@ -3,8 +3,8 @@ import { masterRentCents, roomOf, totalAirconUnits } from "@/lib/household/room-
 
 // Pure split engine (see docs/SplitHouse — Data Model.md "Split engine" and
 // "Rounding rule"). No Prisma, no Date.now: every input is passed in.
-// Rounding rule: everyone except Francis (the owner) is rounded to the nearest
-// cent, half up. Francis's amount is always a remainder, so a category's parts
+// Rounding rule: everyone except the owner is rounded to the nearest
+// cent, half up. The owner's amount is always a remainder, so a category's parts
 // add up exactly to its total.
 
 export class SplitEngineError extends Error {}

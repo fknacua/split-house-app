@@ -30,7 +30,7 @@ const basisPoints = z.number().int().min(0).max(10000);
 const chargeTypeRecord = <T extends z.ZodType>(value: T) =>
   z.partialRecord(z.enum(CHARGE_TYPES), value);
 
-// Owner is Francis; the primary tenant shares the master room with the owner.
+// The primary tenant shares the master room with the owner.
 const role = z.enum(["OWNER", "PRIMARY", "TENANT"]);
 
 const route = z.discriminatedUnion("kind", [

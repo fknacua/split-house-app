@@ -70,7 +70,7 @@ export interface SendEventDb extends MessageTemplatesDb {
 }
 
 /**
- * Records that a message went out on WhatsApp, once Francis confirmed it was sent. The server renders the text
+ * Records that a message went out on WhatsApp, once the owner confirmed it was sent. The server renders the text
  * itself, with the same renderers as the Send message sheet, and stores it. A nudge about several charges stores
  * one NUDGE event per charge, each with the whole nudge's text and the same time, in one statement.
  *

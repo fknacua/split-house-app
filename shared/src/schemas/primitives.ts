@@ -24,7 +24,7 @@ export const positiveCents = cents.positive('Enter an amount above $0.00');
 
 /**
  * A phone number in E.164 form, any country, e.g. `+6591234567`. Checks the
- * format only, not that the number exists; Francis opens each chat himself,
+ * format only, not that the number exists; the owner opens each chat by hand,
  * so a wrong number shows up before anything is sent. `PhoneInput` starts
  * with an editable `+65`.
  */

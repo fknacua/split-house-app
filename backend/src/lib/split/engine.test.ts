@@ -319,7 +319,7 @@ describe("Nov 2026 fixture totals", () => {
     expect(utilities + airconAmounts[PERSON_IDS.sam]).toBe(10079);
   });
 
-  it("Francis's own-share total is 183536 (rent + utilities + aircon)", () => {
+  it("the owner's own-share total is 183536 (rent + utilities + aircon)", () => {
     expect(totalFor(PERSON_IDS.alex)).toBe(183536);
   });
 

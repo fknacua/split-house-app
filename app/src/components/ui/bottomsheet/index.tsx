@@ -214,7 +214,7 @@ export const BottomSheetPortal = ({
   const snapPointsKey = JSON.stringify(snapPoints);
   const memoizedSnapPoints = useMemo(
     () => snapPoints,
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- snapPointsKey stands in for snapPoints so the array keeps its identity
     [snapPointsKey]
   );
 

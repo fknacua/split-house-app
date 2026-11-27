@@ -10,7 +10,7 @@ const OPTIONAL_PILL = 'Optional';
 
 /**
  * One step on Welcome. The current step has the selected fill and the only chevron; done steps
- * reopen with no chevron; later steps are muted and can't be tapped (deviation F2, Francis 2026-11-08).
+ * reopen with no chevron; later steps are muted and can't be tapped (deviation F2, decided 2026-11-08).
  */
 export function WelcomeRow({ row, separated, onOpen }: WelcomeRowProps) {
   const disabled = row.state === 'disabled';
