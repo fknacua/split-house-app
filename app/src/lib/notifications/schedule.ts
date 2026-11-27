@@ -26,7 +26,7 @@ export function fetchNotificationPlan(): Promise<NotificationPlanResponse> {
  * @param notification - One notification of the plan.
  * @returns The content to schedule.
  */
-export function notificationContent(notification: PlannedNotification): Notifications.NotificationContentInput {
+function notificationContent(notification: PlannedNotification): Notifications.NotificationContentInput {
   const data: NotificationData = {
     id: notification.id,
     channel: notification.channel,
@@ -46,7 +46,7 @@ export function notificationContent(notification: PlannedNotification): Notifica
  *
  * @returns True once the permission is granted.
  */
-export async function notificationsAllowed(): Promise<boolean> {
+async function notificationsAllowed(): Promise<boolean> {
   return (await Notifications.getPermissionsAsync()).granted;
 }
 
@@ -104,7 +104,7 @@ export async function askForNotificationsIfNeverAsked(): Promise<boolean> {
 }
 
 /** How soon an event FYI fires at the earliest once it is scheduled, so one whose `at` passed while the list loaded still comes. */
-export const EVENT_FYI_DELAY_MS = 5_000;
+const EVENT_FYI_DELAY_MS = 5_000;
 
 /**
  * When the phone schedules a notification: its `at`, except that an event FYI still to be acknowledged fires no
@@ -155,7 +155,7 @@ export async function scheduleNotificationPlan(
  * @returns Once the server has stored them.
  * @throws When the request fails; the events stay pending and the next rebuild schedules them again.
  */
-export async function acknowledgeScheduledEvents(events: NotificationAcknowledgeEvent[]): Promise<void> {
+async function acknowledgeScheduledEvents(events: NotificationAcknowledgeEvent[]): Promise<void> {
   if (events.length === 0) return;
   const body: NotificationAcknowledgeRequest = { events };
   await apiFetch<NotificationAcknowledgeResponse>('/api/notifications/acknowledge', { method: 'POST', body });

@@ -27,12 +27,12 @@ const STALE_TIME_MS = 30_000;
  * @param failureCount Failures so far, starting at 0 for the first retry.
  * @param error The error the query function threw.
  */
-export function shouldRetryRead(failureCount: number, error: Error): boolean {
+function shouldRetryRead(failureCount: number, error: Error): boolean {
   return error instanceof ServerUnreachableError && failureCount < READ_RETRIES;
 }
 
 /** Waits about 1s, then 2s, between read retries. */
-export function readRetryDelay(attemptIndex: number): number {
+function readRetryDelay(attemptIndex: number): number {
   return Math.min(1000 * 2 ** attemptIndex, 4000);
 }
 
