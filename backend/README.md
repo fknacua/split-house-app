@@ -46,6 +46,37 @@ npm run lint
 npm run seed:reset   # wipe the domain tables and reseed (refuses in production)
 ```
 
+## Backups and restore
+
+Two GitHub Actions workflows, both using the repository's Actions secrets. Never put a connection string, key or passphrase in a file in the repo.
+
+- **Backup** (`.github/workflows/backup.yml`) runs every Sunday at 18:00 UTC and can be started from the Actions tab. It dumps the production database with a read-only role (`pg_dump --format=custom`), checks the dump, encrypts it with gpg using `BACKUP_PASSPHRASE`, uploads it to the R2 bucket as `db/split-house-<UTC timestamp>.dump.gpg` and keeps the newest 8. GitHub emails the repo owner when a scheduled run fails.
+- **Restore** (`.github/workflows/restore.yml`) is manual only. It loads a backup (the newest unless a file name is given) into the empty database named by the `RESTORE_TARGET_URL` secret, in one transaction. It then prints every table's row count next to production's and checks that each stored bill PDF opens with its stored size and page count. It refuses to run when the target is the production database (`NEON_DIRECT_URL`'s host and database) or already has tables.
+
+Secrets: `NEON_DIRECT_URL` (read-only role, direct host), `BACKUP_PASSPHRASE`, `BACKUP_BUCKET`, `BACKUP_ENDPOINT`, `BACKUP_ACCESS_KEY_ID`, `BACKUP_SECRET_ACCESS_KEY`, and `RESTORE_TARGET_URL` only while restoring. Keep a copy of the passphrase outside GitHub: without it no backup can be decrypted.
+
+### Restore test
+
+Run this after any change to either workflow or a Postgres major upgrade. It never touches production.
+
+1. In the Neon console, create a branch `restore-test` from `production`. On that branch, go to **Databases** and create a new database `restored`, owned by the branch's owner role.
+2. Open **Connect**, choose branch `restore-test`, database `restored`, the owner role and a direct connection (pooling off), and copy the string.
+3. In GitHub, under **Settings**, **Secrets and variables**, **Actions**, set `RESTORE_TARGET_URL` to that string.
+4. In **Actions**, choose **Restore**, then **Run workflow**, and leave the file name empty.
+5. Read the log. **Compare row counts with production** should end with `Every table matches production.` Rows written since the backup was taken show as `differs`, so compare those by hand. **Check the bill PDFs open** should end with `All N bill files open and match their stored size.`
+6. Delete the `restore-test` branch in Neon, then delete the `RESTORE_TARGET_URL` secret in GitHub.
+
+### Real restore
+
+Use this when production's data is lost or damaged beyond Neon's own restore window.
+
+1. Create a branch `restored-<YYYY-MM-DD>` and its empty database as in the restore test, set `RESTORE_TARGET_URL` and run **Restore**. To go back to an earlier backup, type its file name (from the R2 bucket's `db/` folder) in the run form.
+2. Check the report. Leave the broken branch alone until the new one is in use: it may still hold changes made after the backup.
+3. In Vercel, set `DATABASE_URL` (pooled) and `DIRECT_URL` (direct) to the new branch's strings for Production, and redeploy. The app talks only to the backend, so it needs no change.
+4. If the app shows the sign-in screen, sign in again. A session created after the backup isn't in it.
+5. On the new branch, create the backup's read-only role again (Account Setup Guide, section 9) and update `NEON_DIRECT_URL`. Then run **Backup** by hand.
+6. Delete the `RESTORE_TARGET_URL` secret. Once satisfied, delete the broken branch.
+
 ## Endpoints (v1 contract)
 
 Written as each screen needs them. Update the status here when an endpoint is built, and add its request and response schemas to `shared/src/api/` in the same change. The app imports the types from `@splithouse/shared`, and a backend test checks the real response against the schema.
