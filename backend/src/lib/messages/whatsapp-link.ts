@@ -1,5 +1,5 @@
 /**
- * The link that opens a WhatsApp chat with the message typed in, ready for Francis to send. wa.me
+ * The link that opens a WhatsApp chat with the message typed in, ready for the owner to send. wa.me
  * wants the number as digits only, with the country code and no `+`.
  *
  * @param e164 - The number in E.164 form, e.g. `+6581234567`.

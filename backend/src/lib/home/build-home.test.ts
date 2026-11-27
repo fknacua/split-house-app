@@ -510,7 +510,7 @@ describe("buildHome, collecting on 3 Nov", () => {
     });
   });
 
-  it("covers only Francis's own share when nobody has paid their utilities", () => {
+  it("covers only the owner's own share when nobody has paid their utilities", () => {
     const unpaid = collecting({ charges: withPaid([]) });
     expect(unpaid.hero.body).toMatchObject({
       coverage: { text: "$123.69 of $412.30", percent: 30, note: "Your share only so far · due 16 Nov" },
@@ -536,7 +536,7 @@ describe("buildHome, collecting on 3 Nov", () => {
     ]);
   });
 
-  it("drops Record payment once nobody but Francis has anything left to pay", () => {
+  it("drops Record payment once nobody but the owner has anything left to pay", () => {
     const allPaid = novemberChargesWithBill().map((c) => ({ ...c, paidCents: c.amountCents, paidOn: new Date("2026-11-03") }));
     expect(collecting({ charges: allPaid }).footer.map((b) => b.label)).toEqual(["Send message"]);
   });

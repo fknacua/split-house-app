@@ -150,7 +150,7 @@ export const sendMessageCardSchema = z.object({
 export type SendMessageCard = z.infer<typeof sendMessageCardSchema>;
 
 /**
- * `POST /api/send/events`: records that a message went out on WhatsApp, once Francis confirms it was sent. The server
+ * `POST /api/send/events`: records that a message went out on WhatsApp, once the owner confirms it was sent. The server
  * renders and stores the message text itself.
  */
 export const sendEventRequestSchema = z.discriminatedUnion('kind', [
@@ -193,7 +193,7 @@ export const messageEventResponseSchema = z.object({
 export type MessageEventResponse = z.infer<typeof messageEventResponseSchema>;
 
 /**
- * Opens the person's WhatsApp chat at `url` (`https://wa.me/...` with the message filled in). Once Francis confirms it
+ * Opens the person's WhatsApp chat at `url` (`https://wa.me/...` with the message filled in). Once the owner confirms it
  * was sent, the app posts `record` to `POST /api/send/events` as it is.
  */
 export const sendWhatsappTargetSchema = z.object({

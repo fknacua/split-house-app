@@ -21,7 +21,7 @@ export function startMonthFor(
 
 /**
  * The info Alert under the cards when Another month is chosen. The app writes it from the picked month, with no
- * round trip to the server (Francis, 2026-11-07).
+ * round trip to the server (decided 2026-11-07).
  *
  * @param month The picked `YYYY-MM` key.
  * @returns e.g. `That’s a long wait. Are you sure you want to start in January 2027?`

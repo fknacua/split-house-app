@@ -70,7 +70,7 @@ export interface HomeMessage {
 export interface HomeBill {
   currentChargesCents: number;
   dueDate: Date | null;
-  /** What Francis paid the provider. Null until he marks the bill paid. */
+  /** What the owner paid the provider. Null until the bill is marked paid. */
   paidCents: number | null;
   paidOn: Date | null;
 }

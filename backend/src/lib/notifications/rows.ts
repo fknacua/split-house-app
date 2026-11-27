@@ -6,7 +6,7 @@ export interface NotificationGroupRow {
   label: string;
   /** The helper line under the switch. */
   detail: string;
-  /** Whether the switch is on before Francis changes it. */
+  /** Whether the switch is on before the owner changes it. */
   enabled: boolean;
   sortOrder: number;
 }

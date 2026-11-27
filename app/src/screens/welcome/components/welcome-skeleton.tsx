@@ -13,7 +13,7 @@ const ROW_WIDTHS: [`${number}%`, `${number}%`][] = [
 ];
 
 /**
- * Welcome while `GET /api/setup` loads (not drawn; approved by Francis 2026-11-08): the real logo,
+ * Welcome while `GET /api/setup` loads (not drawn; approved 2026-11-08): the real logo,
  * blocks for the heading and the intro's two lines, the steps card with six rows of a round dot
  * and two lines, and a 48px pill in the footer where the main button goes.
  */

@@ -12,9 +12,9 @@ const SHARE_FAILED = 'Couldn’t share the bill. The PDF didn’t download. Try 
 
 /**
  * Share bill (`Share.dc.html`, `pdf` and `summary`), opened from the Send message sheet only. Bill PDF or a
- * Summary; the summary shows the "Include each person's share" Switch above its preview (Francis,
+ * Summary; the summary shows the "Include each person's share" Switch above its preview (decided in the
  * 7.10 device review: under it, the Switch moved as the preview grew), off each time the sheet opens. Without a stored PDF the Bill PDF card is disabled and Summary is chosen
- * (agreed with Francis, 2026-10-30). "Choose where to send" opens Android's share sheet (the
+ * (decided 2026-10-30). "Choose where to send" opens Android's share sheet (the
  * board's `system` state is Android's own); once it closes, so does this sheet. The text comes
  * from the bill response (`useBill`), so the sheet shows a skeleton until it arrives.
  */
